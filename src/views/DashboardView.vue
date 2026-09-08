@@ -641,14 +641,18 @@ const handleSaveEditMember = async () => {
   if (!editMemberForm.value.firstName.trim() || !editMemberForm.value.email.trim()) return
 
   savingEdit.value = true
-  const res = await store.updateMember(editMemberForm.value.id, editMemberForm.value)
-  savingEdit.value = false
-
-  if (res.success) {
-    showEditMemberModal.value = false
-    await store.fetchAllData()
-  } else {
-    alert(res.error || 'Erreur lors de la modification du membre')
+  try {
+    const res = await store.updateMember(editMemberForm.value.id, editMemberForm.value)
+    if (res.success) {
+      showEditMemberModal.value = false
+      await store.fetchAllData()
+    } else {
+      alert(res.error || 'Erreur lors de la modification du membre')
+    }
+  } catch (err) {
+    alert(err.message || 'Erreur lors de l\'enregistrement')
+  } finally {
+    savingEdit.value = false
   }
 }
 
