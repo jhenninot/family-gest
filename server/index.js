@@ -243,6 +243,65 @@ app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
   }
 })
 
+// Modifier un membre : Réservé à l'Administrateur
+app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const memberId = Number(req.params.id)
+    const user = await User.findOne({ id: memberId })
+    if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
+
+    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin } = req.body
+
+    if (firstName) user.firstName = firstName.trim()
+    if (lastName) user.lastName = lastName.trim()
+    if (name && !firstName && !lastName) {
+      user.firstName = name.split(' ')[0]
+      user.lastName = name.split(' ').slice(1).join(' ') || user.lastName
+    }
+
+    if (role) user.role = role
+    if (avatar) user.avatar = avatar
+    if (color) user.color = color
+    if (points !== undefined && points !== null) user.points = Number(points)
+
+    if (isAdmin !== undefined && isAdmin !== null) {
+      if (user.id === req.user.id && !isAdmin && user.isAdmin) {
+        return res.status(400).json({ error: 'Vous ne pouvez pas retirer vos propres privilèges d\'administrateur' })
+      }
+      user.isAdmin = Boolean(isAdmin)
+    }
+
+    if (email && email.toLowerCase().trim() !== user.email) {
+      const existing = await User.findOne({ email: email.toLowerCase().trim() })
+      if (existing && existing.id !== user.id) {
+        return res.status(400).json({ error: 'Un membre avec cette adresse email existe déjà' })
+      }
+      user.email = email.toLowerCase().trim()
+    }
+
+    if (password && password.trim().length > 0) {
+      user.password = password.trim()
+    }
+
+    await user.save()
+
+    res.json({
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      role: user.role,
+      avatar: user.avatar,
+      color: user.color,
+      points: user.points
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // Modifier le statut Administrateur d'un membre : Réservé à l'Administrateur
 app.put('/api/members/:id/toggle-admin', requireAuth, requireAdmin, async (req, res) => {
   try {

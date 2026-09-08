@@ -160,6 +160,26 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  const updateMember = async (id, memberData) => {
+    try {
+      const res = await fetch(`/api/members/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(memberData)
+      })
+      const data = await res.json()
+      if (res.ok) {
+        const index = members.value.findIndex(m => m.id === id)
+        if (index !== -1) members.value[index] = data
+        return { success: true, data }
+      } else {
+        return { success: false, error: data.error }
+      }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }
+
   const addTask = async (taskData) => {
     try {
       const res = await fetch('/api/tasks', {
@@ -335,6 +355,7 @@ export const useFamilyStore = defineStore('family', () => {
     addMember,
     deleteMember,
     toggleAdminStatus,
+    updateMember,
     addTask,
     toggleTask,
     deleteTask,

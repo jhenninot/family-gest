@@ -178,8 +178,16 @@
             </span>
           </div>
 
+          <!-- Members Grid (Clickable by Admin to Edit Member) -->
           <div class="members-cards-grid">
-            <div v-for="member in store.members" :key="member.id" class="member-card">
+            <div 
+              v-for="member in store.members" 
+              :key="member.id" 
+              class="member-card"
+              :class="{ clickable: authStore.isAdmin }"
+              @click="authStore.isAdmin && openEditMemberModal(member)"
+              :title="authStore.isAdmin ? 'Cliquez pour modifier les informations de ce membre' : ''"
+            >
               <div class="member-card-header">
                 <span class="avatar-emoji">{{ member.avatar }}</span>
                 <div class="member-card-name">
@@ -198,10 +206,20 @@
                     {{ member.points }} pts
                   </span>
 
+                  <!-- Edit icon button for Admin -->
+                  <button 
+                    v-if="authStore.isAdmin" 
+                    @click.stop="openEditMemberModal(member)" 
+                    class="btn-icon-action"
+                    title="Modifier ce membre"
+                  >
+                    <Edit3 :size="14" />
+                  </button>
+
                   <!-- Toggle Admin status button (Admin only) -->
                   <button 
                     v-if="authStore.isAdmin" 
-                    @click="handleToggleAdmin(member)" 
+                    @click.stop="handleToggleAdmin(member)" 
                     class="btn-icon-action"
                     :class="{ 'is-admin': member.isAdmin }"
                     :title="member.isAdmin ? 'Rétrograder en membre standard' : 'Nommer administrateur'"
@@ -213,7 +231,7 @@
                   <!-- Delete member icon (Admin only) -->
                   <button 
                     v-if="authStore.isAdmin" 
-                    @click="handleDeleteMember(member)" 
+                    @click.stop="handleDeleteMember(member)" 
                     class="btn-icon-action delete"
                     title="Supprimer ce membre (Administrateur)"
                   >
@@ -349,6 +367,138 @@
         </form>
       </div>
     </div>
+
+    <!-- Modal Modifier un Membre (Administrateur Uniquement) -->
+    <div v-if="showEditMemberModal" class="modal-overlay" @click.self="showEditMemberModal = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Modifier le Membre : {{ editingMember?.name }}</h3>
+          <button @click="showEditMemberModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <form @submit.prevent="handleSaveEditMember">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Prénom</label>
+              <input 
+                v-model="editMemberForm.firstName" 
+                type="text" 
+                required 
+                class="form-input" 
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Nom de famille</label>
+              <input 
+                v-model="editMemberForm.lastName" 
+                type="text" 
+                required 
+                class="form-input" 
+              />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Adresse Email (Login)</label>
+              <input 
+                v-model="editMemberForm.email" 
+                type="email" 
+                required 
+                class="form-input" 
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Nouveau Mot de passe (Optionnel)</label>
+              <input 
+                v-model="editMemberForm.password" 
+                type="password" 
+                placeholder="Laisser vide pour ne pas changer"
+                class="form-input" 
+              />
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label">Rôle familial</label>
+              <select v-model="editMemberForm.role" class="form-select">
+                <option value="Papa">Papa</option>
+                <option value="Maman">Maman</option>
+                <option value="Fils">Fils</option>
+                <option value="Fille">Fille</option>
+                <option value="Grand-Parent">Grand-Parent</option>
+                <option value="Oncle / Tante">Oncle / Tante</option>
+                <option value="Baby-Sitter">Baby-Sitter</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Points</label>
+              <input 
+                v-model.number="editMemberForm.points" 
+                type="number" 
+                min="0" 
+                class="form-input" 
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Administrateur</label>
+              <label class="admin-checkbox-card">
+                <input type="checkbox" v-model="editMemberForm.isAdmin" class="custom-checkbox" />
+                <span class="checkbox-text">
+                  <ShieldCheck :size="16" class="text-indigo" />
+                  <strong>Admin</strong>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Choisissez un Avatar</label>
+            <div class="avatar-options">
+              <button 
+                v-for="emoji in avatarOptions" 
+                :key="emoji"
+                type="button"
+                class="avatar-option-btn"
+                :class="{ selected: editMemberForm.avatar === emoji }"
+                @click="editMemberForm.avatar = emoji"
+              >
+                {{ emoji }}
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Couleur de profil</label>
+            <div class="color-picker-options">
+              <button 
+                v-for="c in colorOptions" 
+                :key="c"
+                type="button"
+                class="color-btn"
+                :style="{ backgroundColor: c }"
+                :class="{ selected: editMemberForm.color === c }"
+                @click="editMemberForm.color = c"
+              ></button>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" @click="showEditMemberModal = false" class="btn btn-secondary">Annuler</button>
+            <button type="submit" class="btn btn-primary" :disabled="savingEdit">
+              <span v-if="!savingEdit">Enregistrer les modifications</span>
+              <span v-else>Enregistrement...</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -369,12 +519,17 @@ import {
   Users,
   ShieldAlert,
   ShieldCheck,
-  Shield
+  Shield,
+  Edit3
 } from '@lucide/vue'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
+
 const showAddMemberModal = ref(false)
+const showEditMemberModal = ref(false)
+const editingMember = ref(null)
+const savingEdit = ref(false)
 
 const avatarOptions = ['👨‍💼', '👩‍⚕️', '👦', '👧', '👶', '🧑', '👨‍🍳', '👵', '👴', '🐱', '🐶']
 const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
@@ -387,6 +542,19 @@ const newMember = ref({
   role: 'Fils',
   isAdmin: false,
   avatar: '👦',
+  color: '#6366f1'
+})
+
+const editMemberForm = ref({
+  id: null,
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  role: 'Membre',
+  points: 0,
+  isAdmin: false,
+  avatar: '👤',
   color: '#6366f1'
 })
 
@@ -445,6 +613,42 @@ const handleAddMember = async () => {
     }
   } else {
     alert(result.error || 'Erreur lors de l\'ajout du membre')
+  }
+}
+
+const openEditMemberModal = (member) => {
+  editingMember.value = member
+  const nameParts = (member.name || '').split(' ')
+  const fName = member.firstName || nameParts[0] || ''
+  const lName = member.lastName || nameParts.slice(1).join(' ') || ''
+
+  editMemberForm.value = {
+    id: member.id,
+    firstName: fName,
+    lastName: lName,
+    email: member.email || '',
+    password: '',
+    role: member.role || 'Membre',
+    points: member.points || 0,
+    isAdmin: Boolean(member.isAdmin),
+    avatar: member.avatar || '👤',
+    color: member.color || '#6366f1'
+  }
+  showEditMemberModal.value = true
+}
+
+const handleSaveEditMember = async () => {
+  if (!editMemberForm.value.firstName.trim() || !editMemberForm.value.email.trim()) return
+
+  savingEdit.value = true
+  const res = await store.updateMember(editMemberForm.value.id, editMemberForm.value)
+  savingEdit.value = false
+
+  if (res.success) {
+    showEditMemberModal.value = false
+    await store.fetchAllData()
+  } else {
+    alert(res.error || 'Erreur lors de la modification du membre')
   }
 }
 
@@ -678,6 +882,18 @@ const handleDeleteMember = async (member) => {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.member-card.clickable {
+  cursor: pointer;
+}
+
+.member-card.clickable:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  background: var(--bg-card-hover);
 }
 
 .member-card-header {
