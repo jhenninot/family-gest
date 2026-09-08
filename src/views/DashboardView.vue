@@ -640,6 +640,14 @@ const openEditMemberModal = (member) => {
 const handleSaveEditMember = async () => {
   if (!editMemberForm.value.firstName.trim() || !editMemberForm.value.email.trim()) return
 
+  if (editingMember.value && editingMember.value.isAdmin && !editMemberForm.value.isAdmin) {
+    const adminCount = store.members.filter(m => m.isAdmin).length
+    if (adminCount <= 1) {
+      alert('Impossible de retirer le statut administrateur : il s\'agit du dernier administrateur du système.')
+      return
+    }
+  }
+
   savingEdit.value = true
   try {
     const res = await store.updateMember(editMemberForm.value.id, editMemberForm.value)
@@ -657,6 +665,13 @@ const handleSaveEditMember = async () => {
 }
 
 const handleToggleAdmin = async (member) => {
+  if (member.isAdmin) {
+    const adminCount = store.members.filter(m => m.isAdmin).length
+    if (adminCount <= 1) {
+      alert('Impossible de retirer le statut administrateur : il s\'agit du dernier administrateur du système.')
+      return
+    }
+  }
   const action = member.isAdmin ? 'retirer les droits d\'administrateur à' : 'nommer administrateur'
   if (confirm(`Voulez-vous ${action} ${member.name} ?`)) {
     await store.toggleAdminStatus(member.id)
@@ -664,6 +679,13 @@ const handleToggleAdmin = async (member) => {
 }
 
 const handleDeleteMember = async (member) => {
+  if (member.isAdmin) {
+    const adminCount = store.members.filter(m => m.isAdmin).length
+    if (adminCount <= 1) {
+      alert('Impossible de supprimer cet administrateur : il s\'agit du dernier administrateur du système.')
+      return
+    }
+  }
   if (confirm(`Voulez-vous vraiment supprimer ${member.name} de la famille ?`)) {
     await store.deleteMember(member.id)
   }

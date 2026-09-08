@@ -265,10 +265,17 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
     if (points !== undefined && points !== null) user.points = Number(points)
 
     if (isAdmin !== undefined && isAdmin !== null) {
-      if (user.id === req.user.id && !isAdmin && user.isAdmin) {
+      const newAdminState = Boolean(isAdmin)
+      if (user.id === req.user.id && !newAdminState && user.isAdmin) {
         return res.status(400).json({ error: 'Vous ne pouvez pas retirer vos propres privilèges d\'administrateur' })
       }
-      user.isAdmin = Boolean(isAdmin)
+      if (user.isAdmin && !newAdminState) {
+        const adminCount = await User.countDocuments({ isAdmin: true })
+        if (adminCount <= 1) {
+          return res.status(400).json({ error: 'Impossible de retirer le statut administrateur car il s\'agit du dernier administrateur du système.' })
+        }
+      }
+      user.isAdmin = newAdminState
     }
 
     if (email && email.toLowerCase().trim() !== user.email) {
@@ -313,6 +320,13 @@ app.put('/api/members/:id/toggle-admin', requireAuth, requireAdmin, async (req, 
       return res.status(400).json({ error: 'Vous ne pouvez pas retirer vos propres privilèges d\'administrateur' })
     }
 
+    if (user.isAdmin) {
+      const adminCount = await User.countDocuments({ isAdmin: true })
+      if (adminCount <= 1) {
+        return res.status(400).json({ error: 'Impossible de retirer le statut administrateur car il s\'agit du dernier administrateur du système.' })
+      }
+    }
+
     user.isAdmin = !user.isAdmin
     await user.save()
 
@@ -340,6 +354,16 @@ app.delete('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
     if (req.user.id === memberId) {
       return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte administrateur' })
     }
+    const member = await User.findOne({ id: memberId })
+    if (!member) return res.status(404).json({ error: 'Membre non trouvé' })
+
+    if (member.isAdmin) {
+      const adminCount = await User.countDocuments({ isAdmin: true })
+      if (adminCount <= 1) {
+        return res.status(400).json({ error: 'Impossible de supprimer cet administrateur car il s\'agit du dernier administrateur du système.' })
+      }
+    }
+
     await User.deleteOne({ id: memberId })
     res.json({ message: 'Membre supprimé par l\'administrateur' })
   } catch (err) {
