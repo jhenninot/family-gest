@@ -128,6 +128,26 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  const toggleAdminStatus = async (id) => {
+    try {
+      const res = await fetch(`/api/members/${id}/toggle-admin`, {
+        method: 'PUT',
+        headers: getHeaders()
+      })
+      const data = await res.json()
+      if (res.ok) {
+        const index = members.value.findIndex(m => m.id === id)
+        if (index !== -1) members.value[index] = data
+        return { success: true }
+      } else {
+        alert(data.error || 'Erreur lors de la modification du statut administrateur')
+        return { success: false, error: data.error }
+      }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }
+
   const addTask = async (taskData) => {
     try {
       const res = await fetch('/api/tasks', {
@@ -302,6 +322,7 @@ export const useFamilyStore = defineStore('family', () => {
     fetchAllData,
     addMember,
     deleteMember,
+    toggleAdminStatus,
     addTask,
     toggleTask,
     deleteTask,

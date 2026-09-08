@@ -154,7 +154,7 @@ app.get('/api/members', requireAuth, async (req, res) => {
 // Ajouter un membre : Réservé à l'Administrateur
 app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { name, firstName, lastName, email, password, role, avatar, color, points } = req.body
+    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin } = req.body
 
     const fName = firstName || (name ? name.split(' ')[0] : 'Membre')
     const lName = lastName || (name && name.split(' ').length > 1 ? name.split(' ').slice(1).join(' ') : 'Famille')
@@ -172,8 +172,8 @@ app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
       lastName: lName,
       email: userEmail,
       password: userPassword,
-      isAdmin: false,
-      role: role || 'Membre',
+      isAdmin: Boolean(isAdmin),
+      role: role || (isAdmin ? 'Administrateur' : 'Membre'),
       avatar: avatar || '👤',
       color: color || '#6366f1',
       points: Number(points) || 0
@@ -195,6 +195,37 @@ app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
     })
   } catch (err) {
     res.status(400).json({ error: err.message })
+  }
+})
+
+// Modifier le statut Administrateur d'un membre : Réservé à l'Administrateur
+app.put('/api/members/:id/toggle-admin', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const memberId = Number(req.params.id)
+    const user = await User.findOne({ id: memberId })
+    if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
+
+    if (user.id === req.user.id && user.isAdmin) {
+      return res.status(400).json({ error: 'Vous ne pouvez pas retirer vos propres privilèges d\'administrateur' })
+    }
+
+    user.isAdmin = !user.isAdmin
+    await user.save()
+
+    res.json({
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      role: user.role,
+      avatar: user.avatar,
+      color: user.color,
+      points: user.points
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
 })
 

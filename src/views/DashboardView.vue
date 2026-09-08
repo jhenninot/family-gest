@@ -183,23 +183,43 @@
               <div class="member-card-header">
                 <span class="avatar-emoji">{{ member.avatar }}</span>
                 <div class="member-card-name">
-                  <strong>{{ member.name }}</strong>
+                  <div class="member-title-line">
+                    <strong>{{ member.name }}</strong>
+                    <span v-if="member.isAdmin" class="admin-badge-mini" title="Administrateur">
+                      <ShieldCheck :size="12" /> Admin
+                    </span>
+                  </div>
                   <span>{{ member.role }}</span>
                   <span v-if="member.email" class="member-email-sub">{{ member.email }}</span>
                 </div>
-                <span class="pts-badge" :style="{ backgroundColor: member.color + '20', color: member.color }">
-                  {{ member.points }} pts
-                </span>
 
-                <!-- Delete member icon: Only visible to Admin -->
-                <button 
-                  v-if="authStore.isAdmin" 
-                  @click="handleDeleteMember(member)" 
-                  class="btn-delete-member"
-                  title="Supprimer ce membre (Administrateur)"
-                >
-                  <Trash2 :size="14" />
-                </button>
+                <div class="member-actions">
+                  <span class="pts-badge" :style="{ backgroundColor: member.color + '20', color: member.color }">
+                    {{ member.points }} pts
+                  </span>
+
+                  <!-- Toggle Admin status button (Admin only) -->
+                  <button 
+                    v-if="authStore.isAdmin" 
+                    @click="handleToggleAdmin(member)" 
+                    class="btn-icon-action"
+                    :class="{ 'is-admin': member.isAdmin }"
+                    :title="member.isAdmin ? 'Rétrograder en membre standard' : 'Nommer administrateur'"
+                  >
+                    <ShieldCheck v-if="member.isAdmin" :size="14" />
+                    <Shield v-else :size="14" />
+                  </button>
+
+                  <!-- Delete member icon (Admin only) -->
+                  <button 
+                    v-if="authStore.isAdmin" 
+                    @click="handleDeleteMember(member)" 
+                    class="btn-icon-action delete"
+                    title="Supprimer ce membre (Administrateur)"
+                  >
+                    <Trash2 :size="14" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -264,18 +284,31 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Rôle familial</label>
-            <select v-model="newMember.role" class="form-select">
-              <option value="Papa">Papa</option>
-              <option value="Maman">Maman</option>
-              <option value="Fils">Fils</option>
-              <option value="Fille">Fille</option>
-              <option value="Grand-Parent">Grand-Parent</option>
-              <option value="Oncle / Tante">Oncle / Tante</option>
-              <option value="Baby-Sitter">Baby-Sitter</option>
-              <option value="Autre">Autre</option>
-            </select>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Rôle familial</label>
+              <select v-model="newMember.role" class="form-select">
+                <option value="Papa">Papa</option>
+                <option value="Maman">Maman</option>
+                <option value="Fils">Fils</option>
+                <option value="Fille">Fille</option>
+                <option value="Grand-Parent">Grand-Parent</option>
+                <option value="Oncle / Tante">Oncle / Tante</option>
+                <option value="Baby-Sitter">Baby-Sitter</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Statut d'Accès</label>
+              <label class="admin-checkbox-card">
+                <input type="checkbox" v-model="newMember.isAdmin" class="custom-checkbox" />
+                <span class="checkbox-text">
+                  <ShieldCheck :size="16" class="text-indigo" />
+                  <strong>Définir comme Administrateur</strong>
+                </span>
+              </label>
+            </div>
           </div>
 
           <div class="form-group">
@@ -334,7 +367,9 @@ import {
   Clock, 
   MapPin, 
   Users,
-  ShieldAlert 
+  ShieldAlert,
+  ShieldCheck,
+  Shield
 } from '@lucide/vue'
 
 const authStore = useAuthStore()
@@ -350,6 +385,7 @@ const newMember = ref({
   email: '',
   password: 'Family123!',
   role: 'Fils',
+  isAdmin: false,
   avatar: '👦',
   color: '#6366f1'
 })
@@ -403,11 +439,19 @@ const handleAddMember = async () => {
       email: '',
       password: 'Family123!',
       role: 'Fils',
+      isAdmin: false,
       avatar: '👦',
       color: '#6366f1'
     }
   } else {
     alert(result.error || 'Erreur lors de l\'ajout du membre')
+  }
+}
+
+const handleToggleAdmin = async (member) => {
+  const action = member.isAdmin ? 'retirer les droits d\'administrateur à' : 'nommer administrateur'
+  if (confirm(`Voulez-vous ${action} ${member.name} ?`)) {
+    await store.toggleAdminStatus(member.id)
   }
 }
 
@@ -650,12 +694,36 @@ const handleDeleteMember = async (member) => {
   flex: 1;
 }
 
+.member-title-line {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .member-card-name strong { font-size: 0.85rem; }
 .member-card-name span { font-size: 0.725rem; color: var(--text-muted); }
+
+.admin-badge-mini {
+  font-size: 0.625rem;
+  font-weight: 800;
+  background: var(--accent-rose-light);
+  color: var(--accent-rose);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+}
 
 .member-email-sub {
   font-size: 0.675rem;
   color: var(--text-muted);
+}
+
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .pts-badge {
@@ -665,17 +733,53 @@ const handleDeleteMember = async (member) => {
   border-radius: var(--radius-full);
 }
 
-.btn-delete-member {
-  background: none;
-  border: none;
+.btn-icon-action {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   color: var(--text-muted);
   cursor: pointer;
-  padding: 0.25rem;
+  padding: 0.3rem;
   border-radius: var(--radius-sm);
-  transition: color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
 }
 
-.btn-delete-member:hover { color: var(--accent-rose); }
+.btn-icon-action.is-admin {
+  background: var(--accent-rose-light);
+  color: var(--accent-rose);
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.btn-icon-action:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.btn-icon-action.delete:hover {
+  border-color: var(--accent-rose);
+  color: var(--accent-rose);
+}
+
+.admin-checkbox-card {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-top: 0.2rem;
+}
+
+.checkbox-text {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: 0.6rem;
+  font-size: 0.85rem;
+}
 
 /* Avatar picker options */
 .avatar-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
