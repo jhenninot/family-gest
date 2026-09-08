@@ -38,6 +38,34 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const updateProfile = async (profileData) => {
+    error.value = ''
+    try {
+      const res = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.value}`
+        },
+        body: JSON.stringify(profileData)
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        error.value = data.error || 'Erreur lors de la mise à jour du profil'
+        return { success: false, error: data.error }
+      }
+
+      user.value = data
+      localStorage.setItem('familygest_user', JSON.stringify(data))
+      return { success: true, user: data }
+    } catch (err) {
+      error.value = 'Impossible de contacter le serveur'
+      return { success: false, error: err.message }
+    }
+  }
+
   const logout = () => {
     token.value = ''
     user.value = null
@@ -52,6 +80,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     login,
+    updateProfile,
     logout
   }
 })

@@ -129,6 +129,51 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
   })
 })
 
+// PUT /api/auth/profile (Modification de ses propres informations par l'utilisateur)
+app.put('/api/auth/profile', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ id: req.user.id })
+    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
+
+    const { firstName, lastName, email, password, role, avatar, color } = req.body
+
+    if (firstName) user.firstName = firstName.trim()
+    if (lastName) user.lastName = lastName.trim()
+    if (role) user.role = role
+    if (avatar) user.avatar = avatar
+    if (color) user.color = color
+
+    if (email && email.toLowerCase().trim() !== user.email) {
+      const existing = await User.findOne({ email: email.toLowerCase().trim() })
+      if (existing && existing.id !== user.id) {
+        return res.status(400).json({ error: 'Cette adresse email est déjà utilisée par un autre compte' })
+      }
+      user.email = email.toLowerCase().trim()
+    }
+
+    if (password && password.trim().length > 0) {
+      user.password = password.trim()
+    }
+
+    await user.save()
+
+    res.json({
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      name: `${user.firstName} ${user.lastName}`,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      role: user.role,
+      avatar: user.avatar,
+      color: user.color,
+      points: user.points
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // === MEMBERS ROUTES ===
 app.get('/api/members', requireAuth, async (req, res) => {
   try {
