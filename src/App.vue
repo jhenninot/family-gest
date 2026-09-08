@@ -15,10 +15,19 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import { useAuthStore } from './stores/authStore'
+import { useFamilyStore } from './stores/familyStore'
 import Sidebar from './components/Sidebar.vue'
 
 const authStore = useAuthStore()
+const familyStore = useFamilyStore()
+
+onMounted(() => {
+  if (authStore.isAuthenticated) {
+    familyStore.fetchAllData()
+  }
+})
 </script>
 
 <style>

@@ -50,6 +50,18 @@ export const useFamilyStore = defineStore('family', () => {
         fetch('/api/shopping', { headers })
       ])
 
+      // Check if session token expired or user is invalid (401)
+      if (membersRes.status === 401 || tasksRes.status === 401) {
+        console.warn('Session expirée ou utilisateur non trouvé en base. Déconnexion automatique...')
+        authStore.logout()
+        members.value = []
+        tasks.value = []
+        events.value = []
+        expenses.value = []
+        shoppingList.value = []
+        return
+      }
+
       if (membersRes.ok) members.value = await membersRes.json()
       if (tasksRes.ok) tasks.value = await tasksRes.json()
       if (eventsRes.ok) events.value = await eventsRes.json()
