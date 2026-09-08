@@ -5,11 +5,14 @@ import { connectDB } from './config/db.js'
 import { seedDatabaseIfEmpty } from './seed.js'
 import { requireAuth, requireAdmin, generateToken } from './middleware/auth.js'
 
+import nodemailer from 'nodemailer'
+
 import User from './models/User.js'
 import Task from './models/Task.js'
 import Event from './models/Event.js'
 import Expense from './models/Expense.js'
 import ShoppingItem from './models/ShoppingItem.js'
+import EmailConfig from './models/EmailConfig.js'
 
 dotenv.config()
 
@@ -553,6 +556,121 @@ app.delete('/api/shopping/:id', requireAuth, async (req, res) => {
     res.json({ message: 'Article supprimé' })
   } catch (err) {
     res.status(500).json({ error: err.message })
+  }
+})
+
+// === EMAIL SETTINGS ROUTES (ADMIN ONLY) ===
+app.get('/api/settings/email', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    let config = await EmailConfig.findOne()
+    if (!config) {
+      config = new EmailConfig()
+      await config.save()
+    }
+    res.json({
+      providerPreset: config.providerPreset || 'gmail',
+      host: config.host || 'smtp.gmail.com',
+      port: config.port || 587,
+      secure: Boolean(config.secure),
+      user: config.user || '',
+      hasPassword: Boolean(config.pass && config.pass.length > 0),
+      fromEmail: config.fromEmail || config.user || '',
+      fromName: config.fromName || 'FamilyGest',
+      isConfigured: Boolean(config.isConfigured)
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/settings/email', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { providerPreset, host, port, secure, user, pass, fromEmail, fromName } = req.body
+
+    let config = await EmailConfig.findOne()
+    if (!config) {
+      config = new EmailConfig()
+    }
+
+    if (providerPreset) config.providerPreset = providerPreset
+    if (host !== undefined) config.host = host.trim()
+    if (port !== undefined) config.port = Number(port)
+    if (secure !== undefined) config.secure = Boolean(secure)
+    if (user !== undefined) config.user = user.trim()
+    if (pass !== undefined && pass !== '') config.pass = pass.trim()
+    if (fromEmail !== undefined) config.fromEmail = fromEmail.trim()
+    if (fromName !== undefined) config.fromName = fromName.trim()
+
+    config.isConfigured = Boolean(config.host && config.user && config.pass)
+    await config.save()
+
+    res.json({
+      message: 'Configuration email enregistrée avec succès',
+      providerPreset: config.providerPreset,
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      user: config.user,
+      hasPassword: Boolean(config.pass && config.pass.length > 0),
+      fromEmail: config.fromEmail,
+      fromName: config.fromName,
+      isConfigured: config.isConfigured
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/settings/email/test', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { recipientEmail } = req.body
+    if (!recipientEmail || !recipientEmail.trim()) {
+      return res.status(400).json({ error: 'Veuillez renseigner une adresse email destinataire' })
+    }
+
+    const config = await EmailConfig.findOne()
+    if (!config || !config.host || !config.user || !config.pass) {
+      return res.status(400).json({ error: 'Le serveur email n\'est pas encore configuré' })
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: {
+        user: config.user,
+        pass: config.pass
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    })
+
+    const mailOptions = {
+      from: `"${config.fromName || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
+      to: recipientEmail.trim(),
+      subject: '✨ Test de configuration Email - FamilyGest',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 12px; border: 1px solid #e0e7ff; background-color: #f8fafc;">
+          <h2 style="color: #4f46e5; margin-top: 0;">🎉 Connexion Email Réussie !</h2>
+          <p>Bonjour,</p>
+          <p>Ceci est un message de test envoyé depuis votre application <strong>FamilyGest</strong>.</p>
+          <p>Vos paramètres de serveur d'envoi Email (SMTP / IMAP) sont enregistrés et opérationnels :</p>
+          <ul>
+            <li><strong>Serveur :</strong> ${config.host}:${config.port}</li>
+            <li><strong>Compte :</strong> ${config.user}</li>
+            <li><strong>Expéditeur :</strong> ${config.fromName || 'FamilyGest'}</li>
+          </ul>
+          <p style="color: #64748b; font-size: 0.9em; margin-top: 30px;">Envoyé automatiquement par FamilyGest • Espace Familial</p>
+        </div>
+      `
+    }
+
+    await transporter.sendMail(mailOptions)
+    res.json({ message: `Email de test envoyé avec succès à ${recipientEmail}` })
+  } catch (err) {
+    console.error('Erreur lors de l\'envoi de l\'email de test:', err)
+    res.status(500).json({ error: `Échec de l'envoi de l'email : ${err.message}` })
   }
 })
 

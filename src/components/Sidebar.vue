@@ -60,6 +60,11 @@
         <span>Liste de Courses</span>
         <span v-if="store.pendingShoppingCount > 0" class="badge-count warning">{{ store.pendingShoppingCount }}</span>
       </router-link>
+
+      <router-link v-if="authStore.isAdmin" to="/settings/email" class="nav-item admin-nav" active-class="active">
+        <Mail :size="20" />
+        <span>Config Email</span>
+      </router-link>
     </nav>
 
     <!-- Family Leaderboard Quick Widget -->
@@ -239,7 +244,8 @@ import {
   LogOut,
   ShieldCheck,
   Shield,
-  Edit3
+  Edit3,
+  Mail
 } from '@lucide/vue'
 
 const router = useRouter()

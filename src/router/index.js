@@ -39,6 +39,12 @@ const routes = [
     name: 'shopping',
     component: () => import('../views/ShoppingView.vue'),
     meta: { title: 'Liste de Courses', requiresAuth: true }
+  },
+  {
+    path: '/settings/email',
+    name: 'email-settings',
+    component: () => import('../views/EmailSettingsView.vue'),
+    meta: { title: 'Configuration Email', requiresAuth: true, requiresAdmin: true }
   }
 ]
 
@@ -53,6 +59,8 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
+  } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    next({ name: 'dashboard' })
   } else if (to.name === 'login' && authStore.isAuthenticated) {
     next({ name: 'dashboard' })
   } else {
