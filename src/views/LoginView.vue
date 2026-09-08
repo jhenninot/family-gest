@@ -9,16 +9,6 @@
         <p class="login-subtitle">Connectez-vous pour accéder à l'espace familial</p>
       </div>
 
-      <!-- Alert / Info Box about Admin Default Credentials -->
-      <div class="info-alert">
-        <ShieldCheck :size="18" class="info-icon" />
-        <div class="info-text">
-          <strong>Identifiants Administrateur par défaut :</strong>
-          <div>Email: <code>admin@family-gest.org</code></div>
-          <div>Mot de passe: <code>Admin123!</code></div>
-        </div>
-      </div>
-
       <!-- Error alert -->
       <div v-if="authStore.error" class="error-alert">
         <AlertCircle :size="18" />
@@ -35,8 +25,9 @@
               v-model="email" 
               type="email" 
               required 
-              placeholder="admin@family-gest.org" 
+              placeholder="ex: nom@famille.fr" 
               class="form-input" 
+              autocomplete="email"
             />
           </div>
         </div>
@@ -51,6 +42,7 @@
               required 
               placeholder="••••••••" 
               class="form-input" 
+              autocomplete="current-password"
             />
           </div>
         </div>
@@ -62,7 +54,7 @@
       </form>
 
       <div class="login-footer">
-        <span>Seul un utilisateur <strong>Administrateur</strong> peut ajouter ou supprimer des membres de la famille.</span>
+        <span>Portail sécurisé FamilyGest &bull; Tous droits réservés</span>
       </div>
     </div>
   </div>
@@ -73,14 +65,14 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
-import { Sparkles, Mail, Lock, ShieldCheck, AlertCircle } from '@lucide/vue'
+import { Sparkles, Mail, Lock, AlertCircle } from '@lucide/vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
 
-const email = ref('admin@family-gest.org')
-const password = ref('Admin123!')
+const email = ref('')
+const password = ref('')
 const loading = ref(false)
 
 const handleLogin = async () => {
@@ -149,32 +141,6 @@ const handleLogin = async () => {
   font-size: 0.9rem;
   color: var(--text-secondary);
   margin-top: 0.25rem;
-}
-
-.info-alert {
-  background: var(--accent-primary-light);
-  border: 1px solid var(--accent-primary);
-  border-radius: var(--radius-md);
-  padding: 0.85rem 1rem;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  font-size: 0.825rem;
-  color: var(--text-primary);
-}
-
-.info-icon {
-  color: var(--accent-primary);
-  flex-shrink: 0;
-  margin-top: 0.15rem;
-}
-
-.info-text code {
-  background: rgba(99, 102, 241, 0.15);
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-  font-family: monospace;
-  font-weight: 700;
 }
 
 .error-alert {
