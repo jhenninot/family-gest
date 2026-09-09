@@ -13,9 +13,7 @@ services:
   # --- Application Web FamilyGest (Frontend Vue 3 + Backend Express) ---
   app:
     container_name: familygest-app
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/jhenninot/family-gest:latest
     restart: unless-stopped
     ports:
       # Port d'accès hôte (modifiable dans votre fichier .env)

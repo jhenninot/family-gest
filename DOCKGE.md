@@ -71,9 +71,7 @@ Si vous préférez créer la stack depuis l'interface web Dockge :
 services:
   app:
     container_name: familygest-app
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/jhenninot/family-gest:latest
     restart: unless-stopped
     ports:
       - "${APP_PORT:-5000}:5000"
@@ -117,15 +115,11 @@ NODE_ENV=production
 
 Pour mettre à jour FamilyGest vers une nouvelle version sans toucher à la base de données :
 
-### Via l'interface Dockge :
-1. Dans Dockge, ouvrez le terminal interactif de la stack ou sélectionnez la stack.
-2. Si vous utilisez Git dans le dossier :
-   ```bash
-   git pull
-   ```
-3. Cliquez sur le bouton **Update** (ou **Restart / Deploy**) dans Dockge.
-4. Dockge reconstruit l'image avec le nouveau code et redémarre l'application.
-5. ✅ **Vos données dans `familygest_mongo_data` sont automatiquement préservées**.
+### Via l'interface Dockge (Mise à jour en 1 clic) :
+1. Dans **Dockge**, ouvrez votre stack `familygest`.
+2. Cliquez simplement sur le bouton **Update** (ou **Mettre à jour**).
+3. Dockge télécharge automatiquement la nouvelle image pré-compilée depuis `ghcr.io/jhenninot/family-gest:latest` et redémarre le conteneur en quelques secondes.
+4. ✅ **Vos données dans `familygest_mongo_data` sont automatiquement préservées**.
 
 ### En ligne de commande (alternative) :
 ```bash
