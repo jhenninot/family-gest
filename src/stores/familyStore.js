@@ -24,6 +24,7 @@ export const useFamilyStore = defineStore('family', () => {
   const shoppingList = ref([])
   const shortcuts = ref([])
   const absences = ref([])
+  const mealGuests = ref([])
   const isLoading = ref(false)
 
   const getHeaders = () => {
@@ -43,13 +44,14 @@ export const useFamilyStore = defineStore('family', () => {
       isLoading.value = true
       const headers = getHeaders()
 
-      const [membersRes, tasksRes, eventsRes, shoppingRes, shortcutsRes, absencesRes] = await Promise.all([
+      const [membersRes, tasksRes, eventsRes, shoppingRes, shortcutsRes, absencesRes, guestsRes] = await Promise.all([
         fetch('/api/members', { headers }),
         fetch('/api/tasks', { headers }),
         fetch('/api/events', { headers }),
         fetch('/api/shopping', { headers }),
         fetch('/api/shortcuts', { headers }),
-        fetch('/api/absences', { headers })
+        fetch('/api/absences', { headers }),
+        fetch('/api/meal-guests', { headers })
       ])
 
       // Check if session token expired or user is invalid (401)
@@ -62,6 +64,7 @@ export const useFamilyStore = defineStore('family', () => {
         shoppingList.value = []
         shortcuts.value = []
         absences.value = []
+        mealGuests.value = []
         return
       }
 
@@ -71,6 +74,7 @@ export const useFamilyStore = defineStore('family', () => {
       if (shoppingRes.ok) shoppingList.value = await shoppingRes.json()
       if (shortcutsRes.ok) shortcuts.value = await shortcutsRes.json()
       if (absencesRes.ok) absences.value = await absencesRes.json()
+      if (guestsRes && guestsRes.ok) mealGuests.value = await guestsRes.json()
     } catch (err) {
       console.error('Erreur lors du chargement des données API', err)
     } finally {
@@ -101,6 +105,16 @@ export const useFamilyStore = defineStore('family', () => {
   const upcomingAbsences = computed(() => {
     return [...absences.value]
       .filter(a => a.date >= todayStr.value)
+      .sort((a, b) => a.date.localeCompare(b.date))
+  })
+
+  const todayMealGuests = computed(() => {
+    return mealGuests.value.filter(g => g.date === todayStr.value)
+  })
+
+  const upcomingMealGuests = computed(() => {
+    return [...mealGuests.value]
+      .filter(g => g.date >= todayStr.value)
       .sort((a, b) => a.date.localeCompare(b.date))
   })
 
@@ -444,6 +458,73 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  // Meal Guests Actions (Invités aux Repas)
+  const addMealGuest = async (guestData) => {
+    try {
+      const res = await fetch('/api/meal-guests', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(guestData)
+      })
+      const data = await res.json()
+      if (res.ok) {
+        if (Array.isArray(data)) {
+          mealGuests.value.push(...data)
+        } else {
+          mealGuests.value.push(data)
+        }
+        return { success: true, guest: data }
+      }
+      return { success: false, error: data.error }
+    } catch (err) {
+      console.error('Erreur addMealGuest API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  const updateMealGuest = async (id, guestData) => {
+    try {
+      const res = await fetch(`/api/meal-guests/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(guestData)
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        if (updated.message && updated.message.includes('supprimé')) {
+          mealGuests.value = mealGuests.value.filter(g => g.id !== id)
+        } else {
+          const idx = mealGuests.value.findIndex(g => g.id === id)
+          if (idx !== -1) mealGuests.value[idx] = updated
+        }
+        return { success: true, guest: updated }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur updateMealGuest API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  const deleteMealGuest = async (id) => {
+    try {
+      const res = await fetch(`/api/meal-guests/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      })
+      if (res.ok) {
+        mealGuests.value = mealGuests.value.filter(g => g.id !== id)
+        return { success: true }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur deleteMealGuest API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
   return {
     isDarkMode,
     toggleTheme,
@@ -453,9 +534,12 @@ export const useFamilyStore = defineStore('family', () => {
     shoppingList,
     shortcuts,
     absences,
+    mealGuests,
     todayStr,
     todayAbsences,
     upcomingAbsences,
+    todayMealGuests,
+    upcomingMealGuests,
     isLoading,
     completedTasksCount,
     pendingTasksCount,
@@ -479,6 +563,9 @@ export const useFamilyStore = defineStore('family', () => {
     deleteShortcut,
     addAbsence,
     updateAbsence,
-    deleteAbsence
+    deleteAbsence,
+    addMealGuest,
+    updateMealGuest,
+    deleteMealGuest
   }
 })

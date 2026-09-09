@@ -61,12 +61,12 @@
           <UtensilsCrossed :size="22" />
         </div>
         <div class="metric-details">
-          <span class="metric-label">Repas du Jour</span>
-          <div class="metric-value" :class="{ 'metric-value-text': store.todayAbsences.length === 0 }">
-            {{ store.todayAbsences.length === 0 ? 'Au complet' : `${store.todayAbsences.length} absent(s)` }}
+          <span class="metric-label">Repas & Invités</span>
+          <div class="metric-value" :class="{ 'metric-value-text': store.todayAbsences.length === 0 && store.todayMealGuests.length === 0 }">
+            {{ todayMealsCardValue }}
           </div>
           <span class="metric-subtext">
-            {{ store.todayAbsences.length === 0 ? 'Aucune absence signalée' : formatTodayAbsencesSubtext() }}
+            {{ formatTodayAbsencesSubtext() }}
           </span>
         </div>
       </router-link>
@@ -530,15 +530,40 @@ import {
 const authStore = useAuthStore()
 const store = useFamilyStore()
 
+const todayMealsCardValue = computed(() => {
+  const absCount = store.todayAbsences.length
+  const guestsCount = store.todayMealGuests.length
+
+  if (absCount === 0 && guestsCount === 0) return 'Au complet'
+  if (absCount === 0 && guestsCount > 0) return `+${guestsCount} invité${guestsCount > 1 ? 's' : ''}`
+  if (absCount > 0 && guestsCount === 0) return `${absCount} absent${absCount > 1 ? 's' : ''}`
+  return `-${absCount} / +${guestsCount}`
+})
+
 const formatTodayAbsencesSubtext = () => {
-  if (store.todayAbsences.length === 0) return 'Toute la famille est là 🎉'
-  const lunch = store.todayAbsences.filter(a => a.lunch).length
-  const dinner = store.todayAbsences.filter(a => a.dinner).length
-  const night = store.todayAbsences.filter(a => a.night).length
+  const absCount = store.todayAbsences.length
+  const guestsCount = store.todayMealGuests.length
+
+  if (absCount === 0 && guestsCount === 0) {
+    return 'Aucune absence signalée'
+  }
+
   const parts = []
-  if (lunch > 0) parts.push(`☀️ Midi: ${lunch}`)
-  if (dinner > 0) parts.push(`🌙 Soir: ${dinner}`)
-  if (night > 0) parts.push(`🛌 Nuit: ${night}`)
+  if (absCount > 0) {
+    const lunch = store.todayAbsences.filter(a => a.lunch).length
+    const dinner = store.todayAbsences.filter(a => a.dinner).length
+    const night = store.todayAbsences.filter(a => a.night).length
+    const absParts = []
+    if (lunch > 0) absParts.push(`☀️ ${lunch}`)
+    if (dinner > 0) absParts.push(`🌙 ${dinner}`)
+    if (night > 0) absParts.push(`🛌 ${night}`)
+    parts.push(`Absents (${absParts.join(' ')})`)
+  }
+
+  if (guestsCount > 0) {
+    parts.push(`👥 ${guestsCount} invité${guestsCount > 1 ? 's' : ''}`)
+  }
+
   return parts.join(' • ')
 }
 

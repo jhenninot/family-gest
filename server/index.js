@@ -20,6 +20,7 @@ import ShoppingItem from './models/ShoppingItem.js'
 import EmailConfig from './models/EmailConfig.js'
 import Shortcut from './models/Shortcut.js'
 import Absence from './models/Absence.js'
+import MealGuest from './models/MealGuest.js'
 
 dotenv.config()
 
@@ -620,6 +621,109 @@ app.delete('/api/absences/:id', requireAuth, async (req, res) => {
 
     await Absence.deleteOne({ id: Number(req.params.id) })
     res.json({ message: 'Absence supprimée' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// === MEAL GUESTS ROUTES (INVITÉS AUX REPAS) ===
+app.get('/api/meal-guests', requireAuth, async (req, res) => {
+  try {
+    const guests = await MealGuest.find().sort({ date: 1, createdAt: 1 })
+    res.json(guests)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/meal-guests', requireAuth, async (req, res) => {
+  try {
+    const { name, names, date, lunch, dinner, night, invitedBy, note } = req.body
+
+    if (!date) {
+      return res.status(400).json({ error: 'La date est requise' })
+    }
+
+    if (!lunch && !dinner && !night) {
+      return res.status(400).json({ error: 'Veuillez sélectionner au moins un créneau (Déjeuner, Dîner ou Nuit)' })
+    }
+
+    // Support single name or list of names (separated by commas or array)
+    let guestNames = []
+    if (Array.isArray(names) && names.length > 0) {
+      guestNames = names.map(n => String(n).trim()).filter(Boolean)
+    } else if (name && typeof name === 'string') {
+      // Split by comma if user typed multiple names separated by comma
+      guestNames = name.split(',').map(n => n.trim()).filter(Boolean)
+    }
+
+    if (guestNames.length === 0) {
+      return res.status(400).json({ error: 'Veuillez renseigner le nom de l\'invité' })
+    }
+
+    const createdGuests = []
+    const hostId = invitedBy ? Number(invitedBy) : req.user.id
+
+    for (let i = 0; i < guestNames.length; i++) {
+      const gName = guestNames[i]
+      const newGuest = new MealGuest({
+        id: Date.now() + i + Math.floor(Math.random() * 100),
+        name: gName,
+        date: date.trim(),
+        lunch: Boolean(lunch),
+        dinner: Boolean(dinner),
+        night: Boolean(night),
+        invitedBy: hostId,
+        note: (note || '').trim()
+      })
+      await newGuest.save()
+      createdGuests.push(newGuest)
+    }
+
+    // Return the created guest or array of guests
+    if (createdGuests.length === 1) {
+      res.status(201).json(createdGuests[0])
+    } else {
+      res.status(201).json(createdGuests)
+    }
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+app.put('/api/meal-guests/:id', requireAuth, async (req, res) => {
+  try {
+    const guest = await MealGuest.findOne({ id: Number(req.params.id) })
+    if (!guest) return res.status(404).json({ error: 'Invité non trouvé' })
+
+    const { name, date, lunch, dinner, night, invitedBy, note } = req.body
+    if (name) guest.name = name.trim()
+    if (date) guest.date = date.trim()
+    if (lunch !== undefined) guest.lunch = Boolean(lunch)
+    if (dinner !== undefined) guest.dinner = Boolean(dinner)
+    if (night !== undefined) guest.night = Boolean(night)
+    if (invitedBy !== undefined) guest.invitedBy = invitedBy ? Number(invitedBy) : null
+    if (note !== undefined) guest.note = note.trim()
+
+    if (!guest.lunch && !guest.dinner && !guest.night) {
+      await MealGuest.deleteOne({ id: guest.id })
+      return res.json({ message: 'Invité supprimé car aucun créneau n\'est sélectionné' })
+    }
+
+    await guest.save()
+    res.json(guest)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/meal-guests/:id', requireAuth, async (req, res) => {
+  try {
+    const guest = await MealGuest.findOne({ id: Number(req.params.id) })
+    if (!guest) return res.status(404).json({ error: 'Invité non trouvé' })
+
+    await MealGuest.deleteOne({ id: Number(req.params.id) })
+    res.json({ message: 'Invité supprimé' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
