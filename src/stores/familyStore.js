@@ -68,6 +68,12 @@ export const useFamilyStore = defineStore('family', () => {
         return
       }
 
+      // Prolonger automatiquement la validité à chaque requête API
+      const renewedToken = membersRes.headers.get('x-renewed-token')
+      if (renewedToken) {
+        authStore.setToken(renewedToken)
+      }
+
       if (membersRes.ok) members.value = await membersRes.json()
       if (tasksRes.ok) tasks.value = await tasksRes.json()
       if (eventsRes.ok) events.value = await eventsRes.json()

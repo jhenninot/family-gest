@@ -17,10 +17,17 @@ export const requireAuth = async (req, res, next) => {
       }
 
       req.user = user
+
+      // Renouvellement glissant : à chaque requête avec token valide,
+      // on émet un token renouvelé qui repousse l'échéance à 30 jours à partir de cet instant
+      const renewedToken = generateToken(user.id, user.email, user.isAdmin)
+      res.setHeader('X-Renewed-Token', renewedToken)
+      res.setHeader('Access-Control-Expose-Headers', 'X-Renewed-Token')
+
       return next()
     } catch (error) {
       console.error('Erreur de vérification JWT', error.message)
-      return res.status(401).json({ error: 'Token non valide ou expiré' })
+      return res.status(401).json({ error: 'Session expirée (plus de 30 jours d\'inactivité) ou invalide' })
     }
   }
 

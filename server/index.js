@@ -192,6 +192,34 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Adresse email ou mot de passe incorrect' })
     }
 
+    await User.updateOne({ id: user.id }, { $set: { lastLogin: new Date() } })
+    const token = generateToken(user.id, user.email, user.isAdmin)
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        role: user.role,
+        avatar: user.avatar,
+        color: user.color,
+        points: user.points
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/auth/me (Vérifie la session courante et renvoie un token prolongé de 30 jours à partir de cet instant)
+app.get('/api/auth/me', requireAuth, async (req, res) => {
+  try {
+    const user = req.user
+    await User.updateOne({ id: user.id }, { $set: { lastLogin: new Date() } })
     const token = generateToken(user.id, user.email, user.isAdmin)
 
     res.json({

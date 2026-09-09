@@ -73,6 +73,39 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('familygest_user', JSON.stringify(userData))
   }
 
+  const setToken = (newToken) => {
+    if (newToken && newToken !== token.value) {
+      token.value = newToken
+      localStorage.setItem('familygest_token', newToken)
+    }
+  }
+
+  const refreshSession = async () => {
+    if (!token.value) return false
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token.value}`
+        }
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        token.value = data.token
+        user.value = data.user
+        localStorage.setItem('familygest_token', data.token)
+        localStorage.setItem('familygest_user', JSON.stringify(data.user))
+        return true
+      } else if (res.status === 401) {
+        logout()
+        return false
+      }
+      return !!user.value
+    } catch (err) {
+      return !!user.value
+    }
+  }
+
   const logout = () => {
     token.value = ''
     user.value = null
@@ -88,6 +121,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     login,
     setAuth,
+    setToken,
+    refreshSession,
     updateProfile,
     logout
   }

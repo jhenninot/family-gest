@@ -58,8 +58,10 @@ const handleLogout = () => {
   router.push('/login')
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (authStore.isAuthenticated && !isAuthPage.value) {
+    // Prolonger automatiquement la validité de la session de 30 jours à chaque connexion / visite
+    await authStore.refreshSession()
     familyStore.fetchAllData()
   }
 })

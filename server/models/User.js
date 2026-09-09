@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
   avatar: { type: String, default: '👤' },
   color: { type: String, default: '#6366f1' },
   points: { type: Number, default: 0 },
+  lastLogin: { type: Date, default: Date.now },
   welcomeToken: { type: String, default: null },
   welcomeTokenExpires: { type: Date, default: null }
 }, { timestamps: true })
