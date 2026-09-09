@@ -131,6 +131,184 @@
 
       <!-- Column 2: Upcoming Calendar Events & Members Overview -->
       <div class="dashboard-column-right">
+        <!-- Today's Meals & Night Breakdown Widget -->
+        <div class="glass-card section-card margin-bottom-md today-meals-widget">
+          <div class="section-card-header">
+            <div class="header-title">
+              <UtensilsCrossed :size="20" class="text-emerald" />
+              <h2>Repas & Nuit d'Aujourd'hui</h2>
+            </div>
+            <router-link to="/absences" class="view-all-link">Voir le planning &rarr;</router-link>
+          </div>
+
+          <div class="today-slots-list">
+            <!-- Déjeuner (Midi) -->
+            <div class="today-slot-row">
+              <div class="slot-row-top">
+                <div class="slot-header-left">
+                  <span class="slot-row-icon">☀️</span>
+                  <div class="slot-row-title-col">
+                    <span class="slot-row-title">Déjeuner</span>
+                    <span class="slot-row-subtitle">Midi</span>
+                  </div>
+                </div>
+                <div class="slot-row-badge-wrapper">
+                  <span class="headcount-badge badge-lunch">
+                    <strong>{{ lunchHeadcount }}</strong> à table
+                  </span>
+                </div>
+              </div>
+
+              <div class="slot-row-content">
+                <!-- Absents -->
+                <div v-if="todayLunchAbsents.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label absent-badge">Absents ({{ todayLunchAbsents.length }}) :</span>
+                  <div class="detail-tags-list">
+                    <span 
+                      v-for="abs in todayLunchAbsents" 
+                      :key="'l-abs-' + abs.id" 
+                      class="person-tag absent-tag"
+                      :title="abs.note ? `Motif: ${abs.note}` : 'Absent'"
+                    >
+                      {{ getMemberAvatar(abs.memberId) }} {{ getMemberFirstName(abs.memberId) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Invités -->
+                <div v-if="todayLunchGuests.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label guest-badge">Invités ({{ todayLunchGuests.length }}) :</span>
+                  <div class="detail-tags-list">
+                    <span 
+                      v-for="g in todayLunchGuests" 
+                      :key="'l-gst-' + g.id" 
+                      class="person-tag guest-tag"
+                      :title="g.note ? `Note: ${g.note}` : 'Invité'"
+                    >
+                      👥 {{ g.name }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Au complet -->
+                <div v-if="todayLunchAbsents.length === 0 && todayLunchGuests.length === 0" class="slot-all-present">
+                  🎉 Au complet ({{ store.members.length }} membres) sans invité
+                </div>
+              </div>
+            </div>
+
+            <!-- Dîner (Soir) -->
+            <div class="today-slot-row">
+              <div class="slot-row-top">
+                <div class="slot-header-left">
+                  <span class="slot-row-icon">🌙</span>
+                  <div class="slot-row-title-col">
+                    <span class="slot-row-title">Dîner</span>
+                    <span class="slot-row-subtitle">Soir</span>
+                  </div>
+                </div>
+                <div class="slot-row-badge-wrapper">
+                  <span class="headcount-badge badge-dinner">
+                    <strong>{{ dinnerHeadcount }}</strong> à table
+                  </span>
+                </div>
+              </div>
+
+              <div class="slot-row-content">
+                <!-- Absents -->
+                <div v-if="todayDinnerAbsents.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label absent-badge">Absents ({{ todayDinnerAbsents.length }}) :</span>
+                  <div class="detail-tags-list">
+                    <span 
+                      v-for="abs in todayDinnerAbsents" 
+                      :key="'d-abs-' + abs.id" 
+                      class="person-tag absent-tag"
+                      :title="abs.note ? `Motif: ${abs.note}` : 'Absent'"
+                    >
+                      {{ getMemberAvatar(abs.memberId) }} {{ getMemberFirstName(abs.memberId) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Invités -->
+                <div v-if="todayDinnerGuests.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label guest-badge">Invités ({{ todayDinnerGuests.length }}) :</span>
+                  <div class="detail-tags-list">
+                    <span 
+                      v-for="g in todayDinnerGuests" 
+                      :key="'d-gst-' + g.id" 
+                      class="person-tag guest-tag"
+                      :title="g.note ? `Note: ${g.note}` : 'Invité'"
+                    >
+                      👥 {{ g.name }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Au complet -->
+                <div v-if="todayDinnerAbsents.length === 0 && todayDinnerGuests.length === 0" class="slot-all-present">
+                  🎉 Au complet ({{ store.members.length }} membres) sans invité
+                </div>
+              </div>
+            </div>
+
+            <!-- Nuit (Couchage) -->
+            <div class="today-slot-row">
+              <div class="slot-row-top">
+                <div class="slot-header-left">
+                  <span class="slot-row-icon">🛌</span>
+                  <div class="slot-row-title-col">
+                    <span class="slot-row-title">Nuit</span>
+                    <span class="slot-row-subtitle">Couchage</span>
+                  </div>
+                </div>
+                <div class="slot-row-badge-wrapper">
+                  <span class="headcount-badge badge-night">
+                    <strong>{{ nightHeadcount }}</strong> présent{{ nightHeadcount > 1 ? 's' : '' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="slot-row-content">
+                <!-- Absents (dorment ailleurs) -->
+                <div v-if="todayNightAbsents.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label absent-badge">Absents ({{ todayNightAbsents.length }}) :</span>
+                  <div class="detail-tags-list">
+                    <span 
+                      v-for="abs in todayNightAbsents" 
+                      :key="'n-abs-' + abs.id" 
+                      class="person-tag absent-tag"
+                      :title="abs.note ? `Motif: ${abs.note}` : 'Dort ailleurs'"
+                    >
+                      {{ getMemberAvatar(abs.memberId) }} {{ getMemberFirstName(abs.memberId) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Invités (dorment à la maison) -->
+                <div v-if="todayNightGuests.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label guest-badge">Invités ({{ todayNightGuests.length }}) :</span>
+                  <div class="detail-tags-list">
+                    <span 
+                      v-for="g in todayNightGuests" 
+                      :key="'n-gst-' + g.id" 
+                      class="person-tag guest-tag"
+                      :title="g.note ? `Note: ${g.note}` : 'Dort à la maison'"
+                    >
+                      👥 {{ g.name }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Au complet -->
+                <div v-if="todayNightAbsents.length === 0 && todayNightGuests.length === 0" class="slot-all-present">
+                  💤 Tout le monde dort à la maison ({{ store.members.length }})
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Events List Widget -->
         <div class="glass-card section-card margin-bottom-md">
           <div class="section-card-header">
@@ -567,6 +745,37 @@ const formatTodayAbsencesSubtext = () => {
   return parts.join(' • ')
 }
 
+const todayLunchAbsents = computed(() => store.todayAbsences.filter(a => a.lunch))
+const todayDinnerAbsents = computed(() => store.todayAbsences.filter(a => a.dinner))
+const todayNightAbsents = computed(() => store.todayAbsences.filter(a => a.night))
+
+const todayLunchGuests = computed(() => store.todayMealGuests.filter(g => g.lunch))
+const todayDinnerGuests = computed(() => store.todayMealGuests.filter(g => g.dinner))
+const todayNightGuests = computed(() => store.todayMealGuests.filter(g => g.night))
+
+const lunchHeadcount = computed(() => {
+  return Math.max(0, store.members.length - todayLunchAbsents.value.length) + todayLunchGuests.value.length
+})
+
+const dinnerHeadcount = computed(() => {
+  return Math.max(0, store.members.length - todayDinnerAbsents.value.length) + todayDinnerGuests.value.length
+})
+
+const nightHeadcount = computed(() => {
+  return Math.max(0, store.members.length - todayNightAbsents.value.length) + todayNightGuests.value.length
+})
+
+const getMemberAvatar = (memberId) => {
+  const m = store.members.find(m => m.id === memberId)
+  return m ? m.avatar : '👤'
+}
+
+const getMemberFirstName = (memberId) => {
+  const m = store.members.find(m => m.id === memberId)
+  if (!m) return 'Inconnu'
+  return m.firstName || (m.name ? m.name.split(' ')[0] : 'Membre')
+}
+
 const showAddMemberModal = ref(false)
 const showEditMemberModal = ref(false)
 const editingMember = ref(null)
@@ -850,6 +1059,7 @@ const handleDeleteMember = async (member) => {
 .text-indigo { color: var(--accent-primary); }
 .text-purple { color: var(--accent-purple); }
 .text-amber { color: var(--accent-amber); }
+.text-emerald { color: var(--accent-secondary); }
 
 .admin-only-tag {
   font-size: 0.75rem;
@@ -867,6 +1077,180 @@ const handleDeleteMember = async (member) => {
   text-decoration: none;
 }
 .view-all-link:hover { text-decoration: underline; }
+
+/* Today's Meals & Night Widget */
+.today-slots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.today-slot-row {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.today-slot-row:hover {
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.slot-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.slot-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.slot-row-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.slot-row-title-col {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.slot-row-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.slot-row-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.headcount-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.headcount-badge strong {
+  font-weight: 800;
+}
+
+.badge-lunch {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+[data-theme="dark"] .badge-lunch {
+  color: #fbbf24;
+}
+
+.badge-dinner {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4338ca;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+[data-theme="dark"] .badge-dinner {
+  color: #a5b4fc;
+}
+
+.badge-night {
+  background: rgba(139, 92, 246, 0.12);
+  color: #6d28d9;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+[data-theme="dark"] .badge-night {
+  color: #c4b5fd;
+}
+
+.slot-row-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-left: 1.9rem;
+}
+
+.slot-detail-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.detail-badge-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.detail-badge-label.absent-badge {
+  color: #ef4444;
+}
+
+.detail-badge-label.guest-badge {
+  color: var(--accent-secondary);
+}
+
+.detail-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.person-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.775rem;
+  font-weight: 600;
+}
+
+.absent-tag {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+[data-theme="dark"] .absent-tag {
+  color: #f87171;
+}
+
+.guest-tag {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+[data-theme="dark"] .guest-tag {
+  color: #34d399;
+}
+
+.slot-all-present {
+  font-size: 0.785rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+@media (max-width: 480px) {
+  .slot-row-content {
+    padding-left: 0;
+  }
+}
 
 /* Tasks list styling */
 .tasks-list {
