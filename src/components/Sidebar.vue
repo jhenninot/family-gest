@@ -1106,17 +1106,66 @@ const handleLogout = () => {
     border-right: none;
     border-bottom: 1px solid var(--border-color);
     padding: 1rem;
+    gap: 0.75rem;
   }
-  .family-widget, .user-profile-card, .shortcuts-section {
+  .family-widget, .user-profile-card {
     display: none;
   }
   .nav-menu {
     flex-direction: row;
     overflow-x: auto;
     padding-bottom: 0.25rem;
+    gap: 0.5rem;
   }
   .nav-item span:not(.badge-count) {
     display: none;
+  }
+
+  /* Shortcuts Mobile */
+  .shortcuts-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.5rem 0 0.25rem 0;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .shortcuts-header {
+    padding: 0 0.25rem;
+  }
+
+  .shortcuts-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.5rem;
+    padding-bottom: 0.35rem;
+    max-height: none;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .shortcut-item-row {
+    flex-shrink: 0;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+  }
+
+  .shortcut-nav-link {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.8rem;
+    gap: 0.45rem;
+  }
+
+  .shortcut-ext-icon {
+    display: none;
+  }
+
+  .shortcut-edit-btn-mini {
+    opacity: 0.7;
+    padding: 0.35rem;
   }
 }
 </style>
