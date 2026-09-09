@@ -66,6 +66,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const setAuth = (userData, tokenStr) => {
+    token.value = tokenStr
+    user.value = userData
+    localStorage.setItem('familygest_token', tokenStr)
+    localStorage.setItem('familygest_user', JSON.stringify(userData))
+  }
+
   const logout = () => {
     token.value = ''
     user.value = null
@@ -80,6 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     login,
+    setAuth,
     updateProfile,
     logout
   }

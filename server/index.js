@@ -12,6 +12,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 import nodemailer from 'nodemailer'
+import crypto from 'crypto'
 
 import User from './models/User.js'
 import Task from './models/Task.js'
@@ -34,6 +35,88 @@ app.use(express.json())
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'API FamilyGest, Authentification & MongoDB opérationnelles' })
 })
+
+// Helper : Envoi d'email de bienvenue avec token d'activation (durée 2 heures)
+const sendWelcomeEmail = async (user, token) => {
+  try {
+    const config = await EmailConfig.findOne()
+    if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
+      console.log(`[Email] Configuration SMTP non définie ou incomplète. Email de bienvenue non envoyé à ${user.email}`)
+      return { success: false, reason: 'SMTP_NOT_CONFIGURED' }
+    }
+
+    const baseServerUrl = (config.serverUrl || 'http://localhost:5173').replace(/\/+$/, '')
+    const setPasswordUrl = `${baseServerUrl}/set-password?token=${token}`
+
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: {
+        user: config.user,
+        pass: config.pass
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    })
+
+    const mailOptions = {
+      from: `"${config.fromName || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
+      to: user.email,
+      subject: '✨ Bienvenue sur FamilyGest - Définissez votre mot de passe',
+      html: `
+        <div style="font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 28px; border-radius: 16px; border: 1px solid #e2e8f0; background: #ffffff; color: #1e293b;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="display: inline-block; width: 56px; height: 56px; line-height: 56px; border-radius: 14px; background: linear-gradient(135deg, #6366f1, #818cf8); font-size: 28px;">
+              ✨
+            </div>
+            <h1 style="color: #4338ca; margin: 12px 0 4px 0; font-size: 24px; font-weight: 800;">Bienvenue sur FamilyGest</h1>
+            <p style="color: #64748b; margin: 0; font-size: 14px;">Votre espace familial partagé</p>
+          </div>
+
+          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 12px;">Bonjour <strong>${user.firstName || user.name || 'Membre'}</strong>,</p>
+          <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 16px;">
+            Un compte d'accès à <strong>FamilyGest</strong> vient d'être créé pour vous avec l'adresse email : <strong style="color: #4f46e5;">${user.email}</strong>.
+          </p>
+
+          <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 24px;">
+            Pour activer votre compte et vous connecter pour la première fois, veuillez cliquer sur le bouton ci-dessous pour choisir votre mot de passe personnel :
+          </p>
+
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${setPasswordUrl}" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+              🔑 Définir mon mot de passe
+            </a>
+          </div>
+
+          <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;">
+            <p style="margin: 0; font-size: 13px; color: #92400e; line-height: 1.5;">
+              ⏱️ <strong>Important :</strong> Ce lien sécurisé est valable pendant <strong>2 heures</strong>. Passé ce délai, demandez à un administrateur de votre famille de vous renvoyer un email d'invitation.
+            </p>
+          </div>
+
+          <p style="font-size: 12px; color: #94a3b8; word-break: break-all; margin-top: 20px; line-height: 1.5;">
+            Si le bouton ci-dessus ne s'affiche pas correctement, vous pouvez copier et coller ce lien dans votre navigateur :<br/>
+            <a href="${setPasswordUrl}" style="color: #6366f1;">${setPasswordUrl}</a>
+          </p>
+
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+          <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+            FamilyGest • Application d'organisation familiale sécurisée
+          </p>
+        </div>
+      `
+    }
+
+    await transporter.sendMail(mailOptions)
+    console.log(`[Email] Email de bienvenue envoyé avec succès à ${user.email}`)
+    return { success: true }
+  } catch (err) {
+    console.error(`[Email] Erreur lors de l'envoi de l'email de bienvenue à ${user.email} :`, err.message)
+    return { success: false, error: err.message }
+  }
+}
 
 // === AUTHENTICATION ROUTES ===
 
@@ -92,6 +175,9 @@ app.post('/api/auth/register', requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Un utilisateur avec cette adresse email existe déjà' })
     }
 
+    const welcomeToken = crypto.randomBytes(32).toString('hex')
+    const welcomeTokenExpires = new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 heures
+
     const newUser = new User({
       id: Date.now(),
       firstName,
@@ -102,10 +188,15 @@ app.post('/api/auth/register', requireAuth, requireAdmin, async (req, res) => {
       role: role || 'Membre',
       avatar: avatar || '👤',
       color: color || '#6366f1',
-      points: 0
+      points: 0,
+      welcomeToken,
+      welcomeTokenExpires
     })
 
     await newUser.save()
+
+    // Envoi de l'email de bienvenue en arrière-plan
+    sendWelcomeEmail(newUser, welcomeToken)
 
     res.status(201).json({
       id: newUser.id,
@@ -121,6 +212,94 @@ app.post('/api/auth/register', requireAuth, requireAdmin, async (req, res) => {
     })
   } catch (err) {
     res.status(400).json({ error: err.message })
+  }
+})
+
+// GET /api/auth/verify-token (Vérification de la validité d'un token de bienvenue/activation)
+app.get('/api/auth/verify-token', async (req, res) => {
+  try {
+    const { token } = req.query
+    if (!token) {
+      return res.status(400).json({ valid: false, error: 'Token manquant' })
+    }
+
+    const user = await User.findOne({
+      welcomeToken: token,
+      welcomeTokenExpires: { $gt: new Date() }
+    })
+
+    if (!user) {
+      return res.status(400).json({ 
+        valid: false, 
+        error: 'Ce lien de bienvenue est invalide ou a expiré (durée de validité : 2 heures). Veuillez contacter un administrateur pour en recevoir un nouveau.' 
+      })
+    }
+
+    res.json({
+      valid: true,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        avatar: user.avatar
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ valid: false, error: err.message })
+  }
+})
+
+// POST /api/auth/set-password (Définition du mot de passe avec token d'activation)
+app.post('/api/auth/set-password', async (req, res) => {
+  try {
+    const { token, password } = req.body
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token et mot de passe requis' })
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Le mot de passe doit comporter au moins 6 caractères' })
+    }
+
+    const user = await User.findOne({
+      welcomeToken: token,
+      welcomeTokenExpires: { $gt: new Date() }
+    })
+
+    if (!user) {
+      return res.status(400).json({ 
+        error: 'Ce lien de bienvenue est invalide ou a expiré (durée de validité : 2 heures). Veuillez demander à un administrateur de vous renvoyer un email.' 
+      })
+    }
+
+    // Le hook pre('save') de Mongoose hashera automatiquement le mot de passe
+    user.password = password
+    user.welcomeToken = null
+    user.welcomeTokenExpires = null
+    await user.save()
+
+    const jwtToken = generateToken(user.id, user.email, user.isAdmin)
+
+    res.json({
+      success: true,
+      message: 'Votre mot de passe a été enregistré avec succès !',
+      token: jwtToken,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        role: user.role,
+        avatar: user.avatar,
+        color: user.color,
+        points: user.points
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
 })
 
@@ -222,6 +401,9 @@ app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Un membre avec cet email existe déjà' })
     }
 
+    const welcomeToken = crypto.randomBytes(32).toString('hex')
+    const welcomeTokenExpires = new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 heures
+
     const newUser = new User({
       id: Date.now(),
       firstName: fName,
@@ -232,10 +414,15 @@ app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
       role: role || (isAdmin ? 'Administrateur' : 'Membre'),
       avatar: avatar || '👤',
       color: color || '#6366f1',
-      points: Number(points) || 0
+      points: Number(points) || 0,
+      welcomeToken,
+      welcomeTokenExpires
     })
 
     await newUser.save()
+
+    // Envoi de l'email de bienvenue en arrière-plan
+    sendWelcomeEmail(newUser, welcomeToken)
 
     res.status(201).json({
       id: newUser.id,
@@ -377,6 +564,41 @@ app.delete('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
 
     await User.deleteOne({ id: memberId })
     res.json({ message: 'Membre supprimé par l\'administrateur' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Renvoyer manuellement un email de bienvenue avec un nouveau token de 2h : Réservé à l'Administrateur
+app.post('/api/members/:id/resend-welcome', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const memberId = Number(req.params.id)
+    const user = await User.findOne({ id: memberId })
+    if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
+
+    const config = await EmailConfig.findOne()
+    if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
+      return res.status(400).json({ 
+        error: 'Le serveur email SMTP n\'est pas encore configuré. Rendez-vous dans Administration pour le paramétrer.' 
+      })
+    }
+
+    const welcomeToken = crypto.randomBytes(32).toString('hex')
+    user.welcomeToken = welcomeToken
+    user.welcomeTokenExpires = new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 heures
+    await user.save()
+
+    const emailResult = await sendWelcomeEmail(user, welcomeToken)
+    if (emailResult.success) {
+      res.json({ 
+        success: true, 
+        message: `Email de bienvenue renvoyé avec succès à ${user.email} (lien valable 2 heures)` 
+      })
+    } else {
+      res.status(500).json({ 
+        error: `Erreur lors de l'envoi SMTP : ${emailResult.error || 'Vérifiez la configuration email'}` 
+      })
+    }
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -729,7 +951,7 @@ app.delete('/api/meal-guests/:id', requireAuth, async (req, res) => {
   }
 })
 
-// === EMAIL SETTINGS ROUTES (ADMIN ONLY) ===
+// === EMAIL & APP SETTINGS ROUTES (ADMIN ONLY) ===
 app.get('/api/settings/email', requireAuth, requireAdmin, async (req, res) => {
   try {
     let config = await EmailConfig.findOne()
@@ -738,6 +960,7 @@ app.get('/api/settings/email', requireAuth, requireAdmin, async (req, res) => {
       await config.save()
     }
     res.json({
+      serverUrl: config.serverUrl || 'http://localhost:5173',
       providerPreset: config.providerPreset || 'gmail',
       host: config.host || 'smtp.gmail.com',
       port: config.port || 587,
@@ -755,13 +978,14 @@ app.get('/api/settings/email', requireAuth, requireAdmin, async (req, res) => {
 
 app.post('/api/settings/email', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { providerPreset, host, port, secure, user, pass, fromEmail, fromName } = req.body
+    const { serverUrl, providerPreset, host, port, secure, user, pass, fromEmail, fromName } = req.body
 
     let config = await EmailConfig.findOne()
     if (!config) {
       config = new EmailConfig()
     }
 
+    if (serverUrl !== undefined) config.serverUrl = serverUrl.trim()
     if (providerPreset) config.providerPreset = providerPreset
     if (host !== undefined) config.host = host.trim()
     if (port !== undefined) config.port = Number(port)
@@ -775,7 +999,8 @@ app.post('/api/settings/email', requireAuth, requireAdmin, async (req, res) => {
     await config.save()
 
     res.json({
-      message: 'Configuration email enregistrée avec succès',
+      message: 'Paramètres enregistrés avec succès',
+      serverUrl: config.serverUrl,
       providerPreset: config.providerPreset,
       host: config.host,
       port: config.port,

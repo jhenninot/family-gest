@@ -4,10 +4,10 @@
     <div class="view-header">
       <div>
         <h1 class="page-title">
-          <Mail :size="28" class="title-icon" /> Configuration Email (SMTP / IMAP)
+          <Settings :size="28" class="title-icon" /> Administration du Système
         </h1>
         <p class="page-subtitle">
-          Configurez un compte d'envoi d'emails (ex: Gmail, Outlook ou serveur personnalisé) pour expédier des notifications depuis FamilyGest.
+          Configurez l'adresse d'accès au serveur et le compte d'envoi d'emails (SMTP) pour les invitations et notifications.
         </p>
       </div>
 
@@ -16,10 +16,10 @@
           <Loader2 :size="14" class="spin" /> Chargement...
         </span>
         <span v-else-if="emailConfig.isConfigured" class="status-badge success">
-          <CheckCircle2 :size="14" /> Compte configuré
+          <CheckCircle2 :size="14" /> SMTP configuré
         </span>
         <span v-else class="status-badge warning">
-          <AlertTriangle :size="14" /> Non configuré
+          <AlertTriangle :size="14" /> SMTP non configuré
         </span>
       </div>
     </div>
@@ -28,11 +28,53 @@
     <div v-if="!authStore.isAdmin" class="alert-box danger">
       <ShieldAlert :size="20" />
       <div>
-        <strong>Accès Restreint :</strong> Seul un utilisateur disposant du rôle <strong>Administrateur</strong> est autorisé à modifier la configuration du serveur d'emails.
+        <strong>Accès Restreint :</strong> Seul un utilisateur disposant du rôle <strong>Administrateur</strong> est autorisé à modifier les paramètres du système.
       </div>
     </div>
 
-    <div v-else class="settings-grid">
+    <div v-else class="admin-body-wrapper">
+      <!-- App Settings Card: Paramétrage de l'application -->
+      <div class="card glass-card app-config-card">
+        <div class="app-config-header">
+          <div class="section-title-group">
+            <h2 class="section-title">
+              <Globe :size="20" class="title-icon-globe" /> Paramétrage de l'application
+            </h2>
+            <p class="section-subtitle">
+              Adresse web globale de FamilyGest utilisée pour expédier les emails de bienvenue avec lien d'activation sécurisé (2h).
+            </p>
+          </div>
+          <button 
+            type="button" 
+            @click="handleSave" 
+            class="btn btn-primary btn-save-url"
+            :disabled="saving"
+          >
+            <Save :size="15" />
+            <span>{{ saving ? 'Enregistrement...' : 'Enregistrer les paramètres' }}</span>
+          </button>
+        </div>
+
+        <div class="app-config-fields margin-top-md">
+          <div class="form-group">
+            <label class="input-label">URL du serveur / de l'application :</label>
+            <div class="input-url-wrapper">
+              <input 
+                v-model="form.serverUrl" 
+                type="text" 
+                class="form-input" 
+                placeholder="http://localhost:5173" 
+                required 
+              />
+            </div>
+            <span class="help-text">
+              Exemple : <code>http://localhost:5173</code> (en local / développement), ou votre nom de domaine / adresse réseau (ex: <code>https://famille.mondomaine.fr</code>). Cette adresse sera insérée dans les emails de bienvenue pour que les nouveaux membres puissent définir leur mot de passe.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-grid">
       <!-- Left Column: Preset Selection & Configuration Form -->
       <div class="card glass-card form-card">
         <h2 class="section-title">
@@ -224,6 +266,7 @@
         </div>
       </div>
     </div>
+  </div>
 
     <!-- Modal Envoi Email de Test -->
     <div v-if="showTestModal" class="modal-overlay" @click.self="showTestModal = false">
@@ -274,7 +317,7 @@ import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { 
   Mail, Settings, CheckCircle2, AlertTriangle, ShieldAlert, 
-  Eye, EyeOff, Save, Send, HelpCircle, ShieldCheck, Loader2, AlertCircle 
+  Eye, EyeOff, Save, Send, HelpCircle, ShieldCheck, Loader2, AlertCircle, Globe
 } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
@@ -293,6 +336,7 @@ const emailConfig = ref({
 })
 
 const form = ref({
+  serverUrl: 'http://localhost:5173',
   providerPreset: 'gmail',
   host: 'smtp.gmail.com',
   port: 587,
@@ -330,6 +374,7 @@ const fetchEmailConfig = async () => {
     const data = await res.json()
     if (res.ok) {
       emailConfig.value = data
+      form.value.serverUrl = data.serverUrl || 'http://localhost:5173'
       form.value.providerPreset = data.providerPreset || 'gmail'
       form.value.host = data.host || 'smtp.gmail.com'
       form.value.port = data.port || 587
@@ -361,7 +406,7 @@ const handleSave = async () => {
     if (res.ok) {
       emailConfig.value = data
       form.value.pass = ''
-      alert('✅ Configuration email enregistrée avec succès !')
+      alert('✅ Paramètres enregistrés avec succès !')
     } else {
       alert(data.error || 'Erreur lors de l\'enregistrement de la configuration')
     }
@@ -497,6 +542,46 @@ onMounted(() => {
   color: #ef4444;
 }
 
+.admin-body-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.app-config-card {
+  padding: 1.5rem 1.75rem;
+}
+
+.app-config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.title-icon-globe {
+  color: var(--accent-indigo, #6366f1);
+}
+
+.btn-save-url {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.input-url-wrapper {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.input-url-wrapper .form-input {
+  flex: 1;
+  font-family: monospace;
+  font-size: 0.95rem;
+}
+
 .settings-grid {
   display: grid;
   grid-template-columns: 1fr 380px;
@@ -506,6 +591,17 @@ onMounted(() => {
 @media (max-width: 992px) {
   .settings-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-config-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn-save-url {
+    width: 100%;
+    justify-content: center;
   }
 }
 

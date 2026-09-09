@@ -201,6 +201,23 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  const resendWelcomeEmail = async (id) => {
+    try {
+      const res = await fetch(`/api/members/${id}/resend-welcome`, {
+        method: 'POST',
+        headers: getHeaders()
+      })
+      const data = await res.json()
+      if (res.ok) {
+        return { success: true, message: data.message }
+      } else {
+        return { success: false, error: data.error }
+      }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }
+
   const addTask = async (taskData) => {
     try {
       const res = await fetch('/api/tasks', {
@@ -550,6 +567,7 @@ export const useFamilyStore = defineStore('family', () => {
     deleteMember,
     toggleAdminStatus,
     updateMember,
+    resendWelcomeEmail,
     addTask,
     toggleTask,
     deleteTask,

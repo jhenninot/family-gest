@@ -66,8 +66,8 @@
       </router-link>
 
       <router-link v-if="authStore.isAdmin" to="/settings/email" class="nav-item admin-nav" active-class="active">
-        <Mail :size="20" />
-        <span>Config Email</span>
+        <Settings :size="20" />
+        <span>Administration</span>
       </router-link>
     </nav>
 
@@ -388,6 +388,7 @@ import {
   Shield,
   Edit3,
   Mail,
+  Settings,
   Globe,
   Plus,
   ExternalLink,

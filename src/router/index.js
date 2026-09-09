@@ -43,9 +43,16 @@ const routes = [
   },
   {
     path: '/settings/email',
-    name: 'email-settings',
+    name: 'admin-settings',
+    alias: '/admin',
     component: () => import('../views/EmailSettingsView.vue'),
-    meta: { title: 'Configuration Email', requiresAuth: true, requiresAdmin: true }
+    meta: { title: 'Administration', requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/set-password',
+    name: 'set-password',
+    component: () => import('../views/SetPasswordView.vue'),
+    meta: { title: 'Définir mon mot de passe', public: true }
   }
 ]
 

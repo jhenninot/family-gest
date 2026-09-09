@@ -473,7 +473,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Mot de passe</label>
+              <label class="form-label">Mot de passe temporaire</label>
               <input 
                 v-model="newMember.password" 
                 type="password" 
@@ -482,6 +482,11 @@
                 class="form-input" 
               />
             </div>
+          </div>
+
+          <div class="welcome-email-tip">
+            <Mail :size="16" class="text-indigo flex-shrink-0" />
+            <span>Un email de bienvenue contenant un lien d'activation sécurisé (validité 2h) sera automatiquement envoyé pour lui permettre de choisir son mot de passe.</span>
           </div>
 
           <div class="grid-2">
@@ -671,12 +676,25 @@
             </div>
           </div>
 
-          <div class="modal-footer">
-            <button type="button" @click="showEditMemberModal = false" class="btn btn-secondary">Annuler</button>
-            <button type="submit" class="btn btn-primary" :disabled="savingEdit">
-              <span v-if="!savingEdit">Enregistrer les modifications</span>
-              <span v-else>Enregistrement...</span>
+          <div class="modal-footer flex-between">
+            <button 
+              type="button" 
+              @click="handleResendWelcomeEmail(editMemberForm.id)" 
+              class="btn btn-secondary btn-resend-welcome"
+              :disabled="resendingEmail"
+              title="Envoyer un email avec un nouveau lien d'activation valable 2 heures"
+            >
+              <Mail :size="15" />
+              <span>{{ resendingEmail ? 'Envoi...' : 'Renvoyer l\'email de bienvenue' }}</span>
             </button>
+
+            <div class="modal-actions-right">
+              <button type="button" @click="showEditMemberModal = false" class="btn btn-secondary">Annuler</button>
+              <button type="submit" class="btn btn-primary" :disabled="savingEdit">
+                <span v-if="!savingEdit">Enregistrer les modifications</span>
+                <span v-else>Enregistrement...</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -702,7 +720,8 @@ import {
   ShieldAlert,
   ShieldCheck,
   Shield,
-  Edit3
+  Edit3,
+  Mail
 } from '@lucide/vue'
 
 const authStore = useAuthStore()
@@ -780,6 +799,20 @@ const showAddMemberModal = ref(false)
 const showEditMemberModal = ref(false)
 const editingMember = ref(null)
 const savingEdit = ref(false)
+const resendingEmail = ref(false)
+
+const handleResendWelcomeEmail = async (memberId) => {
+  if (!memberId) return
+  resendingEmail.value = true
+  const res = await store.resendWelcomeEmail(memberId)
+  resendingEmail.value = false
+
+  if (res.success) {
+    alert(`✉️ ${res.message || 'Email de bienvenue envoyé avec succès !'}`)
+  } else {
+    alert(`⚠️ ${res.error || 'Erreur lors de l\'envoi de l\'email'}`)
+  }
+}
 
 const avatarOptions = ['👨‍💼', '👩‍⚕️', '👦', '👧', '👶', '🧑', '👨‍🍳', '👵', '👴', '🐱', '🐶']
 const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
@@ -1510,4 +1543,61 @@ const handleDeleteMember = async (member) => {
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .btn-close { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
+
+.modal-footer.flex-between {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-actions-right {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.welcome-email-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  color: var(--text-secondary);
+  font-size: 0.825rem;
+  line-height: 1.45;
+  margin-bottom: 1.25rem;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.btn-resend-welcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--accent-primary);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.btn-resend-welcome:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--accent-primary);
+}
+
+@media (max-width: 640px) {
+  .modal-footer.flex-between {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .btn-resend-welcome {
+    width: 100%;
+    justify-content: center;
+  }
+  .modal-actions-right {
+    justify-content: flex-end;
+  }
+}
 </style>

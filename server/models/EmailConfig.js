@@ -1,6 +1,11 @@
 import mongoose from 'mongoose'
 
 const emailConfigSchema = new mongoose.Schema({
+  serverUrl: {
+    type: String,
+    default: 'http://localhost:5173',
+    trim: true
+  },
   providerPreset: {
     type: String,
     enum: ['gmail', 'outlook', 'yahoo', 'custom'],

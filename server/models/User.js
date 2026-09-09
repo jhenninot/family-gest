@@ -11,7 +11,9 @@ const userSchema = new mongoose.Schema({
   role: { type: String, default: 'Membre' },
   avatar: { type: String, default: '👤' },
   color: { type: String, default: '#6366f1' },
-  points: { type: Number, default: 0 }
+  points: { type: Number, default: 0 },
+  welcomeToken: { type: String, default: null },
+  welcomeTokenExpires: { type: Date, default: null }
 }, { timestamps: true })
 
 // Pre-save hook to hash password if modified (Mongoose 8 async hook syntax without callback parameters)
