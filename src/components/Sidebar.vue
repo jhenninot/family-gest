@@ -67,6 +67,61 @@
       </router-link>
     </nav>
 
+    <!-- Shortcuts / Web Apps Section -->
+    <div class="shortcuts-section">
+      <div class="shortcuts-header">
+        <div class="shortcuts-header-title">
+          <Globe :size="15" class="shortcuts-title-icon" />
+          <span>Raccourcis</span>
+        </div>
+        <button 
+          v-if="authStore.isAdmin" 
+          @click="openAddShortcutModal" 
+          class="add-shortcut-btn-mini" 
+          title="Ajouter un raccourci web (Administrateur)"
+        >
+          <Plus :size="13" />
+        </button>
+      </div>
+
+      <!-- Shortcuts list -->
+      <div v-if="store.shortcuts && store.shortcuts.length > 0" class="shortcuts-list">
+        <div 
+          v-for="item in store.shortcuts" 
+          :key="item.id" 
+          class="shortcut-item-row"
+        >
+          <a 
+            :href="item.url" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="shortcut-nav-link"
+            :title="`Ouvrir ${item.title} (${item.url})`"
+          >
+            <span class="shortcut-emoji">{{ item.icon || '🌐' }}</span>
+            <span class="shortcut-text">{{ item.title }}</span>
+            <ExternalLink :size="12" class="shortcut-ext-icon" />
+          </a>
+          <button 
+            v-if="authStore.isAdmin" 
+            @click.stop="openEditShortcutModal(item)" 
+            class="shortcut-edit-btn-mini"
+            title="Modifier / Supprimer ce raccourci"
+          >
+            <MoreVertical :size="13" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty state for Admin -->
+      <div v-else-if="authStore.isAdmin" class="shortcuts-empty-admin">
+        <button @click="openAddShortcutModal" class="btn-create-first-shortcut">
+          <Plus :size="13" />
+          <span>Ajouter un raccourci</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Family Leaderboard Quick Widget -->
     <div class="family-widget glass-card">
       <div class="widget-header">
@@ -223,6 +278,89 @@
         </form>
       </div>
     </div>
+
+    <!-- Modal Gestion Raccourci Web / App (Admin) -->
+    <div v-if="showShortcutModal" class="modal-overlay" @click.self="showShortcutModal = false">
+      <div class="modal-content shortcut-modal-content">
+        <div class="modal-header">
+          <h3>{{ editingShortcutId ? 'Modifier le Raccourci' : 'Nouveau Raccourci Web / App' }}</h3>
+          <button @click="showShortcutModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <form @submit.prevent="handleSaveShortcut">
+          <div class="form-group">
+            <label class="form-label">Nom du site ou de l'application</label>
+            <input 
+              v-model="shortcutForm.title" 
+              type="text" 
+              required 
+              placeholder="Ex: Home Assistant, Plex, Pronote, Nextcloud..." 
+              class="form-input" 
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Adresse URL</label>
+            <input 
+              v-model="shortcutForm.url" 
+              type="text" 
+              required 
+              placeholder="Ex: http://192.168.1.50:8123 ou https://..." 
+              class="form-input" 
+            />
+            <span class="help-subtext">Le lien s'ouvrira directement dans un nouvel onglet.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Icône / Emoji rapide</label>
+            <div class="emoji-picker-grid">
+              <button 
+                v-for="ico in shortcutIcons" 
+                :key="ico"
+                type="button"
+                class="emoji-pick-btn"
+                :class="{ selected: shortcutForm.icon === ico }"
+                @click="shortcutForm.icon = ico"
+              >
+                {{ ico }}
+              </button>
+            </div>
+            <div class="custom-emoji-row">
+              <label class="form-label-sub">Ou emoji personnalisé :</label>
+              <input 
+                v-model="shortcutForm.icon" 
+                type="text" 
+                maxlength="5" 
+                class="form-input emoji-text-input" 
+                placeholder="Ex: 🚀" 
+              />
+            </div>
+          </div>
+
+          <div class="modal-footer flex-between">
+            <button 
+              v-if="editingShortcutId" 
+              type="button" 
+              @click="handleDeleteShortcut" 
+              class="btn btn-danger btn-delete-shortcut"
+              :disabled="savingShortcut"
+            >
+              <Trash2 :size="15" />
+              <span>Supprimer</span>
+            </button>
+            <span v-else></span>
+
+            <div class="modal-actions-right">
+              <button type="button" @click="showShortcutModal = false" class="btn btn-secondary">Annuler</button>
+              <button type="submit" class="btn btn-primary" :disabled="savingShortcut">
+                <span v-if="!savingShortcut">{{ editingShortcutId ? 'Enregistrer' : 'Ajouter le raccourci' }}</span>
+                <span v-else>Enregistrement...</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
   </aside>
 </template>
 
@@ -245,7 +383,12 @@ import {
   ShieldCheck,
   Shield,
   Edit3,
-  Mail
+  Mail,
+  Globe,
+  Plus,
+  ExternalLink,
+  MoreVertical,
+  Trash2
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -296,6 +439,63 @@ const handleSaveProfile = async () => {
     await store.fetchAllData()
   } else {
     alert(res.error || 'Erreur lors de la mise à jour du profil')
+  }
+}
+
+// --- SHORTCUTS LOGIC ---
+const showShortcutModal = ref(false)
+const editingShortcutId = ref(null)
+const savingShortcut = ref(false)
+
+const shortcutIcons = ['🏠', '🎬', '🎵', '📚', '💾', '☁️', '🌐', '🔒', '🎮', '⚡', '📊', '🛒', '🛠️', '📧', '📺', '💡', '🤖', '📸']
+
+const shortcutForm = ref({
+  title: '',
+  url: '',
+  icon: '🌐'
+})
+
+const openAddShortcutModal = () => {
+  editingShortcutId.value = null
+  shortcutForm.value = {
+    title: '',
+    url: '',
+    icon: '🏠'
+  }
+  showShortcutModal.value = true
+}
+
+const openEditShortcutModal = (shortcut) => {
+  editingShortcutId.value = shortcut.id
+  shortcutForm.value = {
+    title: shortcut.title,
+    url: shortcut.url,
+    icon: shortcut.icon || '🌐'
+  }
+  showShortcutModal.value = true
+}
+
+const handleSaveShortcut = async () => {
+  if (!shortcutForm.value.title || !shortcutForm.value.url) return
+  savingShortcut.value = true
+
+  if (editingShortcutId.value) {
+    await store.updateShortcut(editingShortcutId.value, shortcutForm.value)
+  } else {
+    await store.addShortcut(shortcutForm.value)
+  }
+
+  savingShortcut.value = false
+  showShortcutModal.value = false
+}
+
+const handleDeleteShortcut = async () => {
+  if (!editingShortcutId.value) return
+  if (confirm(`Voulez-vous vraiment supprimer le raccourci "${shortcutForm.value.title}" ?`)) {
+    savingShortcut.value = true
+    await store.deleteShortcut(editingShortcutId.value)
+    savingShortcut.value = false
+    showShortcutModal.value = false
   }
 }
 
@@ -642,7 +842,262 @@ const handleLogout = () => {
 .color-btn.selected { border-color: var(--text-primary); transform: scale(1.15); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .btn-close { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
+/* Shortcuts Section */
+.shortcuts-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0.25rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.shortcuts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+}
+
+.shortcuts-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.shortcuts-title-icon {
+  color: var(--accent-primary);
+}
+
+.add-shortcut-btn-mini {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.add-shortcut-btn-mini:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+  transform: scale(1.08);
+}
+
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.shortcut-item-row {
+  display: flex;
+  align-items: center;
+  position: relative;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+}
+
+.shortcut-item-row:hover {
+  background: var(--bg-tertiary);
+}
+
+.shortcut-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.65rem;
+  flex: 1;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: color var(--transition-fast);
+}
+
+.shortcut-nav-link:hover {
+  color: var(--accent-primary);
+}
+
+.shortcut-emoji {
+  font-size: 1.1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.shortcut-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.shortcut-ext-icon {
+  color: var(--text-muted);
+  opacity: 0.5;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.shortcut-nav-link:hover .shortcut-ext-icon {
+  opacity: 1;
+  color: var(--accent-primary);
+}
+
+.shortcut-edit-btn-mini {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.4rem;
+  margin-right: 0.25rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.shortcut-item-row:hover .shortcut-edit-btn-mini {
+  opacity: 0.7;
+}
+
+.shortcut-edit-btn-mini:hover {
+  opacity: 1 !important;
+  color: var(--accent-primary);
+  background: var(--bg-card);
+}
+
+.shortcuts-empty-admin {
+  padding: 0.25rem 0.5rem;
+}
+
+.btn-create-first-shortcut {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem;
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-create-first-shortcut:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background: var(--accent-primary-light);
+}
+
+/* Shortcut Modal Styles */
+.shortcut-modal-content {
+  max-width: 480px;
+}
+
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.emoji-pick-btn {
+  font-size: 1.35rem;
+  height: 40px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.emoji-pick-btn:hover {
+  background: var(--bg-card);
+  transform: scale(1.1);
+  border-color: var(--accent-primary);
+}
+
+.emoji-pick-btn.selected {
+  background: var(--accent-primary-light);
+  border-color: var(--accent-primary);
+  transform: scale(1.12);
+  box-shadow: 0 0 0 2px var(--accent-primary);
+}
+
+.custom-emoji-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.form-label-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.emoji-text-input {
+  width: 70px;
+  text-align: center;
+  font-size: 1.15rem;
+  padding: 0.35rem;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.modal-actions-right {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-danger {
+  background: var(--accent-rose-light);
+  color: var(--accent-rose);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all var(--transition-fast);
+}
+
+.btn-danger:hover {
+  background: var(--accent-rose);
+  color: white;
+}
 
 @media (max-width: 900px) {
   .sidebar {
@@ -652,7 +1107,7 @@ const handleLogout = () => {
     border-bottom: 1px solid var(--border-color);
     padding: 1rem;
   }
-  .family-widget, .user-profile-card {
+  .family-widget, .user-profile-card, .shortcuts-section {
     display: none;
   }
   .nav-menu {

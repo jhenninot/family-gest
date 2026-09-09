@@ -23,6 +23,7 @@ export const useFamilyStore = defineStore('family', () => {
   const events = ref([])
   const expenses = ref([])
   const shoppingList = ref([])
+  const shortcuts = ref([])
   const isLoading = ref(false)
 
   const getHeaders = () => {
@@ -42,12 +43,13 @@ export const useFamilyStore = defineStore('family', () => {
       isLoading.value = true
       const headers = getHeaders()
 
-      const [membersRes, tasksRes, eventsRes, expensesRes, shoppingRes] = await Promise.all([
+      const [membersRes, tasksRes, eventsRes, expensesRes, shoppingRes, shortcutsRes] = await Promise.all([
         fetch('/api/members', { headers }),
         fetch('/api/tasks', { headers }),
         fetch('/api/events', { headers }),
         fetch('/api/expenses', { headers }),
-        fetch('/api/shopping', { headers })
+        fetch('/api/shopping', { headers }),
+        fetch('/api/shortcuts', { headers })
       ])
 
       // Check if session token expired or user is invalid (401)
@@ -59,6 +61,7 @@ export const useFamilyStore = defineStore('family', () => {
         events.value = []
         expenses.value = []
         shoppingList.value = []
+        shortcuts.value = []
         return
       }
 
@@ -67,6 +70,7 @@ export const useFamilyStore = defineStore('family', () => {
       if (eventsRes.ok) events.value = await eventsRes.json()
       if (expensesRes.ok) expenses.value = await expensesRes.json()
       if (shoppingRes.ok) shoppingList.value = await shoppingRes.json()
+      if (shortcutsRes.ok) shortcuts.value = await shortcutsRes.json()
     } catch (err) {
       console.error('Erreur lors du chargement des données API', err)
     } finally {
@@ -336,6 +340,66 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  // --- SHORTCUTS ACTIONS ---
+  const addShortcut = async (shortcutData) => {
+    try {
+      const res = await fetch('/api/shortcuts', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(shortcutData)
+      })
+      if (res.ok) {
+        const created = await res.json()
+        shortcuts.value.push(created)
+        return { success: true, shortcut: created }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur addShortcut API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  const updateShortcut = async (id, shortcutData) => {
+    try {
+      const res = await fetch(`/api/shortcuts/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(shortcutData)
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        const idx = shortcuts.value.findIndex(s => s.id === id)
+        if (idx !== -1) shortcuts.value[idx] = updated
+        return { success: true, shortcut: updated }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur updateShortcut API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  const deleteShortcut = async (id) => {
+    try {
+      const res = await fetch(`/api/shortcuts/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      })
+      if (res.ok) {
+        shortcuts.value = shortcuts.value.filter(s => s.id !== id)
+        return { success: true }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur deleteShortcut API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
   return {
     isDarkMode,
     toggleTheme,
@@ -344,6 +408,7 @@ export const useFamilyStore = defineStore('family', () => {
     events,
     expenses,
     shoppingList,
+    shortcuts,
     isLoading,
     completedTasksCount,
     pendingTasksCount,
@@ -365,6 +430,9 @@ export const useFamilyStore = defineStore('family', () => {
     deleteExpense,
     addShoppingItem,
     toggleShoppingItem,
-    deleteShoppingItem
+    deleteShoppingItem,
+    addShortcut,
+    updateShortcut,
+    deleteShortcut
   }
 })

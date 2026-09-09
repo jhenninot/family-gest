@@ -19,6 +19,7 @@ import Event from './models/Event.js'
 import Expense from './models/Expense.js'
 import ShoppingItem from './models/ShoppingItem.js'
 import EmailConfig from './models/EmailConfig.js'
+import Shortcut from './models/Shortcut.js'
 
 dotenv.config()
 
@@ -679,6 +680,77 @@ app.post('/api/settings/email/test', requireAuth, requireAdmin, async (req, res)
     res.status(500).json({ error: `Échec de l'envoi de l'email : ${err.message}` })
   }
 })
+
+// === SHORTCUTS / APPS ROUTES ===
+app.get('/api/shortcuts', requireAuth, async (req, res) => {
+  try {
+    const shortcuts = await Shortcut.find().sort({ order: 1, createdAt: 1 })
+    res.json(shortcuts)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/shortcuts', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { title, url, icon, order } = req.body
+    if (!title || !url) {
+      return res.status(400).json({ error: 'Le titre et l\'adresse URL sont requis' })
+    }
+
+    let validUrl = url.trim()
+    if (!validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
+      validUrl = `https://${validUrl}`
+    }
+
+    const newShortcut = new Shortcut({
+      id: Date.now(),
+      title: title.trim(),
+      url: validUrl,
+      icon: icon ? icon.trim() : '🌐',
+      order: Number(order) || 0
+    })
+
+    await newShortcut.save()
+    res.status(201).json(newShortcut)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+app.put('/api/shortcuts/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const shortcut = await Shortcut.findOne({ id: Number(req.params.id) })
+    if (!shortcut) return res.status(404).json({ error: 'Raccourci non trouvé' })
+
+    const { title, url, icon, order } = req.body
+    if (title) shortcut.title = title.trim()
+    if (url) {
+      let validUrl = url.trim()
+      if (!validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
+        validUrl = `https://${validUrl}`
+      }
+      shortcut.url = validUrl
+    }
+    if (icon !== undefined) shortcut.icon = icon.trim() || '🌐'
+    if (order !== undefined) shortcut.order = Number(order) || 0
+
+    await shortcut.save()
+    res.json(shortcut)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/shortcuts/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await Shortcut.deleteOne({ id: Number(req.params.id) })
+    res.json({ message: 'Raccourci supprimé' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 
 // === STATIC FILES & SPA FALLBACK (Production / Docker) ===
 const distPath = path.resolve(__dirname, '../dist')
