@@ -1,0 +1,11 @@
+node_modules
+server/node_modules
+server/data
+dist
+dist-ssr
+.git
+.gitignore
+.vscode
+.env
+*.log
+npm-debug.log*

@@ -10,15 +10,44 @@ const __dirname = path.dirname(__filename)
 let mongoServer = null
 
 export const connectDB = async () => {
-  const localUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/familygest'
+  const mongoUri = process.env.MONGODB_URI
+  const isProduction = process.env.NODE_ENV === 'production'
 
+  // Si une URI explicite est fournie ou en production (ex: conteneur Docker),
+  // on utilise une boucle de reconnexion et on ne bascule jamais en mémoire.
+  if (mongoUri || isProduction) {
+    const targetUri = mongoUri || 'mongodb://127.0.0.1:27017/familygest'
+    const maxRetries = 15
+    const retryDelay = 2000
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`📡 Connexion à MongoDB (${targetUri}) [Tentative ${attempt}/${maxRetries}]...`)
+        const conn = await mongoose.connect(targetUri, {
+          serverSelectionTimeoutMS: 4000,
+          dbName: 'familygest'
+        })
+        console.log(`✅ MongoDB connecté avec succès : ${conn.connection.host}`)
+        return conn
+      } catch (err) {
+        console.warn(`⏳ En attente de MongoDB (${err.message})... nouvelle tentative dans ${retryDelay / 1000}s`)
+        if (attempt === maxRetries) {
+          console.error(`❌ Impossible de se connecter au serveur MongoDB après ${maxRetries} tentatives. Arrêt du serveur.`)
+          process.exit(1)
+        }
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
+      }
+    }
+  }
+
+  // Mode développement local sans Docker (tentative locale puis fallback MongoMemoryServer)
+  const defaultLocalUri = 'mongodb://127.0.0.1:27017/familygest'
   try {
-    // Attempt local MongoDB connection first (1.5s timeout)
-    const conn = await mongoose.connect(localUri, { serverSelectionTimeoutMS: 1500, dbName: 'familygest' })
+    const conn = await mongoose.connect(defaultLocalUri, { serverSelectionTimeoutMS: 1500, dbName: 'familygest' })
     console.log(`✅ MongoDB connecté (Serveur Local/Atlas) : ${conn.connection.host}`)
     return conn
   } catch (err) {
-    console.log('⚠️ Aucun serveur MongoDB local détecté. Lancement d\'une instance MongoDB embarquée persistance...')
+    console.log('⚠️ Aucun serveur MongoDB local détecté. Lancement d\'une instance MongoDB embarquée persistante (développement)...')
     try {
       const dbDir = path.resolve(__dirname, '../data/db')
       fs.mkdirSync(dbDir, { recursive: true })

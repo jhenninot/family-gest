@@ -68,6 +68,30 @@ npm run dev
 
 ---
 
+## 🐳 Déploiement Docker & Dockge
+
+FamilyGest est entièrement conteneurisé avec persistance sécurisée des données MongoDB :
+- Fichier Compose prêt pour **Dockge** : [`compose.yaml`](compose.yaml)
+- Guide complet d'installation et de mise à jour sécurisée : [`DOCKGE.md`](DOCKGE.md)
+
+### Démarrage rapide avec Docker Compose
+```bash
+# 1. Cloner le projet
+git clone https://github.com/votre-utilisateur/family-gest.git
+cd family-gest
+
+# 2. Configurer les variables d'environnement
+cp .env.example .env
+
+# 3. Lancer la stack (Frontend + Backend + MongoDB avec volume persistant)
+docker compose up -d --build
+```
+L'application est disponible sur `http://localhost:5000`.
+
+> 🛡️ **Garantie de persistance** : Le volume Docker nommé `familygest_mongo_data` préserve toutes vos données même en cas de mise à jour (`Update`), recréation ou suppression des conteneurs.
+
+---
+
 ## 🔑 Identifiants de Connexion par Défaut
 
 | Rôle | Adresse Email | Mot de Passe | Privilèges |
@@ -76,3 +100,4 @@ npm run dev
 | **Maman** | `sophie@family-gest.org` | `Family123!` | Accès membres & tâches |
 | **Fils** | `lucas@family-gest.org` | `Family123!` | Accès membres & tâches |
 | **Fille** | `emma@family-gest.org` | `Family123!` | Accès membres & tâches |
+

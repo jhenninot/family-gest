@@ -1,9 +1,15 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
 import { connectDB } from './config/db.js'
 import { seedDatabaseIfEmpty } from './seed.js'
 import { requireAuth, requireAdmin, generateToken } from './middleware/auth.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 import nodemailer from 'nodemailer'
 
@@ -673,6 +679,21 @@ app.post('/api/settings/email/test', requireAuth, requireAdmin, async (req, res)
     res.status(500).json({ error: `Échec de l'envoi de l'email : ${err.message}` })
   }
 })
+
+// === STATIC FILES & SPA FALLBACK (Production / Docker) ===
+const distPath = path.resolve(__dirname, '../dist')
+if (fs.existsSync(distPath)) {
+  console.log(`📦 Fichiers frontend détectés (${distPath}) : activation du service statique`)
+  app.use(express.static(distPath))
+
+  // Redirection SPA vers index.html pour les pages client (hors /api)
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next()
+    }
+    res.sendFile(path.join(distPath, 'index.html'))
+  })
+}
 
 // Start server
 const startServer = async () => {

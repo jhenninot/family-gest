@@ -1,0 +1,53 @@
+# ==============================================================================
+# 🏡 FamilyGest - Configuration Docker Compose & Dockge
+# ==============================================================================
+# Ce fichier est prêt à l'emploi dans Dockge ou avec `docker compose up -d`.
+# 
+# ⚠️ PERSISTANCE DES DONNÉES :
+# Les données de la base MongoDB sont stockées dans le volume persistant Docker
+# nommé 'familygest_mongo_data'. Même lors des mises à jour ou recréations
+# de conteneurs dans Dockge, ce volume n'est JAMAIS effacé.
+# ==============================================================================
+
+services:
+  # --- Application Web FamilyGest (Frontend Vue 3 + Backend Express) ---
+  app:
+    container_name: familygest-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      # Port d'accès hôte (modifiable dans votre fichier .env)
+      - "${APP_PORT:-5000}:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - JWT_SECRET=${JWT_SECRET:-familygest_secret_jwt_key_2026_change_in_production}
+      - MONGODB_URI=mongodb://mongo:27017/familygest
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  # --- Base de données MongoDB ---
+  mongo:
+    container_name: familygest-mongo
+    image: mongo:7.0
+    restart: unless-stopped
+    # PERSISTANCE : Le volume ci-dessous garantit que les données restent intactes
+    # lors des mises à jour d'images et des redémarrages de stack.
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+# Déclaration explicite du volume persistant
+# 'name: familygest_mongo_data' empêche Docker de le renommer ou de le détruire
+# si le dossier de la stack est renommé ou déplacé dans Dockge.
+volumes:
+  mongo_data:
+    name: familygest_mongo_data
