@@ -267,64 +267,58 @@
               'has-absences': getDayAbsences(day).length > 0,
               'has-day-guests': getDayGuests(day).length > 0
             }"
-            @click="openAddModal(formatDateStr(currentYear, currentMonth, day))"
-            :title="'Cliquer pour signaler une absence le ' + day + ' ' + currentMonthName"
+            @click="openDayDetailModal(formatDateStr(currentYear, currentMonth, day))"
+            :title="'Cliquer pour voir le détail du ' + day + ' ' + currentMonthName"
           >
             <div class="day-cell-top">
               <span class="day-number">{{ day }}</span>
-              <div class="day-actions-btns">
-                <button 
-                  class="day-add-mini-btn guest-btn" 
-                  @click.stop="openAddGuestModal(formatDateStr(currentYear, currentMonth, day))"
-                  title="Ajouter un invité ce jour"
-                >
-                  👥+
-                </button>
-                <button 
-                  class="day-add-mini-btn" 
-                  @click.stop="openAddModal(formatDateStr(currentYear, currentMonth, day))"
-                  title="Ajouter une absence ce jour"
-                >
-                  +
-                </button>
+              <div class="day-indicators">
+                <span v-if="getDayAbsences(day).length > 0" class="mini-indicator absence" title="Absence(s)">
+                  {{ getDayAbsences(day).length }} absent{{ getDayAbsences(day).length > 1 ? 's' : '' }}
+                </span>
+                <span v-if="getDayGuests(day).length > 0" class="mini-indicator guest" title="Invité(s)">
+                  👥 {{ getDayGuests(day).length }}
+                </span>
               </div>
             </div>
 
-            <!-- Absences & Guests inside this day -->
+            <!-- Absences & Guests preview inside this day -->
             <div class="day-absences-container">
-              <!-- Absences -->
+              <!-- Absences preview -->
               <div 
-                v-for="abs in getDayAbsences(day)" 
+                v-for="abs in getDayAbsences(day).slice(0, 2)" 
                 :key="'abs-' + abs.id" 
                 class="day-absence-chip"
-                @click.stop="openEditModal(abs)"
-                :title="getAbsenceTooltip(abs)"
               >
                 <span class="chip-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
                 <span class="chip-name">{{ getMemberFirstName(abs.memberId) }}</span>
                 <div class="chip-icons">
-                  <span v-if="abs.lunch" title="Déjeuner (Midi)">☀️</span>
-                  <span v-if="abs.dinner" title="Dîner (Soir)">🌙</span>
-                  <span v-if="abs.night" title="Nuit">🛌</span>
+                  <span v-if="abs.lunch">☀️</span>
+                  <span v-if="abs.dinner">🌙</span>
+                  <span v-if="abs.night">🛌</span>
                 </div>
               </div>
+              <span v-if="getDayAbsences(day).length > 2" class="more-items-count">
+                +{{ getDayAbsences(day).length - 2 }} autre(s)
+              </span>
 
-              <!-- Guests -->
+              <!-- Guests preview -->
               <div 
-                v-for="g in getDayGuests(day)" 
+                v-for="g in getDayGuests(day).slice(0, 2)" 
                 :key="'gst-' + g.id" 
                 class="day-guest-chip"
-                @click.stop="openEditGuestModal(g)"
-                :title="getGuestTooltip(g)"
               >
                 <span class="chip-avatar">👥</span>
                 <span class="chip-name">{{ g.name }}</span>
                 <div class="chip-icons">
-                  <span v-if="g.lunch" title="Déjeuner (Midi)">☀️</span>
-                  <span v-if="g.dinner" title="Dîner (Soir)">🌙</span>
-                  <span v-if="g.night" title="Nuit">🛌</span>
+                  <span v-if="g.lunch">☀️</span>
+                  <span v-if="g.dinner">🌙</span>
+                  <span v-if="g.night">🛌</span>
                 </div>
               </div>
+              <span v-if="getDayGuests(day).length > 2" class="more-items-count guest">
+                +{{ getDayGuests(day).length - 2 }} invité(s)
+              </span>
             </div>
           </div>
         </div>
@@ -741,6 +735,235 @@
         </form>
       </div>
     </div>
+
+    <!-- Modal Détail du Jour (Pop-up complète pour le jour sélectionné) -->
+    <div v-if="showDayDetailModal" class="modal-overlay" @click.self="showDayDetailModal = false">
+      <div class="modal-content day-detail-modal">
+        <div class="modal-header">
+          <div class="day-detail-title-col">
+            <span class="day-detail-badge">{{ formatRelativeDate(selectedDayDate) }}</span>
+            <h3>{{ formatFullDisplayDate(selectedDayDate) }}</h3>
+          </div>
+          <button @click="showDayDetailModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <div class="day-detail-body">
+          <!-- Top Big Action Buttons -->
+          <div class="day-detail-actions-bar">
+            <button @click="openAddModalFromDay()" class="btn btn-primary btn-action-card">
+              <Plus :size="18" />
+              <span>Signaler une absence</span>
+            </button>
+            <button @click="openAddGuestModalFromDay()" class="btn btn-purple btn-action-card">
+              <UserPlus :size="18" />
+              <span>+ Ajouter un invité</span>
+            </button>
+          </div>
+
+          <!-- Slots Details Grid -->
+          <div class="day-slots-detail-list">
+            <!-- Déjeuner -->
+            <div class="day-slot-detail-box">
+              <div class="day-slot-detail-header">
+                <div class="slot-name-group">
+                  <span class="slot-icon">☀️</span>
+                  <strong>Déjeuner (Midi)</strong>
+                </div>
+                <span class="day-slot-headcount-badge">
+                  {{ getSelectedDaySlotHeadcount('lunch') }}
+                </span>
+              </div>
+
+              <div class="day-slot-items">
+                <!-- Absents -->
+                <div v-if="selectedDayLunchAbsents.length > 0" class="slot-section">
+                  <span class="slot-section-title text-amber">Membres absents ({{ selectedDayLunchAbsents.length }}) :</span>
+                  <div class="slot-person-cards">
+                    <div v-for="abs in selectedDayLunchAbsents" :key="'lunch-abs-' + abs.id" class="slot-person-card absence">
+                      <span class="person-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
+                      <div class="person-info">
+                        <strong>{{ getMemberName(abs.memberId) }}</strong>
+                        <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
+                      </div>
+                      <div class="person-actions">
+                        <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
+                          <Edit3 :size="15" />
+                        </button>
+                        <button v-if="canEdit(abs)" @click="handleDelete(abs.id)" class="btn-icon-action text-danger" title="Supprimer">
+                          <Trash2 :size="15" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Invités -->
+                <div v-if="selectedDayLunchGuests.length > 0" class="slot-section">
+                  <span class="slot-section-title text-purple">Invités présents ({{ selectedDayLunchGuests.length }}) :</span>
+                  <div class="slot-person-cards">
+                    <div v-for="g in selectedDayLunchGuests" :key="'lunch-gst-' + g.id" class="slot-person-card guest">
+                      <span class="person-avatar">👥</span>
+                      <div class="person-info">
+                        <strong>{{ g.name }}</strong>
+                        <span v-if="g.invitedBy" class="person-host">Invité par {{ getMemberFirstName(g.invitedBy) }}</span>
+                        <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
+                      </div>
+                      <div class="person-actions">
+                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-action" title="Modifier">
+                          <Edit3 :size="15" />
+                        </button>
+                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-action text-danger" title="Supprimer">
+                          <Trash2 :size="15" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="selectedDayLunchAbsents.length === 0 && selectedDayLunchGuests.length === 0" class="slot-empty-note">
+                  ✨ Aucun absent ni invité pour le midi.
+                </div>
+              </div>
+            </div>
+
+            <!-- Dîner -->
+            <div class="day-slot-detail-box">
+              <div class="day-slot-detail-header">
+                <div class="slot-name-group">
+                  <span class="slot-icon">🌙</span>
+                  <strong>Dîner (Soir)</strong>
+                </div>
+                <span class="day-slot-headcount-badge">
+                  {{ getSelectedDaySlotHeadcount('dinner') }}
+                </span>
+              </div>
+
+              <div class="day-slot-items">
+                <!-- Absents -->
+                <div v-if="selectedDayDinnerAbsents.length > 0" class="slot-section">
+                  <span class="slot-section-title text-amber">Membres absents ({{ selectedDayDinnerAbsents.length }}) :</span>
+                  <div class="slot-person-cards">
+                    <div v-for="abs in selectedDayDinnerAbsents" :key="'dinner-abs-' + abs.id" class="slot-person-card absence">
+                      <span class="person-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
+                      <div class="person-info">
+                        <strong>{{ getMemberName(abs.memberId) }}</strong>
+                        <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
+                      </div>
+                      <div class="person-actions">
+                        <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
+                          <Edit3 :size="15" />
+                        </button>
+                        <button v-if="canEdit(abs)" @click="handleDelete(abs.id)" class="btn-icon-action text-danger" title="Supprimer">
+                          <Trash2 :size="15" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Invités -->
+                <div v-if="selectedDayDinnerGuests.length > 0" class="slot-section">
+                  <span class="slot-section-title text-purple">Invités présents ({{ selectedDayDinnerGuests.length }}) :</span>
+                  <div class="slot-person-cards">
+                    <div v-for="g in selectedDayDinnerGuests" :key="'dinner-gst-' + g.id" class="slot-person-card guest">
+                      <span class="person-avatar">👥</span>
+                      <div class="person-info">
+                        <strong>{{ g.name }}</strong>
+                        <span v-if="g.invitedBy" class="person-host">Invité par {{ getMemberFirstName(g.invitedBy) }}</span>
+                        <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
+                      </div>
+                      <div class="person-actions">
+                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-action" title="Modifier">
+                          <Edit3 :size="15" />
+                        </button>
+                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-action text-danger" title="Supprimer">
+                          <Trash2 :size="15" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="selectedDayDinnerAbsents.length === 0 && selectedDayDinnerGuests.length === 0" class="slot-empty-note">
+                  ✨ Aucun absent ni invité pour le soir.
+                </div>
+              </div>
+            </div>
+
+            <!-- Nuit -->
+            <div class="day-slot-detail-box">
+              <div class="day-slot-detail-header">
+                <div class="slot-name-group">
+                  <span class="slot-icon">🛌</span>
+                  <strong>Nuit (Couchage)</strong>
+                </div>
+                <span class="day-slot-headcount-badge">
+                  {{ getSelectedDaySlotHeadcount('night') }}
+                </span>
+              </div>
+
+              <div class="day-slot-items">
+                <!-- Absents -->
+                <div v-if="selectedDayNightAbsents.length > 0" class="slot-section">
+                  <span class="slot-section-title text-amber">Membres absents ({{ selectedDayNightAbsents.length }}) :</span>
+                  <div class="slot-person-cards">
+                    <div v-for="abs in selectedDayNightAbsents" :key="'night-abs-' + abs.id" class="slot-person-card absence">
+                      <span class="person-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
+                      <div class="person-info">
+                        <strong>{{ getMemberName(abs.memberId) }}</strong>
+                        <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
+                      </div>
+                      <div class="person-actions">
+                        <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
+                          <Edit3 :size="15" />
+                        </button>
+                        <button v-if="canEdit(abs)" @click="handleDelete(abs.id)" class="btn-icon-action text-danger" title="Supprimer">
+                          <Trash2 :size="15" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Invités -->
+                <div v-if="selectedDayNightGuests.length > 0" class="slot-section">
+                  <span class="slot-section-title text-purple">Invités qui dorment ({{ selectedDayNightGuests.length }}) :</span>
+                  <div class="slot-person-cards">
+                    <div v-for="g in selectedDayNightGuests" :key="'night-gst-' + g.id" class="slot-person-card guest">
+                      <span class="person-avatar">👥</span>
+                      <div class="person-info">
+                        <strong>{{ g.name }}</strong>
+                        <span v-if="g.invitedBy" class="person-host">Invité par {{ getMemberFirstName(g.invitedBy) }}</span>
+                        <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
+                      </div>
+                      <div class="person-actions">
+                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-action" title="Modifier">
+                          <Edit3 :size="15" />
+                        </button>
+                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-action text-danger" title="Supprimer">
+                          <Trash2 :size="15" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="selectedDayNightAbsents.length === 0 && selectedDayNightGuests.length === 0" class="slot-empty-note">
+                  💤 Tout le monde dort à la maison sans invité.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer flex-between">
+          <button type="button" @click="showDayDetailModal = false" class="btn btn-secondary">
+            Fermer
+          </button>
+          <span class="day-detail-summary-hint">Cliquez sur une action ci-dessus pour ajouter ou modifier.</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1068,6 +1291,80 @@ const handleGuestSubmit = async () => {
 
   saving.value = false
   showGuestModal.value = false
+}
+
+// Day Detail Modal State
+const showDayDetailModal = ref(false)
+const selectedDayDate = ref(store.todayStr)
+
+const openDayDetailModal = (dateStr) => {
+  selectedDayDate.value = dateStr
+  showDayDetailModal.value = true
+}
+
+const openAddModalFromDay = () => {
+  showDayDetailModal.value = false
+  openAddModal(selectedDayDate.value)
+}
+
+const openAddGuestModalFromDay = () => {
+  showDayDetailModal.value = false
+  openAddGuestModal(selectedDayDate.value)
+}
+
+const openEditModalFromDay = (abs) => {
+  showDayDetailModal.value = false
+  openEditModal(abs)
+}
+
+const openEditGuestModalFromDay = (g) => {
+  showDayDetailModal.value = false
+  openEditGuestModal(g)
+}
+
+const selectedDayAbsences = computed(() => {
+  return store.absences.filter(a => a.date === selectedDayDate.value)
+})
+
+const selectedDayGuests = computed(() => {
+  return store.mealGuests.filter(g => g.date === selectedDayDate.value)
+})
+
+const selectedDayLunchAbsents = computed(() => selectedDayAbsences.value.filter(a => a.lunch))
+const selectedDayLunchGuests = computed(() => selectedDayGuests.value.filter(g => g.lunch))
+
+const selectedDayDinnerAbsents = computed(() => selectedDayAbsences.value.filter(a => a.dinner))
+const selectedDayDinnerGuests = computed(() => selectedDayGuests.value.filter(g => g.dinner))
+
+const selectedDayNightAbsents = computed(() => selectedDayAbsences.value.filter(a => a.night))
+const selectedDayNightGuests = computed(() => selectedDayGuests.value.filter(g => g.night))
+
+const getSelectedDaySlotHeadcount = (slot) => {
+  const totalMembers = store.members.length
+  const absCount = slot === 'lunch' ? selectedDayLunchAbsents.value.length : (slot === 'dinner' ? selectedDayDinnerAbsents.value.length : selectedDayNightAbsents.value.length)
+  const gCount = slot === 'lunch' ? selectedDayLunchGuests.value.length : (slot === 'dinner' ? selectedDayDinnerGuests.value.length : selectedDayNightGuests.value.length)
+  const present = Math.max(0, totalMembers - absCount)
+  const total = present + gCount
+
+  const noun = slot === 'night' ? 'couchage(s)' : 'à table'
+  if (gCount > 0 && absCount > 0) {
+    return `${total} ${noun} (${present} membres + ${gCount} invité${gCount > 1 ? 's' : ''})`
+  }
+  if (gCount > 0) {
+    return `${total} ${noun} (Au complet + ${gCount} invité${gCount > 1 ? 's' : ''})`
+  }
+  if (absCount > 0) {
+    return `${present} ${noun} (${absCount} absent${absCount > 1 ? 's' : ''})`
+  }
+  return `${total} ${noun} (Au complet !)`
+}
+
+const formatFullDisplayDate = (dStr) => {
+  if (!dStr) return ''
+  const [y, m, d] = dStr.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  const formatted = dt.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1)
 }
 
 const handleDeleteGuest = async (id) => {
@@ -1815,6 +2112,238 @@ const handleDeleteGuest = async (id) => {
   display: block;
 }
 
+/* Day Cell Indicators */
+.day-indicators {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mini-indicator {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.05rem 0.3rem;
+  border-radius: var(--radius-full);
+  line-height: 1.2;
+}
+
+.mini-indicator.absence {
+  background: var(--accent-amber-light);
+  color: #b45309;
+}
+
+.mini-indicator.guest {
+  background: var(--accent-purple-light);
+  color: var(--accent-purple);
+}
+
+.more-items-count {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding-left: 0.2rem;
+}
+
+.more-items-count.guest {
+  color: var(--accent-purple);
+}
+
+/* Day Detail Modal Styling */
+.day-detail-modal {
+  max-width: 580px;
+  width: 95%;
+}
+
+.day-detail-title-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.day-detail-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  display: inline-block;
+  width: fit-content;
+}
+
+.day-detail-actions-bar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.btn-action-card {
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-purple {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  border: none;
+}
+
+.btn-purple:hover {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.day-slots-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.day-slot-detail-box {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.day-slot-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.slot-name-group {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.95rem;
+}
+
+.day-slot-headcount-badge {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.day-slot-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.slot-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.slot-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.slot-section-title.text-amber {
+  color: #b45309;
+}
+
+.slot-section-title.text-purple {
+  color: var(--accent-purple);
+}
+
+.slot-person-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.slot-person-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  transition: all var(--transition-fast);
+}
+
+.slot-person-card:hover {
+  border-color: var(--border-focus);
+}
+
+.slot-person-card.absence {
+  border-left: 3px solid var(--accent-amber);
+}
+
+.slot-person-card.guest {
+  border-left: 3px solid var(--accent-purple);
+}
+
+.person-avatar {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.person-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+.person-host {
+  font-size: 0.72rem;
+  color: var(--accent-purple);
+  font-weight: 600;
+}
+
+.person-note {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.person-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.slot-empty-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 0.25rem 0;
+}
+
+.day-detail-summary-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 @media (max-width: 900px) {
   .today-slots-grid {
     grid-template-columns: 1fr;
@@ -1827,6 +2356,9 @@ const handleDeleteGuest = async (id) => {
   }
   .chip-name {
     display: none;
+  }
+  .day-detail-actions-bar {
+    flex-direction: column;
   }
 }
 </style>
