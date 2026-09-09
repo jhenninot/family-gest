@@ -1,10 +1,10 @@
 <template>
-  <div class="app-container" :class="{ 'auth-page-container': !authStore.isAuthenticated }">
-    <!-- Sidebar Navigation (Only when logged in) -->
-    <Sidebar v-if="authStore.isAuthenticated" />
+  <div class="app-container" :class="{ 'auth-page-container': isAuthPage }">
+    <!-- Sidebar Navigation (Only when logged in and NOT on an auth/activation page) -->
+    <Sidebar v-if="authStore.isAuthenticated && !isAuthPage" />
 
     <!-- Main View Content -->
-    <main class="main-content" :class="{ 'full-width': !authStore.isAuthenticated }">
+    <main class="main-content" :class="{ 'full-width': !authStore.isAuthenticated || isAuthPage }">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
@@ -15,16 +15,22 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 import { useFamilyStore } from './stores/familyStore'
 import Sidebar from './components/Sidebar.vue'
 
+const route = useRoute()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
 
+const isAuthPage = computed(() => {
+  return route.name === 'login' || route.name === 'set-password' || route.path === '/login' || route.path === '/set-password'
+})
+
 onMounted(() => {
-  if (authStore.isAuthenticated) {
+  if (authStore.isAuthenticated && !isAuthPage.value) {
     familyStore.fetchAllData()
   }
 })

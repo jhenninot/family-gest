@@ -65,6 +65,11 @@ router.beforeEach((to, from, next) => {
   document.title = `${to.meta.title || 'Accueil'} - FamilyGest`
   const authStore = useAuthStore()
 
+  // Déconnexion obligatoire de toute session active lors de l'arrivée sur la page de définition du mot de passe
+  if (to.name === 'set-password' && authStore.isAuthenticated) {
+    authStore.logout()
+  }
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
   } else if (to.meta.requiresAdmin && !authStore.isAdmin) {

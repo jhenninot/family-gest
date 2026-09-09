@@ -168,6 +168,11 @@ const formError = ref('')
 const success = ref(false)
 
 onMounted(async () => {
+  // Déconnexion de toute session active pour éviter de contourner la définition du mot de passe
+  if (authStore.isAuthenticated) {
+    authStore.logout()
+  }
+
   token.value = route.query.token || ''
 
   if (!token.value) {

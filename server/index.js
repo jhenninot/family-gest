@@ -66,46 +66,75 @@ const sendWelcomeEmail = async (user, token) => {
       to: user.email,
       subject: '✨ Bienvenue sur FamilyGest - Définissez votre mot de passe',
       html: `
-        <div style="font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 28px; border-radius: 16px; border: 1px solid #e2e8f0; background: #ffffff; color: #1e293b;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <div style="display: inline-block; width: 56px; height: 56px; line-height: 56px; border-radius: 14px; background: linear-gradient(135deg, #6366f1, #818cf8); font-size: 28px;">
-              ✨
-            </div>
-            <h1 style="color: #4338ca; margin: 12px 0 4px 0; font-size: 24px; font-weight: 800;">Bienvenue sur FamilyGest</h1>
-            <p style="color: #64748b; margin: 0; font-size: 14px;">Votre espace familial partagé</p>
-          </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Bienvenue sur FamilyGest</title>
+        </head>
+        <body style="margin: 0; padding: 20px; background-color: #f8fafc; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden;">
+            <tr>
+              <td style="padding: 32px 28px;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <div style="display: inline-block; width: 56px; height: 56px; line-height: 56px; border-radius: 14px; background-color: #6366f1; background: linear-gradient(135deg, #6366f1, #818cf8); font-size: 28px; text-align: center; color: #ffffff;">
+                    ✨
+                  </div>
+                  <h1 style="color: #4338ca; margin: 12px 0 4px 0; font-size: 24px; font-weight: 800;">Bienvenue sur FamilyGest</h1>
+                  <p style="color: #64748b; margin: 0; font-size: 14px;">Votre espace familial partagé</p>
+                </div>
 
-          <p style="font-size: 16px; line-height: 1.5; margin-bottom: 12px;">Bonjour <strong>${user.firstName || user.name || 'Membre'}</strong>,</p>
-          <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 16px;">
-            Un compte d'accès à <strong>FamilyGest</strong> vient d'être créé pour vous avec l'adresse email : <strong style="color: #4f46e5;">${user.email}</strong>.
-          </p>
+                <p style="font-size: 16px; line-height: 1.5; margin-bottom: 12px; color: #1e293b;">Bonjour <strong>${user.firstName || user.name || 'Membre'}</strong>,</p>
+                <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 16px;">
+                  Un compte d'accès à <strong>FamilyGest</strong> vient d'être créé pour vous avec l'adresse email : <strong style="color: #4f46e5;">${user.email}</strong>.
+                </p>
 
-          <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 24px;">
-            Pour activer votre compte et vous connecter pour la première fois, veuillez cliquer sur le bouton ci-dessous pour choisir votre mot de passe personnel :
-          </p>
+                <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 24px;">
+                  Pour activer votre compte et vous connecter pour la première fois, veuillez cliquer sur le bouton ci-dessous pour choisir votre mot de passe personnel :
+                </p>
 
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="${setPasswordUrl}" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: #ffffff; padding: 14px 32px; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
-              🔑 Définir mon mot de passe
-            </a>
-          </div>
+                <!-- Bulletproof cross-client button -->
+                <div style="text-align: center; margin: 32px 0;">
+                  <!--[if mso]>
+                  <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${setPasswordUrl}" style="height:50px;v-text-anchor:middle;width:300px;" arcsize="16%" stroke="f" fillcolor="#4f46e5">
+                    <w:anchorlock/>
+                    <center style="color:#ffffff;font-family:'Segoe UI',sans-serif;font-size:16px;font-weight:bold;">🔐 Définir mon mot de passe</center>
+                  </v:roundrect>
+                  <![endif]-->
+                  <!--[if !mso]><!-->
+                  <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto; border-collapse: separate;">
+                    <tr>
+                      <td align="center" bgcolor="#4f46e5" style="border-radius: 8px; background-color: #4f46e5; vertical-align: middle;">
+                        <a href="${setPasswordUrl}" target="_blank" style="background-color: #4f46e5; border: 14px solid #4f46e5; border-left: 28px solid #4f46e5; border-right: 28px solid #4f46e5; color: #ffffff !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 16px; font-weight: bold; text-decoration: none; display: inline-block; border-radius: 8px; line-height: 1.2;">
+                          🔐 Définir mon mot de passe
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                  <!--<![endif]-->
+                </div>
 
-          <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;">
-            <p style="margin: 0; font-size: 13px; color: #92400e; line-height: 1.5;">
-              ⏱️ <strong>Important :</strong> Ce lien sécurisé est valable pendant <strong>2 heures</strong>. Passé ce délai, demandez à un administrateur de votre famille de vous renvoyer un email d'invitation.
-            </p>
-          </div>
+                <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 14px 18px; border-radius: 6px; margin-bottom: 24px;">
+                  <p style="margin: 0; font-size: 13px; color: #92400e; line-height: 1.5;">
+                    ⏱️ <strong>Important :</strong> Ce lien sécurisé est valable pendant <strong>2 heures</strong>. Passé ce délai, demandez à un administrateur de votre famille de vous renvoyer un email d'invitation.
+                  </p>
+                </div>
 
-          <p style="font-size: 12px; color: #94a3b8; word-break: break-all; margin-top: 20px; line-height: 1.5;">
-            Si le bouton ci-dessus ne s'affiche pas correctement, vous pouvez copier et coller ce lien dans votre navigateur :<br/>
-            <a href="${setPasswordUrl}" style="color: #6366f1;">${setPasswordUrl}</a>
-          </p>
+                <p style="font-size: 12px; color: #94a3b8; word-break: break-all; margin-top: 24px; line-height: 1.5;">
+                  Si le bouton ci-dessus ne s'affiche pas correctement, vous pouvez copier et coller ce lien dans votre navigateur :<br/>
+                  <a href="${setPasswordUrl}" style="color: #6366f1; text-decoration: underline;">${setPasswordUrl}</a>
+                </p>
 
-          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-          <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
-            FamilyGest • Application d'organisation familiale sécurisée
-          </p>
-        </div>
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+                <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+                  FamilyGest • Application d'organisation familiale sécurisée
+                </p>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `
     }
 
