@@ -212,6 +212,7 @@
                 placeholder="Laisser vide pour ne pas changer"
                 class="form-input" 
               />
+              <PasswordStrengthIndicator v-if="editProfile.password" :password="editProfile.password" />
             </div>
           </div>
 
@@ -395,6 +396,8 @@ import {
   MoreVertical,
   Trash2
 } from '@lucide/vue'
+import PasswordStrengthIndicator from './PasswordStrengthIndicator.vue'
+import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -435,6 +438,13 @@ const openProfileModal = () => {
 }
 
 const handleSaveProfile = async () => {
+  if (editProfile.value.password && editProfile.value.password.trim().length > 0) {
+    if (!isPasswordValid(editProfile.value.password.trim())) {
+      alert(getPasswordErrorMessage(editProfile.value.password.trim()))
+      return
+    }
+  }
+
   saving.value = true
   const res = await authStore.updateProfile(editProfile.value)
   saving.value = false

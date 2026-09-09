@@ -478,9 +478,10 @@
                 v-model="newMember.password" 
                 type="password" 
                 required 
-                placeholder="••••••••"
+                placeholder="10 car. min, Maj, min, chiffre, spécial"
                 class="form-input" 
               />
+              <PasswordStrengthIndicator :password="newMember.password" />
             </div>
           </div>
 
@@ -605,6 +606,7 @@
                 placeholder="Laisser vide pour ne pas changer"
                 class="form-input" 
               />
+              <PasswordStrengthIndicator v-if="editMemberForm.password" :password="editMemberForm.password" />
             </div>
           </div>
 
@@ -723,6 +725,8 @@ import {
   Edit3,
   Mail
 } from '@lucide/vue'
+import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
+import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
@@ -821,7 +825,7 @@ const newMember = ref({
   firstName: '',
   lastName: 'Martin',
   email: '',
-  password: 'Family123!',
+  password: 'Family2026!*',
   role: 'Fils',
   isAdmin: false,
   avatar: '👦',
@@ -881,6 +885,11 @@ const getMonthShort = (dateStr) => {
 const handleAddMember = async () => {
   if (!newMember.value.firstName.trim() || !newMember.value.email.trim() || !newMember.value.password) return
 
+  if (!isPasswordValid(newMember.value.password)) {
+    alert(getPasswordErrorMessage(newMember.value.password))
+    return
+  }
+
   const result = await store.addMember(newMember.value)
   if (result.success) {
     showAddMemberModal.value = false
@@ -888,7 +897,7 @@ const handleAddMember = async () => {
       firstName: '',
       lastName: 'Martin',
       email: '',
-      password: 'Family123!',
+      password: 'Family2026!*',
       role: 'Fils',
       isAdmin: false,
       avatar: '👦',
@@ -922,6 +931,13 @@ const openEditMemberModal = (member) => {
 
 const handleSaveEditMember = async () => {
   if (!editMemberForm.value.firstName.trim() || !editMemberForm.value.email.trim()) return
+
+  if (editMemberForm.value.password && editMemberForm.value.password.trim().length > 0) {
+    if (!isPasswordValid(editMemberForm.value.password.trim())) {
+      alert(getPasswordErrorMessage(editMemberForm.value.password.trim()))
+      return
+    }
+  }
 
   if (editingMember.value && editingMember.value.isAdmin && !editMemberForm.value.isAdmin) {
     const adminCount = store.members.filter(m => m.isAdmin).length

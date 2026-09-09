@@ -118,6 +118,30 @@ const sendWelcomeEmail = async (user, token) => {
   }
 }
 
+// Helper : Validation de sécurité renforcée du mot de passe
+// Règle : 10 caractères minimum, au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial.
+const validatePasswordSecurity = (password) => {
+  if (!password || typeof password !== 'string') {
+    return { valid: false, error: 'Le mot de passe est obligatoire.' }
+  }
+  if (password.length < 10) {
+    return { valid: false, error: 'Le mot de passe doit comporter au moins 10 caractères.' }
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, error: 'Le mot de passe doit contenir au moins une lettre majuscule (A-Z).' }
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, error: 'Le mot de passe doit contenir au moins une lettre minuscule (a-z).' }
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, error: 'Le mot de passe doit contenir au moins un chiffre (0-9).' }
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return { valid: false, error: 'Le mot de passe doit contenir au moins un caractère spécial (ex: ! @ # $ % * _ -).' }
+  }
+  return { valid: true }
+}
+
 // === AUTHENTICATION ROUTES ===
 
 // POST /api/auth/login (Connexion par email & mot de passe)
@@ -168,6 +192,11 @@ app.post('/api/auth/register', requireAuth, requireAdmin, async (req, res) => {
 
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ error: 'Champs nom, prénom, email et mot de passe requis' })
+    }
+
+    const pwdCheck = validatePasswordSecurity(password)
+    if (!pwdCheck.valid) {
+      return res.status(400).json({ error: pwdCheck.error })
     }
 
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() })
@@ -258,8 +287,9 @@ app.post('/api/auth/set-password', async (req, res) => {
       return res.status(400).json({ error: 'Token et mot de passe requis' })
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Le mot de passe doit comporter au moins 6 caractères' })
+    const pwdCheck = validatePasswordSecurity(password)
+    if (!pwdCheck.valid) {
+      return res.status(400).json({ error: pwdCheck.error })
     }
 
     const user = await User.findOne({
@@ -342,6 +372,10 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     }
 
     if (password && password.trim().length > 0) {
+      const pwdCheck = validatePasswordSecurity(password.trim())
+      if (!pwdCheck.valid) {
+        return res.status(400).json({ error: pwdCheck.error })
+      }
       user.password = password.trim()
     }
 
@@ -394,7 +428,14 @@ app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
     const fName = firstName || (name ? name.split(' ')[0] : 'Membre')
     const lName = lastName || (name && name.split(' ').length > 1 ? name.split(' ').slice(1).join(' ') : 'Famille')
     const userEmail = email ? email.toLowerCase().trim() : `membre.${Date.now()}@family-gest.org`
-    const userPassword = password || 'Family123!'
+    const userPassword = password || 'Family2026!*'
+
+    if (password && password.trim()) {
+      const pwdCheck = validatePasswordSecurity(password.trim())
+      if (!pwdCheck.valid) {
+        return res.status(400).json({ error: pwdCheck.error })
+      }
+    }
 
     const existingUser = await User.findOne({ email: userEmail })
     if (existingUser) {
@@ -485,6 +526,10 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
     }
 
     if (password && password.trim().length > 0) {
+      const pwdCheck = validatePasswordSecurity(password.trim())
+      if (!pwdCheck.valid) {
+        return res.status(400).json({ error: pwdCheck.error })
+      }
       user.password = password.trim()
     }
 

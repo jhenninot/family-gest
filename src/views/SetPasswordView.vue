@@ -74,10 +74,10 @@
                 :type="showPassword ? 'text' : 'password'" 
                 v-model="password" 
                 required 
-                placeholder="Au moins 6 caractères" 
+                placeholder="10 car. min, Maj, min, chiffre, spécial" 
                 class="form-input" 
                 autocomplete="new-password"
-                minlength="6"
+                minlength="10"
               />
               <button 
                 type="button" 
@@ -89,6 +89,7 @@
                 <Eye v-else :size="18" />
               </button>
             </div>
+            <PasswordStrengthIndicator :password="password" />
           </div>
 
           <div class="form-group">
@@ -102,7 +103,7 @@
                 placeholder="Retapez le même mot de passe" 
                 class="form-input" 
                 autocomplete="new-password"
-                minlength="6"
+                minlength="10"
               />
               <button 
                 type="button" 
@@ -145,6 +146,8 @@ import {
   Eye, 
   EyeOff 
 } from '@lucide/vue'
+import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
+import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 
 const route = useRoute()
 const router = useRouter()
@@ -192,8 +195,8 @@ onMounted(async () => {
 const handleSetPassword = async () => {
   formError.value = ''
 
-  if (!password.value || password.value.length < 6) {
-    formError.value = 'Le mot de passe doit comporter au moins 6 caractères.'
+  if (!isPasswordValid(password.value)) {
+    formError.value = getPasswordErrorMessage(password.value)
     return
   }
 
