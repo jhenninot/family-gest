@@ -23,6 +23,7 @@ export const useFamilyStore = defineStore('family', () => {
   const events = ref([])
   const shoppingList = ref([])
   const shortcuts = ref([])
+  const absences = ref([])
   const isLoading = ref(false)
 
   const getHeaders = () => {
@@ -42,12 +43,13 @@ export const useFamilyStore = defineStore('family', () => {
       isLoading.value = true
       const headers = getHeaders()
 
-      const [membersRes, tasksRes, eventsRes, shoppingRes, shortcutsRes] = await Promise.all([
+      const [membersRes, tasksRes, eventsRes, shoppingRes, shortcutsRes, absencesRes] = await Promise.all([
         fetch('/api/members', { headers }),
         fetch('/api/tasks', { headers }),
         fetch('/api/events', { headers }),
         fetch('/api/shopping', { headers }),
-        fetch('/api/shortcuts', { headers })
+        fetch('/api/shortcuts', { headers }),
+        fetch('/api/absences', { headers })
       ])
 
       // Check if session token expired or user is invalid (401)
@@ -59,6 +61,7 @@ export const useFamilyStore = defineStore('family', () => {
         events.value = []
         shoppingList.value = []
         shortcuts.value = []
+        absences.value = []
         return
       }
 
@@ -67,6 +70,7 @@ export const useFamilyStore = defineStore('family', () => {
       if (eventsRes.ok) events.value = await eventsRes.json()
       if (shoppingRes.ok) shoppingList.value = await shoppingRes.json()
       if (shortcutsRes.ok) shortcuts.value = await shortcutsRes.json()
+      if (absencesRes.ok) absences.value = await absencesRes.json()
     } catch (err) {
       console.error('Erreur lors du chargement des données API', err)
     } finally {
@@ -80,6 +84,24 @@ export const useFamilyStore = defineStore('family', () => {
   const taskCompletionPercentage = computed(() => {
     if (tasks.value.length === 0) return 0
     return Math.round((completedTasksCount.value / tasks.value.length) * 100)
+  })
+
+  const todayStr = computed(() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  })
+
+  const todayAbsences = computed(() => {
+    return absences.value.filter(a => a.date === todayStr.value)
+  })
+
+  const upcomingAbsences = computed(() => {
+    return [...absences.value]
+      .filter(a => a.date >= todayStr.value)
+      .sort((a, b) => a.date.localeCompare(b.date))
   })
 
 
@@ -353,6 +375,75 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  // --- ABSENCES ACTIONS ---
+  const addAbsence = async (absenceData) => {
+    try {
+      const res = await fetch('/api/absences', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(absenceData)
+      })
+      if (res.ok) {
+        const saved = await res.json()
+        const existingIdx = absences.value.findIndex(a => a.id === saved.id || (a.memberId === saved.memberId && a.date === saved.date))
+        if (existingIdx !== -1) {
+          absences.value[existingIdx] = saved
+        } else {
+          absences.value.push(saved)
+        }
+        return { success: true, absence: saved }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur addAbsence API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  const updateAbsence = async (id, absenceData) => {
+    try {
+      const res = await fetch(`/api/absences/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(absenceData)
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        if (updated.message && updated.message.includes('supprimée')) {
+          absences.value = absences.value.filter(a => a.id !== id)
+        } else {
+          const idx = absences.value.findIndex(a => a.id === id)
+          if (idx !== -1) absences.value[idx] = updated
+        }
+        return { success: true, absence: updated }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur updateAbsence API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  const deleteAbsence = async (id) => {
+    try {
+      const res = await fetch(`/api/absences/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      })
+      if (res.ok) {
+        absences.value = absences.value.filter(a => a.id !== id)
+        return { success: true }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur deleteAbsence API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
   return {
     isDarkMode,
     toggleTheme,
@@ -361,6 +452,10 @@ export const useFamilyStore = defineStore('family', () => {
     events,
     shoppingList,
     shortcuts,
+    absences,
+    todayStr,
+    todayAbsences,
+    upcomingAbsences,
     isLoading,
     completedTasksCount,
     pendingTasksCount,
@@ -381,6 +476,9 @@ export const useFamilyStore = defineStore('family', () => {
     deleteShoppingItem,
     addShortcut,
     updateShortcut,
-    deleteShortcut
+    deleteShortcut,
+    addAbsence,
+    updateAbsence,
+    deleteAbsence
   }
 })

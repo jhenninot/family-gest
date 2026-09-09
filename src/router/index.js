@@ -30,6 +30,12 @@ const routes = [
   },
 
   {
+    path: '/absences',
+    name: 'absences',
+    component: () => import('../views/AbsencesView.vue'),
+    meta: { title: 'Absences & Repas', requiresAuth: true }
+  },
+  {
     path: '/shopping',
     name: 'shopping',
     component: () => import('../views/ShoppingView.vue'),

@@ -55,6 +55,21 @@
         </div>
       </div>
 
+      <!-- Card 3: Absences & Meals Today -->
+      <router-link to="/absences" class="glass-card metric-card clickable-card">
+        <div class="metric-icon-wrapper emerald">
+          <UtensilsCrossed :size="22" />
+        </div>
+        <div class="metric-details">
+          <span class="metric-label">Repas du Jour</span>
+          <div class="metric-value">
+            {{ store.todayAbsences.length === 0 ? 'Au complet' : `${store.todayAbsences.length} absent(s)` }}
+          </div>
+          <span class="metric-subtext">
+            {{ formatTodayAbsencesSubtext() }}
+          </span>
+        </div>
+      </router-link>
 
       <!-- Card 4: Shopping Items -->
       <div class="glass-card metric-card">
@@ -498,6 +513,7 @@ import { useFamilyStore } from '../stores/familyStore'
 import { 
   CheckSquare, 
   Calendar, 
+  UtensilsCrossed, 
   ShoppingCart, 
   Plus, 
   UserPlus,
@@ -513,6 +529,18 @@ import {
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
+
+const formatTodayAbsencesSubtext = () => {
+  if (store.todayAbsences.length === 0) return 'Toute la famille est là 🎉'
+  const lunch = store.todayAbsences.filter(a => a.lunch).length
+  const dinner = store.todayAbsences.filter(a => a.dinner).length
+  const night = store.todayAbsences.filter(a => a.night).length
+  const parts = []
+  if (lunch > 0) parts.push(`☀️ Midi: ${lunch}`)
+  if (dinner > 0) parts.push(`🌙 Soir: ${dinner}`)
+  if (night > 0) parts.push(`🛌 Nuit: ${night}`)
+  return parts.join(' • ')
+}
 
 const showAddMemberModal = ref(false)
 const showEditMemberModal = ref(false)

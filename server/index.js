@@ -19,6 +19,7 @@ import Event from './models/Event.js'
 import ShoppingItem from './models/ShoppingItem.js'
 import EmailConfig from './models/EmailConfig.js'
 import Shortcut from './models/Shortcut.js'
+import Absence from './models/Absence.js'
 
 dotenv.config()
 
@@ -525,6 +526,100 @@ app.delete('/api/shopping/:id', requireAuth, async (req, res) => {
   try {
     await ShoppingItem.deleteOne({ id: Number(req.params.id) })
     res.json({ message: 'Article supprimé' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// === ABSENCES & MEALS ROUTES ===
+app.get('/api/absences', requireAuth, async (req, res) => {
+  try {
+    const absences = await Absence.find().sort({ date: 1 })
+    res.json(absences)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/absences', requireAuth, async (req, res) => {
+  try {
+    const { memberId, date, lunch, dinner, night, note } = req.body
+
+    if (!memberId || !date) {
+      return res.status(400).json({ error: 'Membre et date requis' })
+    }
+
+    if (!lunch && !dinner && !night) {
+      return res.status(400).json({ error: 'Veuillez sélectionner au moins un créneau (Déjeuner, Dîner ou Nuit)' })
+    }
+
+    let existing = await Absence.findOne({ memberId: Number(memberId), date: date.trim() })
+    if (existing) {
+      existing.lunch = Boolean(lunch)
+      existing.dinner = Boolean(dinner)
+      existing.night = Boolean(night)
+      if (note !== undefined) existing.note = note.trim()
+      await existing.save()
+      return res.json(existing)
+    }
+
+    const newAbsence = new Absence({
+      id: Date.now(),
+      memberId: Number(memberId),
+      date: date.trim(),
+      lunch: Boolean(lunch),
+      dinner: Boolean(dinner),
+      night: Boolean(night),
+      note: (note || '').trim()
+    })
+
+    await newAbsence.save()
+    res.status(201).json(newAbsence)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+app.put('/api/absences/:id', requireAuth, async (req, res) => {
+  try {
+    const absence = await Absence.findOne({ id: Number(req.params.id) })
+    if (!absence) return res.status(404).json({ error: 'Absence non trouvée' })
+
+    if (absence.memberId !== req.user.id && !req.user.isAdmin) {
+      return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres absences' })
+    }
+
+    const { memberId, date, lunch, dinner, night, note } = req.body
+    if (memberId !== undefined && req.user.isAdmin) absence.memberId = Number(memberId)
+    if (date) absence.date = date.trim()
+    if (lunch !== undefined) absence.lunch = Boolean(lunch)
+    if (dinner !== undefined) absence.dinner = Boolean(dinner)
+    if (night !== undefined) absence.night = Boolean(night)
+    if (note !== undefined) absence.note = note.trim()
+
+    if (!absence.lunch && !absence.dinner && !absence.night) {
+      await Absence.deleteOne({ id: absence.id })
+      return res.json({ message: 'Absence supprimée car aucun créneau n\'est sélectionné' })
+    }
+
+    await absence.save()
+    res.json(absence)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/absences/:id', requireAuth, async (req, res) => {
+  try {
+    const absence = await Absence.findOne({ id: Number(req.params.id) })
+    if (!absence) return res.status(404).json({ error: 'Absence non trouvée' })
+
+    if (absence.memberId !== req.user.id && !req.user.isAdmin) {
+      return res.status(403).json({ error: 'Vous ne pouvez supprimer que vos propres absences' })
+    }
+
+    await Absence.deleteOne({ id: Number(req.params.id) })
+    res.json({ message: 'Absence supprimée' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

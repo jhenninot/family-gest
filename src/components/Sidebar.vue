@@ -50,6 +50,14 @@
         <span v-if="store.events.length > 0" class="badge-count info">{{ store.events.length }}</span>
       </router-link>
 
+      <router-link to="/absences" class="nav-item" active-class="active">
+        <UtensilsCrossed :size="20" />
+        <span>Absences & Repas</span>
+        <span v-if="store.todayAbsences.length > 0" class="badge-count warning" title="Absence(s) aujourd'hui">
+          {{ store.todayAbsences.length }}
+        </span>
+      </router-link>
+
 
       <router-link to="/shopping" class="nav-item" active-class="active">
         <ShoppingCart :size="20" />
@@ -369,6 +377,7 @@ import {
   LayoutDashboard, 
   CheckSquare, 
   Calendar, 
+  UtensilsCrossed, 
   ShoppingCart, 
   Sun, 
   Moon, 
