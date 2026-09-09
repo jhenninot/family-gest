@@ -50,10 +50,6 @@
         <span v-if="store.events.length > 0" class="badge-count info">{{ store.events.length }}</span>
       </router-link>
 
-      <router-link to="/budget" class="nav-item" active-class="active">
-        <Wallet :size="20" />
-        <span>Budget & Dépenses</span>
-      </router-link>
 
       <router-link to="/shopping" class="nav-item" active-class="active">
         <ShoppingCart :size="20" />
@@ -373,7 +369,6 @@ import {
   LayoutDashboard, 
   CheckSquare, 
   Calendar, 
-  Wallet, 
   ShoppingCart, 
   Sun, 
   Moon, 

@@ -26,12 +26,12 @@
    - Planning chronologique des rendez-vous et activités.
    - Grille calendrier mensuelle réactive.
 
-5. 💳 **Budget & Dépenses Partagées**
-   - Suivi des paiements avancés par chaque membre.
-   - Calcul automatique de la répartition par payeur et catégorie.
-
-6. 🛒 **Liste de Courses & Garde-Manger**
+5. 🛒 **Liste de Courses & Garde-Manger**
    - Ajout rapide avec gestion des priorités (Urgent 🔥) et cochage dynamique.
+
+6. 🌐 **Raccourcis Web & Applications**
+   - Liens directs vers vos services et applications (Home Assistant, Plex, Pronote, Nextcloud...).
+   - Gestion sécurisée réservée aux administrateurs, accessible sur desktop et mobile.
 
 ---
 

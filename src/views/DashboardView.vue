@@ -55,17 +55,6 @@
         </div>
       </div>
 
-      <!-- Card 3: Total Budget Spent -->
-      <div class="glass-card metric-card">
-        <div class="metric-icon-wrapper emerald">
-          <Wallet :size="22" />
-        </div>
-        <div class="metric-details">
-          <span class="metric-label">Dépenses du Mois</span>
-          <div class="metric-value">{{ store.totalExpenses.toFixed(2) }} €</div>
-          <span class="metric-subtext">{{ store.expenses.length }} opération(s) enregistrée(s)</span>
-        </div>
-      </div>
 
       <!-- Card 4: Shopping Items -->
       <div class="glass-card metric-card">
@@ -509,7 +498,6 @@ import { useFamilyStore } from '../stores/familyStore'
 import { 
   CheckSquare, 
   Calendar, 
-  Wallet, 
   ShoppingCart, 
   Plus, 
   UserPlus,

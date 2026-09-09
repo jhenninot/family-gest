@@ -16,7 +16,6 @@ import nodemailer from 'nodemailer'
 import User from './models/User.js'
 import Task from './models/Task.js'
 import Event from './models/Event.js'
-import Expense from './models/Expense.js'
 import ShoppingItem from './models/ShoppingItem.js'
 import EmailConfig from './models/EmailConfig.js'
 import Shortcut from './models/Shortcut.js'
@@ -481,41 +480,6 @@ app.delete('/api/events/:id', requireAuth, async (req, res) => {
   }
 })
 
-// === EXPENSES ROUTES ===
-app.get('/api/expenses', requireAuth, async (req, res) => {
-  try {
-    const expenses = await Expense.find().sort({ date: -1 })
-    res.json(expenses)
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-app.post('/api/expenses', requireAuth, async (req, res) => {
-  try {
-    const newExpense = new Expense({
-      id: Date.now(),
-      title: req.body.title,
-      amount: Number(req.body.amount),
-      payerId: Number(req.body.payerId),
-      category: req.body.category || 'Alimentation',
-      date: req.body.date || new Date().toISOString().split('T')[0]
-    })
-    await newExpense.save()
-    res.status(201).json(newExpense)
-  } catch (err) {
-    res.status(400).json({ error: err.message })
-  }
-})
-
-app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
-  try {
-    await Expense.deleteOne({ id: Number(req.params.id) })
-    res.json({ message: 'Dépense supprimée' })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
 
 // === SHOPPING ROUTES ===
 app.get('/api/shopping', requireAuth, async (req, res) => {

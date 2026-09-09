@@ -21,7 +21,6 @@ export const useFamilyStore = defineStore('family', () => {
   const members = ref([])
   const tasks = ref([])
   const events = ref([])
-  const expenses = ref([])
   const shoppingList = ref([])
   const shortcuts = ref([])
   const isLoading = ref(false)
@@ -43,11 +42,10 @@ export const useFamilyStore = defineStore('family', () => {
       isLoading.value = true
       const headers = getHeaders()
 
-      const [membersRes, tasksRes, eventsRes, expensesRes, shoppingRes, shortcutsRes] = await Promise.all([
+      const [membersRes, tasksRes, eventsRes, shoppingRes, shortcutsRes] = await Promise.all([
         fetch('/api/members', { headers }),
         fetch('/api/tasks', { headers }),
         fetch('/api/events', { headers }),
-        fetch('/api/expenses', { headers }),
         fetch('/api/shopping', { headers }),
         fetch('/api/shortcuts', { headers })
       ])
@@ -59,7 +57,6 @@ export const useFamilyStore = defineStore('family', () => {
         members.value = []
         tasks.value = []
         events.value = []
-        expenses.value = []
         shoppingList.value = []
         shortcuts.value = []
         return
@@ -68,7 +65,6 @@ export const useFamilyStore = defineStore('family', () => {
       if (membersRes.ok) members.value = await membersRes.json()
       if (tasksRes.ok) tasks.value = await tasksRes.json()
       if (eventsRes.ok) events.value = await eventsRes.json()
-      if (expensesRes.ok) expenses.value = await expensesRes.json()
       if (shoppingRes.ok) shoppingList.value = await shoppingRes.json()
       if (shortcutsRes.ok) shortcuts.value = await shortcutsRes.json()
     } catch (err) {
@@ -86,22 +82,7 @@ export const useFamilyStore = defineStore('family', () => {
     return Math.round((completedTasksCount.value / tasks.value.length) * 100)
   })
 
-  const totalExpenses = computed(() => {
-    return expenses.value.reduce((acc, curr) => acc + curr.amount, 0)
-  })
 
-  const expensesByPayer = computed(() => {
-    const summary = {}
-    members.value.forEach(m => {
-      summary[m.id] = { name: m.name, total: 0 }
-    })
-    expenses.value.forEach(e => {
-      if (summary[e.payerId]) {
-        summary[e.payerId].total += e.amount
-      }
-    })
-    return summary
-  })
 
   const pendingShoppingCount = computed(() => shoppingList.value.filter(item => !item.checked).length)
 
@@ -264,35 +245,7 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
-  const addExpense = async (expenseData) => {
-    try {
-      const res = await fetch('/api/expenses', {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(expenseData)
-      })
-      if (res.ok) {
-        const created = await res.json()
-        expenses.value.unshift(created)
-      }
-    } catch (err) {
-      console.error('Erreur addExpense API', err)
-    }
-  }
 
-  const deleteExpense = async (id) => {
-    try {
-      const res = await fetch(`/api/expenses/${id}`, {
-        method: 'DELETE',
-        headers: getHeaders()
-      })
-      if (res.ok) {
-        expenses.value = expenses.value.filter(e => e.id !== id)
-      }
-    } catch (err) {
-      console.error('Erreur deleteExpense API', err)
-    }
-  }
 
   const addShoppingItem = async (itemData) => {
     try {
@@ -406,15 +359,12 @@ export const useFamilyStore = defineStore('family', () => {
     members,
     tasks,
     events,
-    expenses,
     shoppingList,
     shortcuts,
     isLoading,
     completedTasksCount,
     pendingTasksCount,
     taskCompletionPercentage,
-    totalExpenses,
-    expensesByPayer,
     pendingShoppingCount,
     fetchAllData,
     addMember,
@@ -426,8 +376,6 @@ export const useFamilyStore = defineStore('family', () => {
     deleteTask,
     addEvent,
     deleteEvent,
-    addExpense,
-    deleteExpense,
     addShoppingItem,
     toggleShoppingItem,
     deleteShoppingItem,

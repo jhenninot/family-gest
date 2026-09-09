@@ -28,12 +28,7 @@ const routes = [
     component: () => import('../views/CalendarView.vue'),
     meta: { title: 'Calendrier Familial', requiresAuth: true }
   },
-  {
-    path: '/budget',
-    name: 'budget',
-    component: () => import('../views/BudgetView.vue'),
-    meta: { title: 'Budget & Dépenses', requiresAuth: true }
-  },
+
   {
     path: '/shopping',
     name: 'shopping',

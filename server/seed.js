@@ -1,7 +1,6 @@
 import User from './models/User.js'
 import Task from './models/Task.js'
 import Event from './models/Event.js'
-import Expense from './models/Expense.js'
 import ShoppingItem from './models/ShoppingItem.js'
 
 export const seedDatabaseIfEmpty = async () => {
@@ -85,13 +84,7 @@ export const seedDatabaseIfEmpty = async () => {
         { id: 204, title: 'Réunion de rentrée scolaire', date: '2026-09-22', time: '18:00', category: 'Scolaire', location: 'Collège St-Exupéry', color: '#f59e0b', assignedTo: 2 }
       ])
 
-      // Seed Expenses
-      await Expense.insertMany([
-        { id: 301, title: 'Courses Hebdomadaires Carrefour', amount: 142.80, payerId: 2, category: 'Alimentation', date: '2026-09-06' },
-        { id: 302, title: 'Facture Électricité EDF', amount: 118.50, payerId: 1, category: 'Logement & Énergie', date: '2026-09-04' },
-        { id: 303, title: 'Cotisation Judo Lucas', amount: 85.00, payerId: 1, category: 'Activités & Sports', date: '2026-09-02' },
-        { id: 304, title: 'Abonnement Netflix + Disney+', amount: 23.98, payerId: 2, category: 'Loisirs', date: '2026-09-01' }
-      ])
+
 
       // Seed Shopping
       await ShoppingItem.insertMany([
