@@ -26,7 +26,7 @@
     <!-- Summary Metrics Grid -->
     <div class="grid-4 metric-grid">
       <!-- Card 1: Task Completion -->
-      <div class="glass-card metric-card">
+      <router-link to="/tasks" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper indigo">
           <CheckSquare :size="22" />
         </div>
@@ -38,10 +38,10 @@
           </div>
           <span class="metric-subtext">{{ store.pendingTasksCount }} tâche(s) en attente</span>
         </div>
-      </div>
+      </router-link>
 
       <!-- Card 2: Upcoming Events -->
-      <div class="glass-card metric-card">
+      <router-link to="/calendar" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper purple">
           <Calendar :size="22" />
         </div>
@@ -49,11 +49,11 @@
           <span class="metric-label">Événements à venir</span>
           <div class="metric-value">{{ store.events.length }}</div>
           <span class="metric-subtext" v-if="nextEvent">
-            Prochain: {{ nextEvent.title }} ({{ formatDate(nextEvent.date) }})
+            Prochain : {{ nextEvent.title }} ({{ formatDate(nextEvent.date) }})
           </span>
           <span class="metric-subtext" v-else>Aucun événement planifié</span>
         </div>
-      </div>
+      </router-link>
 
       <!-- Card 3: Absences & Meals Today -->
       <router-link to="/absences" class="glass-card metric-card clickable-card">
@@ -62,17 +62,17 @@
         </div>
         <div class="metric-details">
           <span class="metric-label">Repas du Jour</span>
-          <div class="metric-value">
+          <div class="metric-value" :class="{ 'metric-value-text': store.todayAbsences.length === 0 }">
             {{ store.todayAbsences.length === 0 ? 'Au complet' : `${store.todayAbsences.length} absent(s)` }}
           </div>
           <span class="metric-subtext">
-            {{ formatTodayAbsencesSubtext() }}
+            {{ store.todayAbsences.length === 0 ? 'Aucune absence signalée' : formatTodayAbsencesSubtext() }}
           </span>
         </div>
       </router-link>
 
       <!-- Card 4: Shopping Items -->
-      <div class="glass-card metric-card">
+      <router-link to="/shopping" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper amber">
           <ShoppingCart :size="22" />
         </div>
@@ -83,7 +83,7 @@
             {{ urgentShoppingCount }} article(s) urgent(s)
           </span>
         </div>
-      </div>
+      </router-link>
     </div>
 
     <!-- Main Content Section: 2 Columns -->
@@ -723,6 +723,23 @@ const handleDeleteMember = async (member) => {
   display: flex;
   align-items: flex-start;
   gap: 1rem;
+  text-decoration: none !important;
+  color: inherit;
+}
+
+.metric-card.clickable-card {
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.metric-card.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.metric-card * {
+  text-decoration: none !important;
 }
 
 .metric-icon-wrapper {
@@ -761,6 +778,12 @@ const handleDeleteMember = async (member) => {
   color: var(--text-primary);
   margin: 0.15rem 0;
   line-height: 1.2;
+}
+
+.metric-value.metric-value-text {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .metric-subtext {
