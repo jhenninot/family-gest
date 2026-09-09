@@ -179,6 +179,12 @@ a {
   gap: 1rem;
 }
 
+@media (min-width: 901px) {
+  .page-header {
+    padding-right: 95px; /* Espace réservé pour les 2 icônes en haut à droite */
+  }
+}
+
 .page-title {
   font-size: 1.85rem;
   font-weight: 800;

@@ -148,20 +148,6 @@
       </div>
     </div>
 
-    <!-- Sidebar Footer / Dark mode & Logout -->
-    <div class="sidebar-footer">
-      <button @click="store.toggleTheme" class="theme-toggle-btn" :title="store.isDarkMode ? 'Passer en mode clair' : 'Passer en mode sombre'">
-        <Sun v-if="store.isDarkMode" :size="18" />
-        <Moon v-else :size="18" />
-        <span>{{ store.isDarkMode ? 'Mode Clair' : 'Mode Sombre' }}</span>
-      </button>
-
-      <button @click="handleLogout" class="logout-btn" title="Se déconnecter">
-        <LogOut :size="18" />
-        <span>Déconnexion</span>
-      </button>
-    </div>
-
     <!-- Modal Modifier Mon Profil -->
     <div v-if="showProfileModal" class="modal-overlay" @click.self="showProfileModal = false">
       <div class="modal-content">
@@ -380,11 +366,8 @@ import {
   Calendar, 
   UtensilsCrossed, 
   ShoppingCart, 
-  Sun, 
-  Moon, 
   Sparkles,
   Award,
-  LogOut,
   ShieldCheck,
   Shield,
   Edit3,
@@ -514,10 +497,6 @@ const handleDeleteShortcut = async () => {
   }
 }
 
-const handleLogout = () => {
-  authStore.logout()
-  router.push('/login')
-}
 </script>
 
 <style scoped>
@@ -752,48 +731,6 @@ const handleLogout = () => {
 .member-role { font-size: 0.725rem; color: var(--text-muted); }
 .member-points { font-size: 0.8rem; font-weight: 800; color: var(--accent-primary); }
 
-/* Sidebar Footer */
-.sidebar-footer {
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.theme-toggle-btn, .logout-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  padding: 0.6rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.theme-toggle-btn:hover {
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-}
-
-.logout-btn {
-  color: var(--accent-rose);
-  border-color: rgba(244, 63, 94, 0.2);
-  background: var(--accent-rose-light);
-}
-
-.logout-btn:hover {
-  background: var(--accent-rose);
-  color: white;
-}
 
 /* Modal styles */
 .admin-status-box {
