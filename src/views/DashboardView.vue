@@ -992,9 +992,28 @@ const handleDeleteMember = async (member) => {
 </script>
 
 <style scoped>
+.dashboard-view {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 .quick-actions {
   display: flex;
   gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .quick-actions {
+    width: 100%;
+  }
+  .quick-actions .btn {
+    flex: 1;
+    min-width: 130px;
+    justify-content: center;
+  }
 }
 
 .metric-grid {
@@ -1008,6 +1027,9 @@ const handleDeleteMember = async (member) => {
   gap: 1rem;
   text-decoration: none !important;
   color: inherit;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .metric-card.clickable-card {
@@ -1045,6 +1067,7 @@ const handleDeleteMember = async (member) => {
   display: flex;
   flex-direction: column;
   width: 100%;
+  min-width: 0;
 }
 
 .metric-label {
@@ -1073,6 +1096,7 @@ const handleDeleteMember = async (member) => {
   font-size: 0.775rem;
   color: var(--text-muted);
   margin-top: 0.25rem;
+  overflow-wrap: break-word;
 }
 
 .margin-top-xs { margin-top: 0.4rem; }
@@ -1083,6 +1107,15 @@ const handleDeleteMember = async (member) => {
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .section-card {
+    padding: 1.1rem 0.9rem;
+  }
 }
 
 .section-card-header {
@@ -1092,17 +1125,21 @@ const handleDeleteMember = async (member) => {
   margin-bottom: 1.25rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .header-title {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  min-width: 0;
 }
 
 .header-title h2 {
   font-size: 1.15rem;
   font-weight: 700;
+  overflow-wrap: break-word;
 }
 
 .text-indigo { color: var(--accent-primary); }
@@ -1132,6 +1169,8 @@ const handleDeleteMember = async (member) => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
+  width: 100%;
 }
 
 .today-slot-row {
@@ -1143,6 +1182,8 @@ const handleDeleteMember = async (member) => {
   flex-direction: column;
   gap: 0.45rem;
   transition: border-color var(--transition-fast), background var(--transition-fast);
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .today-slot-row:hover {
@@ -1154,23 +1195,27 @@ const handleDeleteMember = async (member) => {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .slot-header-left {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  min-width: 0;
 }
 
 .slot-row-icon {
   font-size: 1.25rem;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .slot-row-title-col {
   display: flex;
   align-items: baseline;
   gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
 .slot-row-title {
@@ -1193,6 +1238,7 @@ const handleDeleteMember = async (member) => {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  margin-left: auto;
 }
 
 .headcount-badge strong {
@@ -1231,6 +1277,7 @@ const handleDeleteMember = async (member) => {
   flex-direction: column;
   gap: 0.35rem;
   padding-left: 1.9rem;
+  min-width: 0;
 }
 
 .slot-detail-item {
@@ -1293,11 +1340,20 @@ const handleDeleteMember = async (member) => {
   font-size: 0.785rem;
   color: var(--text-muted);
   font-weight: 500;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 @media (max-width: 480px) {
+  .today-slot-row {
+    padding: 0.65rem 0.75rem;
+  }
   .slot-row-content {
     padding-left: 0;
+  }
+  .headcount-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
   }
 }
 
@@ -1306,6 +1362,8 @@ const handleDeleteMember = async (member) => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
+  width: 100%;
 }
 
 .task-item-row {
@@ -1317,6 +1375,8 @@ const handleDeleteMember = async (member) => {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   transition: all var(--transition-fast);
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .task-item-row.completed { opacity: 0.65; }
@@ -1327,6 +1387,7 @@ const handleDeleteMember = async (member) => {
   height: 20px;
   accent-color: var(--accent-primary);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .task-info {
@@ -1334,10 +1395,23 @@ const handleDeleteMember = async (member) => {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  min-width: 0;
 }
 
-.task-title-text { font-size: 0.925rem; font-weight: 600; }
-.task-meta { display: flex; align-items: center; gap: 0.5rem; }
+.task-title-text { 
+  font-size: 0.925rem; 
+  font-weight: 600; 
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.task-meta { 
+  display: flex; 
+  align-items: center; 
+  gap: 0.5rem; 
+  flex-wrap: wrap;
+}
+
 .assigned-tag { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; }
 
 .task-points-pill {
@@ -1347,6 +1421,7 @@ const handleDeleteMember = async (member) => {
   background: var(--accent-secondary-light);
   padding: 0.2rem 0.6rem;
   border-radius: var(--radius-full);
+  flex-shrink: 0;
 }
 
 /* Events list */
@@ -1354,6 +1429,8 @@ const handleDeleteMember = async (member) => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
+  width: 100%;
 }
 
 .event-item-row {
@@ -1364,6 +1441,8 @@ const handleDeleteMember = async (member) => {
   background: var(--bg-tertiary);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .event-date-box {
@@ -1382,8 +1461,20 @@ const handleDeleteMember = async (member) => {
 
 .event-day { font-size: 1.1rem; font-weight: 800; line-height: 1; }
 .event-month { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); }
-.event-details { display: flex; flex-direction: column; gap: 0.2rem; }
-.event-item-title { font-size: 0.9rem; font-weight: 700; }
+.event-details { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 0.2rem; 
+  min-width: 0;
+  flex: 1;
+}
+
+.event-item-title { 
+  font-size: 0.9rem; 
+  font-weight: 700; 
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 
 .event-meta-info {
   display: flex;
@@ -1391,13 +1482,22 @@ const handleDeleteMember = async (member) => {
   gap: 0.25rem;
   font-size: 0.775rem;
   color: var(--text-muted);
+  flex-wrap: wrap;
 }
 
 /* Members Grid */
 .members-cards-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 850px) {
+  .members-cards-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .member-card {
@@ -1406,6 +1506,8 @@ const handleDeleteMember = async (member) => {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .member-card.clickable {
@@ -1423,23 +1525,34 @@ const handleDeleteMember = async (member) => {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  flex-wrap: wrap;
 }
 
-.avatar-emoji { font-size: 1.4rem; }
+.avatar-emoji { 
+  font-size: 1.4rem; 
+  flex-shrink: 0;
+}
 
 .member-card-name {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
 }
 
 .member-title-line {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  flex-wrap: wrap;
 }
 
-.member-card-name strong { font-size: 0.85rem; }
+.member-card-name strong { 
+  font-size: 0.85rem; 
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
 .member-card-name span { font-size: 0.725rem; color: var(--text-muted); }
 
 .admin-badge-mini {
@@ -1457,12 +1570,18 @@ const handleDeleteMember = async (member) => {
 .member-email-sub {
   font-size: 0.675rem;
   color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .member-actions {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-left: auto;
 }
 
 .pts-badge {
@@ -1555,7 +1674,14 @@ const handleDeleteMember = async (member) => {
 }
 
 .color-btn.selected { border-color: var(--text-primary); transform: scale(1.15); }
-.empty-state { padding: 2rem; text-align: center; color: var(--text-muted); font-weight: 600; }
+.empty-state { 
+  padding: 1.75rem 0.5rem; 
+  text-align: center; 
+  color: var(--text-muted); 
+  font-weight: 600; 
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .btn-close { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
