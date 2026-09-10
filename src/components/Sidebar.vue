@@ -51,7 +51,7 @@
       </router-link>
 
       <router-link to="/absences" class="nav-item" active-class="active">
-        <UtensilsCrossed :size="20" />
+        <HouseUser :size="20" />
         <span>Absences & Repas</span>
         <span v-if="store.todayAbsences.length > 0" class="badge-count warning" title="Absence(s) aujourd'hui">
           {{ store.todayAbsences.length }}
@@ -429,23 +429,23 @@ import {
   LayoutDashboard, 
   CheckSquare, 
   Calendar, 
-  UtensilsCrossed, 
   ShoppingCart, 
-  Sparkles,
-  Award,
-  ShieldCheck,
-  Shield,
-  Edit3,
-  Mail,
-  Settings,
-  Globe,
-  Plus,
-  ExternalLink,
-  MoreVertical,
-  Trash2,
-  Bell,
-  BellOff
+  Sparkles, 
+  Award, 
+  ShieldCheck, 
+  Shield, 
+  Edit3, 
+  Mail, 
+  Settings, 
+  Globe, 
+  Plus, 
+  ExternalLink, 
+  MoreVertical, 
+  Trash2, 
+  Bell, 
+  BellOff 
 } from '@lucide/vue'
+import HouseUser from './icons/HouseUser.vue'
 import PasswordStrengthIndicator from './PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 import { 

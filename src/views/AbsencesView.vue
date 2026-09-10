@@ -4,7 +4,7 @@
     <div class="page-header">
       <div>
         <h1 class="page-title">
-          <UtensilsCrossed :size="28" class="text-indigo" />
+          <HouseUser :size="28" class="text-indigo" />
           <span>Absences, Repas & Invités</span>
         </h1>
         <p class="page-subtitle">Indiquez vos absences ou vos invités au déjeuner, dîner et pour la nuit pour organiser sereinement les repas de famille.</p>
@@ -972,17 +972,17 @@ import { ref, computed } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
-  UtensilsCrossed, 
   CalendarCheck, 
   Clock, 
   Plus, 
   Trash2, 
   Edit3, 
   ChevronLeft, 
-  ChevronRight,
-  UserPlus,
-  Users
+  ChevronRight, 
+  UserPlus, 
+  Users 
 } from '@lucide/vue'
+import HouseUser from '../components/icons/HouseUser.vue'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
