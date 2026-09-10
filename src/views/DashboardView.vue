@@ -1,14 +1,6 @@
 <template>
   <div class="dashboard-view">
-    <!-- Header -->
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">
-          <span>Bonjour {{ authStore.user?.firstName || 'la Famille' }} !</span> 👋
-        </h1>
-        <p class="page-subtitle">Voici l'aperçu de l'organisation et des activités d'aujourd'hui.</p>
-      </div>
-    </div>
+
 
     <!-- Summary Metrics Grid -->
     <div class="grid-4 metric-grid">
@@ -107,7 +99,7 @@
                 </span>
               </div>
             </div>
-            <span class="task-points-pill">+{{ task.points }} pts</span>
+
           </div>
 
           <div v-if="dashboardTasks.length === 0" class="empty-state">
@@ -424,23 +416,21 @@
               @click="authStore.isAdmin && openEditMemberModal(member)"
               :title="authStore.isAdmin ? 'Cliquez pour modifier les informations de ce membre' : ''"
             >
-              <div class="member-card-header">
+              <div class="member-card-top">
                 <span class="avatar-emoji">{{ member.avatar }}</span>
                 <div class="member-card-name">
-                  <div class="member-title-line">
-                    <strong>{{ member.name }}</strong>
-                    <span v-if="member.isAdmin" class="admin-badge-mini" title="Administrateur">
-                      <ShieldCheck :size="12" /> Admin
-                    </span>
-                  </div>
-                  <span>{{ member.role }}</span>
+                  <strong>{{ member.name }}</strong>
+                  <span v-if="member.isAdmin" class="admin-badge-mini" title="Administrateur">
+                    <ShieldCheck :size="12" /> Admin
+                  </span>
+                </div>
+              </div>
+              <div class="member-card-bottom">
+                <div class="member-card-sub">
+                  <span class="member-role-text">{{ member.role }}</span>
                   <span v-if="member.email" class="member-email-sub">{{ member.email }}</span>
                 </div>
-
                 <div class="member-actions">
-                  <span class="pts-badge" :style="{ backgroundColor: member.color + '20', color: member.color }">
-                    {{ member.points }} pts
-                  </span>
 
                   <!-- Edit icon button for Admin -->
                   <button 
@@ -687,15 +677,7 @@
               </select>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Points</label>
-              <input 
-                v-model.number="editMemberForm.points" 
-                type="number" 
-                min="0" 
-                class="form-input" 
-              />
-            </div>
+
 
             <div class="form-group">
               <label class="form-label">Administrateur</label>
@@ -932,7 +914,11 @@ const dashboardTasks = computed(() => {
 })
 
 const dashboardEvents = computed(() => {
-  return store.events.slice(0, 3)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return store.events
+    .filter(event => new Date(event.date) >= today)
+    .slice(0, 3)
 })
 
 const nextEvent = computed(() => {
@@ -1513,15 +1499,7 @@ const handleDeleteMember = async (member) => {
 
 .assigned-tag { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; }
 
-.task-points-pill {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: var(--accent-secondary);
-  background: var(--accent-secondary-light);
-  padding: 0.2rem 0.6rem;
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-}
+
 
 /* Events list */
 .events-list {
@@ -1667,11 +1645,13 @@ const handleDeleteMember = async (member) => {
   background: var(--bg-card-hover);
 }
 
-.member-card-header {
+/* Ligne du haut : avatar + nom complet */
+.member-card-top {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
+  gap: 0.55rem;
+  width: 100%;
+  margin-bottom: 0.55rem;
 }
 
 .avatar-emoji { 
@@ -1681,26 +1661,20 @@ const handleDeleteMember = async (member) => {
 
 .member-card-name {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
   flex: 1;
   min-width: 0;
 }
 
-.member-title-line {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
-
 .member-card-name strong { 
-  font-size: 0.85rem; 
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.2;
 }
-
-.member-card-name span { font-size: 0.725rem; color: var(--text-muted); }
 
 .admin-badge-mini {
   font-size: 0.625rem;
@@ -1712,6 +1686,28 @@ const handleDeleteMember = async (member) => {
   display: inline-flex;
   align-items: center;
   gap: 0.1rem;
+  flex-shrink: 0;
+}
+
+/* Ligne du bas : rôle/email + pts/actions */
+.member-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.member-card-sub {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.member-role-text {
+  font-size: 0.725rem;
+  color: var(--text-muted);
 }
 
 .member-email-sub {
@@ -1727,16 +1723,10 @@ const handleDeleteMember = async (member) => {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-left: auto;
+  flex-shrink: 0;
 }
 
-.pts-badge {
-  font-size: 0.75rem;
-  font-weight: 800;
-  padding: 0.2rem 0.5rem;
-  border-radius: var(--radius-full);
-}
+
 
 .btn-icon-action {
   background: var(--bg-secondary);

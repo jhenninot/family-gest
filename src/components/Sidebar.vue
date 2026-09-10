@@ -126,27 +126,7 @@
       </div>
     </div>
 
-    <!-- Family Leaderboard Quick Widget -->
-    <div class="family-widget glass-card">
-      <div class="widget-header">
-        <Award :size="16" class="trophy-icon" />
-        <span>Classement Points</span>
-      </div>
-      <div class="members-mini-list">
-        <div 
-          v-for="member in sortedMembers" 
-          :key="member.id" 
-          class="member-mini-item"
-        >
-          <span class="member-avatar">{{ member.avatar }}</span>
-          <div class="member-info">
-            <span class="member-name">{{ member.name }}</span>
-            <span class="member-role">{{ member.role }}</span>
-          </div>
-          <span class="member-points">{{ member.points }} pts</span>
-        </div>
-      </div>
-    </div>
+
 
     <!-- Modal Modifier Mon Profil -->
     <div v-if="showProfileModal" class="modal-overlay" @click.self="showProfileModal = false">
@@ -492,9 +472,6 @@ const editProfile = ref({
   usualPresence: 'present'
 })
 
-const sortedMembers = computed(() => {
-  return [...store.members].sort((a, b) => b.points - a.points)
-})
 
 const openProfileModal = async () => {
   if (!authStore.user) return
@@ -850,7 +827,7 @@ const handleDeleteShortcut = async () => {
 
 .member-name { font-size: 0.85rem; font-weight: 700; line-height: 1.2; }
 .member-role { font-size: 0.725rem; color: var(--text-muted); }
-.member-points { font-size: 0.8rem; font-weight: 800; color: var(--accent-primary); }
+
 
 
 /* Modal styles */

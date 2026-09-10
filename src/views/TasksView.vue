@@ -7,7 +7,7 @@
           <CheckSquare :size="28" class="text-indigo" />
           <span>Tâches</span>
         </h1>
-        <p class="page-subtitle">Organisez et répartissez les tâches ménagères en gagnant des points.</p>
+        <p class="page-subtitle">Organisez et répartissez les tâches ménagères.</p>
       </div>
 
       <button @click="showAddModal = true" class="btn btn-primary">
@@ -91,10 +91,7 @@
             <span class="assignee-name">{{ getMemberName(task.assignedTo) }}</span>
           </div>
 
-          <div class="points-reward">
-            <Award :size="16" />
-            <span>+{{ task.points }} pts</span>
-          </div>
+
         </div>
       </div>
     </div>
@@ -155,16 +152,7 @@
               </select>
             </div>
 
-            <div class="form-group">
-              <label class="form-label">Points Récompense</label>
-              <input 
-                v-model.number="newTask.points" 
-                type="number" 
-                min="5" 
-                max="100" 
-                class="form-input" 
-              />
-            </div>
+
           </div>
 
           <div class="modal-footer">
@@ -180,7 +168,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
-import { CheckSquare, Plus, Trash2, Award } from '@lucide/vue'
+import { CheckSquare, Plus, Trash2 } from '@lucide/vue'
 
 const store = useFamilyStore()
 
@@ -192,8 +180,7 @@ const newTask = ref({
   title: '',
   category: 'Maison',
   assignedTo: store.members[0]?.id || 1,
-  priority: 'Moyenne',
-  points: 15
+  priority: 'Moyenne'
 })
 
 const filteredTasks = computed(() => {
@@ -235,8 +222,7 @@ const handleAddTask = () => {
     title: '',
     category: 'Maison',
     assignedTo: store.members[0]?.id || 1,
-    priority: 'Moyenne',
-    points: 15
+    priority: 'Moyenne'
   }
 }
 </script>
@@ -370,14 +356,7 @@ const handleAddTask = () => {
 .avatar-sm { font-size: 1.1rem; }
 .assignee-name { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
 
-.points-reward {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.825rem;
-  font-weight: 800;
-  color: var(--accent-secondary);
-}
+
 
 /* Modal */
 .modal-header {
