@@ -338,6 +338,28 @@
                   <span>{{ event.location }}</span>
                 </div>
               </div>
+
+              <!-- Export direct agenda -->
+              <div class="dash-event-export-btns">
+                <button 
+                  @click="openGoogleCalendar(event)" 
+                  class="btn-dash-cal btn-dash-google" 
+                  title="Ajouter à Google Agenda"
+                  aria-label="Ajouter à Google Agenda"
+                >
+                  <ExternalLink :size="12" />
+                  <span class="dash-btn-text">Google</span>
+                </button>
+                <button 
+                  @click="downloadIcsFile(event)" 
+                  class="btn-dash-cal btn-dash-ics" 
+                  title="Télécharger pour Apple Calendrier ou Outlook (.ics)"
+                  aria-label="Télécharger pour Apple Calendrier ou Outlook"
+                >
+                  <Download :size="12" />
+                  <span class="dash-btn-text">.ics</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -746,12 +768,15 @@ import {
   ShieldAlert,
   ShieldCheck,
   Shield,
-  Edit3,
-  Mail,
-  Bell
+  Edit3, 
+  Mail, 
+  Bell, 
+  ExternalLink, 
+  Download 
 } from '@lucide/vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
+import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
@@ -1510,6 +1535,53 @@ const handleDeleteMember = async (member) => {
   font-size: 0.775rem;
   color: var(--text-muted);
   flex-wrap: wrap;
+}
+
+.dash-event-export-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.btn-dash-cal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-dash-cal:hover {
+  transform: translateY(-1px);
+}
+
+.btn-dash-google:hover {
+  color: #4285f4;
+  border-color: #4285f4;
+  background: rgba(66, 133, 244, 0.08);
+}
+
+.btn-dash-ics:hover {
+  color: var(--accent-purple);
+  border-color: var(--accent-purple);
+  background: var(--accent-purple-light, rgba(139, 92, 246, 0.08));
+}
+
+@media (max-width: 480px) {
+  .dash-btn-text {
+    display: none;
+  }
+  .btn-dash-cal {
+    padding: 0.3rem;
+  }
 }
 
 /* Members Grid */

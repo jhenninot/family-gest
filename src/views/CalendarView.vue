@@ -61,6 +61,29 @@
                   <span>{{ event.location }}</span>
                 </div>
               </div>
+
+              <!-- Actions d'export vers agenda externe -->
+              <div class="timeline-export-bar">
+                <span class="export-hint">Ajouter à mon agenda :</span>
+                <div class="export-btns-row">
+                  <button 
+                    @click="openGoogleCalendar(event)" 
+                    class="btn-cal-action btn-cal-google" 
+                    title="Ajouter directement à Google Agenda"
+                  >
+                    <ExternalLink :size="12" />
+                    <span>Google Agenda</span>
+                  </button>
+                  <button 
+                    @click="downloadIcsFile(event)" 
+                    class="btn-cal-action btn-cal-ics" 
+                    title="Télécharger le fichier .ics pour Apple Calendrier, Outlook..."
+                  >
+                    <Download :size="12" />
+                    <span>Apple / Outlook (.ics)</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -90,7 +113,9 @@
             v-for="day in 30" 
             :key="day"
             class="day-cell"
-            :class="{ today: day === 8, 'has-events': hasEventOnDay(day) }"
+            :class="{ today: day === 8, 'has-events': hasEventOnDay(day), 'cell-interactive': hasEventOnDay(day) }"
+            @click="handleDayClick(day)"
+            :title="hasEventOnDay(day) ? 'Cliquez pour voir les événements de ce jour' : ''"
           >
             <span class="day-number">{{ day }}</span>
             <div v-if="hasEventOnDay(day)" class="day-dots">
@@ -179,16 +204,136 @@
         </form>
       </div>
     </div>
+
+    <!-- Modal Confirmation & Export Agenda après création -->
+    <div v-if="showSuccessExportModal && justAddedEvent" class="modal-overlay" @click.self="showSuccessExportModal = false">
+      <div class="modal-content export-success-modal">
+        <div class="modal-header">
+          <div class="export-modal-title-group">
+            <CalendarPlus :size="22" class="text-purple" />
+            <h3>Événement Enregistré !</h3>
+          </div>
+          <button @click="showSuccessExportModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <div class="export-modal-body">
+          <div class="event-summary-card" :style="{ borderLeftColor: justAddedEvent.color }">
+            <h4 class="event-summary-title">{{ justAddedEvent.title }}</h4>
+            <div class="event-summary-meta">
+              <span class="badge" :style="{ backgroundColor: justAddedEvent.color + '25', color: justAddedEvent.color }">
+                {{ justAddedEvent.category }}
+              </span>
+              <span>📅 {{ formatDate(justAddedEvent.date) }}</span>
+              <span v-if="justAddedEvent.time">⏰ {{ justAddedEvent.time }}</span>
+              <span v-if="justAddedEvent.location">📍 {{ justAddedEvent.location }}</span>
+            </div>
+          </div>
+
+          <p class="export-modal-prompt">
+            Souhaitez-vous ajouter cet événement à votre agenda personnel dès maintenant ?
+          </p>
+
+          <div class="export-modal-buttons">
+            <button @click="openGoogleCalendar(justAddedEvent)" class="btn-export-full btn-google-full">
+              <ExternalLink :size="16" />
+              <span>Ajouter à Google Agenda</span>
+            </button>
+
+            <button @click="downloadIcsFile(justAddedEvent)" class="btn-export-full btn-ics-full">
+              <Download :size="16" />
+              <span>Apple Calendrier / Outlook (.ics)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="showSuccessExportModal = false" class="btn btn-secondary btn-block">
+            Terminer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Consultation des événements d'un jour -->
+    <div v-if="showDayEventsModal" class="modal-overlay" @click.self="showDayEventsModal = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Événements du {{ selectedDayNumber }} Septembre 2026</h3>
+          <button @click="showDayEventsModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <div class="day-events-list">
+          <div 
+            v-for="ev in selectedDayEvents" 
+            :key="ev.id" 
+            class="timeline-card"
+          >
+            <div class="timeline-date-strip" :style="{ backgroundColor: ev.color }"></div>
+            <div class="timeline-content">
+              <div class="timeline-header">
+                <span class="event-title-text">{{ ev.title }}</span>
+                <span class="badge" :style="{ backgroundColor: ev.color + '25', color: ev.color }">
+                  {{ ev.category }}
+                </span>
+              </div>
+              <div class="timeline-meta">
+                <div class="meta-tag" v-if="ev.time">
+                  <Clock :size="14" />
+                  <span>{{ ev.time }}</span>
+                </div>
+                <div class="meta-tag" v-if="ev.location">
+                  <MapPin :size="14" />
+                  <span>{{ ev.location }}</span>
+                </div>
+              </div>
+              <div class="timeline-export-bar">
+                <span class="export-hint">Ajouter à mon agenda :</span>
+                <div class="export-btns-row">
+                  <button @click="openGoogleCalendar(ev)" class="btn-cal-action btn-cal-google">
+                    <ExternalLink :size="12" />
+                    <span>Google Agenda</span>
+                  </button>
+                  <button @click="downloadIcsFile(ev)" class="btn-cal-action btn-cal-ics">
+                    <Download :size="12" />
+                    <span>Apple / Outlook (.ics)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button @click="showDayEventsModal = false" class="btn btn-secondary">Fermer</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
-import { Calendar as CalendarIcon, Plus, Trash2, Clock, MapPin } from '@lucide/vue'
+import { 
+  Calendar as CalendarIcon, 
+  Plus, 
+  Trash2, 
+  Clock, 
+  MapPin, 
+  ExternalLink, 
+  Download, 
+  CalendarPlus 
+} from '@lucide/vue'
+import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 
 const store = useFamilyStore()
 const showAddModal = ref(false)
+const showSuccessExportModal = ref(false)
+const justAddedEvent = ref(null)
+
+const showDayEventsModal = ref(false)
+const selectedDayEvents = ref([])
+const selectedDayNumber = ref(null)
 
 const colorOptions = ['#8b5cf6', '#ec4899', '#6366f1', '#10b981', '#f59e0b', '#06b6d4']
 
@@ -222,10 +367,25 @@ const getEventsOnDay = (dayNum) => {
   return store.events.filter(e => e.date === targetDate)
 }
 
-const handleAddEvent = () => {
+const handleDayClick = (dayNum) => {
+  const evts = getEventsOnDay(dayNum)
+  if (evts && evts.length > 0) {
+    selectedDayEvents.value = evts
+    selectedDayNumber.value = dayNum
+    showDayEventsModal.value = true
+  }
+}
+
+const handleAddEvent = async () => {
   if (!newEvent.value.title.trim()) return
-  store.addEvent(newEvent.value)
+  const eventPayload = { ...newEvent.value }
+  const res = await store.addEvent(eventPayload)
   showAddModal.value = false
+
+  // Afficher la boîte de dialogue d'exportation vers l'agenda personnel
+  justAddedEvent.value = (res && res.event) ? res.event : eventPayload
+  showSuccessExportModal.value = true
+
   newEvent.value = {
     title: '',
     date: '2026-09-15',
@@ -398,4 +558,171 @@ const handleAddEvent = () => {
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .btn-close { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
+
+/* Interactive Calendar Days */
+.day-cell.cell-interactive {
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.day-cell.cell-interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-purple);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Timeline Export Bar */
+.timeline-export-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.export-hint {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.export-btns-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.btn-cal-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-cal-action:hover {
+  transform: translateY(-1px);
+}
+
+.btn-cal-google:hover {
+  color: #4285f4;
+  border-color: #4285f4;
+  background: rgba(66, 133, 244, 0.08);
+}
+
+.btn-cal-ics:hover {
+  color: var(--accent-purple);
+  border-color: var(--accent-purple);
+  background: var(--accent-purple-light, rgba(139, 92, 246, 0.08));
+}
+
+/* Export Success Modal */
+.export-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.export-modal-title-group h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.export-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.event-summary-card {
+  padding: 0.85rem 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+}
+
+.event-summary-title {
+  margin: 0 0 0.4rem 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.event-summary-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.export-modal-prompt {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.export-modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.btn-export-full {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: none;
+}
+
+.btn-google-full {
+  background: linear-gradient(135deg, #4285f4, #2563eb);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.25);
+}
+
+.btn-google-full:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(66, 133, 244, 0.35);
+}
+
+.btn-ics-full {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-ics-full:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+}
+
+.day-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
 </style>

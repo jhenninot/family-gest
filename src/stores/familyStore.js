@@ -284,9 +284,14 @@ export const useFamilyStore = defineStore('family', () => {
       if (res.ok) {
         const created = await res.json()
         events.value.push(created)
+        return { success: true, event: created }
+      } else {
+        const err = await res.json().catch(() => ({}))
+        return { success: false, error: err.error }
       }
     } catch (err) {
       console.error('Erreur addEvent API', err)
+      return { success: false, error: err.message }
     }
   }
 
