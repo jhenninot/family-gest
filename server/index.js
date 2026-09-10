@@ -1268,6 +1268,82 @@ app.post('/api/events', requireAuth, async (req, res) => {
   }
 })
 
+// PUT /api/events/:id (Modification d'un événement avec alertes push & email)
+app.put('/api/events/:id', requireAuth, async (req, res) => {
+  try {
+    const eventId = Number(req.params.id)
+    const event = await Event.findOne({ id: eventId })
+    if (!event) return res.status(404).json({ error: 'Événement non trouvé' })
+
+    const { title, date, time, category, location, color, assignedTo } = req.body
+
+    if (title) event.title = title.trim()
+    if (date) event.date = date
+    if (time !== undefined) event.time = time
+    if (category) event.category = category
+    if (location !== undefined) event.location = location
+    if (color) event.color = color
+    if (assignedTo !== undefined) event.assignedTo = assignedTo
+
+    await event.save()
+
+    // Liens et contenu pour ajout/mise à jour sur l'agenda personnel
+    const emailConfig = await EmailConfig.findOne()
+    const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
+    const googleCalendarUrl = generateServerGoogleCalendarUrl(event)
+    const icsContent = generateServerIcsContent(event)
+    const icsDownloadUrl = `${baseServerUrl}/api/events/${event.id}/ics`
+
+    const authorName = req.user ? req.user.firstName : 'Un membre'
+    const timeStr = event.time ? ` à ${event.time}` : ''
+    const locStr = event.location ? ` (${event.location})` : ''
+
+    // Notification push pour l'événement modifié
+    sendPushNotification({
+      title: `✏️ Événement modifié : ${event.title}`,
+      body: `${event.date}${timeStr}${locStr} • Modifié par ${authorName}`,
+      url: '/calendar',
+      excludeUserId: req.user ? req.user.id : null,
+      actions: [
+        { action: 'open', title: 'Voir l\'agenda' },
+        { action: 'add-google', title: '📅 Mettre à jour' }
+      ],
+      googleCalendarUrl
+    })
+
+    // Notification email pour l'événement modifié
+    sendNotificationEmail({
+      subject: `✏️ Événement modifié : ${event.title}`,
+      title: `Événement modifié dans l'agenda`,
+      badge: '✏️',
+      detailsHtml: `
+        <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+          <strong>${authorName}</strong> a modifié cet événement dans le calendrier familial :
+        </p>
+        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+          <li><strong>Titre :</strong> ${event.title}</li>
+          <li><strong>Nouvelle date :</strong> ${event.date}${timeStr}</li>
+          ${event.location ? `<li><strong>Lieu :</strong> ${event.location}</li>` : ''}
+          <li><strong>Catégorie :</strong> ${event.category || 'Famille'}</li>
+        </ul>
+      `,
+      actionUrl: '/calendar',
+      actionText: 'Voir dans le calendrier',
+      excludeUserId: req.user ? req.user.id : null,
+      calendarData: {
+        googleUrl: googleCalendarUrl,
+        icsUrl: icsDownloadUrl,
+        icsContent,
+        eventTitle: event.title
+      }
+    })
+
+    res.json(event)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // GET /api/events/:id/ics (Téléchargement direct du fichier iCalendar pour ajout à Apple / Outlook)
 app.get('/api/events/:id/ics', async (req, res) => {
   try {

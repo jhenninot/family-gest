@@ -295,6 +295,30 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  const updateEvent = async (id, eventData) => {
+    try {
+      const res = await fetch(`/api/events/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(eventData)
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        const index = events.value.findIndex(e => e.id === Number(id))
+        if (index !== -1) {
+          events.value[index] = updated
+        }
+        return { success: true, event: updated }
+      } else {
+        const err = await res.json().catch(() => ({}))
+        return { success: false, error: err.error }
+      }
+    } catch (err) {
+      console.error('Erreur updateEvent API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
   const deleteEvent = async (id) => {
     try {
       const res = await fetch(`/api/events/${id}`, {
@@ -583,6 +607,7 @@ export const useFamilyStore = defineStore('family', () => {
     toggleTask,
     deleteTask,
     addEvent,
+    updateEvent,
     deleteEvent,
     addShoppingItem,
     toggleShoppingItem,

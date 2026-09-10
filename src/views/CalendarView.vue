@@ -36,9 +36,14 @@
             <div class="timeline-content">
               <div class="timeline-header">
                 <span class="event-title-text">{{ event.title }}</span>
-                <button @click="store.deleteEvent(event.id)" class="btn-delete" title="Supprimer">
-                  <Trash2 :size="15" />
-                </button>
+                <div class="timeline-header-actions">
+                  <button @click="openEditModal(event)" class="btn-action-icon btn-edit" title="Modifier l'événement">
+                    <Edit3 :size="15" />
+                  </button>
+                  <button @click="store.deleteEvent(event.id)" class="btn-action-icon btn-delete" title="Supprimer">
+                    <Trash2 :size="15" />
+                  </button>
+                </div>
               </div>
 
               <div class="timeline-meta">
@@ -205,13 +210,86 @@
       </div>
     </div>
 
-    <!-- Modal Confirmation & Export Agenda après création -->
+    <!-- Modal Modifier Événement -->
+    <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Modifier l'Événement</h3>
+          <button @click="showEditModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <form @submit.prevent="handleUpdateEvent">
+          <div class="form-group">
+            <label class="form-label">Titre de l'événement</label>
+            <input 
+              v-model="editEventForm.title" 
+              type="text" 
+              required 
+              placeholder="ex: Fête d'anniversaire, Match de foot..."
+              class="form-input" 
+            />
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input v-model="editEventForm.date" type="date" required class="form-input" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Heure</label>
+              <input v-model="editEventForm.time" type="time" class="form-input" />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Catégorie</label>
+              <select v-model="editEventForm.category" class="form-select">
+                <option value="Fête">Fête</option>
+                <option value="Santé">Santé</option>
+                <option value="Famille">Famille</option>
+                <option value="Scolaire">Scolaire</option>
+                <option value="Loisirs">Loisirs</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Lieu</label>
+              <input v-model="editEventForm.location" type="text" placeholder="ex: Maison, École..." class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Couleur d'étiquette</label>
+            <div class="color-picker-options">
+              <button 
+                v-for="c in colorOptions" 
+                :key="c"
+                type="button"
+                class="color-btn"
+                :style="{ backgroundColor: c }"
+                :class="{ selected: editEventForm.color === c }"
+                @click="editEventForm.color = c"
+              ></button>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" @click="showEditModal = false" class="btn btn-secondary">Annuler</button>
+            <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Confirmation & Export Agenda après création / modification -->
     <div v-if="showSuccessExportModal && justAddedEvent" class="modal-overlay" @click.self="showSuccessExportModal = false">
       <div class="modal-content export-success-modal">
         <div class="modal-header">
           <div class="export-modal-title-group">
             <CalendarPlus :size="22" class="text-purple" />
-            <h3>Événement Enregistré !</h3>
+            <h3>{{ isEditSuccess ? 'Événement Mis à Jour !' : 'Événement Enregistré !' }}</h3>
           </div>
           <button @click="showSuccessExportModal = false" class="btn-close">&times;</button>
         </div>
@@ -230,13 +308,13 @@
           </div>
 
           <p class="export-modal-prompt">
-            Souhaitez-vous ajouter cet événement à votre agenda personnel dès maintenant ?
+            Souhaitez-vous synchroniser cet événement sur votre agenda personnel dès maintenant ?
           </p>
 
           <div class="export-modal-buttons">
             <button @click="openGoogleCalendar(justAddedEvent)" class="btn-export-full btn-google-full">
               <ExternalLink :size="16" />
-              <span>Ajouter à Google Agenda</span>
+              <span>{{ isEditSuccess ? 'Mettre à jour sur Google Agenda' : 'Ajouter à Google Agenda' }}</span>
             </button>
 
             <button @click="downloadIcsFile(justAddedEvent)" class="btn-export-full btn-ics-full">
@@ -272,9 +350,17 @@
             <div class="timeline-content">
               <div class="timeline-header">
                 <span class="event-title-text">{{ ev.title }}</span>
-                <span class="badge" :style="{ backgroundColor: ev.color + '25', color: ev.color }">
-                  {{ ev.category }}
-                </span>
+                <div class="timeline-header-actions">
+                  <span class="badge" :style="{ backgroundColor: ev.color + '25', color: ev.color }">
+                    {{ ev.category }}
+                  </span>
+                  <button @click="openEditModal(ev)" class="btn-action-icon btn-edit" title="Modifier l'événement">
+                    <Edit3 :size="14" />
+                  </button>
+                  <button @click="handleDeleteFromDay(ev.id)" class="btn-action-icon btn-delete" title="Supprimer">
+                    <Trash2 :size="14" />
+                  </button>
+                </div>
               </div>
               <div class="timeline-meta">
                 <div class="meta-tag" v-if="ev.time">
@@ -318,6 +404,7 @@ import {
   Calendar as CalendarIcon, 
   Plus, 
   Trash2, 
+  Edit3,
   Clock, 
   MapPin, 
   ExternalLink, 
@@ -328,8 +415,20 @@ import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 
 const store = useFamilyStore()
 const showAddModal = ref(false)
+const showEditModal = ref(false)
 const showSuccessExportModal = ref(false)
+const isEditSuccess = ref(false)
 const justAddedEvent = ref(null)
+const editingEventId = ref(null)
+
+const editEventForm = ref({
+  title: '',
+  date: '2026-09-15',
+  time: '14:00',
+  category: 'Famille',
+  location: '',
+  color: '#8b5cf6'
+})
 
 const showDayEventsModal = ref(false)
 const selectedDayEvents = ref([])
@@ -383,6 +482,7 @@ const handleAddEvent = async () => {
   showAddModal.value = false
 
   // Afficher la boîte de dialogue d'exportation vers l'agenda personnel
+  isEditSuccess.value = false
   justAddedEvent.value = (res && res.event) ? res.event : eventPayload
   showSuccessExportModal.value = true
 
@@ -393,6 +493,42 @@ const handleAddEvent = async () => {
     category: 'Famille',
     location: '',
     color: '#8b5cf6'
+  }
+}
+
+const openEditModal = (event) => {
+  editingEventId.value = event.id
+  editEventForm.value = {
+    title: event.title || '',
+    date: event.date || '',
+    time: event.time || '',
+    category: event.category || 'Famille',
+    location: event.location || '',
+    color: event.color || '#8b5cf6'
+  }
+  showEditModal.value = true
+}
+
+const handleUpdateEvent = async () => {
+  if (!editEventForm.value.title.trim()) return
+  const eventPayload = { ...editEventForm.value }
+  const res = await store.updateEvent(editingEventId.value, eventPayload)
+  showEditModal.value = false
+
+  if (res && res.success) {
+    isEditSuccess.value = true
+    justAddedEvent.value = (res && res.event) ? res.event : { ...eventPayload, id: editingEventId.value }
+    showSuccessExportModal.value = true
+    if (showDayEventsModal.value && selectedDayNumber.value) {
+      selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)
+    }
+  }
+}
+
+const handleDeleteFromDay = async (id) => {
+  await store.deleteEvent(id)
+  if (selectedDayNumber.value) {
+    selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)
   }
 }
 </script>
@@ -451,13 +587,39 @@ const handleAddEvent = async () => {
   font-size: 0.95rem;
 }
 
-.btn-delete {
+.timeline-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-action-icon {
   background: none;
   border: none;
-  color: var(--text-muted);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm, 4px);
+  transition: all var(--transition-fast);
 }
-.btn-delete:hover { color: var(--accent-rose); }
+
+.btn-edit {
+  color: var(--text-muted);
+}
+.btn-edit:hover {
+  color: var(--accent-purple);
+  background: var(--accent-purple-light, rgba(139, 92, 246, 0.1));
+}
+
+.btn-delete {
+  color: var(--text-muted);
+}
+.btn-delete:hover {
+  color: var(--accent-rose);
+  background: rgba(244, 63, 94, 0.1);
+}
 
 .timeline-meta {
   display: flex;
