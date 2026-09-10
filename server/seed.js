@@ -3,69 +3,67 @@ import Task from './models/Task.js'
 import Event from './models/Event.js'
 import ShoppingItem from './models/ShoppingItem.js'
 
+export const DEFAULT_USERS = [
+  {
+    id: 1,
+    firstName: 'Admin',
+    lastName: 'FamilyGest',
+    email: 'admin@family-gest.org',
+    password: 'Admin1234!',
+    isAdmin: true,
+    role: 'Administrateur',
+    avatar: '👨‍💼',
+    color: '#6366f1',
+    points: 200
+  },
+  {
+    id: 2,
+    firstName: 'Sophie',
+    lastName: 'Martin',
+    email: 'sophie@family-gest.org',
+    password: 'Family1234!',
+    isAdmin: false,
+    role: 'Maman',
+    avatar: '👩‍⚕️',
+    color: '#ec4899',
+    points: 145
+  },
+  {
+    id: 3,
+    firstName: 'Lucas',
+    lastName: 'Martin',
+    email: 'lucas@family-gest.org',
+    password: 'Family1234!',
+    isAdmin: false,
+    role: 'Fils (12 ans)',
+    avatar: '👦',
+    color: '#10b981',
+    points: 75
+  },
+  {
+    id: 4,
+    firstName: 'Emma',
+    lastName: 'Martin',
+    email: 'emma@family-gest.org',
+    password: 'Family1234!',
+    isAdmin: false,
+    role: 'Fille (8 ans)',
+    avatar: '👧',
+    color: '#f59e0b',
+    points: 90
+  }
+]
+
 export const seedDatabaseIfEmpty = async () => {
   try {
     const userCount = await User.countDocuments()
     if (userCount === 0) {
-      console.log('🌱 Création de l\'utilisateur Administrateur par défaut (admin@family-gest.org)...')
+      console.log('🌱 Création des utilisateurs et données par défaut...')
 
-      // Create Admin User
-      const adminUser = new User({
-        id: 1,
-        firstName: 'Admin',
-        lastName: 'FamilyGest',
-        email: 'admin@family-gest.org',
-        password: 'Admin1234!',
-        isAdmin: true,
-        role: 'Administrateur',
-        avatar: '👨‍💼',
-        color: '#6366f1',
-        points: 200
-      })
-      await adminUser.save()
-
-      // Create Initial Family Users
-      const userSophie = new User({
-        id: 2,
-        firstName: 'Sophie',
-        lastName: 'Martin',
-        email: 'sophie@family-gest.org',
-        password: 'Family123!',
-        isAdmin: false,
-        role: 'Maman',
-        avatar: '👩‍⚕️',
-        color: '#ec4899',
-        points: 145
-      })
-      await userSophie.save()
-
-      const userLucas = new User({
-        id: 3,
-        firstName: 'Lucas',
-        lastName: 'Martin',
-        email: 'lucas@family-gest.org',
-        password: 'Family123!',
-        isAdmin: false,
-        role: 'Fils (12 ans)',
-        avatar: '👦',
-        color: '#10b981',
-        points: 75
-      })
-      await userLucas.save()
-
-      const userEmma = new User({
-        id: 4,
-        firstName: 'Emma',
-        lastName: 'Martin',
-        email: 'emma@family-gest.org',
-        password: 'Family123!',
-        isAdmin: false,
-        role: 'Fille (8 ans)',
-        avatar: '👧',
-        color: '#f59e0b',
-        points: 90
-      })
-      await userEmma.save()
+      for (const u of DEFAULT_USERS) {
+        const newUser = new User(u)
+        await newUser.save()
+      }
 
       // Seed Tasks
       await Task.insertMany([
@@ -84,8 +82,6 @@ export const seedDatabaseIfEmpty = async () => {
         { id: 204, title: 'Réunion de rentrée scolaire', date: '2026-09-22', time: '18:00', category: 'Scolaire', location: 'Collège St-Exupéry', color: '#f59e0b', assignedTo: 2 }
       ])
 
-
-
       // Seed Shopping
       await ShoppingItem.insertMany([
         { id: 401, name: 'Lait demi-écrémé (6x1L)', category: 'Frais', quantity: 1, urgent: false, checked: false },
@@ -95,31 +91,30 @@ export const seedDatabaseIfEmpty = async () => {
         { id: 405, name: 'Lessive écologique', category: 'Maison', quantity: 1, urgent: false, checked: false }
       ])
 
-      console.log('✅ Administrateur (admin@family-gest.org) et base de données initialisés avec succès.')
+      console.log('✅ Utilisateurs et données initialisés avec succès.')
     } else {
-      // S'assurer que le compte admin@family-gest.org existe et utilise le mot de passe conforme Admin1234!
-      const defaultAdmin = await User.findOne({ email: 'admin@family-gest.org' })
-      if (defaultAdmin) {
-        defaultAdmin.password = 'Admin1234!'
-        await defaultAdmin.save()
-        console.log('✅ Mot de passe de admin@family-gest.org mis à jour vers le mot de passe conforme : Admin1234!')
-      } else {
-        const highestUser = await User.findOne().sort('-id')
-        const nextId = (highestUser && typeof highestUser.id === 'number') ? highestUser.id + 1 : 999
-        const newAdmin = new User({
-          id: nextId,
-          firstName: 'Admin',
-          lastName: 'FamilyGest',
-          email: 'admin@family-gest.org',
-          password: 'Admin1234!',
-          isAdmin: true,
-          role: 'Administrateur',
-          avatar: '👨‍💼',
-          color: '#6366f1',
-          points: 100
-        })
-        await newAdmin.save()
-        console.log(`✅ Compte admin@family-gest.org créé en base avec le mot de passe conforme : Admin1234! (ID: ${nextId})`)
+      // S'assurer que tous les utilisateurs par défaut existent et ont leur mot de passe conforme
+      for (const defaultUser of DEFAULT_USERS) {
+        const existing = await User.findOne({ email: defaultUser.email })
+        if (existing) {
+          // Vérifier si le mot de passe est encore l'ancien mot de passe non-conforme
+          const isOldPass = (await existing.matchPassword('Admin123!')) || (await existing.matchPassword('Family123!'))
+          if (isOldPass) {
+            existing.password = defaultUser.password
+            await existing.save()
+            console.log(`🔄 Mot de passe de ${existing.email} mis à jour vers le mot de passe conforme : ${defaultUser.password}`)
+          }
+        } else {
+          // Créer l'utilisateur par défaut s'il n'existe pas
+          const highestUser = await User.findOne().sort('-id')
+          const nextId = (highestUser && typeof highestUser.id === 'number') ? highestUser.id + 1 : defaultUser.id
+          const createdUser = new User({
+            ...defaultUser,
+            id: nextId
+          })
+          await createdUser.save()
+          console.log(`✅ Compte par défaut ${defaultUser.email} créé en base avec mot de passe conforme : ${defaultUser.password} (ID: ${nextId})`)
+        }
       }
     }
   } catch (error) {

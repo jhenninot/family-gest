@@ -97,7 +97,7 @@ L'application est disponible sur `http://localhost:5000`.
 | Rôle | Adresse Email | Mot de Passe | Privilèges |
 |---|---|---|---|
 | **Administrateur** | `admin@family-gest.org` | `Admin1234!` | Gestion complète + Ajout/Suppression de membres |
-| **Maman** | `sophie@family-gest.org` | `Family123!` | Accès membres & tâches |
-| **Fils** | `lucas@family-gest.org` | `Family123!` | Accès membres & tâches |
-| **Fille** | `emma@family-gest.org` | `Family123!` | Accès membres & tâches |
+| **Maman** | `sophie@family-gest.org` | `Family1234!` | Accès membres & tâches |
+| **Fils** | `lucas@family-gest.org` | `Family1234!` | Accès membres & tâches |
+| **Fille** | `emma@family-gest.org` | `Family1234!` | Accès membres & tâches |
 
