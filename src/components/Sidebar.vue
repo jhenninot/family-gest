@@ -259,6 +259,30 @@
             </div>
           </div>
 
+          <!-- Case à cocher pour les notifications Web Push -->
+          <div class="form-group notif-profile-group">
+            <label class="notif-toggle-card" :class="{ 'is-active': editProfile.pushNotificationsEnabled }">
+              <input 
+                type="checkbox" 
+                v-model="editProfile.pushNotificationsEnabled" 
+                class="notif-hidden-input"
+              />
+              <div class="notif-toggle-icon">
+                <Bell v-if="editProfile.pushNotificationsEnabled" :size="18" />
+                <BellOff v-else :size="18" />
+              </div>
+              <div class="notif-toggle-details">
+                <span class="notif-toggle-title">Notifications Web Push</span>
+                <span class="notif-toggle-subtitle">
+                  Recevoir des alertes pour les nouvelles absences, invités et événements
+                </span>
+              </div>
+              <div class="toggle-switch" :class="{ active: editProfile.pushNotificationsEnabled }">
+                <span class="toggle-circle"></span>
+              </div>
+            </label>
+          </div>
+
           <div class="modal-footer">
             <button type="button" @click="showProfileModal = false" class="btn btn-secondary">Annuler</button>
             <button type="submit" class="btn btn-primary" :disabled="saving">
@@ -377,10 +401,13 @@ import {
   Plus,
   ExternalLink,
   MoreVertical,
-  Trash2
+  Trash2,
+  Bell,
+  BellOff
 } from '@lucide/vue'
 import PasswordStrengthIndicator from './PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
+import { subscribeUserToPush, unsubscribeUserFromPush } from '../utils/pushNotifications'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -399,7 +426,8 @@ const editProfile = ref({
   password: '',
   role: 'Membre',
   avatar: '👨‍💼',
-  color: '#6366f1'
+  color: '#6366f1',
+  pushNotificationsEnabled: true
 })
 
 const sortedMembers = computed(() => {
@@ -415,7 +443,8 @@ const openProfileModal = () => {
     password: '',
     role: authStore.user.role || 'Membre',
     avatar: authStore.user.avatar || '👨‍💼',
-    color: authStore.user.color || '#6366f1'
+    color: authStore.user.color || '#6366f1',
+    pushNotificationsEnabled: authStore.user.pushNotificationsEnabled !== false
   }
   showProfileModal.value = true
 }
@@ -433,6 +462,18 @@ const handleSaveProfile = async () => {
   saving.value = false
 
   if (res.success) {
+    // Si l'utilisateur a activé les notifications, demander l'autorisation et abonner
+    if (editProfile.value.pushNotificationsEnabled) {
+      subscribeUserToPush().catch(err => {
+        console.warn('[WebPush] Inscription push non accordée:', err)
+      })
+    } else {
+      // Sinon, désabonner
+      unsubscribeUserFromPush().catch(err => {
+        console.warn('[WebPush] Erreur désabonnement push:', err)
+      })
+    }
+
     showProfileModal.value = false
     await store.fetchAllData()
   } else {
@@ -1119,5 +1160,109 @@ const handleDeleteShortcut = async () => {
     opacity: 0.7;
     padding: 0.35rem;
   }
+}
+
+/* Notification Toggle in Profile Modal */
+.notif-profile-group {
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.notif-toggle-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.notif-toggle-card:hover {
+  background: var(--bg-card-hover, var(--bg-secondary));
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.notif-toggle-card.is-active {
+  border-color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.notif-hidden-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.notif-toggle-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.notif-toggle-card.is-active .notif-toggle-icon {
+  background: var(--accent-primary-light, rgba(99, 102, 241, 0.15));
+  color: var(--accent-primary, #6366f1);
+  border-color: var(--accent-primary, #6366f1);
+}
+
+.notif-toggle-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.notif-toggle-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.notif-toggle-subtitle {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.toggle-switch {
+  width: 44px;
+  height: 24px;
+  border-radius: 9999px;
+  background: var(--border-color);
+  position: relative;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.toggle-switch.active {
+  background: var(--accent-primary, #6366f1);
+}
+
+.toggle-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch.active .toggle-circle {
+  transform: translateX(20px);
 }
 </style>

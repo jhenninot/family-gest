@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
   points: { type: Number, default: 0 },
   lastLogin: { type: Date, default: Date.now },
   welcomeToken: { type: String, default: null },
-  welcomeTokenExpires: { type: Date, default: null }
+  welcomeTokenExpires: { type: Date, default: null },
+  pushNotificationsEnabled: { type: Boolean, default: true }
 }, { timestamps: true })
 
 // Pre-save hook to hash password if modified (Mongoose 8 async hook syntax without callback parameters)

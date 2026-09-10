@@ -645,6 +645,17 @@
                 </span>
               </label>
             </div>
+
+            <div class="form-group">
+              <label class="form-label">Notifications Web</label>
+              <label class="admin-checkbox-card">
+                <input type="checkbox" v-model="editMemberForm.pushNotificationsEnabled" class="custom-checkbox" />
+                <span class="checkbox-text">
+                  <Bell :size="16" class="text-indigo" />
+                  <strong>Actives</strong>
+                </span>
+              </label>
+            </div>
           </div>
 
           <div class="form-group">
@@ -723,7 +734,8 @@ import {
   ShieldCheck,
   Shield,
   Edit3,
-  Mail
+  Mail,
+  Bell
 } from '@lucide/vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
@@ -924,7 +936,8 @@ const openEditMemberModal = (member) => {
     points: member.points || 0,
     isAdmin: Boolean(member.isAdmin),
     avatar: member.avatar || '👤',
-    color: member.color || '#6366f1'
+    color: member.color || '#6366f1',
+    pushNotificationsEnabled: member.pushNotificationsEnabled !== false
   }
   showEditMemberModal.value = true
 }

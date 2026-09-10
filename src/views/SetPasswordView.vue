@@ -117,6 +117,29 @@
             </div>
           </div>
 
+          <!-- Case à cocher pour autoriser les notifications push (pré-cochée par défaut) -->
+          <div class="notifications-consent-group">
+            <label class="notif-checkbox-card" :class="{ 'is-checked': enableNotifications }">
+              <input 
+                type="checkbox" 
+                v-model="enableNotifications" 
+                class="notif-native-checkbox"
+              />
+              <div class="notif-checkbox-custom">
+                <Check v-if="enableNotifications" :size="14" />
+              </div>
+              <div class="notif-text-col">
+                <span class="notif-label-title">
+                  <Bell :size="15" class="notif-bell-icon" />
+                  Autoriser les notifications web
+                </span>
+                <span class="notif-label-desc">
+                  Recevoir des alertes pour les nouvelles absences, invités et événements
+                </span>
+              </div>
+            </label>
+          </div>
+
           <button type="submit" class="btn btn-primary btn-block" :disabled="submitting">
             <span v-if="!submitting">Enregistrer et accéder à FamilyGest</span>
             <span v-else>Enregistrement en cours...</span>
@@ -144,10 +167,13 @@ import {
   Loader2, 
   Clock, 
   Eye, 
-  EyeOff 
+  EyeOff,
+  Bell,
+  Check
 } from '@lucide/vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
+import { subscribeUserToPush } from '../utils/pushNotifications'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,6 +184,7 @@ const token = ref('')
 const verifying = ref(true)
 const tokenError = ref('')
 const memberUser = ref(null)
+const enableNotifications = ref(true)
 
 const password = ref('')
 const confirmPassword = ref('')
@@ -218,7 +245,8 @@ const handleSetPassword = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         token: token.value,
-        password: password.value
+        password: password.value,
+        pushNotificationsEnabled: enableNotifications.value
       })
     })
 
@@ -232,6 +260,13 @@ const handleSetPassword = async () => {
     // Connecter directement l'utilisateur
     authStore.setAuth(data.user, data.token)
     await familyStore.fetchAllData()
+
+    // Si l'utilisateur a autorisé les notifications, enregistrer la souscription push
+    if (enableNotifications.value) {
+      subscribeUserToPush(data.token).catch(err => {
+        console.warn('[WebPush] Demande push différée ou non accordée:', err)
+      })
+    }
 
     success.value = true
 
@@ -534,6 +569,86 @@ const handleSetPassword = async () => {
 
 .margin-top-md {
   margin-top: 1rem;
+}
+
+/* Styles pour la case à cocher des notifications */
+.notifications-consent-group {
+  margin: 1.15rem 0 0.85rem 0;
+}
+
+.notif-checkbox-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.notif-checkbox-card:hover {
+  background: var(--bg-card-hover, var(--bg-secondary));
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.notif-checkbox-card.is-checked {
+  border-color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.notif-native-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.notif-checkbox-custom {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  transition: all var(--transition-fast);
+}
+
+.notif-checkbox-card.is-checked .notif-checkbox-custom {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+.notif-text-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.notif-label-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.notif-bell-icon {
+  color: var(--accent-primary);
+}
+
+.notif-label-desc {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
 }
 
 .login-footer {

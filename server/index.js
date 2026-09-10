@@ -22,6 +22,9 @@ import EmailConfig from './models/EmailConfig.js'
 import Shortcut from './models/Shortcut.js'
 import Absence from './models/Absence.js'
 import MealGuest from './models/MealGuest.js'
+import PushConfig from './models/PushConfig.js'
+import PushSubscription from './models/PushSubscription.js'
+import webpush from 'web-push'
 
 dotenv.config()
 
@@ -171,6 +174,151 @@ const validatePasswordSecurity = (password) => {
   return { valid: true }
 }
 
+// === NOTIFICATIONS WEB PUSH (VAPID & SERVICE WORKER) ===
+let vapidPublicKey = process.env.VAPID_PUBLIC_KEY || ''
+let vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || ''
+
+const initVapid = async () => {
+  try {
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      let config = await PushConfig.findOne()
+      if (!config) {
+        const generatedKeys = webpush.generateVAPIDKeys()
+        config = await PushConfig.create({
+          publicKey: generatedKeys.publicKey,
+          privateKey: generatedKeys.privateKey
+        })
+        console.log('[WebPush] Nouvelles clés VAPID générées et persistées en base MongoDB')
+      }
+      vapidPublicKey = config.publicKey
+      vapidPrivateKey = config.privateKey
+    }
+
+    webpush.setVapidDetails(
+      'mailto:contact@familygest.local',
+      vapidPublicKey,
+      vapidPrivateKey
+    )
+    console.log('[WebPush] Service de notifications Web Push initialisé avec succès')
+  } catch (err) {
+    console.error('[WebPush] Erreur configuration VAPID:', err.message)
+  }
+}
+
+// Helper pour diffuser une notification push aux membres éligibles
+const sendPushNotification = async ({ title, body, url = '/', excludeUserId = null }) => {
+  try {
+    if (!vapidPublicKey || !vapidPrivateKey) return
+
+    // Sélectionne les utilisateurs ayant activé les notifications push
+    const userQuery = { pushNotificationsEnabled: { $ne: false } }
+    if (excludeUserId) {
+      userQuery.id = { $ne: Number(excludeUserId) }
+    }
+
+    const eligibleUsers = await User.find(userQuery).select('id')
+    const userIds = eligibleUsers.map(u => u.id)
+    if (userIds.length === 0) return
+
+    const subscriptions = await PushSubscription.find({ userId: { $in: userIds } })
+    if (subscriptions.length === 0) return
+
+    const payload = JSON.stringify({
+      title,
+      body,
+      url,
+      icon: '/pwa-192x192.png',
+      badge: '/pwa-192x192.png',
+      tag: `familygest-${Date.now()}`
+    })
+
+    const sendPromises = subscriptions.map(async (sub) => {
+      try {
+        await webpush.sendNotification({
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: sub.keys.p256dh,
+            auth: sub.keys.auth
+          }
+        }, payload)
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) {
+          console.log(`[WebPush] Nettoyage souscription obsolète : ${sub.endpoint.substring(0, 45)}...`)
+          await PushSubscription.deleteOne({ _id: sub._id })
+        } else {
+          console.error(`[WebPush] Erreur envoi push:`, err.message)
+        }
+      }
+    })
+
+    await Promise.allSettled(sendPromises)
+  } catch (err) {
+    console.error('[WebPush] Erreur sendPushNotification:', err.message)
+  }
+}
+
+// GET /api/push/vapid-public-key (Obtenir la clé publique pour le client web)
+app.get('/api/push/vapid-public-key', (req, res) => {
+  if (!vapidPublicKey) {
+    return res.status(503).json({ error: 'Service Web Push non initialisé' })
+  }
+  res.json({ publicKey: vapidPublicKey })
+})
+
+// POST /api/push/subscribe (Enregistrer une souscription push)
+app.post('/api/push/subscribe', requireAuth, async (req, res) => {
+  try {
+    const { subscription, userAgent } = req.body
+    if (!subscription || !subscription.endpoint || !subscription.keys) {
+      return res.status(400).json({ error: 'Données de souscription invalides' })
+    }
+
+    const { endpoint, keys } = subscription
+    const userId = req.user.id
+
+    await PushSubscription.findOneAndUpdate(
+      { endpoint },
+      {
+        userId,
+        endpoint,
+        keys: {
+          p256dh: keys.p256dh,
+          auth: keys.auth
+        },
+        userAgent: userAgent || ''
+      },
+      { upsert: true, new: true }
+    )
+
+    await User.updateOne({ id: userId }, { pushNotificationsEnabled: true })
+
+    res.json({ success: true, message: 'Souscription push enregistrée avec succès' })
+  } catch (err) {
+    console.error('[WebPush] Erreur enregistrement souscription:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/push/unsubscribe (Désabonner des notifications push)
+app.post('/api/push/unsubscribe', requireAuth, async (req, res) => {
+  try {
+    const { endpoint } = req.body
+    const userId = req.user.id
+
+    if (endpoint) {
+      await PushSubscription.deleteOne({ endpoint })
+    } else {
+      await PushSubscription.deleteMany({ userId })
+    }
+
+    await User.updateOne({ id: userId }, { pushNotificationsEnabled: false })
+
+    res.json({ success: true, message: 'Désabonnement push effectué' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // === AUTHENTICATION ROUTES ===
 
 // POST /api/auth/login (Connexion par email & mot de passe)
@@ -207,7 +355,8 @@ app.post('/api/auth/login', async (req, res) => {
         role: user.role,
         avatar: user.avatar,
         color: user.color,
-        points: user.points
+        points: user.points,
+        pushNotificationsEnabled: user.pushNotificationsEnabled !== false
       }
     })
   } catch (err) {
@@ -234,7 +383,8 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
         role: user.role,
         avatar: user.avatar,
         color: user.color,
-        points: user.points
+        points: user.points,
+        pushNotificationsEnabled: user.pushNotificationsEnabled !== false
       }
     })
   } catch (err) {
@@ -339,7 +489,7 @@ app.get('/api/auth/verify-token', async (req, res) => {
 // POST /api/auth/set-password (Définition du mot de passe avec token d'activation)
 app.post('/api/auth/set-password', async (req, res) => {
   try {
-    const { token, password } = req.body
+    const { token, password, pushNotificationsEnabled } = req.body
     if (!token || !password) {
       return res.status(400).json({ error: 'Token et mot de passe requis' })
     }
@@ -364,6 +514,9 @@ app.post('/api/auth/set-password', async (req, res) => {
     user.password = password
     user.welcomeToken = null
     user.welcomeTokenExpires = null
+    if (pushNotificationsEnabled !== undefined) {
+      user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
+    }
     await user.save()
 
     const jwtToken = generateToken(user.id, user.email, user.isAdmin)
@@ -382,28 +535,13 @@ app.post('/api/auth/set-password', async (req, res) => {
         role: user.role,
         avatar: user.avatar,
         color: user.color,
-        points: user.points
+        points: user.points,
+        pushNotificationsEnabled: user.pushNotificationsEnabled !== false
       }
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
-})
-
-// GET /api/auth/me (Profil utilisateur connecté)
-app.get('/api/auth/me', requireAuth, (req, res) => {
-  res.json({
-    id: req.user.id,
-    firstName: req.user.firstName,
-    lastName: req.user.lastName,
-    name: `${req.user.firstName} ${req.user.lastName}`,
-    email: req.user.email,
-    isAdmin: req.user.isAdmin,
-    role: req.user.role,
-    avatar: req.user.avatar,
-    color: req.user.color,
-    points: req.user.points
-  })
 })
 
 // PUT /api/auth/profile (Modification de ses propres informations par l'utilisateur)
@@ -412,13 +550,17 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     const user = await User.findOne({ id: req.user.id })
     if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
 
-    const { firstName, lastName, email, password, role, avatar, color } = req.body
+    const { firstName, lastName, email, password, role, avatar, color, pushNotificationsEnabled } = req.body
 
     if (firstName) user.firstName = firstName.trim()
     if (lastName) user.lastName = lastName.trim()
     if (role) user.role = role
     if (avatar) user.avatar = avatar
     if (color) user.color = color
+
+    if (pushNotificationsEnabled !== undefined) {
+      user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
+    }
 
     if (email && email.toLowerCase().trim() !== user.email) {
       const existing = await User.findOne({ email: email.toLowerCase().trim() })
@@ -448,7 +590,8 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
       role: user.role,
       avatar: user.avatar,
       color: user.color,
-      points: user.points
+      points: user.points,
+      pushNotificationsEnabled: user.pushNotificationsEnabled !== false
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -469,7 +612,8 @@ app.get('/api/members', requireAuth, async (req, res) => {
       role: u.role,
       avatar: u.avatar,
       color: u.color,
-      points: u.points
+      points: u.points,
+      pushNotificationsEnabled: u.pushNotificationsEnabled !== false
     }))
     res.json(members)
   } catch (err) {
@@ -546,7 +690,7 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
     const user = await User.findOne({ id: memberId })
     if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
 
-    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin } = req.body
+    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, pushNotificationsEnabled } = req.body
 
     if (firstName) user.firstName = firstName.trim()
     if (lastName) user.lastName = lastName.trim()
@@ -559,6 +703,7 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
     if (avatar) user.avatar = avatar
     if (color) user.color = color
     if (points !== undefined && points !== null) user.points = Number(points)
+    if (pushNotificationsEnabled !== undefined) user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
 
     if (isAdmin !== undefined && isAdmin !== null) {
       const newAdminState = Boolean(isAdmin)
@@ -602,7 +747,8 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
       role: user.role,
       avatar: user.avatar,
       color: user.color,
-      points: user.points
+      points: user.points,
+      pushNotificationsEnabled: user.pushNotificationsEnabled !== false
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -791,6 +937,18 @@ app.post('/api/events', requireAuth, async (req, res) => {
       assignedTo: req.body.assignedTo
     })
     await newEvent.save()
+
+    // Notification push pour le nouvel événement agenda
+    const authorName = req.user ? req.user.firstName : 'Un membre'
+    const timeStr = newEvent.time ? ` à ${newEvent.time}` : ''
+    const locStr = newEvent.location ? ` (${newEvent.location})` : ''
+    sendPushNotification({
+      title: `📅 Nouvel événement : ${newEvent.title}`,
+      body: `${newEvent.date}${timeStr}${locStr} • Ajouté par ${authorName}`,
+      url: '/calendar',
+      excludeUserId: req.user ? req.user.id : null
+    })
+
     res.status(201).json(newEvent)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -878,6 +1036,28 @@ app.post('/api/absences', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Veuillez sélectionner au moins un créneau (Déjeuner, Dîner ou Nuit)' })
     }
 
+    const notifyAbsence = async (mId, dStr, l, din, n, nt) => {
+      try {
+        const absentMember = await User.findOne({ id: Number(mId) })
+        const mName = absentMember ? absentMember.firstName : 'Un membre'
+        const slots = []
+        if (l) slots.push('Midi')
+        if (din) slots.push('Soir')
+        if (n) slots.push('Nuit')
+        const slotsStr = slots.length > 0 ? slots.join(', ') : 'Journée'
+        const noteStr = nt ? ` • ${nt.trim()}` : ''
+
+        sendPushNotification({
+          title: `🚫 Nouvelle absence : ${mName}`,
+          body: `${mName} sera absent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`,
+          url: '/absences',
+          excludeUserId: req.user ? req.user.id : null
+        })
+      } catch (e) {
+        console.error('[WebPush] Erreur push absence:', e.message)
+      }
+    }
+
     let existing = await Absence.findOne({ memberId: Number(memberId), date: date.trim() })
     if (existing) {
       existing.lunch = Boolean(lunch)
@@ -885,6 +1065,7 @@ app.post('/api/absences', requireAuth, async (req, res) => {
       existing.night = Boolean(night)
       if (note !== undefined) existing.note = note.trim()
       await existing.save()
+      notifyAbsence(memberId, date, lunch, dinner, night, note)
       return res.json(existing)
     }
 
@@ -899,6 +1080,7 @@ app.post('/api/absences', requireAuth, async (req, res) => {
     })
 
     await newAbsence.save()
+    notifyAbsence(memberId, date, lunch, dinner, night, note)
     res.status(201).json(newAbsence)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -1002,6 +1184,28 @@ app.post('/api/meal-guests', requireAuth, async (req, res) => {
       })
       await newGuest.save()
       createdGuests.push(newGuest)
+    }
+
+    // Déclenchement notification push pour nouvel invité
+    try {
+      const host = await User.findOne({ id: hostId })
+      const hostName = host ? host.firstName : (req.user ? req.user.firstName : 'Un membre')
+      const slots = []
+      if (lunch) slots.push('Midi')
+      if (dinner) slots.push('Soir')
+      if (night) slots.push('Nuit')
+      const slotsStr = slots.length > 0 ? slots.join(', ') : 'Repas'
+      const namesStr = guestNames.join(', ')
+      const noteStr = note ? ` • ${note.trim()}` : ''
+
+      sendPushNotification({
+        title: `🍽️ Nouvel invité : ${namesStr}`,
+        body: `${namesStr} invité(s) par ${hostName} le ${date.trim()} (${slotsStr})${noteStr}`,
+        url: '/absences',
+        excludeUserId: req.user ? req.user.id : null
+      })
+    } catch (e) {
+      console.error('[WebPush] Erreur push invité:', e.message)
     }
 
     // Return the created guest or array of guests
@@ -1261,6 +1465,7 @@ if (fs.existsSync(distPath)) {
 const startServer = async () => {
   await connectDB()
   await seedDatabaseIfEmpty()
+  await initVapid()
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Serveur API Express Sécurisé démarré sur http://localhost:${PORT}`)
