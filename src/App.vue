@@ -33,6 +33,9 @@
         </transition>
       </router-view>
     </main>
+
+    <!-- Bannière d'installation PWA -->
+    <PwaInstallPrompt />
   </div>
 </template>
 
@@ -43,6 +46,7 @@ import { useAuthStore } from './stores/authStore'
 import { useFamilyStore } from './stores/familyStore'
 import { Sun, Moon, LogOut } from '@lucide/vue'
 import Sidebar from './components/Sidebar.vue'
+import PwaInstallPrompt from './components/PwaInstallPrompt.vue'
 
 const route = useRoute()
 const router = useRouter()
