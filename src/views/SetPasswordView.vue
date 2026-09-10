@@ -117,8 +117,9 @@
             </div>
           </div>
 
-          <!-- Case à cocher pour autoriser les notifications push (pré-cochée par défaut) -->
+          <!-- Options de notifications (Web Push et Email) -->
           <div class="notifications-consent-group">
+            <!-- Notifications Web Push -->
             <label class="notif-checkbox-card" :class="{ 'is-checked': enableNotifications }">
               <input 
                 type="checkbox" 
@@ -131,10 +132,31 @@
               <div class="notif-text-col">
                 <span class="notif-label-title">
                   <Bell :size="15" class="notif-bell-icon" />
-                  Autoriser les notifications web
+                  Notifications Web (PWA)
                 </span>
                 <span class="notif-label-desc">
-                  Recevoir des alertes pour les nouvelles absences, invités et événements
+                  Alertes directes sur cet appareil (absences, invités, agenda)
+                </span>
+              </div>
+            </label>
+
+            <!-- Notifications par Email -->
+            <label class="notif-checkbox-card" :class="{ 'is-checked': enableEmailNotifications }">
+              <input 
+                type="checkbox" 
+                v-model="enableEmailNotifications" 
+                class="notif-native-checkbox"
+              />
+              <div class="notif-checkbox-custom">
+                <Check v-if="enableEmailNotifications" :size="14" />
+              </div>
+              <div class="notif-text-col">
+                <span class="notif-label-title">
+                  <Mail :size="15" class="notif-mail-icon" />
+                  Notifications par Email
+                </span>
+                <span class="notif-label-desc">
+                  Recevoir un récapitulatif par email pour chaque nouveauté
                 </span>
               </div>
             </label>
@@ -169,7 +191,8 @@ import {
   Eye, 
   EyeOff,
   Bell,
-  Check
+  Check,
+  Mail
 } from '@lucide/vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
@@ -185,6 +208,7 @@ const verifying = ref(true)
 const tokenError = ref('')
 const memberUser = ref(null)
 const enableNotifications = ref(true)
+const enableEmailNotifications = ref(true)
 
 const password = ref('')
 const confirmPassword = ref('')
@@ -246,7 +270,8 @@ const handleSetPassword = async () => {
       body: JSON.stringify({
         token: token.value,
         password: password.value,
-        pushNotificationsEnabled: enableNotifications.value
+        pushNotificationsEnabled: enableNotifications.value,
+        emailNotificationsEnabled: enableEmailNotifications.value
       })
     })
 
@@ -573,6 +598,9 @@ const handleSetPassword = async () => {
 
 /* Styles pour la case à cocher des notifications */
 .notifications-consent-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
   margin: 1.15rem 0 0.85rem 0;
 }
 
@@ -580,7 +608,7 @@ const handleSetPassword = async () => {
   display: flex;
   align-items: flex-start;
   gap: 0.85rem;
-  padding: 0.85rem 1rem;
+  padding: 0.75rem 0.95rem;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
@@ -629,20 +657,24 @@ const handleSetPassword = async () => {
 .notif-text-col {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.15rem;
 }
 
 .notif-label-title {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .notif-bell-icon {
   color: var(--accent-primary);
+}
+
+.notif-mail-icon {
+  color: #8b5cf6;
 }
 
 .notif-label-desc {

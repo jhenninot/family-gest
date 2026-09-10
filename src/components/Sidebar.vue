@@ -274,10 +274,33 @@
               <div class="notif-toggle-details">
                 <span class="notif-toggle-title">Notifications Web Push</span>
                 <span class="notif-toggle-subtitle">
-                  Recevoir des alertes pour les nouvelles absences, invités et événements
+                  Alertes directes sur cet appareil (absences, invités, agenda)
                 </span>
               </div>
               <div class="toggle-switch" :class="{ active: editProfile.pushNotificationsEnabled }">
+                <span class="toggle-circle"></span>
+              </div>
+            </label>
+          </div>
+
+          <!-- Case à cocher pour les notifications par Email -->
+          <div class="form-group notif-profile-group">
+            <label class="notif-toggle-card" :class="{ 'is-active': editProfile.emailNotificationsEnabled }">
+              <input 
+                type="checkbox" 
+                v-model="editProfile.emailNotificationsEnabled" 
+                class="notif-hidden-input"
+              />
+              <div class="notif-toggle-icon notif-email-icon">
+                <Mail :size="18" />
+              </div>
+              <div class="notif-toggle-details">
+                <span class="notif-toggle-title">Notifications par Email</span>
+                <span class="notif-toggle-subtitle">
+                  Recevoir un récapitulatif par email pour chaque nouveauté
+                </span>
+              </div>
+              <div class="toggle-switch" :class="{ active: editProfile.emailNotificationsEnabled }">
                 <span class="toggle-circle"></span>
               </div>
             </label>
@@ -427,7 +450,8 @@ const editProfile = ref({
   role: 'Membre',
   avatar: '👨‍💼',
   color: '#6366f1',
-  pushNotificationsEnabled: true
+  pushNotificationsEnabled: true,
+  emailNotificationsEnabled: false
 })
 
 const sortedMembers = computed(() => {
@@ -444,7 +468,8 @@ const openProfileModal = () => {
     role: authStore.user.role || 'Membre',
     avatar: authStore.user.avatar || '👨‍💼',
     color: authStore.user.color || '#6366f1',
-    pushNotificationsEnabled: authStore.user.pushNotificationsEnabled !== false
+    pushNotificationsEnabled: authStore.user.pushNotificationsEnabled !== false,
+    emailNotificationsEnabled: Boolean(authStore.user.emailNotificationsEnabled)
   }
   showProfileModal.value = true
 }

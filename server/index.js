@@ -150,6 +150,108 @@ const sendWelcomeEmail = async (user, token) => {
   }
 }
 
+// Helper : Diffusion d'une notification par email aux membres ayant activé cette option
+const sendNotificationEmail = async ({ subject, title, badge = '🔔', detailsHtml, actionUrl = '/', actionText = 'Accéder à FamilyGest', excludeUserId = null }) => {
+  try {
+    const config = await EmailConfig.findOne()
+    if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
+      return { success: false, reason: 'SMTP_NOT_CONFIGURED' }
+    }
+
+    const userQuery = { emailNotificationsEnabled: true }
+    if (excludeUserId) {
+      userQuery.id = { $ne: Number(excludeUserId) }
+    }
+
+    const recipientUsers = await User.find(userQuery).select('email firstName')
+    if (!recipientUsers || recipientUsers.length === 0) return { success: true, count: 0 }
+
+    const baseServerUrl = (config.serverUrl || 'http://localhost:5173').replace(/\/+$/, '')
+    const fullActionUrl = actionUrl.startsWith('http') ? actionUrl : `${baseServerUrl}${actionUrl}`
+
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: {
+        user: config.user,
+        pass: config.pass
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    })
+
+    const emailPromises = recipientUsers.map(async (recipient) => {
+      const mailOptions = {
+        from: `"${config.fromName || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
+        to: recipient.email,
+        subject: subject || `✨ FamilyGest - ${title}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${title}</title>
+          </head>
+          <body style="margin: 0; padding: 20px; background-color: #f8fafc; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+              <tr>
+                <td style="padding: 32px 28px;">
+                  <div style="text-align: center; margin-bottom: 24px;">
+                    <div style="display: inline-block; width: 54px; height: 54px; line-height: 54px; border-radius: 14px; background-color: #6366f1; background: linear-gradient(135deg, #6366f1, #8b5cf6); font-size: 26px; text-align: center; color: #ffffff;">
+                      ${badge}
+                    </div>
+                    <h1 style="color: #312e81; margin: 14px 0 4px 0; font-size: 22px; font-weight: 800;">${title}</h1>
+                    <p style="color: #64748b; margin: 0; font-size: 13px;">Notification FamilyGest • Espace Familial</p>
+                  </div>
+
+                  <p style="font-size: 15px; line-height: 1.5; color: #1e293b; margin-bottom: 16px;">
+                    Bonjour <strong>${recipient.firstName || 'Membre'}</strong>,
+                  </p>
+
+                  <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin-bottom: 24px;">
+                    ${detailsHtml}
+                  </div>
+
+                  <!-- Bouton d'action -->
+                  <div style="text-align: center; margin: 28px 0;">
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto; border-collapse: separate;">
+                      <tr>
+                        <td align="center" bgcolor="#4f46e5" style="border-radius: 8px; background-color: #4f46e5; vertical-align: middle;">
+                          <a href="${fullActionUrl}" target="_blank" style="background-color: #4f46e5; border: 12px solid #4f46e5; border-left: 24px solid #4f46e5; border-right: 24px solid #4f46e5; color: #ffffff !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 15px; font-weight: bold; text-decoration: none; display: inline-block; border-radius: 8px; line-height: 1.2;">
+                            ${actionText}
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+                  <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0; line-height: 1.4;">
+                    Vous recevez cet email car vous avez activé les notifications par email sur votre compte FamilyGest.<br/>
+                    Vous pouvez modifier vos préférences à tout moment depuis votre profil.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
+        `
+      }
+      return transporter.sendMail(mailOptions)
+    })
+
+    await Promise.allSettled(emailPromises)
+    console.log(`[Email] Notification email envoyée à ${recipientUsers.length} membre(s) : "${title}"`)
+    return { success: true, count: recipientUsers.length }
+  } catch (err) {
+    console.error('[Email] Erreur sendNotificationEmail:', err.message)
+    return { success: false, error: err.message }
+  }
+}
+
 // Helper : Validation de sécurité renforcée du mot de passe
 // Règle : 10 caractères minimum, au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial.
 const validatePasswordSecurity = (password) => {
@@ -356,7 +458,8 @@ app.post('/api/auth/login', async (req, res) => {
         avatar: user.avatar,
         color: user.color,
         points: user.points,
-        pushNotificationsEnabled: user.pushNotificationsEnabled !== false
+        pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
+        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled)
       }
     })
   } catch (err) {
@@ -384,7 +487,8 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
         avatar: user.avatar,
         color: user.color,
         points: user.points,
-        pushNotificationsEnabled: user.pushNotificationsEnabled !== false
+        pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
+        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled)
       }
     })
   } catch (err) {
@@ -489,7 +593,7 @@ app.get('/api/auth/verify-token', async (req, res) => {
 // POST /api/auth/set-password (Définition du mot de passe avec token d'activation)
 app.post('/api/auth/set-password', async (req, res) => {
   try {
-    const { token, password, pushNotificationsEnabled } = req.body
+    const { token, password, pushNotificationsEnabled, emailNotificationsEnabled } = req.body
     if (!token || !password) {
       return res.status(400).json({ error: 'Token et mot de passe requis' })
     }
@@ -517,6 +621,9 @@ app.post('/api/auth/set-password', async (req, res) => {
     if (pushNotificationsEnabled !== undefined) {
       user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
     }
+    if (emailNotificationsEnabled !== undefined) {
+      user.emailNotificationsEnabled = Boolean(emailNotificationsEnabled)
+    }
     await user.save()
 
     const jwtToken = generateToken(user.id, user.email, user.isAdmin)
@@ -536,7 +643,8 @@ app.post('/api/auth/set-password', async (req, res) => {
         avatar: user.avatar,
         color: user.color,
         points: user.points,
-        pushNotificationsEnabled: user.pushNotificationsEnabled !== false
+        pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
+        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled)
       }
     })
   } catch (err) {
@@ -550,7 +658,7 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     const user = await User.findOne({ id: req.user.id })
     if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
 
-    const { firstName, lastName, email, password, role, avatar, color, pushNotificationsEnabled } = req.body
+    const { firstName, lastName, email, password, role, avatar, color, pushNotificationsEnabled, emailNotificationsEnabled } = req.body
 
     if (firstName) user.firstName = firstName.trim()
     if (lastName) user.lastName = lastName.trim()
@@ -560,6 +668,9 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
 
     if (pushNotificationsEnabled !== undefined) {
       user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
+    }
+    if (emailNotificationsEnabled !== undefined) {
+      user.emailNotificationsEnabled = Boolean(emailNotificationsEnabled)
     }
 
     if (email && email.toLowerCase().trim() !== user.email) {
@@ -591,7 +702,8 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
       avatar: user.avatar,
       color: user.color,
       points: user.points,
-      pushNotificationsEnabled: user.pushNotificationsEnabled !== false
+      pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
+      emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled)
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -613,7 +725,8 @@ app.get('/api/members', requireAuth, async (req, res) => {
       avatar: u.avatar,
       color: u.color,
       points: u.points,
-      pushNotificationsEnabled: u.pushNotificationsEnabled !== false
+      pushNotificationsEnabled: u.pushNotificationsEnabled !== false,
+      emailNotificationsEnabled: Boolean(u.emailNotificationsEnabled)
     }))
     res.json(members)
   } catch (err) {
@@ -690,7 +803,7 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
     const user = await User.findOne({ id: memberId })
     if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
 
-    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, pushNotificationsEnabled } = req.body
+    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, pushNotificationsEnabled, emailNotificationsEnabled } = req.body
 
     if (firstName) user.firstName = firstName.trim()
     if (lastName) user.lastName = lastName.trim()
@@ -704,6 +817,7 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
     if (color) user.color = color
     if (points !== undefined && points !== null) user.points = Number(points)
     if (pushNotificationsEnabled !== undefined) user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
+    if (emailNotificationsEnabled !== undefined) user.emailNotificationsEnabled = Boolean(emailNotificationsEnabled)
 
     if (isAdmin !== undefined && isAdmin !== null) {
       const newAdminState = Boolean(isAdmin)
@@ -748,7 +862,8 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
       avatar: user.avatar,
       color: user.color,
       points: user.points,
-      pushNotificationsEnabled: user.pushNotificationsEnabled !== false
+      pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
+      emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled)
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -949,6 +1064,27 @@ app.post('/api/events', requireAuth, async (req, res) => {
       excludeUserId: req.user ? req.user.id : null
     })
 
+    // Notification email pour le nouvel événement agenda
+    sendNotificationEmail({
+      subject: `📅 Nouvel événement agenda : ${newEvent.title}`,
+      title: `Nouvel événement dans l'agenda`,
+      badge: '📅',
+      detailsHtml: `
+        <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+          <strong>${authorName}</strong> a ajouté un événement au calendrier familial :
+        </p>
+        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+          <li><strong>Titre :</strong> ${newEvent.title}</li>
+          <li><strong>Date :</strong> ${newEvent.date}${timeStr}</li>
+          ${newEvent.location ? `<li><strong>Lieu :</strong> ${newEvent.location}</li>` : ''}
+          <li><strong>Catégorie :</strong> ${newEvent.category || 'Famille'}</li>
+        </ul>
+      `,
+      actionUrl: '/calendar',
+      actionText: 'Voir dans le calendrier',
+      excludeUserId: req.user ? req.user.id : null
+    })
+
     res.status(201).json(newEvent)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -1053,8 +1189,27 @@ app.post('/api/absences', requireAuth, async (req, res) => {
           url: '/absences',
           excludeUserId: req.user ? req.user.id : null
         })
+
+        sendNotificationEmail({
+          subject: `🚫 Nouvelle absence signalée : ${mName}`,
+          title: `Nouvelle absence signalée`,
+          badge: '🚫',
+          detailsHtml: `
+            <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+              <strong>${mName}</strong> a signalé une absence :
+            </p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+              <li><strong>Date :</strong> ${dStr.trim()}</li>
+              <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
+              ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
+            </ul>
+          `,
+          actionUrl: '/absences',
+          actionText: 'Consulter les absences & repas',
+          excludeUserId: req.user ? req.user.id : null
+        })
       } catch (e) {
-        console.error('[WebPush] Erreur push absence:', e.message)
+        console.error('[WebPush] Erreur notification absence:', e.message)
       }
     }
 
@@ -1204,8 +1359,28 @@ app.post('/api/meal-guests', requireAuth, async (req, res) => {
         url: '/absences',
         excludeUserId: req.user ? req.user.id : null
       })
+
+      sendNotificationEmail({
+        subject: `🍽️ Nouvel invité aux repas : ${namesStr}`,
+        title: `Nouvel invité aux repas`,
+        badge: '🍽️',
+        detailsHtml: `
+          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+            <strong>${hostName}</strong> a invité à la maison :
+          </p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+            <li><strong>Invité(s) :</strong> ${namesStr}</li>
+            <li><strong>Date :</strong> ${date.trim()}</li>
+            <li><strong>Créneau(x) :</strong> ${slotsStr}</li>
+            ${note ? `<li><strong>Remarque :</strong> ${note.trim()}</li>` : ''}
+          </ul>
+        `,
+        actionUrl: '/absences',
+        actionText: 'Consulter le planning des repas',
+        excludeUserId: req.user ? req.user.id : null
+      })
     } catch (e) {
-      console.error('[WebPush] Erreur push invité:', e.message)
+      console.error('[WebPush] Erreur notification invité:', e.message)
     }
 
     // Return the created guest or array of guests

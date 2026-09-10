@@ -645,14 +645,27 @@
                 </span>
               </label>
             </div>
+          </div>
 
+          <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Notifications Web</label>
+              <label class="form-label">Notifications Web (PWA)</label>
               <label class="admin-checkbox-card">
                 <input type="checkbox" v-model="editMemberForm.pushNotificationsEnabled" class="custom-checkbox" />
                 <span class="checkbox-text">
                   <Bell :size="16" class="text-indigo" />
-                  <strong>Actives</strong>
+                  <strong>Alertes Web</strong>
+                </span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Notifications par Email</label>
+              <label class="admin-checkbox-card">
+                <input type="checkbox" v-model="editMemberForm.emailNotificationsEnabled" class="custom-checkbox" />
+                <span class="checkbox-text">
+                  <Mail :size="16" class="text-indigo" />
+                  <strong>Alertes Email</strong>
                 </span>
               </label>
             </div>
@@ -937,7 +950,8 @@ const openEditMemberModal = (member) => {
     isAdmin: Boolean(member.isAdmin),
     avatar: member.avatar || '👤',
     color: member.color || '#6366f1',
-    pushNotificationsEnabled: member.pushNotificationsEnabled !== false
+    pushNotificationsEnabled: member.pushNotificationsEnabled !== false,
+    emailNotificationsEnabled: Boolean(member.emailNotificationsEnabled)
   }
   showEditMemberModal.value = true
 }
