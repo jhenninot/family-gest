@@ -26,7 +26,7 @@
    - Planning chronologique des rendez-vous et activités.
    - Grille calendrier mensuelle réactive.
 
-5. 🛒 **Liste de Courses & Garde-Manger**
+5. 🛒 **Liste de Courses**
    - Ajout rapide avec gestion des priorités (Urgent 🔥) et cochage dynamique.
 
 6. 🌐 **Raccourcis Web & Applications**

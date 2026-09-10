@@ -52,7 +52,7 @@
 
       <router-link to="/absences" class="nav-item" active-class="active">
         <HouseUser :size="20" />
-        <span>Présence & Invitations</span>
+        <span>Présence</span>
         <span v-if="store.todayAbsences.length > 0" class="badge-count warning" title="Absence(s) aujourd'hui">
           {{ store.todayAbsences.length }}
         </span>

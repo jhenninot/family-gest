@@ -33,7 +33,7 @@ const routes = [
     path: '/absences',
     name: 'absences',
     component: () => import('../views/AbsencesView.vue'),
-    meta: { title: 'Présence & Invitations', requiresAuth: true }
+    meta: { title: 'Présence', requiresAuth: true }
   },
   {
     path: '/shopping',

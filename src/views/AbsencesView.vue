@@ -5,7 +5,7 @@
       <div>
         <h1 class="page-title">
           <HouseUser :size="28" class="text-indigo" />
-          <span>Présence & Invitations</span>
+          <span>Présence</span>
         </h1>
         <p class="page-subtitle">Indiquez vos absences ou vos invités au déjeuner, dîner et pour la nuit pour organiser sereinement les repas de famille.</p>
       </div>
@@ -2544,15 +2544,8 @@ const handleDeleteGuest = async (id) => {
 .btn-presence-primary {
   background: var(--accent-green, #10b981);
   color: white;
-  border: none;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.2rem;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
 }
 

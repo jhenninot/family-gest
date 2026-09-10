@@ -5,7 +5,7 @@
       <div>
         <h1 class="page-title">
           <ShoppingCart :size="28" class="text-amber" />
-          <span>Liste de Courses & Garde-Manger</span>
+          <span>Liste de Courses</span>
         </h1>
         <p class="page-subtitle">Ajoutez les produits manquants et cochez-les en magasin en temps réel.</p>
       </div>
@@ -57,7 +57,7 @@
       <!-- Pending Items Card -->
       <div class="glass-card section-card">
         <div class="section-card-header">
-          <h2>À Acheter ({{ pendingItems.length }})</h2>
+          <h2>À acheter ({{ pendingItems.length }})</h2>
           <span class="badge badge-amber" v-if="urgentCount > 0">
             {{ urgentCount }} Urgent(s)
           </span>
