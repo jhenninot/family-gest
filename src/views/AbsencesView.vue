@@ -318,74 +318,28 @@
             :key="'day-' + day"
             class="day-cell"
             :class="{ 
-              today: isDayToday(day),
-              'has-absences': getDayAbsences(day).length > 0,
-              'has-presences': getDayPresences(day).length > 0,
-              'has-day-guests': getDayGuests(day).length > 0
+              today: isDayToday(day)
             }"
             @click="openDayDetailModal(formatDateStr(currentYear, currentMonth, day))"
             :title="'Cliquer pour voir le détail du ' + day + ' ' + currentMonthName"
           >
             <div class="day-cell-top">
               <span class="day-number">{{ day }}</span>
-              <div class="day-indicators">
-                <span v-if="getDayAbsences(day).length > 0" class="mini-indicator absence" title="Absence(s)">
-                  {{ getDayAbsences(day).length }} absent{{ getDayAbsences(day).length > 1 ? 's' : '' }}
-                </span>
-                <span v-if="getDayPresences(day).length > 0" class="mini-indicator presence" title="Présence(s) déclarée(s)">
-                  🟢 {{ getDayPresences(day).length }}
-                </span>
-                <span v-if="getDayGuests(day).length > 0" class="mini-indicator guest" title="Invité(s)">
-                  👥 {{ getDayGuests(day).length }}
-                </span>
-              </div>
             </div>
 
-            <!-- Absences, Présences & Guests preview inside this day -->
-            <div class="day-absences-container">
-              <!-- Absences preview -->
-              <div 
-                v-for="abs in getDayAbsences(day).slice(0, 2)" 
-                :key="'abs-' + abs.id" 
-                class="day-absence-chip"
-              >
-                <span class="chip-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
-                <span class="chip-name">{{ getMemberFirstName(abs.memberId) }}</span>
-                <div class="chip-icons">
-                  <span v-if="abs.lunch">☀️</span>
-                  <span v-if="abs.dinner">🌙</span>
-                  <span v-if="abs.night">🛌</span>
-                </div>
+            <!-- Nombres de présents par repas et nuit -->
+            <div class="day-headcounts-list">
+              <div class="day-headcount-item lunch" title="Déjeuner (Midi)">
+                <span class="slot-icon-mini">☀️</span>
+                <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'lunch') }}</span>
               </div>
-
-              <!-- Présences preview -->
-              <div 
-                v-for="prs in getDayPresences(day).slice(0, 2)" 
-                :key="'prs-' + prs.id" 
-                class="day-presence-chip"
-              >
-                <span class="chip-avatar">{{ getMemberAvatar(prs.memberId) }}</span>
-                <span class="chip-name">{{ getMemberFirstName(prs.memberId) }}</span>
-                <div class="chip-icons">
-                  <span v-if="prs.lunch">☀️</span>
-                  <span v-if="prs.dinner">🌙</span>
-                  <span v-if="prs.night">🛌</span>
-                </div>
+              <div class="day-headcount-item dinner" title="Dîner (Soir)">
+                <span class="slot-icon-mini">🌙</span>
+                <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'dinner') }}</span>
               </div>
-
-              <!-- Guests preview -->
-              <div 
-                v-for="g in getDayGuests(day).slice(0, 2)" 
-                :key="'gst-' + g.id" 
-                class="day-guest-chip"
-              >
-                <span class="chip-avatar">👥</span>
-                <span class="chip-name">{{ g.name }}</span>
-                <div class="chip-icons">
-                  <span v-if="g.lunch">☀️</span>
-                  <span v-if="g.dinner">🌙</span>
-                  <span v-if="g.night">🛌</span>
-                </div>
+              <div class="day-headcount-item night" title="Nuit (Couchage)">
+                <span class="slot-icon-mini">🛌</span>
+                <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'night') }}</span>
               </div>
             </div>
           </div>
@@ -1288,6 +1242,27 @@ const isDayToday = (day) => {
   return check === store.todayStr
 }
 
+// Headcounts for each day of current month (lunch, dinner, night)
+const monthDayHeadcounts = computed(() => {
+  const map = {}
+  const days = daysInCurrentMonth.value
+  const y = currentYear.value
+  const m = currentMonth.value
+  for (let d = 1; d <= days; d++) {
+    const dateStr = formatDateStr(y, m, d)
+    map[d] = {
+      lunch: store.getMealSlotPresence(dateStr, 'lunch').headcount,
+      dinner: store.getMealSlotPresence(dateStr, 'dinner').headcount,
+      night: store.getMealSlotPresence(dateStr, 'night').headcount
+    }
+  }
+  return map
+})
+
+const getDaySlotHeadcountNumber = (day, slot) => {
+  return monthDayHeadcounts.value[day]?.[slot] ?? 0
+}
+
 // Helpers
 const getMemberName = (idOrMember) => {
   if (!idOrMember) return 'Membre'
@@ -1910,6 +1885,20 @@ const handleDeleteGuest = async (id) => {
   color: var(--accent-primary);
 }
 
+/* Section Card (Like CalendarView) */
+.section-card {
+  padding: 1.5rem;
+}
+
+.section-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
 /* Calendar Grid */
 .calendar-grid-header {
   display: grid;
@@ -1924,151 +1913,117 @@ const handleDeleteGuest = async (id) => {
 .calendar-days-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .day-cell {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  min-height: 80px;
-  padding: 0.35rem;
+  min-height: 85px;
+  padding: 0.4rem;
   display: flex;
   flex-direction: column;
   cursor: pointer;
   position: relative;
-  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .day-cell:hover {
+  transform: translateY(-2px);
   border-color: var(--accent-primary);
   background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
 }
 
 .day-cell.day-empty {
   background: transparent;
   border-color: transparent;
   cursor: default;
+  transform: none;
+  box-shadow: none;
 }
 
 .day-cell.today {
   border-color: var(--accent-primary);
   background: var(--accent-primary-light);
-}
-
-.day-cell.has-day-guests {
-  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 0 0 1px var(--accent-primary);
 }
 
 .day-cell-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 0.25rem;
 }
 
 .day-number {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 700;
+  line-height: 1;
 }
 
 .day-cell.today .day-number {
   color: var(--accent-primary);
+  font-weight: 800;
 }
 
-.day-actions-btns {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-}
-
-.day-add-mini-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  opacity: 0;
-  padding: 0 0.15rem;
-  transition: opacity var(--transition-fast), color var(--transition-fast);
-}
-
-.day-cell:hover .day-add-mini-btn {
-  opacity: 1;
-}
-
-.day-add-mini-btn:hover {
-  color: var(--accent-primary);
-}
-
-.day-add-mini-btn.guest-btn:hover {
-  color: var(--accent-purple);
-}
-
-.day-absences-container {
+/* Day Headcounts List (Lunch, Dinner, Night) */
+.day-headcounts-list {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  margin-top: 0.25rem;
-  overflow: hidden;
+  gap: 0.22rem;
+  width: 100%;
+  margin-top: auto;
 }
 
-.day-absence-chip {
-  background: var(--accent-amber-light);
-  color: var(--text-primary);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 4px;
-  padding: 0.12rem 0.25rem;
-  font-size: 0.68rem;
+.day-headcount-item {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: transform var(--transition-fast);
+  justify-content: space-between;
+  padding: 0.12rem 0.35rem;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.2;
+  transition: background var(--transition-fast);
 }
 
-.day-absence-chip:hover {
-  transform: scale(1.03);
-}
-
-.day-guest-chip {
-  background: var(--accent-purple-light);
-  color: var(--accent-purple);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 4px;
-  padding: 0.12rem 0.25rem;
-  font-size: 0.68rem;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: transform var(--transition-fast);
-}
-
-.day-guest-chip:hover {
-  transform: scale(1.03);
-}
-
-.chip-avatar {
-  font-size: 0.8rem;
+.slot-icon-mini {
+  font-size: 0.78rem;
   line-height: 1;
 }
 
-.chip-name {
-  font-weight: 700;
-  font-size: 0.65rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.headcount-num {
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
-.chip-icons {
-  font-size: 0.7rem;
-  margin-left: auto;
-  letter-spacing: -0.05em;
+.day-headcount-item.lunch {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+[data-theme="dark"] .day-headcount-item.lunch {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fbbf24;
+}
+
+.day-headcount-item.dinner {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4338ca;
+}
+[data-theme="dark"] .day-headcount-item.dinner {
+  background: rgba(99, 102, 241, 0.22);
+  color: #a5b4fc;
+}
+
+.day-headcount-item.night {
+  background: rgba(139, 92, 246, 0.12);
+  color: #6d28d9;
+}
+[data-theme="dark"] .day-headcount-item.night {
+  background: rgba(139, 92, 246, 0.22);
+  color: #c4b5fd;
 }
 
 /* Upcoming Tabs */
@@ -2767,6 +2722,9 @@ const handleDeleteGuest = async (id) => {
 }
 
 @media (max-width: 900px) {
+  .section-card {
+    padding: 1rem;
+  }
   .today-slots-grid {
     grid-template-columns: 1fr;
   }
@@ -2774,13 +2732,37 @@ const handleDeleteGuest = async (id) => {
     grid-template-columns: 1fr;
   }
   .day-cell {
-    min-height: 65px;
+    min-height: 75px;
+    padding: 0.35rem 0.25rem;
   }
-  .chip-name {
-    display: none;
+  .day-headcount-item {
+    padding: 0.1rem 0.25rem;
   }
   .day-detail-actions-bar {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 600px) {
+  .section-card {
+    padding: 0.75rem 0.5rem;
+  }
+  .calendar-days-grid {
+    gap: 0.25rem;
+  }
+  .day-cell {
+    min-height: 70px;
+    padding: 0.25rem 0.15rem;
+  }
+  .day-headcount-item {
+    padding: 0.08rem 0.2rem;
+    font-size: 0.68rem;
+  }
+  .slot-icon-mini {
+    font-size: 0.7rem;
+  }
+  .headcount-num {
+    font-size: 0.72rem;
   }
 }
 </style>
