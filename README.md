@@ -15,7 +15,7 @@
      - **Mot de passe** : `Admin1234!`
 
 2. 📊 **Tableau de Bord Réactif**
-   - Métriques en temps réel (progression des tâches, dépenses du mois, événements à venir, articles à acheter).
+   - Métriques en temps réel (progression des tâches, dépenses du mois, événements à venir, Liste de courses).
    - Classement des points gagnés par membre.
 
 3. ✅ **Tâches & Corvées**
@@ -26,7 +26,7 @@
    - Planning chronologique des rendez-vous et activités.
    - Grille calendrier mensuelle réactive.
 
-5. 🛒 **Liste de Courses**
+5. 🛒 **Liste de courses**
    - Ajout rapide avec gestion des priorités (Urgent 🔥) et cochage dynamique.
 
 6. 🌐 **Raccourcis Web & Applications**

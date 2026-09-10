@@ -26,7 +26,7 @@ const routes = [
     path: '/calendar',
     name: 'calendar',
     component: () => import('../views/CalendarView.vue'),
-    meta: { title: 'Calendrier Familial', requiresAuth: true }
+    meta: { title: 'Calendrier familial', requiresAuth: true }
   },
 
   {
@@ -39,7 +39,7 @@ const routes = [
     path: '/shopping',
     name: 'shopping',
     component: () => import('../views/ShoppingView.vue'),
-    meta: { title: 'Liste de Courses', requiresAuth: true }
+    meta: { title: 'Liste de courses', requiresAuth: true }
   },
   {
     path: '/settings/email',

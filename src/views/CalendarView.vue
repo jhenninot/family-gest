@@ -5,7 +5,7 @@
       <div>
         <h1 class="page-title">
           <CalendarIcon :size="28" class="text-purple" />
-          <span>Calendrier Familial</span>
+          <span>Calendrier familial</span>
         </h1>
         <p class="page-subtitle">Gardez un œil sur les rendez-vous, fêtes et activités de toute la famille.</p>
       </div>
@@ -21,7 +21,7 @@
       <!-- Events List Column -->
       <div class="glass-card section-card">
         <div class="section-card-header">
-          <h2>Événements Programmés</h2>
+          <h2>Événements programmés</h2>
           <span class="badge badge-purple">{{ store.events.length }} événements</span>
         </div>
 

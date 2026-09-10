@@ -61,7 +61,7 @@
 
       <router-link to="/shopping" class="nav-item" active-class="active">
         <ShoppingCart :size="20" />
-        <span>Liste de Courses</span>
+        <span>Liste de courses</span>
         <span v-if="store.pendingShoppingCount > 0" class="badge-count warning">{{ store.pendingShoppingCount }}</span>
       </router-link>
 

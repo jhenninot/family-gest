@@ -5,7 +5,7 @@
       <div>
         <h1 class="page-title">
           <ShoppingCart :size="28" class="text-amber" />
-          <span>Liste de Courses</span>
+          <span>Liste de courses</span>
         </h1>
         <p class="page-subtitle">Ajoutez les produits manquants et cochez-les en magasin en temps réel.</p>
       </div>
@@ -100,7 +100,7 @@
       <!-- Completed Items Card -->
       <div class="glass-card section-card">
         <div class="section-card-header">
-          <h2>Déjà dans le Chariot ({{ completedItems.length }})</h2>
+          <h2>Déjà dans le chariot ({{ completedItems.length }})</h2>
           <span class="badge badge-emerald">Validés</span>
         </div>
 

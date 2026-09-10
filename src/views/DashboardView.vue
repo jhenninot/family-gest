@@ -77,7 +77,7 @@
           <ShoppingCart :size="22" />
         </div>
         <div class="metric-details">
-          <span class="metric-label">Articles à Acheter</span>
+          <span class="metric-label">Liste de courses</span>
           <div class="metric-value">{{ store.pendingShoppingCount }}</div>
           <span class="metric-subtext">
             {{ urgentShoppingCount }} article(s) urgent(s)
@@ -93,7 +93,7 @@
         <div class="section-card-header">
           <div class="header-title">
             <CheckSquare :size="20" class="text-indigo" />
-            <h2>Tâches à Réaliser</h2>
+            <h2>Tâches à réaliser</h2>
           </div>
           <router-link to="/tasks" class="view-all-link">Tout voir &rarr;</router-link>
         </div>
@@ -359,7 +359,7 @@
           <div class="section-card-header">
             <div class="header-title">
               <Calendar :size="20" class="text-purple" />
-              <h2>Prochains Événements</h2>
+              <h2>Prochains événements</h2>
             </div>
             <router-link to="/calendar" class="view-all-link">Voir l'agenda &rarr;</router-link>
           </div>

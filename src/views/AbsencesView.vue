@@ -1630,7 +1630,6 @@ const handleDeleteGuest = async (id) => {
   gap: 0.5rem;
   font-size: 1rem;
   font-weight: 700;
-  text-transform: capitalize;
 }
 
 .today-header-btns {
