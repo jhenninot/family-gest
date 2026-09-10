@@ -1695,8 +1695,9 @@ const handleDeleteMember = async (member) => {
 
 .member-card-name strong { 
   font-size: 0.85rem; 
-  word-break: break-word;
-  overflow-wrap: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .member-card-name span { font-size: 0.725rem; color: var(--text-muted); }
