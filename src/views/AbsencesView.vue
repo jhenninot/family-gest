@@ -31,7 +31,7 @@
       <div class="today-banner-header">
         <div class="today-title">
           <CalendarCheck :size="18" class="text-indigo" />
-          <span>Présences, Repas & Invités d'Aujourd'hui ({{ formatDisplayDate(store.todayStr) }})</span>
+          <span>Présences du jour ({{ formatDisplayDate(store.todayStr) }})</span>
         </div>
         <div class="today-header-btns">
           <button @click="openAddGuestModal(store.todayStr)" class="btn-today-add guest-btn">
