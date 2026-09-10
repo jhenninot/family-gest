@@ -22,13 +22,13 @@
       <div class="glass-card section-card">
         <div class="section-card-header">
           <h2>Événements programmés</h2>
-          <span class="badge badge-purple">{{ store.events.length }} événements</span>
+          <span class="badge badge-purple">{{ upcomingEvents.length }} événement{{ upcomingEvents.length > 1 ? 's' : '' }}</span>
         </div>
 
         <div class="events-timeline">
           <div 
-            v-for="event in sortedEvents" 
-            :key="event.id"
+            v-for="event in upcomingEvents" 
+            :key="event.id" 
             class="timeline-card"
           >
             <div class="timeline-date-strip" :style="{ backgroundColor: event.color }"></div>
@@ -92,8 +92,8 @@
             </div>
           </div>
 
-          <div v-if="store.events.length === 0" class="empty-state">
-            Aucun événement enregistré. Cliquez sur "Nouvel Événement" pour commencer.
+          <div v-if="upcomingEvents.length === 0" class="empty-state">
+            Aucun événement à venir. Cliquez sur "Nouvel Événement" pour commencer.
           </div>
         </div>
       </div>
@@ -133,10 +133,10 @@
           <div 
             v-for="day in daysInCurrentMonth" 
             :key="day"
-            class="day-cell"
-            :class="{ today: isDayToday(day), 'has-events': hasEventOnDay(day), 'cell-interactive': hasEventOnDay(day) }"
+            class="day-cell cell-interactive"
+            :class="{ today: isDayToday(day), 'has-events': hasEventOnDay(day) }"
             @click="handleDayClick(day)"
-            :title="hasEventOnDay(day) ? 'Cliquez pour voir les événements de ce jour' : ''"
+            :title="`Voir les événements du ${day} ${currentMonthName}`"
           >
             <span class="day-number">{{ day }}</span>
             <div v-if="hasEventOnDay(day)" class="day-dots">
@@ -291,9 +291,15 @@
             </div>
           </div>
 
-          <div class="modal-footer">
-            <button type="button" @click="showEditModal = false" class="btn btn-secondary">Annuler</button>
-            <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+          <div class="modal-footer flex-between">
+            <button type="button" @click="handleDeleteCurrentEvent" class="btn btn-danger">
+              <Trash2 :size="15" />
+              <span>Supprimer</span>
+            </button>
+            <div class="modal-actions-right">
+              <button type="button" @click="cancelEditModal" class="btn btn-secondary">Annuler</button>
+              <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+            </div>
           </div>
         </form>
       </div>
@@ -360,21 +366,23 @@
           <div 
             v-for="ev in selectedDayEvents" 
             :key="ev.id" 
-            class="timeline-card"
+            class="timeline-card day-event-clickable"
+            @click="handleSelectEvent(ev)"
+            title="Cliquer pour afficher les détails et modifier cet événement"
           >
             <div class="timeline-date-strip" :style="{ backgroundColor: ev.color }"></div>
             <div class="timeline-content">
               <div class="timeline-header">
                 <span class="event-title-text">{{ ev.title }}</span>
-                <div class="timeline-header-actions">
+                <div class="timeline-header-actions" @click.stop>
                   <span class="badge" :style="{ backgroundColor: ev.color + '25', color: ev.color }">
                     {{ ev.category }}
                   </span>
-                  <button @click="openEditModal(ev)" class="btn-action-icon btn-edit" title="Modifier l'événement">
-                    <Edit3 :size="14" />
+                  <button @click="handleSelectEvent(ev)" class="btn-action-icon btn-edit" title="Modifier l'événement">
+                    <Edit3 :size="15" />
                   </button>
                   <button @click="handleDeleteFromDay(ev.id)" class="btn-action-icon btn-delete" title="Supprimer">
-                    <Trash2 :size="14" />
+                    <Trash2 :size="15" />
                   </button>
                 </div>
               </div>
@@ -388,7 +396,7 @@
                   <span>{{ ev.location }}</span>
                 </div>
               </div>
-              <div class="timeline-export-bar">
+              <div class="timeline-export-bar" @click.stop>
                 <span class="export-hint">Ajouter à mon agenda :</span>
                 <div class="export-btns-row">
                   <button @click="openGoogleCalendar(ev)" class="btn-cal-action btn-cal-google">
@@ -401,11 +409,29 @@
                   </button>
                 </div>
               </div>
+              <div class="timeline-click-hint">
+                <Edit3 :size="13" />
+                <span>Cliquer pour voir le détail et modifier</span>
+              </div>
             </div>
+          </div>
+
+          <div v-if="selectedDayEvents.length === 0" class="empty-day-state">
+            <CalendarIcon :size="36" class="empty-day-icon text-muted" />
+            <p>Aucun événement programmé pour cette journée.</p>
+            <button @click="openAddForSelectedDay" class="btn btn-primary btn-sm">
+              <Plus :size="15" />
+              <span>Ajouter un événement ce jour</span>
+            </button>
           </div>
         </div>
 
-        <div class="modal-footer">
+        <div class="modal-footer flex-between">
+          <button v-if="selectedDayEvents.length > 0" @click="openAddForSelectedDay" class="btn btn-secondary btn-sm">
+            <Plus :size="15" />
+            <span>Ajouter un événement</span>
+          </button>
+          <span v-else></span>
           <button @click="showDayEventsModal = false" class="btn btn-secondary">Fermer</button>
         </div>
       </div>
@@ -521,8 +547,11 @@ const newEvent = ref({
   color: '#8b5cf6'
 })
 
-const sortedEvents = computed(() => {
-  return [...store.events].sort((a, b) => new Date(a.date) - new Date(b.date))
+const upcomingEvents = computed(() => {
+  const today = store.todayStr
+  return store.events
+    .filter(e => e.date >= today)
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
 })
 
 const formatDate = (dateStr) => {
@@ -540,13 +569,35 @@ const getEventsOnDay = (dayNum) => {
   return store.events.filter(e => e.date === targetDate)
 }
 
+const openedFromDayModal = ref(false)
+
 const handleDayClick = (dayNum) => {
-  const evts = getEventsOnDay(dayNum)
-  if (evts && evts.length > 0) {
-    selectedDayEvents.value = evts
-    selectedDayNumber.value = dayNum
+  selectedDayNumber.value = dayNum
+  selectedDayEvents.value = getEventsOnDay(dayNum)
+  showDayEventsModal.value = true
+}
+
+const handleSelectEvent = (event) => {
+  openedFromDayModal.value = true
+  showDayEventsModal.value = false
+  openEditModal(event)
+}
+
+const cancelEditModal = () => {
+  showEditModal.value = false
+  if (openedFromDayModal.value && selectedDayNumber.value) {
+    selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)
     showDayEventsModal.value = true
+    openedFromDayModal.value = false
   }
+}
+
+const openAddForSelectedDay = () => {
+  if (selectedDayNumber.value) {
+    newEvent.value.date = formatDateStr(currentYear.value, currentMonth.value, selectedDayNumber.value)
+  }
+  showDayEventsModal.value = false
+  showAddModal.value = true
 }
 
 const handleAddEvent = async () => {
@@ -562,7 +613,7 @@ const handleAddEvent = async () => {
 
   newEvent.value = {
     title: '',
-    date: '2026-09-15',
+    date: store.todayStr,
     time: '14:00',
     category: 'Famille',
     location: '',
@@ -593,9 +644,24 @@ const handleUpdateEvent = async () => {
     isEditSuccess.value = true
     justAddedEvent.value = (res && res.event) ? res.event : { ...eventPayload, id: editingEventId.value }
     showSuccessExportModal.value = true
-    if (showDayEventsModal.value && selectedDayNumber.value) {
+    if (selectedDayNumber.value) {
       selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)
     }
+    openedFromDayModal.value = false
+  }
+}
+
+const handleDeleteCurrentEvent = async () => {
+  if (editingEventId.value) {
+    await store.deleteEvent(editingEventId.value)
+    showEditModal.value = false
+    if (selectedDayNumber.value) {
+      selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)
+      if (openedFromDayModal.value) {
+        showDayEventsModal.value = true
+      }
+    }
+    openedFromDayModal.value = false
   }
 }
 
@@ -1029,5 +1095,43 @@ const handleDeleteFromDay = async (id) => {
   gap: 0.85rem;
   max-height: 400px;
   overflow-y: auto;
+}
+
+.day-event-clickable {
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.day-event-clickable:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-purple);
+  box-shadow: var(--shadow-md);
+}
+
+.timeline-click-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--accent-purple);
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed rgba(139, 92, 246, 0.2);
+  font-weight: 600;
+}
+
+.empty-day-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1rem;
+  gap: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.empty-day-icon {
+  color: var(--text-muted);
 }
 </style>
