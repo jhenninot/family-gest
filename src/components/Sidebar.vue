@@ -1140,6 +1140,14 @@ const handleDeleteShortcut = async () => {
   padding: 0.35rem;
 }
 
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
 .flex-between {
   display: flex;
   justify-content: space-between;
