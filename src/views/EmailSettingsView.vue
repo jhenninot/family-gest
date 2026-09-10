@@ -11,16 +11,28 @@
         </p>
       </div>
 
-      <div class="header-badges">
-        <span v-if="loading" class="status-badge loading">
-          <Loader2 :size="14" class="spin" /> Chargement...
-        </span>
-        <span v-else-if="emailConfig.isConfigured" class="status-badge success">
-          <CheckCircle2 :size="14" /> SMTP configuré
-        </span>
-        <span v-else class="status-badge warning">
-          <AlertTriangle :size="14" /> SMTP non configuré
-        </span>
+      <div class="header-right-actions">
+        <button 
+          v-if="authStore.isAdmin" 
+          type="button" 
+          @click="showAddMemberModal = true" 
+          class="btn btn-primary btn-header-add-member"
+        >
+          <UserPlus :size="18" />
+          <span>+ Ajouter un Membre</span>
+        </button>
+
+        <div class="header-badges">
+          <span v-if="loading" class="status-badge loading">
+            <Loader2 :size="14" class="spin" /> Chargement...
+          </span>
+          <span v-else-if="emailConfig.isConfigured" class="status-badge success">
+            <CheckCircle2 :size="14" /> SMTP configuré
+          </span>
+          <span v-else class="status-badge warning">
+            <AlertTriangle :size="14" /> SMTP non configuré
+          </span>
+        </div>
       </div>
     </div>
 
@@ -309,18 +321,212 @@
         </form>
       </div>
     </div>
+
+    <!-- Modal Ajouter un Membre (Administrateur Uniquement) -->
+    <div v-if="showAddMemberModal" class="modal-overlay" @click.self="showAddMemberModal = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Ajouter un Membre de la Famille</h3>
+          <button @click="showAddMemberModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <form @submit.prevent="handleAddMember">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Prénom</label>
+              <input 
+                v-model="newMember.firstName" 
+                type="text" 
+                required 
+                placeholder="ex: Lucas..."
+                class="form-input" 
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Nom de famille</label>
+              <input 
+                v-model="newMember.lastName" 
+                type="text" 
+                required 
+                placeholder="ex: Martin..."
+                class="form-input" 
+              />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Adresse Email (Login)</label>
+              <input 
+                v-model="newMember.email" 
+                type="email" 
+                required 
+                placeholder="lucas@family-gest.org"
+                class="form-input" 
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Mot de passe temporaire</label>
+              <input 
+                v-model="newMember.password" 
+                type="password" 
+                required 
+                placeholder="10 car. min, Maj, min, chiffre, spécial"
+                class="form-input" 
+              />
+              <PasswordStrengthIndicator :password="newMember.password" />
+            </div>
+          </div>
+
+          <div class="welcome-email-tip">
+            <Mail :size="16" class="text-indigo flex-shrink-0" />
+            <span>Un email de bienvenue contenant un lien d'activation sécurisé (validité 2h) sera automatiquement envoyé pour lui permettre de choisir son mot de passe.</span>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Rôle familial</label>
+              <select v-model="newMember.role" class="form-select">
+                <option value="Papa">Papa</option>
+                <option value="Maman">Maman</option>
+                <option value="Fils">Fils</option>
+                <option value="Fille">Fille</option>
+                <option value="Grand-Parent">Grand-Parent</option>
+                <option value="Oncle / Tante">Oncle / Tante</option>
+                <option value="Baby-Sitter">Baby-Sitter</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Statut d'Accès</label>
+              <label class="admin-checkbox-card">
+                <input type="checkbox" v-model="newMember.isAdmin" class="custom-checkbox" />
+                <span class="checkbox-text">
+                  <ShieldCheck :size="16" class="text-indigo" />
+                  <strong>Définir comme Administrateur</strong>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Présence habituelle à la maison</label>
+            <select v-model="newMember.usualPresence" class="form-select">
+              <option value="present">🟢 Habituellement présent(e) (signale des absences)</option>
+              <option value="absent">⚪ Habituellement absent(e) (signale des présences)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Choisissez un Avatar</label>
+            <div class="avatar-options">
+              <button 
+                v-for="emoji in avatarOptions" 
+                :key="emoji"
+                type="button"
+                class="avatar-option-btn"
+                :class="{ selected: newMember.avatar === emoji }"
+                @click="newMember.avatar = emoji"
+              >
+                {{ emoji }}
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Couleur de profil</label>
+            <div class="color-picker-options">
+              <button 
+                v-for="c in colorOptions" 
+                :key="c"
+                type="button"
+                class="color-btn"
+                :style="{ backgroundColor: c }"
+                :class="{ selected: newMember.color === c }"
+                @click="newMember.color = c"
+              ></button>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" @click="showAddMemberModal = false" class="btn btn-secondary">Annuler</button>
+            <button type="submit" class="btn btn-primary" :disabled="addingMember">
+              {{ addingMember ? 'Création en cours...' : 'Créer le membre' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
+import { useFamilyStore } from '../stores/familyStore'
+import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
+import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import { 
   Mail, Settings, CheckCircle2, AlertTriangle, ShieldAlert, 
-  Eye, EyeOff, Save, Send, HelpCircle, ShieldCheck, Loader2, AlertCircle, Globe
+  Eye, EyeOff, Save, Send, HelpCircle, ShieldCheck, Loader2, AlertCircle, Globe,
+  UserPlus
 } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
+const store = useFamilyStore()
+
+const showAddMemberModal = ref(false)
+const addingMember = ref(false)
+
+const avatarOptions = ['👨‍💼', '👩‍⚕️', '👦', '👧', '👶', '🧑', '👨‍🍳', '👵', '👴', '🐱', '🐶']
+const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
+
+const newMember = ref({
+  firstName: '',
+  lastName: 'Martin',
+  email: '',
+  password: 'Family2026!*',
+  role: 'Fils',
+  isAdmin: false,
+  avatar: '👦',
+  color: '#6366f1',
+  usualPresence: 'present'
+})
+
+const handleAddMember = async () => {
+  if (!newMember.value.firstName.trim() || !newMember.value.email.trim() || !newMember.value.password) return
+
+  if (!isPasswordValid(newMember.value.password)) {
+    alert(getPasswordErrorMessage(newMember.value.password))
+    return
+  }
+
+  addingMember.value = true
+  try {
+    const result = await store.addMember(newMember.value)
+    if (result.success) {
+      showAddMemberModal.value = false
+      newMember.value = {
+        firstName: '',
+        lastName: 'Martin',
+        email: '',
+        password: 'Family2026!*',
+        role: 'Fils',
+        isAdmin: false,
+        avatar: '👦',
+        color: '#6366f1',
+        usualPresence: 'present'
+      }
+    } else {
+      alert(result.error || "Erreur lors de l'ajout du membre")
+    }
+  } finally {
+    addingMember.value = false
+  }
+}
 
 const loading = ref(true)
 const saving = ref(false)
@@ -499,9 +705,98 @@ onMounted(() => {
   font-size: 0.95rem;
 }
 
+.header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-header-add-member {
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+}
+
 .header-badges {
   display: flex;
   gap: 0.5rem;
+}
+
+.admin-checkbox-card {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-top: 0.2rem;
+}
+
+.checkbox-text {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: 0.6rem;
+  font-size: 0.85rem;
+}
+
+.welcome-email-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.8rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  color: var(--text-secondary);
+  font-size: 0.825rem;
+  line-height: 1.45;
+  margin-bottom: 1.25rem;
+}
+
+.avatar-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.avatar-option-btn {
+  font-size: 1.5rem;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-option-btn.selected {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-light);
+  transform: scale(1.1);
+}
+
+.color-picker-options {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.color-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.color-btn.selected {
+  border-color: var(--text-primary);
+  transform: scale(1.15);
 }
 
 .status-badge {

@@ -8,19 +8,6 @@
         </h1>
         <p class="page-subtitle">Voici l'aperçu de l'organisation et des activités d'aujourd'hui.</p>
       </div>
-
-      <div class="quick-actions">
-        <!-- Add Member Button: Only visible to Admin -->
-        <button v-if="authStore.isAdmin" @click="showAddMemberModal = true" class="btn btn-secondary">
-          <UserPlus :size="18" />
-          <span>+ Ajouter un Membre</span>
-        </button>
-
-        <router-link to="/tasks" class="btn btn-primary">
-          <Plus :size="18" />
-          <span>Nouvelle Tâche</span>
-        </router-link>
-      </div>
     </div>
 
     <!-- Summary Metrics Grid -->
