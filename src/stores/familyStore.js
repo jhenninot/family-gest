@@ -128,6 +128,44 @@ export const useFamilyStore = defineStore('family', () => {
 
   const pendingShoppingCount = computed(() => shoppingList.value.filter(item => !item.checked).length)
 
+  // Calcul précis des présences et repas pour n'importe quelle date et créneau ('lunch', 'dinner', 'night')
+  const getMealSlotPresence = (dateStr, slot) => {
+    const usuallyPresentMembers = members.value.filter(m => m.usualPresence !== 'absent')
+    const usuallyAbsentMembers = members.value.filter(m => m.usualPresence === 'absent')
+
+    const dayRecords = absences.value.filter(a => a.date === dateStr && a[slot])
+    const absenceRecords = dayRecords.filter(a => a.type !== 'presence')
+    const presenceRecords = dayRecords.filter(a => a.type === 'presence')
+
+    const absentMembers = usuallyPresentMembers.filter(m => 
+      absenceRecords.some(a => a.memberId === m.id)
+    )
+
+    const presentUsualMembers = usuallyPresentMembers.filter(m => 
+      !absenceRecords.some(a => a.memberId === m.id)
+    )
+
+    const exceptionalPresences = usuallyAbsentMembers.filter(m => 
+      presenceRecords.some(a => a.memberId === m.id)
+    )
+
+    const presentMembers = [...presentUsualMembers, ...exceptionalPresences]
+    const dayGuests = mealGuests.value.filter(g => g.date === dateStr && g[slot])
+
+    return {
+      date: dateStr,
+      slot,
+      presentMembers,
+      absentMembers,
+      exceptionalPresences,
+      guests: dayGuests,
+      presentMembersCount: presentMembers.length,
+      absentMembersCount: absentMembers.length,
+      guestsCount: dayGuests.length,
+      headcount: presentMembers.length + dayGuests.length
+    }
+  }
+
   // API Actions
   const addMember = async (memberData) => {
     try {
@@ -597,6 +635,7 @@ export const useFamilyStore = defineStore('family', () => {
     pendingTasksCount,
     taskCompletionPercentage,
     pendingShoppingCount,
+    getMealSlotPresence,
     fetchAllData,
     addMember,
     deleteMember,

@@ -15,7 +15,11 @@
           <UserPlus :size="18" />
           <span>+ Invité(s)</span>
         </button>
-        <button @click="openAddModal()" class="btn btn-primary">
+        <button v-if="isCurrentUserUsuallyAbsent" @click="openAddModal(null, 'presence')" class="btn btn-presence-primary">
+          <CheckCircle2 :size="18" />
+          <span>Signaler une Présence</span>
+        </button>
+        <button v-else @click="openAddModal(null, 'absence')" class="btn btn-primary">
           <Plus :size="18" />
           <span>Signaler une Absence</span>
         </button>
@@ -33,7 +37,10 @@
           <button @click="openAddGuestModal(store.todayStr)" class="btn-today-add guest-btn">
             <UserPlus :size="14" /> + Invité aujourd'hui
           </button>
-          <button @click="openAddModal(store.todayStr)" class="btn-today-add">
+          <button v-if="isCurrentUserUsuallyAbsent" @click="openAddModal(store.todayStr, 'presence')" class="btn-today-add presence-btn">
+            <CheckCircle2 :size="14" /> Signaler une présence
+          </button>
+          <button v-else @click="openAddModal(store.todayStr, 'absence')" class="btn-today-add">
             <Plus :size="14" /> Signaler une absence
           </button>
         </div>
@@ -41,7 +48,7 @@
 
       <div class="today-slots-grid">
         <!-- Déjeuner -->
-        <div class="meal-slot-card" :class="{ 'has-absents': todayLunchAbsents.length > 0, 'has-guests': todayLunchGuests.length > 0 }">
+        <div class="meal-slot-card" :class="{ 'has-absents': todayLunchPresence.absentMembers.length > 0, 'has-guests': todayLunchPresence.guests.length > 0, 'has-presences': todayLunchPresence.exceptionalPresences.length > 0 }">
           <div class="slot-header">
             <span class="slot-icon">☀️</span>
             <div class="slot-title-col">
@@ -55,27 +62,43 @@
 
           <div class="slot-members-list">
             <!-- Absents -->
-            <div v-if="todayLunchAbsents.length > 0" class="slot-chip-group">
+            <div v-if="todayLunchPresence.absentMembers.length > 0" class="slot-chip-group">
               <span class="chip-group-label">Absents :</span>
               <div class="absent-chips">
                 <span 
-                  v-for="abs in todayLunchAbsents" 
-                  :key="'abs-' + abs.id" 
+                  v-for="m in todayLunchPresence.absentMembers" 
+                  :key="'abs-' + m.id" 
                   class="member-absent-chip"
-                  :title="abs.note ? `Motif: ${abs.note}` : 'Absent'"
-                  @click="openEditModal(abs)"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Absent'"
+                  @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
-                  {{ getMemberAvatar(abs.memberId) }} {{ getMemberName(abs.memberId) }}
+                  {{ m.avatar }} {{ m.firstName || m.name }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Présences signalées -->
+            <div v-if="todayLunchPresence.exceptionalPresences.length > 0" class="slot-chip-group">
+              <span class="chip-group-label presences-label">Présences :</span>
+              <div class="presence-chips">
+                <span 
+                  v-for="m in todayLunchPresence.exceptionalPresences" 
+                  :key="'prs-' + m.id" 
+                  class="member-presence-chip"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Note: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Présence confirmée'"
+                  @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
+                >
+                  🟢 {{ m.avatar }} {{ m.firstName || m.name }}
                 </span>
               </div>
             </div>
 
             <!-- Invités -->
-            <div v-if="todayLunchGuests.length > 0" class="slot-chip-group">
+            <div v-if="todayLunchPresence.guests.length > 0" class="slot-chip-group">
               <span class="chip-group-label guests-label">Invités :</span>
               <div class="guest-chips">
                 <span 
-                  v-for="g in todayLunchGuests" 
+                  v-for="g in todayLunchPresence.guests" 
                   :key="'gst-' + g.id" 
                   class="guest-chip"
                   :title="g.note ? `Note: ${g.note}` : 'Invité(e)'"
@@ -86,14 +109,14 @@
               </div>
             </div>
 
-            <div v-if="todayLunchAbsents.length === 0 && todayLunchGuests.length === 0" class="all-present-text">
-              🎉 Toute la famille déjeune ensemble sans invité
+            <div v-if="todayLunchPresence.absentMembers.length === 0 && todayLunchPresence.exceptionalPresences.length === 0 && todayLunchPresence.guests.length === 0" class="all-present-text">
+              🎉 Au complet ({{ todayLunchPresence.headcount }} personnes) sans invité
             </div>
           </div>
         </div>
 
         <!-- Dîner -->
-        <div class="meal-slot-card" :class="{ 'has-absents': todayDinnerAbsents.length > 0, 'has-guests': todayDinnerGuests.length > 0 }">
+        <div class="meal-slot-card" :class="{ 'has-absents': todayDinnerPresence.absentMembers.length > 0, 'has-guests': todayDinnerPresence.guests.length > 0, 'has-presences': todayDinnerPresence.exceptionalPresences.length > 0 }">
           <div class="slot-header">
             <span class="slot-icon">🌙</span>
             <div class="slot-title-col">
@@ -107,27 +130,43 @@
 
           <div class="slot-members-list">
             <!-- Absents -->
-            <div v-if="todayDinnerAbsents.length > 0" class="slot-chip-group">
+            <div v-if="todayDinnerPresence.absentMembers.length > 0" class="slot-chip-group">
               <span class="chip-group-label">Absents :</span>
               <div class="absent-chips">
                 <span 
-                  v-for="abs in todayDinnerAbsents" 
-                  :key="'abs-' + abs.id" 
+                  v-for="m in todayDinnerPresence.absentMembers" 
+                  :key="'abs-' + m.id" 
                   class="member-absent-chip"
-                  :title="abs.note ? `Motif: ${abs.note}` : 'Absent'"
-                  @click="openEditModal(abs)"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Absent'"
+                  @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
-                  {{ getMemberAvatar(abs.memberId) }} {{ getMemberName(abs.memberId) }}
+                  {{ m.avatar }} {{ m.firstName || m.name }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Présences signalées -->
+            <div v-if="todayDinnerPresence.exceptionalPresences.length > 0" class="slot-chip-group">
+              <span class="chip-group-label presences-label">Présences :</span>
+              <div class="presence-chips">
+                <span 
+                  v-for="m in todayDinnerPresence.exceptionalPresences" 
+                  :key="'prs-' + m.id" 
+                  class="member-presence-chip"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Note: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Présence confirmée'"
+                  @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
+                >
+                  🟢 {{ m.avatar }} {{ m.firstName || m.name }}
                 </span>
               </div>
             </div>
 
             <!-- Invités -->
-            <div v-if="todayDinnerGuests.length > 0" class="slot-chip-group">
+            <div v-if="todayDinnerPresence.guests.length > 0" class="slot-chip-group">
               <span class="chip-group-label guests-label">Invités :</span>
               <div class="guest-chips">
                 <span 
-                  v-for="g in todayDinnerGuests" 
+                  v-for="g in todayDinnerPresence.guests" 
                   :key="'gst-' + g.id" 
                   class="guest-chip"
                   :title="g.note ? `Note: ${g.note}` : 'Invité(e)'"
@@ -138,14 +177,14 @@
               </div>
             </div>
 
-            <div v-if="todayDinnerAbsents.length === 0 && todayDinnerGuests.length === 0" class="all-present-text">
-              🎉 Tout le monde dîne à la maison sans invité
+            <div v-if="todayDinnerPresence.absentMembers.length === 0 && todayDinnerPresence.exceptionalPresences.length === 0 && todayDinnerPresence.guests.length === 0" class="all-present-text">
+              🎉 Tout le monde dîne à la maison ({{ todayDinnerPresence.headcount }} personnes) sans invité
             </div>
           </div>
         </div>
 
         <!-- Nuit -->
-        <div class="meal-slot-card" :class="{ 'has-absents': todayNightAbsents.length > 0, 'has-guests': todayNightGuests.length > 0 }">
+        <div class="meal-slot-card" :class="{ 'has-absents': todayNightPresence.absentMembers.length > 0, 'has-guests': todayNightPresence.guests.length > 0, 'has-presences': todayNightPresence.exceptionalPresences.length > 0 }">
           <div class="slot-header">
             <span class="slot-icon">🛌</span>
             <div class="slot-title-col">
@@ -159,27 +198,43 @@
 
           <div class="slot-members-list">
             <!-- Absents -->
-            <div v-if="todayNightAbsents.length > 0" class="slot-chip-group">
+            <div v-if="todayNightPresence.absentMembers.length > 0" class="slot-chip-group">
               <span class="chip-group-label">Absents :</span>
               <div class="absent-chips">
                 <span 
-                  v-for="abs in todayNightAbsents" 
-                  :key="'abs-' + abs.id" 
+                  v-for="m in todayNightPresence.absentMembers" 
+                  :key="'abs-' + m.id" 
                   class="member-absent-chip"
-                  :title="abs.note ? `Motif: ${abs.note}` : 'Dort ailleurs'"
-                  @click="openEditModal(abs)"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Dort ailleurs'"
+                  @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
-                  {{ getMemberAvatar(abs.memberId) }} {{ getMemberName(abs.memberId) }}
+                  {{ m.avatar }} {{ m.firstName || m.name }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Présences signalées -->
+            <div v-if="todayNightPresence.exceptionalPresences.length > 0" class="slot-chip-group">
+              <span class="chip-group-label presences-label">Présences :</span>
+              <div class="presence-chips">
+                <span 
+                  v-for="m in todayNightPresence.exceptionalPresences" 
+                  :key="'prs-' + m.id" 
+                  class="member-presence-chip"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Note: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Dort à la maison'"
+                  @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
+                >
+                  🟢 {{ m.avatar }} {{ m.firstName || m.name }}
                 </span>
               </div>
             </div>
 
             <!-- Invités -->
-            <div v-if="todayNightGuests.length > 0" class="slot-chip-group">
+            <div v-if="todayNightPresence.guests.length > 0" class="slot-chip-group">
               <span class="chip-group-label guests-label">Invités :</span>
               <div class="guest-chips">
                 <span 
-                  v-for="g in todayNightGuests" 
+                  v-for="g in todayNightPresence.guests" 
                   :key="'gst-' + g.id" 
                   class="guest-chip"
                   :title="g.note ? `Note: ${g.note}` : 'Dort à la maison'"
@@ -190,8 +245,8 @@
               </div>
             </div>
 
-            <div v-if="todayNightAbsents.length === 0 && todayNightGuests.length === 0" class="all-present-text">
-              💤 Tout le monde dort à la maison sans invité
+            <div v-if="todayNightPresence.absentMembers.length === 0 && todayNightPresence.exceptionalPresences.length === 0 && todayNightPresence.guests.length === 0" class="all-present-text">
+              💤 Tout le monde dort à la maison ({{ todayNightPresence.headcount }}) sans invité
             </div>
           </div>
         </div>
@@ -265,6 +320,7 @@
             :class="{ 
               today: isDayToday(day),
               'has-absences': getDayAbsences(day).length > 0,
+              'has-presences': getDayPresences(day).length > 0,
               'has-day-guests': getDayGuests(day).length > 0
             }"
             @click="openDayDetailModal(formatDateStr(currentYear, currentMonth, day))"
@@ -276,13 +332,16 @@
                 <span v-if="getDayAbsences(day).length > 0" class="mini-indicator absence" title="Absence(s)">
                   {{ getDayAbsences(day).length }} absent{{ getDayAbsences(day).length > 1 ? 's' : '' }}
                 </span>
+                <span v-if="getDayPresences(day).length > 0" class="mini-indicator presence" title="Présence(s) déclarée(s)">
+                  🟢 {{ getDayPresences(day).length }}
+                </span>
                 <span v-if="getDayGuests(day).length > 0" class="mini-indicator guest" title="Invité(s)">
                   👥 {{ getDayGuests(day).length }}
                 </span>
               </div>
             </div>
 
-            <!-- Absences & Guests preview inside this day -->
+            <!-- Absences, Présences & Guests preview inside this day -->
             <div class="day-absences-container">
               <!-- Absences preview -->
               <div 
@@ -298,9 +357,21 @@
                   <span v-if="abs.night">🛌</span>
                 </div>
               </div>
-              <span v-if="getDayAbsences(day).length > 2" class="more-items-count">
-                +{{ getDayAbsences(day).length - 2 }} autre(s)
-              </span>
+
+              <!-- Présences preview -->
+              <div 
+                v-for="prs in getDayPresences(day).slice(0, 2)" 
+                :key="'prs-' + prs.id" 
+                class="day-presence-chip"
+              >
+                <span class="chip-avatar">{{ getMemberAvatar(prs.memberId) }}</span>
+                <span class="chip-name">{{ getMemberFirstName(prs.memberId) }}</span>
+                <div class="chip-icons">
+                  <span v-if="prs.lunch">☀️</span>
+                  <span v-if="prs.dinner">🌙</span>
+                  <span v-if="prs.night">🛌</span>
+                </div>
+              </div>
 
               <!-- Guests preview -->
               <div 
@@ -316,9 +387,6 @@
                   <span v-if="g.night">🛌</span>
                 </div>
               </div>
-              <span v-if="getDayGuests(day).length > 2" class="more-items-count guest">
-                +{{ getDayGuests(day).length - 2 }} invité(s)
-              </span>
             </div>
           </div>
         </div>
@@ -334,7 +402,7 @@
             @click="activeUpcomingTab = 'absences'"
           >
             <Clock :size="16" />
-            <span>Absences</span>
+            <span>Absences & Présences</span>
             <span class="tab-badge">{{ filteredUpcomingAbsences.length }}</span>
           </button>
           <button 
@@ -354,6 +422,7 @@
             v-for="abs in filteredUpcomingAbsences" 
             :key="abs.id"
             class="upcoming-absence-card"
+            :class="{ 'presence-card-theme': abs.type === 'presence' }"
           >
             <div class="upcoming-avatar-col">
               <span class="upcoming-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
@@ -363,6 +432,12 @@
               <div class="upcoming-card-header">
                 <div class="member-name-date">
                   <strong>{{ getMemberName(abs.memberId) }}</strong>
+                  <span 
+                    class="type-pill-badge" 
+                    :class="abs.type === 'presence' ? 'is-presence' : 'is-absence'"
+                  >
+                    {{ abs.type === 'presence' ? '🟢 Présence' : '🚫 Absence' }}
+                  </span>
                   <span class="absence-date-badge" :class="{ 'is-today': abs.date === store.todayStr }">
                     {{ formatRelativeDate(abs.date) }}
                   </span>
@@ -480,28 +555,51 @@
       </div>
     </div>
 
-    <!-- Modal Signaler / Modifier Absence -->
+    <!-- Modal Signaler / Modifier Absence ou Présence -->
     <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
-      <div class="modal-content absence-modal">
+      <div class="modal-content absence-modal" :class="{ 'presence-modal-theme': form.type === 'presence' }">
         <div class="modal-header">
-          <h3>{{ editingId ? 'Modifier l\'Absence' : 'Signaler une Absence' }}</h3>
+          <h3>{{ editingId ? (form.type === 'presence' ? 'Modifier la Présence' : 'Modifier l\'Absence') : (form.type === 'presence' ? 'Confirmer une Présence' : 'Signaler une Absence') }}</h3>
           <button @click="showModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleSubmit">
+          <!-- Type de déclaration : Absence vs Présence -->
+          <div class="form-group">
+            <label class="form-label">Type de déclaration</label>
+            <div class="declaration-type-switch">
+              <button 
+                type="button" 
+                class="type-switch-btn" 
+                :class="{ active: form.type === 'absence', 'type-absence': form.type === 'absence' }"
+                @click="form.type = 'absence'"
+              >
+                <span>🚫 Absence</span>
+              </button>
+              <button 
+                type="button" 
+                class="type-switch-btn" 
+                :class="{ active: form.type === 'presence', 'type-presence': form.type === 'presence' }"
+                @click="form.type = 'presence'"
+              >
+                <span>🟢 Présence</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Member selection -->
           <div class="form-group">
             <label class="form-label">Membre de la famille</label>
-            <select v-model="form.memberId" class="form-select" required>
+            <select v-model="form.memberId" @change="onMemberChange" class="form-select" required>
               <option v-for="m in store.members" :key="m.id" :value="m.id">
-                {{ m.avatar }} {{ m.name }} {{ m.id === authStore.user?.id ? '(Moi)' : '' }}
+                {{ m.avatar }} {{ m.name }} {{ m.usualPresence === 'absent' ? '(Habituellement absent)' : '' }} {{ m.id === authStore.user?.id ? '• Moi' : '' }}
               </option>
             </select>
           </div>
 
           <!-- Date -->
           <div class="form-group">
-            <label class="form-label">Date de l'absence</label>
+            <label class="form-label">{{ form.type === 'presence' ? 'Date de présence' : 'Date de l\'absence' }}</label>
             <input 
               v-model="form.date" 
               type="date" 
@@ -512,12 +610,12 @@
 
           <!-- Slots selection cards -->
           <div class="form-group">
-            <label class="form-label">Créneau(x) d'absence :</label>
+            <label class="form-label">{{ form.type === 'presence' ? 'Créneau(x) où vous serez présent(e) :' : 'Créneau(x) d\'absence :' }}</label>
             <div class="slots-toggle-grid">
               <!-- Déjeuner -->
               <div 
                 class="slot-toggle-card" 
-                :class="{ active: form.lunch }"
+                :class="{ active: form.lunch, 'presence-active': form.lunch && form.type === 'presence' }"
                 @click="form.lunch = !form.lunch"
               >
                 <div class="slot-toggle-top">
@@ -525,13 +623,13 @@
                   <input type="checkbox" v-model="form.lunch" @click.stop class="slot-toggle-check" />
                 </div>
                 <strong>Déjeuner</strong>
-                <span class="slot-toggle-sub">Repas du midi</span>
+                <span class="slot-toggle-sub">{{ form.type === 'presence' ? 'Mange le midi' : 'Repas du midi' }}</span>
               </div>
 
               <!-- Dîner -->
               <div 
                 class="slot-toggle-card" 
-                :class="{ active: form.dinner }"
+                :class="{ active: form.dinner, 'presence-active': form.dinner && form.type === 'presence' }"
                 @click="form.dinner = !form.dinner"
               >
                 <div class="slot-toggle-top">
@@ -539,13 +637,13 @@
                   <input type="checkbox" v-model="form.dinner" @click.stop class="slot-toggle-check" />
                 </div>
                 <strong>Dîner</strong>
-                <span class="slot-toggle-sub">Repas du soir</span>
+                <span class="slot-toggle-sub">{{ form.type === 'presence' ? 'Mange le soir' : 'Repas du soir' }}</span>
               </div>
 
               <!-- Nuit -->
               <div 
                 class="slot-toggle-card" 
-                :class="{ active: form.night }"
+                :class="{ active: form.night, 'presence-active': form.night && form.type === 'presence' }"
                 @click="form.night = !form.night"
               >
                 <div class="slot-toggle-top">
@@ -553,21 +651,21 @@
                   <input type="checkbox" v-model="form.night" @click.stop class="slot-toggle-check" />
                 </div>
                 <strong>Nuit</strong>
-                <span class="slot-toggle-sub">Dort ailleurs</span>
+                <span class="slot-toggle-sub">{{ form.type === 'presence' ? 'Dort à la maison' : 'Dort ailleurs' }}</span>
               </div>
             </div>
             <span v-if="!form.lunch && !form.dinner && !form.night" class="text-error">
-              * Veuillez cocher au moins un créneau d'absence.
+              * Veuillez cocher au moins un créneau.
             </span>
           </div>
 
           <!-- Note / Reason -->
           <div class="form-group">
-            <label class="form-label">Motif / Commentaire (Optionnel)</label>
+            <label class="form-label">{{ form.type === 'presence' ? 'Précision / Commentaire (Optionnel)' : 'Motif / Commentaire (Optionnel)' }}</label>
             <input 
               v-model="form.note" 
               type="text" 
-              placeholder="Ex: Invité chez Lucas, Déplacement boulot, Soirée..."
+              :placeholder="form.type === 'presence' ? 'Ex: De retour pour le week-end, Vacances...' : 'Ex: Invité chez Lucas, Déplacement boulot, Soirée...'"
               class="form-input" 
             />
           </div>
@@ -589,10 +687,11 @@
               <button type="button" @click="showModal = false" class="btn btn-secondary">Annuler</button>
               <button 
                 type="submit" 
-                class="btn btn-primary" 
+                class="btn"
+                :class="form.type === 'presence' ? 'btn-presence-primary' : 'btn-primary'"
                 :disabled="saving || (!form.lunch && !form.dinner && !form.night)"
               >
-                <span v-if="!saving">{{ editingId ? 'Enregistrer' : 'Signaler l\'absence' }}</span>
+                <span v-if="!saving">{{ editingId ? 'Enregistrer' : (form.type === 'presence' ? 'Confirmer la présence' : 'Signaler l\'absence') }}</span>
                 <span v-else>Enregistrement...</span>
               </button>
             </div>
@@ -750,7 +849,19 @@
         <div class="day-detail-body">
           <!-- Top Big Action Buttons -->
           <div class="day-detail-actions-bar">
-            <button @click="openAddModalFromDay()" class="btn btn-primary btn-action-card">
+            <button 
+              v-if="isCurrentUserUsuallyAbsent" 
+              @click="openAddModalFromDay('presence')" 
+              class="btn btn-presence-primary btn-action-card"
+            >
+              <CheckCircle2 :size="18" />
+              <span>Signaler ma présence</span>
+            </button>
+            <button 
+              v-else 
+              @click="openAddModalFromDay('absence')" 
+              class="btn btn-primary btn-action-card"
+            >
               <Plus :size="18" />
               <span>Signaler une absence</span>
             </button>
@@ -775,6 +886,29 @@
               </div>
 
               <div class="day-slot-items">
+                <!-- Présences exceptionnelles -->
+                <div v-if="selectedDayLunchPresence.exceptionalPresences.length > 0" class="slot-section">
+                  <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayLunchPresence.exceptionalPresences.length }}) :</span>
+                  <div class="slot-person-cards">
+                    <div v-for="pres in selectedDayLunchPresence.exceptionalPresences" :key="'lunch-pres-' + pres.id" class="slot-person-card presence">
+                      <span class="person-avatar">{{ getMemberAvatar(pres.memberId) }}</span>
+                      <div class="person-info">
+                        <strong>{{ getMemberName(pres.memberId) }}</strong>
+                        <span class="presence-badge-text">🟢 Présence confirmée</span>
+                        <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
+                      </div>
+                      <div class="person-actions">
+                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-action" title="Modifier">
+                          <Edit3 :size="15" />
+                        </button>
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres.id)" class="btn-icon-action text-danger" title="Supprimer">
+                          <Trash2 :size="15" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Absents -->
                 <div v-if="selectedDayLunchAbsents.length > 0" class="slot-section">
                   <span class="slot-section-title text-amber">Membres absents ({{ selectedDayLunchAbsents.length }}) :</span>
@@ -820,8 +954,8 @@
                   </div>
                 </div>
 
-                <div v-if="selectedDayLunchAbsents.length === 0 && selectedDayLunchGuests.length === 0" class="slot-empty-note">
-                  ✨ Aucun absent ni invité pour le midi.
+                <div v-if="selectedDayLunchPresence.exceptionalPresences.length === 0 && selectedDayLunchAbsents.length === 0 && selectedDayLunchGuests.length === 0" class="slot-empty-note">
+                  ✨ Aucun changement par rapport à la présence habituelle ({{ selectedDayLunchPresence.headcount }} à table).
                 </div>
               </div>
             </div>
@@ -839,6 +973,29 @@
               </div>
 
               <div class="day-slot-items">
+                <!-- Présences exceptionnelles -->
+                <div v-if="selectedDayDinnerPresence.exceptionalPresences.length > 0" class="slot-section">
+                  <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayDinnerPresence.exceptionalPresences.length }}) :</span>
+                  <div class="slot-person-cards">
+                    <div v-for="pres in selectedDayDinnerPresence.exceptionalPresences" :key="'dinner-pres-' + pres.id" class="slot-person-card presence">
+                      <span class="person-avatar">{{ getMemberAvatar(pres.memberId) }}</span>
+                      <div class="person-info">
+                        <strong>{{ getMemberName(pres.memberId) }}</strong>
+                        <span class="presence-badge-text">🟢 Présence confirmée</span>
+                        <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
+                      </div>
+                      <div class="person-actions">
+                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-action" title="Modifier">
+                          <Edit3 :size="15" />
+                        </button>
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres.id)" class="btn-icon-action text-danger" title="Supprimer">
+                          <Trash2 :size="15" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Absents -->
                 <div v-if="selectedDayDinnerAbsents.length > 0" class="slot-section">
                   <span class="slot-section-title text-amber">Membres absents ({{ selectedDayDinnerAbsents.length }}) :</span>
@@ -884,8 +1041,8 @@
                   </div>
                 </div>
 
-                <div v-if="selectedDayDinnerAbsents.length === 0 && selectedDayDinnerGuests.length === 0" class="slot-empty-note">
-                  ✨ Aucun absent ni invité pour le soir.
+                <div v-if="selectedDayDinnerPresence.exceptionalPresences.length === 0 && selectedDayDinnerAbsents.length === 0 && selectedDayDinnerGuests.length === 0" class="slot-empty-note">
+                  ✨ Aucun changement par rapport à la présence habituelle ({{ selectedDayDinnerPresence.headcount }} à table).
                 </div>
               </div>
             </div>
@@ -903,6 +1060,29 @@
               </div>
 
               <div class="day-slot-items">
+                <!-- Présences exceptionnelles -->
+                <div v-if="selectedDayNightPresence.exceptionalPresences.length > 0" class="slot-section">
+                  <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayNightPresence.exceptionalPresences.length }}) :</span>
+                  <div class="slot-person-cards">
+                    <div v-for="pres in selectedDayNightPresence.exceptionalPresences" :key="'night-pres-' + pres.id" class="slot-person-card presence">
+                      <span class="person-avatar">{{ getMemberAvatar(pres.memberId) }}</span>
+                      <div class="person-info">
+                        <strong>{{ getMemberName(pres.memberId) }}</strong>
+                        <span class="presence-badge-text">🟢 Présence confirmée</span>
+                        <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
+                      </div>
+                      <div class="person-actions">
+                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-action" title="Modifier">
+                          <Edit3 :size="15" />
+                        </button>
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres.id)" class="btn-icon-action text-danger" title="Supprimer">
+                          <Trash2 :size="15" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Absents -->
                 <div v-if="selectedDayNightAbsents.length > 0" class="slot-section">
                   <span class="slot-section-title text-amber">Membres absents ({{ selectedDayNightAbsents.length }}) :</span>
@@ -948,8 +1128,8 @@
                   </div>
                 </div>
 
-                <div v-if="selectedDayNightAbsents.length === 0 && selectedDayNightGuests.length === 0" class="slot-empty-note">
-                  💤 Tout le monde dort à la maison sans invité.
+                <div v-if="selectedDayNightPresence.exceptionalPresences.length === 0 && selectedDayNightAbsents.length === 0 && selectedDayNightGuests.length === 0" class="slot-empty-note">
+                  💤 Aucun changement par rapport à la présence habituelle ({{ selectedDayNightPresence.headcount }} dorment à la maison).
                 </div>
               </div>
             </div>
@@ -980,7 +1160,8 @@ import {
   ChevronLeft, 
   ChevronRight, 
   UserPlus, 
-  Users 
+  Users,
+  CheckCircle2
 } from '@lucide/vue'
 import HouseUser from '../components/icons/HouseUser.vue'
 
@@ -989,6 +1170,12 @@ const store = useFamilyStore()
 
 // Filter State
 const selectedMemberFilter = ref(null)
+
+// Current user usual presence check
+const isCurrentUserUsuallyAbsent = computed(() => {
+  const member = store.members.find(m => m.id === authStore.user?.id)
+  return member?.usualPresence === 'absent' || authStore.user?.usualPresence === 'absent'
+})
 
 // Tab State for Right Column (Absences vs Invités)
 const activeUpcomingTab = ref('absences')
@@ -999,6 +1186,7 @@ const editingId = ref(null)
 const saving = ref(false)
 
 const form = ref({
+  type: 'absence',
   memberId: authStore.user?.id || 1,
   date: store.todayStr,
   lunch: false,
@@ -1006,6 +1194,13 @@ const form = ref({
   night: false,
   note: ''
 })
+
+const onMemberChange = () => {
+  const mem = store.members.find(m => m.id === form.value.memberId)
+  if (mem) {
+    form.value.type = mem.usualPresence === 'absent' ? 'presence' : 'absence'
+  }
+}
 
 // Guest Modal State
 const showGuestModal = ref(false)
@@ -1093,6 +1288,10 @@ const getMemberAvatar = (id) => {
   return m ? m.avatar : '👤'
 }
 
+const getRecordForMember = (memberId, dateStr) => {
+  return store.absences.find(a => a.memberId === memberId && a.date === dateStr)
+}
+
 const canEdit = (abs) => {
   if (!authStore.user) return false
   return authStore.isAdmin || abs.memberId === authStore.user.id
@@ -1111,7 +1310,12 @@ const filteredGuests = computed(() => {
 
 const getDayAbsences = (day) => {
   const dateStr = formatDateStr(currentYear.value, currentMonth.value, day)
-  return filteredAbsences.value.filter(a => a.date === dateStr)
+  return filteredAbsences.value.filter(a => a.date === dateStr && a.type !== 'presence')
+}
+
+const getDayPresences = (day) => {
+  const dateStr = formatDateStr(currentYear.value, currentMonth.value, day)
+  return filteredAbsences.value.filter(a => a.date === dateStr && a.type === 'presence')
 }
 
 const getDayGuests = (day) => {
@@ -1124,7 +1328,8 @@ const getAbsenceTooltip = (abs) => {
   if (abs.lunch) parts.push('Déjeuner (Midi)')
   if (abs.dinner) parts.push('Dîner (Soir)')
   if (abs.night) parts.push('Nuit')
-  return `${getMemberName(abs.memberId)} : Absent(e) ${parts.join(', ')}${abs.note ? ` (${abs.note})` : ''}`
+  const actionNoun = abs.type === 'presence' ? 'Présent(e) exceptionnellement' : 'Absent(e)'
+  return `${getMemberName(abs.memberId)} : ${actionNoun} ${parts.join(', ')}${abs.note ? ` (${abs.note})` : ''}`
 }
 
 const getGuestTooltip = (g) => {
@@ -1137,32 +1342,26 @@ const getGuestTooltip = (g) => {
 }
 
 // Today Banner Computeds
-const todayLunchAbsents = computed(() => store.todayAbsences.filter(a => a.lunch))
-const todayDinnerAbsents = computed(() => store.todayAbsences.filter(a => a.dinner))
-const todayNightAbsents = computed(() => store.todayAbsences.filter(a => a.night))
+const todayLunchPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'lunch'))
+const todayDinnerPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'dinner'))
+const todayNightPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'night'))
 
-const todayLunchGuests = computed(() => store.todayMealGuests.filter(g => g.lunch))
-const todayDinnerGuests = computed(() => store.todayMealGuests.filter(g => g.dinner))
-const todayNightGuests = computed(() => store.todayMealGuests.filter(g => g.night))
+const todayLunchAbsents = computed(() => todayLunchPresence.value.absentMembers)
+const todayDinnerAbsents = computed(() => todayDinnerPresence.value.absentMembers)
+const todayNightAbsents = computed(() => todayNightPresence.value.absentMembers)
+
+const todayLunchGuests = computed(() => todayLunchPresence.value.guests)
+const todayDinnerGuests = computed(() => todayDinnerPresence.value.guests)
+const todayNightGuests = computed(() => todayNightPresence.value.guests)
 
 const getSlotHeadcount = (slot) => {
-  const totalMembers = store.members.length
-  const absentsCount = slot === 'lunch' ? todayLunchAbsents.value.length : (slot === 'dinner' ? todayDinnerAbsents.value.length : todayNightAbsents.value.length)
-  const guestsCount = slot === 'lunch' ? todayLunchGuests.value.length : (slot === 'dinner' ? todayDinnerGuests.value.length : todayNightGuests.value.length)
-  const presentMembers = Math.max(0, totalMembers - absentsCount)
-  const total = presentMembers + guestsCount
-
+  const p = slot === 'lunch' ? todayLunchPresence.value : (slot === 'dinner' ? todayDinnerPresence.value : todayNightPresence.value)
   const noun = slot === 'night' ? 'personne(s) qui dorment' : 'à table'
-  if (guestsCount > 0 && absentsCount > 0) {
-    return `${total} ${noun} (${presentMembers} membres + ${guestsCount} invité${guestsCount > 1 ? 's' : ''})`
-  }
-  if (guestsCount > 0) {
-    return `${total} ${noun} (Au complet + ${guestsCount} invité${guestsCount > 1 ? 's' : ''})`
-  }
-  if (absentsCount > 0) {
-    return `${presentMembers} ${noun} (${absentsCount} absent${absentsCount > 1 ? 's' : ''})`
-  }
-  return `${total} ${noun} (Au complet !)`
+  const details = []
+  if (p.presentMembersCount > 0) details.push(`${p.presentMembersCount} membre${p.presentMembersCount > 1 ? 's' : ''}`)
+  if (p.guestsCount > 0) details.push(`${p.guestsCount} invité${p.guestsCount > 1 ? 's' : ''}`)
+  const detailsStr = details.length > 0 ? ` (${details.join(' + ')})` : ''
+  return `${p.headcount} ${noun}${detailsStr}`
 }
 
 // Upcoming Lists
@@ -1198,11 +1397,16 @@ const formatRelativeDate = (dStr) => {
   return dt.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-// Absence Modal actions
-const openAddModal = (defaultDate = null) => {
+// Absence/Presence Modal actions
+const openAddModal = (defaultDate = null, defaultType = null) => {
   editingId.value = null
+  const initialMemberId = authStore.user?.id || (store.members[0]?.id || 1)
+  const mem = store.members.find(m => m.id === initialMemberId)
+  const initialType = defaultType || (mem?.usualPresence === 'absent' ? 'presence' : 'absence')
+  
   form.value = {
-    memberId: authStore.user?.id || (store.members[0]?.id || 1),
+    type: initialType,
+    memberId: initialMemberId,
     date: defaultDate || store.todayStr,
     lunch: true,
     dinner: false,
@@ -1212,15 +1416,16 @@ const openAddModal = (defaultDate = null) => {
   showModal.value = true
 }
 
-const openEditModal = (abs) => {
-  editingId.value = abs.id
+const openEditModal = (rec) => {
+  editingId.value = rec.id
   form.value = {
-    memberId: abs.memberId,
-    date: abs.date,
-    lunch: Boolean(abs.lunch),
-    dinner: Boolean(abs.dinner),
-    night: Boolean(abs.night),
-    note: abs.note || ''
+    type: rec.type || 'absence',
+    memberId: rec.memberId,
+    date: rec.date,
+    lunch: Boolean(rec.lunch),
+    dinner: Boolean(rec.dinner),
+    night: Boolean(rec.night),
+    note: rec.note || ''
   }
   showModal.value = true
 }
@@ -1240,7 +1445,8 @@ const handleSubmit = async () => {
 }
 
 const handleDelete = async (id) => {
-  if (confirm('Voulez-vous vraiment supprimer cette absence ?')) {
+  const isPres = form.value.type === 'presence'
+  if (confirm(`Voulez-vous vraiment supprimer cette ${isPres ? 'présence' : 'absence'} ?`)) {
     saving.value = true
     await store.deleteAbsence(id)
     saving.value = false
@@ -1302,9 +1508,9 @@ const openDayDetailModal = (dateStr) => {
   showDayDetailModal.value = true
 }
 
-const openAddModalFromDay = () => {
+const openAddModalFromDay = (defaultType = null) => {
   showDayDetailModal.value = false
-  openAddModal(selectedDayDate.value)
+  openAddModal(selectedDayDate.value, defaultType)
 }
 
 const openAddGuestModalFromDay = () => {
@@ -1322,6 +1528,10 @@ const openEditGuestModalFromDay = (g) => {
   openEditGuestModal(g)
 }
 
+const selectedDayLunchPresence = computed(() => store.getMealSlotPresence(selectedDayDate.value, 'lunch'))
+const selectedDayDinnerPresence = computed(() => store.getMealSlotPresence(selectedDayDate.value, 'dinner'))
+const selectedDayNightPresence = computed(() => store.getMealSlotPresence(selectedDayDate.value, 'night'))
+
 const selectedDayAbsences = computed(() => {
   return store.absences.filter(a => a.date === selectedDayDate.value)
 })
@@ -1330,33 +1540,23 @@ const selectedDayGuests = computed(() => {
   return store.mealGuests.filter(g => g.date === selectedDayDate.value)
 })
 
-const selectedDayLunchAbsents = computed(() => selectedDayAbsences.value.filter(a => a.lunch))
-const selectedDayLunchGuests = computed(() => selectedDayGuests.value.filter(g => g.lunch))
+const selectedDayLunchAbsents = computed(() => selectedDayLunchPresence.value.absentMembers)
+const selectedDayLunchGuests = computed(() => selectedDayLunchPresence.value.guests)
 
-const selectedDayDinnerAbsents = computed(() => selectedDayAbsences.value.filter(a => a.dinner))
-const selectedDayDinnerGuests = computed(() => selectedDayGuests.value.filter(g => g.dinner))
+const selectedDayDinnerAbsents = computed(() => selectedDayDinnerPresence.value.absentMembers)
+const selectedDayDinnerGuests = computed(() => selectedDayDinnerPresence.value.guests)
 
-const selectedDayNightAbsents = computed(() => selectedDayAbsences.value.filter(a => a.night))
-const selectedDayNightGuests = computed(() => selectedDayGuests.value.filter(g => g.night))
+const selectedDayNightAbsents = computed(() => selectedDayNightPresence.value.absentMembers)
+const selectedDayNightGuests = computed(() => selectedDayNightPresence.value.guests)
 
 const getSelectedDaySlotHeadcount = (slot) => {
-  const totalMembers = store.members.length
-  const absCount = slot === 'lunch' ? selectedDayLunchAbsents.value.length : (slot === 'dinner' ? selectedDayDinnerAbsents.value.length : selectedDayNightAbsents.value.length)
-  const gCount = slot === 'lunch' ? selectedDayLunchGuests.value.length : (slot === 'dinner' ? selectedDayDinnerGuests.value.length : selectedDayNightGuests.value.length)
-  const present = Math.max(0, totalMembers - absCount)
-  const total = present + gCount
-
+  const p = slot === 'lunch' ? selectedDayLunchPresence.value : (slot === 'dinner' ? selectedDayDinnerPresence.value : selectedDayNightPresence.value)
   const noun = slot === 'night' ? 'couchage(s)' : 'à table'
-  if (gCount > 0 && absCount > 0) {
-    return `${total} ${noun} (${present} membres + ${gCount} invité${gCount > 1 ? 's' : ''})`
-  }
-  if (gCount > 0) {
-    return `${total} ${noun} (Au complet + ${gCount} invité${gCount > 1 ? 's' : ''})`
-  }
-  if (absCount > 0) {
-    return `${present} ${noun} (${absCount} absent${absCount > 1 ? 's' : ''})`
-  }
-  return `${total} ${noun} (Au complet !)`
+  const details = []
+  if (p.presentMembersCount > 0) details.push(`${p.presentMembersCount} membre${p.presentMembersCount > 1 ? 's' : ''}`)
+  if (p.guestsCount > 0) details.push(`${p.guestsCount} invité${p.guestsCount > 1 ? 's' : ''}`)
+  const detailsStr = details.length > 0 ? ` (${details.join(' + ')})` : ''
+  return `${p.headcount} ${noun}${detailsStr}`
 }
 
 const formatFullDisplayDate = (dStr) => {
@@ -2342,6 +2542,187 @@ const handleDeleteGuest = async (id) => {
 .day-detail-summary-hint {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+/* Presence Styles */
+.btn-presence-primary {
+  background: var(--accent-green, #10b981);
+  color: white;
+  border: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+.btn-presence-primary:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.btn-today-add.presence-btn {
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #10b981;
+}
+
+.btn-today-add.presence-btn:hover {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.meal-slot-card.has-presences {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.member-presence-chip {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #065f46;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+[data-theme="dark"] .member-presence-chip {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.member-presence-chip:hover {
+  transform: scale(1.03);
+}
+
+.presence-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.chip-group-label.presences-label {
+  color: #10b981;
+}
+
+.mini-indicator.presence {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+}
+
+.day-presence-chip {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #065f46;
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .day-presence-chip {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.day-presence-chip:hover {
+  transform: scale(1.02);
+  border-color: #10b981;
+}
+
+.declaration-type-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  background: var(--bg-tertiary);
+  padding: 0.3rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 0.5rem;
+}
+
+.type-switch-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.type-switch-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.type-switch-btn.active.absence {
+  background: var(--bg-card);
+  color: var(--accent-amber);
+  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: var(--shadow-sm);
+}
+
+.type-switch-btn.active.presence {
+  background: var(--bg-card);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: var(--shadow-sm);
+}
+
+.slot-toggle-card.presence-active {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.presence-modal-theme {
+  border-top: 4px solid #10b981;
+}
+
+.slot-person-card.presence {
+  border-left: 3px solid #10b981;
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.presence-badge-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.presence-card {
+  border-left: 3px solid #10b981 !important;
+}
+
+.upcoming-badge.presence {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 @media (max-width: 900px) {

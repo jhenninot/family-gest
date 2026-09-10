@@ -16,7 +16,8 @@ const userSchema = new mongoose.Schema({
   welcomeToken: { type: String, default: null },
   welcomeTokenExpires: { type: Date, default: null },
   pushNotificationsEnabled: { type: Boolean, default: true },
-  emailNotificationsEnabled: { type: Boolean, default: false }
+  emailNotificationsEnabled: { type: Boolean, default: false },
+  usualPresence: { type: String, enum: ['present', 'absent'], default: 'present' }
 }, { timestamps: true })
 
 // Pre-save hook to hash password if modified (Mongoose 8 async hook syntax without callback parameters)

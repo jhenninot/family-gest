@@ -161,26 +161,41 @@
 
               <div class="slot-row-content">
                 <!-- Absents -->
-                <div v-if="todayLunchAbsents.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label absent-badge">Absents ({{ todayLunchAbsents.length }}) :</span>
+                <div v-if="todayLunchPresence.absentMembers.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label absent-badge">Absents ({{ todayLunchPresence.absentMembers.length }}) :</span>
                   <div class="detail-tags-list">
                     <span 
-                      v-for="abs in todayLunchAbsents" 
-                      :key="'l-abs-' + abs.id" 
+                      v-for="m in todayLunchPresence.absentMembers" 
+                      :key="'l-abs-' + m.id" 
                       class="person-tag absent-tag"
-                      :title="abs.note ? `Motif: ${abs.note}` : 'Absent'"
+                      :title="m.name"
                     >
-                      {{ getMemberAvatar(abs.memberId) }} {{ getMemberFirstName(abs.memberId) }}
+                      {{ m.avatar }} {{ m.firstName }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Présences exceptionnelles -->
+                <div v-if="todayLunchPresence.exceptionalPresences.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label presence-badge">Présences ({{ todayLunchPresence.exceptionalPresences.length }}) :</span>
+                  <div class="detail-tags-list">
+                    <span 
+                      v-for="m in todayLunchPresence.exceptionalPresences" 
+                      :key="'l-prs-' + m.id" 
+                      class="person-tag presence-tag"
+                      :title="m.name"
+                    >
+                      🟢 {{ m.avatar }} {{ m.firstName }}
                     </span>
                   </div>
                 </div>
 
                 <!-- Invités -->
-                <div v-if="todayLunchGuests.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label guest-badge">Invités ({{ todayLunchGuests.length }}) :</span>
+                <div v-if="todayLunchPresence.guests.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label guest-badge">Invités ({{ todayLunchPresence.guests.length }}) :</span>
                   <div class="detail-tags-list">
                     <span 
-                      v-for="g in todayLunchGuests" 
+                      v-for="g in todayLunchPresence.guests" 
                       :key="'l-gst-' + g.id" 
                       class="person-tag guest-tag"
                       :title="g.note ? `Note: ${g.note}` : 'Invité'"
@@ -190,9 +205,9 @@
                   </div>
                 </div>
 
-                <!-- Au complet -->
-                <div v-if="todayLunchAbsents.length === 0 && todayLunchGuests.length === 0" class="slot-all-present">
-                  🎉 Au complet ({{ store.members.length }} membres) sans invité
+                <!-- Au complet sans invité -->
+                <div v-if="todayLunchPresence.absentMembers.length === 0 && todayLunchPresence.exceptionalPresences.length === 0 && todayLunchPresence.guests.length === 0" class="slot-all-present">
+                  🎉 Au complet ({{ todayLunchPresence.headcount }} personnes) sans invité
                 </div>
               </div>
             </div>
@@ -216,26 +231,41 @@
 
               <div class="slot-row-content">
                 <!-- Absents -->
-                <div v-if="todayDinnerAbsents.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label absent-badge">Absents ({{ todayDinnerAbsents.length }}) :</span>
+                <div v-if="todayDinnerPresence.absentMembers.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label absent-badge">Absents ({{ todayDinnerPresence.absentMembers.length }}) :</span>
                   <div class="detail-tags-list">
                     <span 
-                      v-for="abs in todayDinnerAbsents" 
-                      :key="'d-abs-' + abs.id" 
+                      v-for="m in todayDinnerPresence.absentMembers" 
+                      :key="'d-abs-' + m.id" 
                       class="person-tag absent-tag"
-                      :title="abs.note ? `Motif: ${abs.note}` : 'Absent'"
+                      :title="m.name"
                     >
-                      {{ getMemberAvatar(abs.memberId) }} {{ getMemberFirstName(abs.memberId) }}
+                      {{ m.avatar }} {{ m.firstName }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Présences exceptionnelles -->
+                <div v-if="todayDinnerPresence.exceptionalPresences.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label presence-badge">Présences ({{ todayDinnerPresence.exceptionalPresences.length }}) :</span>
+                  <div class="detail-tags-list">
+                    <span 
+                      v-for="m in todayDinnerPresence.exceptionalPresences" 
+                      :key="'d-prs-' + m.id" 
+                      class="person-tag presence-tag"
+                      :title="m.name"
+                    >
+                      🟢 {{ m.avatar }} {{ m.firstName }}
                     </span>
                   </div>
                 </div>
 
                 <!-- Invités -->
-                <div v-if="todayDinnerGuests.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label guest-badge">Invités ({{ todayDinnerGuests.length }}) :</span>
+                <div v-if="todayDinnerPresence.guests.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label guest-badge">Invités ({{ todayDinnerPresence.guests.length }}) :</span>
                   <div class="detail-tags-list">
                     <span 
-                      v-for="g in todayDinnerGuests" 
+                      v-for="g in todayDinnerPresence.guests" 
                       :key="'d-gst-' + g.id" 
                       class="person-tag guest-tag"
                       :title="g.note ? `Note: ${g.note}` : 'Invité'"
@@ -245,9 +275,9 @@
                   </div>
                 </div>
 
-                <!-- Au complet -->
-                <div v-if="todayDinnerAbsents.length === 0 && todayDinnerGuests.length === 0" class="slot-all-present">
-                  🎉 Au complet ({{ store.members.length }} membres) sans invité
+                <!-- Au complet sans invité -->
+                <div v-if="todayDinnerPresence.absentMembers.length === 0 && todayDinnerPresence.exceptionalPresences.length === 0 && todayDinnerPresence.guests.length === 0" class="slot-all-present">
+                  🎉 Au complet ({{ todayDinnerPresence.headcount }} personnes) sans invité
                 </div>
               </div>
             </div>
@@ -271,26 +301,41 @@
 
               <div class="slot-row-content">
                 <!-- Absents (dorment ailleurs) -->
-                <div v-if="todayNightAbsents.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label absent-badge">Absents ({{ todayNightAbsents.length }}) :</span>
+                <div v-if="todayNightPresence.absentMembers.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label absent-badge">Absents ({{ todayNightPresence.absentMembers.length }}) :</span>
                   <div class="detail-tags-list">
                     <span 
-                      v-for="abs in todayNightAbsents" 
-                      :key="'n-abs-' + abs.id" 
+                      v-for="m in todayNightPresence.absentMembers" 
+                      :key="'n-abs-' + m.id" 
                       class="person-tag absent-tag"
-                      :title="abs.note ? `Motif: ${abs.note}` : 'Dort ailleurs'"
+                      :title="m.name"
                     >
-                      {{ getMemberAvatar(abs.memberId) }} {{ getMemberFirstName(abs.memberId) }}
+                      {{ m.avatar }} {{ m.firstName }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Présences exceptionnelles (dorment à la maison) -->
+                <div v-if="todayNightPresence.exceptionalPresences.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label presence-badge">Présences ({{ todayNightPresence.exceptionalPresences.length }}) :</span>
+                  <div class="detail-tags-list">
+                    <span 
+                      v-for="m in todayNightPresence.exceptionalPresences" 
+                      :key="'n-prs-' + m.id" 
+                      class="person-tag presence-tag"
+                      :title="m.name"
+                    >
+                      🟢 {{ m.avatar }} {{ m.firstName }}
                     </span>
                   </div>
                 </div>
 
                 <!-- Invités (dorment à la maison) -->
-                <div v-if="todayNightGuests.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label guest-badge">Invités ({{ todayNightGuests.length }}) :</span>
+                <div v-if="todayNightPresence.guests.length > 0" class="slot-detail-item">
+                  <span class="detail-badge-label guest-badge">Invités ({{ todayNightPresence.guests.length }}) :</span>
                   <div class="detail-tags-list">
                     <span 
-                      v-for="g in todayNightGuests" 
+                      v-for="g in todayNightPresence.guests" 
                       :key="'n-gst-' + g.id" 
                       class="person-tag guest-tag"
                       :title="g.note ? `Note: ${g.note}` : 'Dort à la maison'"
@@ -301,8 +346,8 @@
                 </div>
 
                 <!-- Au complet -->
-                <div v-if="todayNightAbsents.length === 0 && todayNightGuests.length === 0" class="slot-all-present">
-                  💤 Tout le monde dort à la maison ({{ store.members.length }})
+                <div v-if="todayNightPresence.absentMembers.length === 0 && todayNightPresence.exceptionalPresences.length === 0 && todayNightPresence.guests.length === 0" class="slot-all-present">
+                  💤 Tout le monde dort à la maison ({{ todayNightPresence.headcount }})
                 </div>
               </div>
             </div>
@@ -540,6 +585,14 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">Présence habituelle à la maison</label>
+            <select v-model="newMember.usualPresence" class="form-select">
+              <option value="present">🟢 Habituellement présent(e) (signale des absences)</option>
+              <option value="absent">⚪ Habituellement absent(e) (signale des présences)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
             <label class="form-label">Choisissez un Avatar</label>
             <div class="avatar-options">
               <button 
@@ -694,6 +747,14 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">Présence habituelle à la maison</label>
+            <select v-model="editMemberForm.usualPresence" class="form-select">
+              <option value="present">🟢 Habituellement présent(e) (signale des absences)</option>
+              <option value="absent">⚪ Habituellement absent(e) (signale des présences)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
             <label class="form-label">Choisissez un Avatar</label>
             <div class="avatar-options">
               <button 
@@ -781,62 +842,42 @@ import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 const authStore = useAuthStore()
 const store = useFamilyStore()
 
-const todayMealsCardValue = computed(() => {
-  const absCount = store.todayAbsences.length
-  const guestsCount = store.todayMealGuests.length
+const todayLunchPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'lunch'))
+const todayDinnerPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'dinner'))
+const todayNightPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'night'))
 
-  if (absCount === 0 && guestsCount === 0) return 'Au complet'
-  if (absCount === 0 && guestsCount > 0) return `+${guestsCount} invité${guestsCount > 1 ? 's' : ''}`
-  if (absCount > 0 && guestsCount === 0) return `${absCount} absent${absCount > 1 ? 's' : ''}`
-  return `-${absCount} / +${guestsCount}`
+const lunchHeadcount = computed(() => todayLunchPresence.value.headcount)
+const dinnerHeadcount = computed(() => todayDinnerPresence.value.headcount)
+const nightHeadcount = computed(() => todayNightPresence.value.headcount)
+
+const todayMealsCardValue = computed(() => {
+  return `${lunchHeadcount.value} midi • ${dinnerHeadcount.value} soir`
 })
 
 const formatTodayAbsencesSubtext = () => {
-  const absCount = store.todayAbsences.length
-  const guestsCount = store.todayMealGuests.length
-
-  if (absCount === 0 && guestsCount === 0) {
-    return 'Aucune absence signalée'
-  }
-
   const parts = []
-  if (absCount > 0) {
-    const lunch = store.todayAbsences.filter(a => a.lunch).length
-    const dinner = store.todayAbsences.filter(a => a.dinner).length
-    const night = store.todayAbsences.filter(a => a.night).length
-    const absParts = []
-    if (lunch > 0) absParts.push(`☀️ ${lunch}`)
-    if (dinner > 0) absParts.push(`🌙 ${dinner}`)
-    if (night > 0) absParts.push(`🛌 ${night}`)
-    parts.push(`Absents (${absParts.join(' ')})`)
-  }
+  const l = todayLunchPresence.value
+  const d = todayDinnerPresence.value
+  const n = todayNightPresence.value
 
-  if (guestsCount > 0) {
-    parts.push(`👥 ${guestsCount} invité${guestsCount > 1 ? 's' : ''}`)
-  }
+  const totalAbsents = new Set([...l.absentMembers, ...d.absentMembers, ...n.absentMembers].map(m => m.id)).size
+  const totalPresences = new Set([...l.exceptionalPresences, ...d.exceptionalPresences, ...n.exceptionalPresences].map(m => m.id)).size
+  const totalGuests = new Set([...l.guests, ...d.guests, ...n.guests].map(g => g.id)).size
 
+  if (totalAbsents > 0) {
+    parts.push(`🚫 ${totalAbsents} absent${totalAbsents > 1 ? 's' : ''}`)
+  }
+  if (totalPresences > 0) {
+    parts.push(`🟢 ${totalPresences} présence${totalPresences > 1 ? 's' : ''}`)
+  }
+  if (totalGuests > 0) {
+    parts.push(`👥 ${totalGuests} invité${totalGuests > 1 ? 's' : ''}`)
+  }
+  if (parts.length === 0) {
+    return 'Au complet, sans invité'
+  }
   return parts.join(' • ')
 }
-
-const todayLunchAbsents = computed(() => store.todayAbsences.filter(a => a.lunch))
-const todayDinnerAbsents = computed(() => store.todayAbsences.filter(a => a.dinner))
-const todayNightAbsents = computed(() => store.todayAbsences.filter(a => a.night))
-
-const todayLunchGuests = computed(() => store.todayMealGuests.filter(g => g.lunch))
-const todayDinnerGuests = computed(() => store.todayMealGuests.filter(g => g.dinner))
-const todayNightGuests = computed(() => store.todayMealGuests.filter(g => g.night))
-
-const lunchHeadcount = computed(() => {
-  return Math.max(0, store.members.length - todayLunchAbsents.value.length) + todayLunchGuests.value.length
-})
-
-const dinnerHeadcount = computed(() => {
-  return Math.max(0, store.members.length - todayDinnerAbsents.value.length) + todayDinnerGuests.value.length
-})
-
-const nightHeadcount = computed(() => {
-  return Math.max(0, store.members.length - todayNightAbsents.value.length) + todayNightGuests.value.length
-})
 
 const getMemberAvatar = (memberId) => {
   const m = store.members.find(m => m.id === memberId)
@@ -879,7 +920,8 @@ const newMember = ref({
   role: 'Fils',
   isAdmin: false,
   avatar: '👦',
-  color: '#6366f1'
+  color: '#6366f1',
+  usualPresence: 'present'
 })
 
 const editMemberForm = ref({
@@ -892,7 +934,10 @@ const editMemberForm = ref({
   points: 0,
   isAdmin: false,
   avatar: '👤',
-  color: '#6366f1'
+  color: '#6366f1',
+  pushNotificationsEnabled: true,
+  emailNotificationsEnabled: false,
+  usualPresence: 'present'
 })
 
 const dashboardTasks = computed(() => {
@@ -951,7 +996,8 @@ const handleAddMember = async () => {
       role: 'Fils',
       isAdmin: false,
       avatar: '👦',
-      color: '#6366f1'
+      color: '#6366f1',
+      usualPresence: 'present'
     }
   } else {
     alert(result.error || 'Erreur lors de l\'ajout du membre')
@@ -976,7 +1022,8 @@ const openEditMemberModal = (member) => {
     avatar: member.avatar || '👤',
     color: member.color || '#6366f1',
     pushNotificationsEnabled: member.pushNotificationsEnabled !== false,
-    emailNotificationsEnabled: Boolean(member.emailNotificationsEnabled)
+    emailNotificationsEnabled: Boolean(member.emailNotificationsEnabled),
+    usualPresence: member.usualPresence || 'present'
   }
   showEditMemberModal.value = true
 }
@@ -1350,6 +1397,10 @@ const handleDeleteMember = async (member) => {
   color: #ef4444;
 }
 
+.detail-badge-label.presence-badge {
+  color: #10b981;
+}
+
 .detail-badge-label.guest-badge {
   color: var(--accent-secondary);
 }
@@ -1377,6 +1428,15 @@ const handleDeleteMember = async (member) => {
 }
 [data-theme="dark"] .absent-tag {
   color: #f87171;
+}
+
+.presence-tag {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+[data-theme="dark"] .presence-tag {
+  color: #34d399;
 }
 
 .guest-tag {

@@ -229,6 +229,17 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">Présence habituelle à la maison</label>
+            <select v-model="editProfile.usualPresence" class="form-select">
+              <option value="present">🟢 Habituellement présent(e) (je signale mes absences)</option>
+              <option value="absent">⚪ Habituellement absent(e) (je signale mes présences)</option>
+            </select>
+            <span class="help-subtext">
+              Détermine si vous êtes comptabilisé(e) par défaut aux repas de famille et pour la nuit.
+            </span>
+          </div>
+
+          <div class="form-group">
             <label class="form-label">Choisissez un Avatar</label>
             <div class="avatar-options">
               <button 
@@ -477,7 +488,8 @@ const editProfile = ref({
   avatar: '👨‍💼',
   color: '#6366f1',
   pushNotificationsEnabled: true,
-  emailNotificationsEnabled: false
+  emailNotificationsEnabled: false,
+  usualPresence: 'present'
 })
 
 const sortedMembers = computed(() => {
@@ -509,7 +521,8 @@ const openProfileModal = async () => {
     avatar: authStore.user.avatar || '👨‍💼',
     color: authStore.user.color || '#6366f1',
     pushNotificationsEnabled: initialDeviceSubscribed.value,
-    emailNotificationsEnabled: Boolean(authStore.user.emailNotificationsEnabled)
+    emailNotificationsEnabled: Boolean(authStore.user.emailNotificationsEnabled),
+    usualPresence: authStore.user.usualPresence || 'present'
   }
   showProfileModal.value = true
 }

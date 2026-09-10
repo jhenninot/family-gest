@@ -576,7 +576,8 @@ app.post('/api/auth/login', async (req, res) => {
         color: user.color,
         points: user.points,
         pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
-        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled)
+        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
+        usualPresence: user.usualPresence || 'present'
       }
     })
   } catch (err) {
@@ -605,7 +606,8 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
         color: user.color,
         points: user.points,
         pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
-        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled)
+        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
+        usualPresence: user.usualPresence || 'present'
       }
     })
   } catch (err) {
@@ -761,7 +763,8 @@ app.post('/api/auth/set-password', async (req, res) => {
         color: user.color,
         points: user.points,
         pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
-        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled)
+        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
+        usualPresence: user.usualPresence || 'present'
       }
     })
   } catch (err) {
@@ -775,13 +778,16 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     const user = await User.findOne({ id: req.user.id })
     if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
 
-    const { firstName, lastName, email, password, role, avatar, color, pushNotificationsEnabled, emailNotificationsEnabled } = req.body
+    const { firstName, lastName, email, password, role, avatar, color, pushNotificationsEnabled, emailNotificationsEnabled, usualPresence } = req.body
 
     if (firstName) user.firstName = firstName.trim()
     if (lastName) user.lastName = lastName.trim()
     if (role) user.role = role
     if (avatar) user.avatar = avatar
     if (color) user.color = color
+    if (usualPresence && ['present', 'absent'].includes(usualPresence)) {
+      user.usualPresence = usualPresence
+    }
 
     if (pushNotificationsEnabled !== undefined) {
       const activeSubs = await PushSubscription.countDocuments({ userId: user.id })
@@ -825,7 +831,8 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
       color: user.color,
       points: user.points,
       pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
-      emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled)
+      emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
+      usualPresence: user.usualPresence || 'present'
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -848,7 +855,8 @@ app.get('/api/members', requireAuth, async (req, res) => {
       color: u.color,
       points: u.points,
       pushNotificationsEnabled: u.pushNotificationsEnabled !== false,
-      emailNotificationsEnabled: Boolean(u.emailNotificationsEnabled)
+      emailNotificationsEnabled: Boolean(u.emailNotificationsEnabled),
+      usualPresence: u.usualPresence || 'present'
     }))
     res.json(members)
   } catch (err) {
@@ -859,7 +867,7 @@ app.get('/api/members', requireAuth, async (req, res) => {
 // Ajouter un membre : Réservé à l'Administrateur
 app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin } = req.body
+    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, usualPresence } = req.body
 
     const fName = firstName || (name ? name.split(' ')[0] : 'Membre')
     const lName = lastName || (name && name.split(' ').length > 1 ? name.split(' ').slice(1).join(' ') : 'Famille')
@@ -893,7 +901,8 @@ app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
       color: color || '#6366f1',
       points: Number(points) || 0,
       welcomeToken,
-      welcomeTokenExpires
+      welcomeTokenExpires,
+      usualPresence: usualPresence || 'present'
     })
 
     await newUser.save()
@@ -911,7 +920,8 @@ app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
       role: newUser.role,
       avatar: newUser.avatar,
       color: newUser.color,
-      points: newUser.points
+      points: newUser.points,
+      usualPresence: newUser.usualPresence || 'present'
     })
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -925,7 +935,7 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
     const user = await User.findOne({ id: memberId })
     if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
 
-    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, pushNotificationsEnabled, emailNotificationsEnabled } = req.body
+    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, pushNotificationsEnabled, emailNotificationsEnabled, usualPresence } = req.body
 
     if (firstName) user.firstName = firstName.trim()
     if (lastName) user.lastName = lastName.trim()
@@ -940,6 +950,9 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
     if (points !== undefined && points !== null) user.points = Number(points)
     if (pushNotificationsEnabled !== undefined) user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
     if (emailNotificationsEnabled !== undefined) user.emailNotificationsEnabled = Boolean(emailNotificationsEnabled)
+    if (usualPresence && ['present', 'absent'].includes(usualPresence)) {
+      user.usualPresence = usualPresence
+    }
 
     if (isAdmin !== undefined && isAdmin !== null) {
       const newAdminState = Boolean(isAdmin)
@@ -985,7 +998,8 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
       color: user.color,
       points: user.points,
       pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
-      emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled)
+      emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
+      usualPresence: user.usualPresence || 'present'
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1432,7 +1446,7 @@ app.get('/api/absences', requireAuth, async (req, res) => {
 
 app.post('/api/absences', requireAuth, async (req, res) => {
   try {
-    const { memberId, date, lunch, dinner, night, note } = req.body
+    const { memberId, date, type, lunch, dinner, night, note } = req.body
 
     if (!memberId || !date) {
       return res.status(400).json({ error: 'Membre et date requis' })
@@ -1442,10 +1456,12 @@ app.post('/api/absences', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Veuillez sélectionner au moins un créneau (Déjeuner, Dîner ou Nuit)' })
     }
 
-    const notifyAbsence = async (mId, dStr, l, din, n, nt) => {
+    const recordType = type === 'presence' ? 'presence' : 'absence'
+
+    const notifyAbsenceOrPresence = async (recType, mId, dStr, l, din, n, nt) => {
       try {
-        const absentMember = await User.findOne({ id: Number(mId) })
-        const mName = absentMember ? absentMember.firstName : 'Un membre'
+        const member = await User.findOne({ id: Number(mId) })
+        const mName = member ? member.firstName : 'Un membre'
         const slots = []
         if (l) slots.push('Midi')
         if (din) slots.push('Soir')
@@ -1453,44 +1469,73 @@ app.post('/api/absences', requireAuth, async (req, res) => {
         const slotsStr = slots.length > 0 ? slots.join(', ') : 'Journée'
         const noteStr = nt ? ` • ${nt.trim()}` : ''
 
-        sendPushNotification({
-          title: `🚫 Nouvelle absence : ${mName}`,
-          body: `${mName} sera absent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`,
-          url: '/absences',
-          excludeUserId: req.user ? req.user.id : null
-        })
+        if (recType === 'presence') {
+          sendPushNotification({
+            title: `🟢 Présence confirmée : ${mName}`,
+            body: `${mName} sera présent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`,
+            url: '/absences',
+            excludeUserId: req.user ? req.user.id : null
+          })
 
-        sendNotificationEmail({
-          subject: `🚫 Nouvelle absence signalée : ${mName}`,
-          title: `Nouvelle absence signalée`,
-          badge: '🚫',
-          detailsHtml: `
-            <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-              <strong>${mName}</strong> a signalé une absence :
-            </p>
-            <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-              <li><strong>Date :</strong> ${dStr.trim()}</li>
-              <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
-              ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
-            </ul>
-          `,
-          actionUrl: '/absences',
-          actionText: 'Consulter les absences & repas',
-          excludeUserId: req.user ? req.user.id : null
-        })
+          sendNotificationEmail({
+            subject: `🟢 Présence confirmée : ${mName}`,
+            title: `Nouvelle présence signalée`,
+            badge: '🟢',
+            detailsHtml: `
+              <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+                <strong>${mName}</strong> a confirmé sa présence :
+              </p>
+              <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+                <li><strong>Date :</strong> ${dStr.trim()}</li>
+                <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
+                ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
+              </ul>
+            `,
+            actionUrl: '/absences',
+            actionText: 'Consulter les présences & repas',
+            excludeUserId: req.user ? req.user.id : null
+          })
+        } else {
+          sendPushNotification({
+            title: `🚫 Nouvelle absence : ${mName}`,
+            body: `${mName} sera absent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`,
+            url: '/absences',
+            excludeUserId: req.user ? req.user.id : null
+          })
+
+          sendNotificationEmail({
+            subject: `🚫 Nouvelle absence signalée : ${mName}`,
+            title: `Nouvelle absence signalée`,
+            badge: '🚫',
+            detailsHtml: `
+              <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+                <strong>${mName}</strong> a signalé une absence :
+              </p>
+              <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+                <li><strong>Date :</strong> ${dStr.trim()}</li>
+                <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
+                ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
+              </ul>
+            `,
+            actionUrl: '/absences',
+            actionText: 'Consulter les absences & repas',
+            excludeUserId: req.user ? req.user.id : null
+          })
+        }
       } catch (e) {
-        console.error('[WebPush] Erreur notification absence:', e.message)
+        console.error('[WebPush] Erreur notification absence/présence:', e.message)
       }
     }
 
     let existing = await Absence.findOne({ memberId: Number(memberId), date: date.trim() })
     if (existing) {
+      existing.type = recordType
       existing.lunch = Boolean(lunch)
       existing.dinner = Boolean(dinner)
       existing.night = Boolean(night)
       if (note !== undefined) existing.note = note.trim()
       await existing.save()
-      notifyAbsence(memberId, date, lunch, dinner, night, note)
+      notifyAbsenceOrPresence(existing.type, memberId, date, lunch, dinner, night, note)
       return res.json(existing)
     }
 
@@ -1498,6 +1543,7 @@ app.post('/api/absences', requireAuth, async (req, res) => {
       id: Date.now(),
       memberId: Number(memberId),
       date: date.trim(),
+      type: recordType,
       lunch: Boolean(lunch),
       dinner: Boolean(dinner),
       night: Boolean(night),
@@ -1505,7 +1551,7 @@ app.post('/api/absences', requireAuth, async (req, res) => {
     })
 
     await newAbsence.save()
-    notifyAbsence(memberId, date, lunch, dinner, night, note)
+    notifyAbsenceOrPresence(newAbsence.type, memberId, date, lunch, dinner, night, note)
     res.status(201).json(newAbsence)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -1521,9 +1567,10 @@ app.put('/api/absences/:id', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres absences' })
     }
 
-    const { memberId, date, lunch, dinner, night, note } = req.body
+    const { memberId, date, type, lunch, dinner, night, note } = req.body
     if (memberId !== undefined && req.user.isAdmin) absence.memberId = Number(memberId)
     if (date) absence.date = date.trim()
+    if (type && ['absence', 'presence'].includes(type)) absence.type = type
     if (lunch !== undefined) absence.lunch = Boolean(lunch)
     if (dinner !== undefined) absence.dinner = Boolean(dinner)
     if (night !== undefined) absence.night = Boolean(night)
