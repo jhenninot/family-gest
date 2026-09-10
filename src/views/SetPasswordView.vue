@@ -135,7 +135,7 @@
                   Notifications Web (PWA)
                 </span>
                 <span class="notif-label-desc">
-                  Alertes directes sur cet appareil (absences, invités, agenda)
+                  Alertes directes sur cet appareil (tâches, absences, invités, agenda)
                 </span>
               </div>
             </label>

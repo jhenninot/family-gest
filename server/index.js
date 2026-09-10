@@ -999,6 +999,43 @@ app.post('/api/tasks', requireAuth, async (req, res) => {
       dueDate: req.body.dueDate
     })
     await newTask.save()
+
+    // Informations pour les notifications
+    const authorName = req.user ? req.user.firstName : 'Un membre'
+    const assignedUser = await User.findOne({ id: newTask.assignedTo })
+    const assignedName = assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'Non assigné'
+
+    // Notification push pour la nouvelle tâche
+    sendPushNotification({
+      title: `📋 Nouvelle tâche : ${newTask.title}`,
+      body: `Assignée à ${assignedName} • +${newTask.points} pts • Ajoutée par ${authorName}`,
+      url: '/tasks',
+      excludeUserId: req.user ? req.user.id : null
+    })
+
+    // Notification email pour la nouvelle tâche
+    sendNotificationEmail({
+      subject: `📋 Nouvelle tâche : ${newTask.title}`,
+      title: `Nouvelle tâche ajoutée`,
+      badge: '📋',
+      detailsHtml: `
+        <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+          <strong>${authorName}</strong> a ajouté une nouvelle tâche :
+        </p>
+        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+          <li><strong>Titre :</strong> ${newTask.title}</li>
+          <li><strong>Assignée à :</strong> ${assignedName}</li>
+          <li><strong>Catégorie :</strong> ${newTask.category || 'Maison'}</li>
+          <li><strong>Priorité :</strong> ${newTask.priority || 'Moyenne'}</li>
+          <li><strong>Récompense :</strong> +${newTask.points} pts</li>
+          ${newTask.dueDate ? `<li><strong>Échéance :</strong> ${newTask.dueDate}</li>` : ''}
+        </ul>
+      `,
+      actionUrl: '/tasks',
+      actionText: 'Voir les tâches',
+      excludeUserId: req.user ? req.user.id : null
+    })
+
     res.status(201).json(newTask)
   } catch (err) {
     res.status(400).json({ error: err.message })

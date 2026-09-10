@@ -20,7 +20,7 @@
           <div class="push-header-text">
             <h3 class="push-modal-title">Notifications sur cet appareil</h3>
             <p class="push-modal-desc">
-              Souhaitez-vous recevoir des alertes instantanées (nouvelle absence, invité aux repas, évènement d'agenda) sur ce navigateur ?
+              Souhaitez-vous recevoir des alertes instantanées (nouvelle tâche, absence, invité aux repas, agenda) sur ce navigateur ?
             </p>
           </div>
         </div>
