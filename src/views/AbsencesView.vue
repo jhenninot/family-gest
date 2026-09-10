@@ -286,14 +286,14 @@
             <h2>{{ currentMonthName }} {{ currentYear }}</h2>
           </div>
           <div class="calendar-nav-controls">
-            <button @click="prevMonth" class="btn-icon" title="Mois précédent">
-              <ChevronLeft :size="18" />
+            <button @click="prevMonth" class="btn-cal-nav" title="Mois précédent">
+              <ChevronLeft :size="22" />
             </button>
             <button @click="goToToday" class="btn-today-nav">
               Aujourd'hui
             </button>
-            <button @click="nextMonth" class="btn-icon" title="Mois suivant">
-              <ChevronRight :size="18" />
+            <button @click="nextMonth" class="btn-cal-nav" title="Mois suivant">
+              <ChevronRight :size="22" />
             </button>
           </div>
         </div>
@@ -1864,7 +1864,29 @@ const handleDeleteGuest = async (id) => {
 .calendar-nav-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
+}
+
+.btn-cal-nav {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn-cal-nav:hover {
+  color: var(--accent-primary);
+  transform: scale(1.18);
+}
+
+.btn-cal-nav:active {
+  transform: scale(0.95);
 }
 
 .btn-today-nav {
