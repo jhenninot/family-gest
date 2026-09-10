@@ -5,7 +5,7 @@
       <div>
         <h1 class="page-title">
           <CheckSquare :size="28" class="text-indigo" />
-          <span>Tâches & Corvées</span>
+          <span></span>
         </h1>
         <p class="page-subtitle">Organisez et répartissez les tâches ménagères en gagnant des points.</p>
       </div>

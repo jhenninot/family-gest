@@ -40,7 +40,7 @@
 
       <router-link to="/tasks" class="nav-item" active-class="active">
         <CheckSquare :size="20" />
-        <span>Tâches & Corvées</span>
+        <span>Tâches</span>
         <span v-if="store.pendingTasksCount > 0" class="badge-count">{{ store.pendingTasksCount }}</span>
       </router-link>
 

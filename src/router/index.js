@@ -20,7 +20,7 @@ const routes = [
     path: '/tasks',
     name: 'tasks',
     component: () => import('../views/TasksView.vue'),
-    meta: { title: 'Tâches & Corvées', requiresAuth: true }
+    meta: { title: 'Tâches', requiresAuth: true }
   },
   {
     path: '/calendar',
