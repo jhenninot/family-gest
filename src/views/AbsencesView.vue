@@ -15,13 +15,13 @@
           <UserPlus :size="18" />
           <span>+ Invité(s)</span>
         </button>
-        <button v-if="isCurrentUserUsuallyAbsent" @click="openAddModal(null, 'presence')" class="btn btn-presence-primary">
+        <button @click="openAddModal(null, 'presence')" class="btn btn-presence-primary" title="Signaler la présence d'un membre habituellement absent">
           <CheckCircle2 :size="18" />
-          <span>Signaler une Présence</span>
+          <span>+ Présence</span>
         </button>
-        <button v-else @click="openAddModal(null, 'absence')" class="btn btn-primary">
+        <button @click="openAddModal(null, 'absence')" class="btn btn-primary" title="Signaler une absence">
           <Plus :size="18" />
-          <span>Signaler une Absence</span>
+          <span>+ Absence</span>
         </button>
       </div>
     </div>
@@ -35,13 +35,13 @@
         </div>
         <div class="today-header-btns">
           <button @click="openAddGuestModal(store.todayStr)" class="btn-today-add guest-btn">
-            <UserPlus :size="14" /> + Invité aujourd'hui
+            <UserPlus :size="14" /> + Invité
           </button>
-          <button v-if="isCurrentUserUsuallyAbsent" @click="openAddModal(store.todayStr, 'presence')" class="btn-today-add presence-btn">
-            <CheckCircle2 :size="14" /> Signaler une présence
+          <button @click="openAddModal(store.todayStr, 'presence')" class="btn-today-add presence-btn" title="Signaler la présence d'un membre aujourd'hui">
+            <CheckCircle2 :size="14" /> + Présence
           </button>
-          <button v-else @click="openAddModal(store.todayStr, 'absence')" class="btn-today-add">
-            <Plus :size="14" /> Signaler une absence
+          <button @click="openAddModal(store.todayStr, 'absence')" class="btn-today-add" title="Signaler une absence aujourd'hui">
+            <Plus :size="14" /> + Absence
           </button>
         </div>
       </div>
@@ -441,6 +441,9 @@
                   <span class="absence-date-badge" :class="{ 'is-today': abs.date === store.todayStr }">
                     {{ formatRelativeDate(abs.date) }}
                   </span>
+                  <span v-if="abs.declaredBy && abs.declaredBy !== abs.memberId" class="guest-host-tag" :title="'Signalé par ' + getMemberName(abs.declaredBy)">
+                    Signalé par {{ getMemberFirstName(abs.declaredBy) }}
+                  </span>
                 </div>
 
                 <div class="card-action-buttons">
@@ -589,12 +592,15 @@
 
           <!-- Member selection -->
           <div class="form-group">
-            <label class="form-label">Membre de la famille</label>
+            <label class="form-label">Membre concerné</label>
             <select v-model="form.memberId" @change="onMemberChange" class="form-select" required>
               <option v-for="m in store.members" :key="m.id" :value="m.id">
                 {{ m.avatar }} {{ m.name }} {{ m.usualPresence === 'absent' ? '(Habituellement absent)' : '' }} {{ m.id === authStore.user?.id ? '• Moi' : '' }}
               </option>
             </select>
+            <span v-if="form.memberId !== authStore.user?.id" class="help-subtext text-indigo">
+              👋 Vous déclarez cette {{ form.type === 'presence' ? 'présence' : 'absence' }} pour <strong>{{ getMemberName(form.memberId) }}</strong>. Une alerte (web & mail) sera envoyée à la famille.
+            </span>
           </div>
 
           <!-- Date -->
@@ -610,7 +616,11 @@
 
           <!-- Slots selection cards -->
           <div class="form-group">
-            <label class="form-label">{{ form.type === 'presence' ? 'Créneau(x) où vous serez présent(e) :' : 'Créneau(x) d\'absence :' }}</label>
+            <label class="form-label">
+              {{ form.type === 'presence' 
+                ? (form.memberId === authStore.user?.id ? 'Créneau(x) où vous serez présent(e) :' : `Créneau(x) où ${getMemberFirstName(form.memberId)} sera présent(e) :`) 
+                : (form.memberId === authStore.user?.id ? 'Créneau(x) où vous serez absent(e) :' : `Créneau(x) où ${getMemberFirstName(form.memberId)} sera absent(e) :`) }}
+            </label>
             <div class="slots-toggle-grid">
               <!-- Déjeuner -->
               <div 
@@ -850,24 +860,24 @@
           <!-- Top Big Action Buttons -->
           <div class="day-detail-actions-bar">
             <button 
-              v-if="isCurrentUserUsuallyAbsent" 
               @click="openAddModalFromDay('presence')" 
               class="btn btn-presence-primary btn-action-card"
+              title="Signaler la présence d'un membre pour cette journée"
             >
               <CheckCircle2 :size="18" />
-              <span>Signaler ma présence</span>
+              <span>+ Présence</span>
             </button>
             <button 
-              v-else 
               @click="openAddModalFromDay('absence')" 
               class="btn btn-primary btn-action-card"
+              title="Signaler une absence pour cette journée"
             >
               <Plus :size="18" />
-              <span>Signaler une absence</span>
+              <span>+ Absence</span>
             </button>
             <button @click="openAddGuestModalFromDay()" class="btn btn-purple btn-action-card">
               <UserPlus :size="18" />
-              <span>+ Ajouter un invité</span>
+              <span>+ Invité</span>
             </button>
           </div>
 
@@ -895,6 +905,7 @@
                       <div class="person-info">
                         <strong>{{ getMemberName(pres.memberId) }}</strong>
                         <span class="presence-badge-text">🟢 Présence confirmée</span>
+                        <span v-if="pres.declaredBy && pres.declaredBy !== pres.memberId" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
@@ -917,6 +928,7 @@
                       <span class="person-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
                       <div class="person-info">
                         <strong>{{ getMemberName(abs.memberId) }}</strong>
+                        <span v-if="abs.declaredBy && abs.declaredBy !== abs.memberId" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
@@ -982,6 +994,7 @@
                       <div class="person-info">
                         <strong>{{ getMemberName(pres.memberId) }}</strong>
                         <span class="presence-badge-text">🟢 Présence confirmée</span>
+                        <span v-if="pres.declaredBy && pres.declaredBy !== pres.memberId" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
@@ -1004,6 +1017,7 @@
                       <span class="person-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
                       <div class="person-info">
                         <strong>{{ getMemberName(abs.memberId) }}</strong>
+                        <span v-if="abs.declaredBy && abs.declaredBy !== abs.memberId" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
@@ -1069,6 +1083,7 @@
                       <div class="person-info">
                         <strong>{{ getMemberName(pres.memberId) }}</strong>
                         <span class="presence-badge-text">🟢 Présence confirmée</span>
+                        <span v-if="pres.declaredBy && pres.declaredBy !== pres.memberId" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
@@ -1091,6 +1106,7 @@
                       <span class="person-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
                       <div class="person-info">
                         <strong>{{ getMemberName(abs.memberId) }}</strong>
+                        <span v-if="abs.declaredBy && abs.declaredBy !== abs.memberId" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
@@ -1294,8 +1310,10 @@ const getRecordForMember = (memberId, dateStr) => {
 
 const canEdit = (abs) => {
   if (!authStore.user) return false
-  return authStore.isAdmin || abs.memberId === authStore.user.id
+  return authStore.isAdmin || abs.memberId === authStore.user.id || abs.declaredBy === authStore.user.id
 }
+
+const hasUsuallyAbsentMembers = computed(() => store.members.some(m => m.usualPresence === 'absent'))
 
 // Filtered Absences & Guests
 const filteredAbsences = computed(() => {
@@ -1398,9 +1416,21 @@ const formatRelativeDate = (dStr) => {
 }
 
 // Absence/Presence Modal actions
-const openAddModal = (defaultDate = null, defaultType = null) => {
+const openAddModal = (defaultDate = null, defaultType = null, defaultMemberId = null) => {
   editingId.value = null
-  const initialMemberId = authStore.user?.id || (store.members[0]?.id || 1)
+  let initialMemberId = defaultMemberId
+  if (!initialMemberId) {
+    if (defaultType === 'presence') {
+      if (isCurrentUserUsuallyAbsent.value) {
+        initialMemberId = authStore.user?.id
+      } else {
+        const absentMember = store.members.find(m => m.usualPresence === 'absent')
+        initialMemberId = absentMember ? absentMember.id : (authStore.user?.id || (store.members[0]?.id || 1))
+      }
+    } else {
+      initialMemberId = authStore.user?.id || (store.members[0]?.id || 1)
+    }
+  }
   const mem = store.members.find(m => m.id === initialMemberId)
   const initialType = defaultType || (mem?.usualPresence === 'absent' ? 'presence' : 'absence')
   
@@ -1508,9 +1538,9 @@ const openDayDetailModal = (dateStr) => {
   showDayDetailModal.value = true
 }
 
-const openAddModalFromDay = (defaultType = null) => {
+const openAddModalFromDay = (defaultType = null, defaultMemberId = null) => {
   showDayDetailModal.value = false
-  openAddModal(selectedDayDate.value, defaultType)
+  openAddModal(selectedDayDate.value, defaultType, defaultMemberId)
 }
 
 const openAddGuestModalFromDay = () => {

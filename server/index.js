@@ -1462,6 +1462,8 @@ app.post('/api/absences', requireAuth, async (req, res) => {
       try {
         const member = await User.findOne({ id: Number(mId) })
         const mName = member ? member.firstName : 'Un membre'
+        const authorName = req.user ? req.user.firstName : 'Un membre'
+        const isSelf = req.user && req.user.id === Number(mId)
         const slots = []
         if (l) slots.push('Midi')
         if (din) slots.push('Soir')
@@ -1470,24 +1472,39 @@ app.post('/api/absences', requireAuth, async (req, res) => {
         const noteStr = nt ? ` • ${nt.trim()}` : ''
 
         if (recType === 'presence') {
+          const pushTitle = `🟢 Présence confirmée : ${mName}`
+          const pushBody = isSelf
+            ? `${mName} sera présent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`
+            : `${authorName} a signalé la présence de ${mName} le ${dStr.trim()} (${slotsStr})${noteStr}`
+
           sendPushNotification({
-            title: `🟢 Présence confirmée : ${mName}`,
-            body: `${mName} sera présent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`,
+            title: pushTitle,
+            body: pushBody,
             url: '/absences',
             excludeUserId: req.user ? req.user.id : null
           })
 
+          const emailSubject = isSelf 
+            ? `🟢 Présence confirmée : ${mName}`
+            : `🟢 Présence signalée pour ${mName} par ${authorName}`
+
+          const introHtml = isSelf
+            ? `<strong>${mName}</strong> a confirmé sa présence :`
+            : `<strong>${authorName}</strong> a signalé la présence de <strong>${mName}</strong> :`
+
           sendNotificationEmail({
-            subject: `🟢 Présence confirmée : ${mName}`,
+            subject: emailSubject,
             title: `Nouvelle présence signalée`,
             badge: '🟢',
             detailsHtml: `
               <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-                <strong>${mName}</strong> a confirmé sa présence :
+                ${introHtml}
               </p>
               <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+                <li><strong>Membre :</strong> ${mName}</li>
                 <li><strong>Date :</strong> ${dStr.trim()}</li>
                 <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
+                ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
                 ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
               </ul>
             `,
@@ -1496,24 +1513,39 @@ app.post('/api/absences', requireAuth, async (req, res) => {
             excludeUserId: req.user ? req.user.id : null
           })
         } else {
+          const pushTitle = `🚫 Nouvelle absence : ${mName}`
+          const pushBody = isSelf
+            ? `${mName} sera absent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`
+            : `${authorName} a signalé l'absence de ${mName} le ${dStr.trim()} (${slotsStr})${noteStr}`
+
           sendPushNotification({
-            title: `🚫 Nouvelle absence : ${mName}`,
-            body: `${mName} sera absent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`,
+            title: pushTitle,
+            body: pushBody,
             url: '/absences',
             excludeUserId: req.user ? req.user.id : null
           })
 
+          const emailSubject = isSelf 
+            ? `🚫 Nouvelle absence signalée : ${mName}`
+            : `🚫 Absence signalée pour ${mName} par ${authorName}`
+
+          const introHtml = isSelf
+            ? `<strong>${mName}</strong> a signalé une absence :`
+            : `<strong>${authorName}</strong> a signalé l'absence de <strong>${mName}</strong> :`
+
           sendNotificationEmail({
-            subject: `🚫 Nouvelle absence signalée : ${mName}`,
+            subject: emailSubject,
             title: `Nouvelle absence signalée`,
             badge: '🚫',
             detailsHtml: `
               <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-                <strong>${mName}</strong> a signalé une absence :
+                ${introHtml}
               </p>
               <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+                <li><strong>Membre :</strong> ${mName}</li>
                 <li><strong>Date :</strong> ${dStr.trim()}</li>
                 <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
+                ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
                 ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
               </ul>
             `,
@@ -1534,6 +1566,7 @@ app.post('/api/absences', requireAuth, async (req, res) => {
       existing.dinner = Boolean(dinner)
       existing.night = Boolean(night)
       if (note !== undefined) existing.note = note.trim()
+      existing.declaredBy = req.user ? req.user.id : null
       await existing.save()
       notifyAbsenceOrPresence(existing.type, memberId, date, lunch, dinner, night, note)
       return res.json(existing)
@@ -1547,7 +1580,8 @@ app.post('/api/absences', requireAuth, async (req, res) => {
       lunch: Boolean(lunch),
       dinner: Boolean(dinner),
       night: Boolean(night),
-      note: (note || '').trim()
+      note: (note || '').trim(),
+      declaredBy: req.user ? req.user.id : null
     })
 
     await newAbsence.save()
@@ -1563,8 +1597,8 @@ app.put('/api/absences/:id', requireAuth, async (req, res) => {
     const absence = await Absence.findOne({ id: Number(req.params.id) })
     if (!absence) return res.status(404).json({ error: 'Absence non trouvée' })
 
-    if (absence.memberId !== req.user.id && !req.user.isAdmin) {
-      return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres absences' })
+    if (absence.memberId !== req.user.id && absence.declaredBy !== req.user.id && !req.user.isAdmin) {
+      return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres déclarations d\'absence ou de présence' })
     }
 
     const { memberId, date, type, lunch, dinner, night, note } = req.body
@@ -1593,8 +1627,8 @@ app.delete('/api/absences/:id', requireAuth, async (req, res) => {
     const absence = await Absence.findOne({ id: Number(req.params.id) })
     if (!absence) return res.status(404).json({ error: 'Absence non trouvée' })
 
-    if (absence.memberId !== req.user.id && !req.user.isAdmin) {
-      return res.status(403).json({ error: 'Vous ne pouvez supprimer que vos propres absences' })
+    if (absence.memberId !== req.user.id && absence.declaredBy !== req.user.id && !req.user.isAdmin) {
+      return res.status(403).json({ error: 'Vous ne pouvez supprimer que vos propres déclarations d\'absence ou de présence' })
     }
 
     await Absence.deleteOne({ id: Number(req.params.id) })

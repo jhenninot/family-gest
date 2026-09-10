@@ -8,7 +8,8 @@ const absenceSchema = new mongoose.Schema({
   lunch: { type: Boolean, default: false }, // Absent/Présent au déjeuner
   dinner: { type: Boolean, default: false }, // Absent/Présent au dîner
   night: { type: Boolean, default: false }, // Absent/Présent la nuit
-  note: { type: String, default: '', trim: true } // Motif optionnel
+  note: { type: String, default: '', trim: true }, // Motif optionnel
+  declaredBy: { type: Number, default: null } // ID de l'utilisateur ayant saisi la déclaration
 }, { timestamps: true })
 
 export default mongoose.model('Absence', absenceSchema)
