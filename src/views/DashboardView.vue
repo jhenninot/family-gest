@@ -61,7 +61,7 @@
           <UtensilsCrossed :size="22" />
         </div>
         <div class="metric-details">
-          <span class="metric-label">Repas & Invités</span>
+          <span class="metric-label">Présence & Invitations</span>
           <div class="metric-value" :class="{ 'metric-value-text': store.todayAbsences.length === 0 && store.todayMealGuests.length === 0 }">
             {{ todayMealsCardValue }}
           </div>
@@ -136,7 +136,7 @@
           <div class="section-card-header">
             <div class="header-title">
               <UtensilsCrossed :size="20" class="text-emerald" />
-              <h2>Repas & Nuit d'Aujourd'hui</h2>
+              <h2>Présence & Invitations</h2>
             </div>
             <router-link to="/absences" class="view-all-link">Voir le planning &rarr;</router-link>
           </div>
