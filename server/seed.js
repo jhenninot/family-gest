@@ -15,7 +15,7 @@ export const seedDatabaseIfEmpty = async () => {
         firstName: 'Admin',
         lastName: 'FamilyGest',
         email: 'admin@family-gest.org',
-        password: 'Admin123!',
+        password: 'Admin1234!',
         isAdmin: true,
         role: 'Administrateur',
         avatar: '👨‍💼',
@@ -96,6 +96,31 @@ export const seedDatabaseIfEmpty = async () => {
       ])
 
       console.log('✅ Administrateur (admin@family-gest.org) et base de données initialisés avec succès.')
+    } else {
+      // S'assurer que le compte admin@family-gest.org existe et utilise le mot de passe conforme Admin1234!
+      const defaultAdmin = await User.findOne({ email: 'admin@family-gest.org' })
+      if (defaultAdmin) {
+        defaultAdmin.password = 'Admin1234!'
+        await defaultAdmin.save()
+        console.log('✅ Mot de passe de admin@family-gest.org mis à jour vers le mot de passe conforme : Admin1234!')
+      } else {
+        const highestUser = await User.findOne().sort('-id')
+        const nextId = (highestUser && typeof highestUser.id === 'number') ? highestUser.id + 1 : 999
+        const newAdmin = new User({
+          id: nextId,
+          firstName: 'Admin',
+          lastName: 'FamilyGest',
+          email: 'admin@family-gest.org',
+          password: 'Admin1234!',
+          isAdmin: true,
+          role: 'Administrateur',
+          avatar: '👨‍💼',
+          color: '#6366f1',
+          points: 100
+        })
+        await newAdmin.save()
+        console.log(`✅ Compte admin@family-gest.org créé en base avec le mot de passe conforme : Admin1234! (ID: ${nextId})`)
+      }
     }
   } catch (error) {
     console.error('Erreur lors du pré-remplissage de la base de données', error)

@@ -173,4 +173,4 @@ Puis cliquez sur **Deploy**. L'application sera accessible sur `http://ip-de-vot
 ### 3. Connexion initiale
 Lors du tout premier démarrage sur une base vierge, le compte administrateur est automatiquement créé :
 - **Email** : `admin@family-gest.org`
-- **Mot de passe** : `Admin123!`
+- **Mot de passe** : `Admin1234!`

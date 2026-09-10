@@ -12,7 +12,7 @@
    - **Restriction des droits** : Seul l'utilisateur avec le rôle **Administrateur** a les privilèges pour créer ou supprimer des utilisateurs.
    - **Compte Admin par défaut** :
      - **Email** : `admin@family-gest.org`
-     - **Mot de passe** : `Admin123!`
+     - **Mot de passe** : `Admin1234!`
 
 2. 📊 **Tableau de Bord Réactif**
    - Métriques en temps réel (progression des tâches, dépenses du mois, événements à venir, articles à acheter).
@@ -96,7 +96,7 @@ L'application est disponible sur `http://localhost:5000`.
 
 | Rôle | Adresse Email | Mot de Passe | Privilèges |
 |---|---|---|---|
-| **Administrateur** | `admin@family-gest.org` | `Admin123!` | Gestion complète + Ajout/Suppression de membres |
+| **Administrateur** | `admin@family-gest.org` | `Admin1234!` | Gestion complète + Ajout/Suppression de membres |
 | **Maman** | `sophie@family-gest.org` | `Family123!` | Accès membres & tâches |
 | **Fils** | `lucas@family-gest.org` | `Family123!` | Accès membres & tâches |
 | **Fille** | `emma@family-gest.org` | `Family123!` | Accès membres & tâches |
