@@ -100,9 +100,21 @@
 
       <!-- Interactive Calendar Preview Widget -->
       <div class="glass-card section-card">
-        <div class="section-card-header">
-          <h2>Septembre 2026</h2>
-          <span class="badge badge-indigo">Vue Mensuelle</span>
+        <div class="section-card-header flex-between">
+          <div class="calendar-nav-title">
+            <h2>{{ currentMonthName }} {{ currentYear }}</h2>
+          </div>
+          <div class="calendar-nav-controls">
+            <button @click="prevMonth" class="btn-cal-nav" title="Mois précédent">
+              <ChevronLeft :size="22" />
+            </button>
+            <button @click="goToToday" class="btn-today-nav">
+              Aujourd'hui
+            </button>
+            <button @click="nextMonth" class="btn-cal-nav" title="Mois suivant">
+              <ChevronRight :size="22" />
+            </button>
+          </div>
         </div>
 
         <!-- Days of week -->
@@ -111,14 +123,18 @@
         </div>
 
         <div class="calendar-days-grid">
-          <!-- Blank padding for Sept 2026 (Starts on Tuesday = offset 1) -->
-          <div class="day-cell day-empty"></div>
+          <!-- Blank padding for current month -->
+          <div 
+            v-for="pad in leadingPaddingDays" 
+            :key="'pad-' + pad" 
+            class="day-cell day-empty"
+          ></div>
 
           <div 
-            v-for="day in 30" 
+            v-for="day in daysInCurrentMonth" 
             :key="day"
             class="day-cell"
-            :class="{ today: day === 8, 'has-events': hasEventOnDay(day), 'cell-interactive': hasEventOnDay(day) }"
+            :class="{ today: isDayToday(day), 'has-events': hasEventOnDay(day), 'cell-interactive': hasEventOnDay(day) }"
             @click="handleDayClick(day)"
             :title="hasEventOnDay(day) ? 'Cliquez pour voir les événements de ce jour' : ''"
           >
@@ -336,7 +352,7 @@
     <div v-if="showDayEventsModal" class="modal-overlay" @click.self="showDayEventsModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Événements du {{ selectedDayNumber }} Septembre 2026</h3>
+          <h3>Événements du {{ selectedDayNumber }} {{ currentMonthName }} {{ currentYear }}</h3>
           <button @click="showDayEventsModal = false" class="btn-close">&times;</button>
         </div>
 
@@ -402,6 +418,8 @@ import { ref, computed } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
   Calendar as CalendarIcon, 
+  ChevronLeft,
+  ChevronRight,
   Plus, 
   Trash2, 
   Edit3,
@@ -414,6 +432,64 @@ import {
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 
 const store = useFamilyStore()
+
+// Calendar Month Navigation
+const todayDate = new Date()
+const currentYear = ref(todayDate.getFullYear())
+const currentMonth = ref(todayDate.getMonth()) // 0-indexed
+
+const monthNames = [
+  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+]
+
+const currentMonthName = computed(() => monthNames[currentMonth.value])
+
+const prevMonth = () => {
+  if (currentMonth.value === 0) {
+    currentMonth.value = 11
+    currentYear.value--
+  } else {
+    currentMonth.value--
+  }
+}
+
+const nextMonth = () => {
+  if (currentMonth.value === 11) {
+    currentMonth.value = 0
+    currentYear.value++
+  } else {
+    currentMonth.value++
+  }
+}
+
+const goToToday = () => {
+  currentYear.value = todayDate.getFullYear()
+  currentMonth.value = todayDate.getMonth()
+}
+
+// Days in current month
+const daysInCurrentMonth = computed(() => {
+  return new Date(currentYear.value, currentMonth.value + 1, 0).getDate()
+})
+
+// Number of leading blank cells (Monday = 1, Sunday = 7)
+const leadingPaddingDays = computed(() => {
+  const firstDay = new Date(currentYear.value, currentMonth.value, 1).getDay()
+  return (firstDay + 6) % 7
+})
+
+const formatDateStr = (y, m, d) => {
+  const mm = String(m + 1).padStart(2, '0')
+  const dd = String(d).padStart(2, '0')
+  return `${y}-${mm}-${dd}`
+}
+
+const isDayToday = (day) => {
+  const check = formatDateStr(currentYear.value, currentMonth.value, day)
+  return check === store.todayStr
+}
+
 const showAddModal = ref(false)
 const showEditModal = ref(false)
 const showSuccessExportModal = ref(false)
@@ -423,7 +499,7 @@ const editingEventId = ref(null)
 
 const editEventForm = ref({
   title: '',
-  date: '2026-09-15',
+  date: store.todayStr,
   time: '14:00',
   category: 'Famille',
   location: '',
@@ -438,7 +514,7 @@ const colorOptions = ['#8b5cf6', '#ec4899', '#6366f1', '#10b981', '#f59e0b', '#0
 
 const newEvent = ref({
   title: '',
-  date: '2026-09-15',
+  date: store.todayStr,
   time: '14:00',
   category: 'Famille',
   location: '',
@@ -455,14 +531,12 @@ const formatDate = (dateStr) => {
 }
 
 const hasEventOnDay = (dayNum) => {
-  const dayStr = dayNum < 10 ? `0${dayNum}` : `${dayNum}`
-  const targetDate = `2026-09-${dayStr}`
+  const targetDate = formatDateStr(currentYear.value, currentMonth.value, dayNum)
   return store.events.some(e => e.date === targetDate)
 }
 
 const getEventsOnDay = (dayNum) => {
-  const dayStr = dayNum < 10 ? `0${dayNum}` : `${dayNum}`
-  const targetDate = `2026-09-${dayStr}`
+  const targetDate = formatDateStr(currentYear.value, currentMonth.value, dayNum)
   return store.events.filter(e => e.date === targetDate)
 }
 
@@ -636,6 +710,58 @@ const handleDeleteFromDay = async (id) => {
   gap: 0.25rem;
 }
 
+.calendar-nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-cal-nav {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn-cal-nav:hover {
+  color: var(--accent-purple);
+  transform: scale(1.18);
+}
+
+.btn-cal-nav:active {
+  transform: scale(0.95);
+}
+
+.btn-today-nav {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-today-nav:hover {
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
 /* Calendar Grid */
 .calendar-grid-header {
   display: grid;
@@ -673,6 +799,23 @@ const handleDeleteFromDay = async (id) => {
 
 .day-cell.has-events {
   background: var(--bg-secondary);
+}
+
+.day-cell.day-empty {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+}
+
+.cell-interactive {
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.cell-interactive:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-purple);
+  box-shadow: var(--shadow-sm);
 }
 
 .day-number {
