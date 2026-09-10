@@ -259,25 +259,43 @@
             </div>
           </div>
 
-          <!-- Case à cocher pour les notifications Web Push -->
+          <!-- Case à cocher pour les notifications Web Push sur cet appareil -->
           <div class="form-group notif-profile-group">
-            <label class="notif-toggle-card" :class="{ 'is-active': editProfile.pushNotificationsEnabled }">
+            <label 
+              class="notif-toggle-card" 
+              :class="{ 
+                'is-active': editProfile.pushNotificationsEnabled && devicePushStatus !== 'denied' && devicePushStatus !== 'unsupported',
+                'is-disabled': devicePushStatus === 'denied' || devicePushStatus === 'unsupported' 
+              }"
+            >
               <input 
                 type="checkbox" 
                 v-model="editProfile.pushNotificationsEnabled" 
+                :disabled="devicePushStatus === 'denied' || devicePushStatus === 'unsupported'"
                 class="notif-hidden-input"
               />
               <div class="notif-toggle-icon">
-                <Bell v-if="editProfile.pushNotificationsEnabled" :size="18" />
+                <Bell v-if="editProfile.pushNotificationsEnabled && devicePushStatus !== 'denied' && devicePushStatus !== 'unsupported'" :size="18" />
                 <BellOff v-else :size="18" />
               </div>
               <div class="notif-toggle-details">
-                <span class="notif-toggle-title">Notifications Web Push</span>
+                <span class="notif-toggle-title">Notifications sur cet appareil</span>
                 <span class="notif-toggle-subtitle">
-                  Alertes directes sur cet appareil (absences, invités, agenda)
+                  <template v-if="devicePushStatus === 'denied'">
+                    Bloquées par votre navigateur (à autoriser dans les réglages du site)
+                  </template>
+                  <template v-else-if="devicePushStatus === 'unsupported'">
+                    Non disponibles sur ce navigateur
+                  </template>
+                  <template v-else-if="editProfile.pushNotificationsEnabled">
+                    Actives sur ce navigateur (alertes directes)
+                  </template>
+                  <template v-else>
+                    Inactives sur ce navigateur (cliquez pour activer)
+                  </template>
                 </span>
               </div>
-              <div class="toggle-switch" :class="{ active: editProfile.pushNotificationsEnabled }">
+              <div class="toggle-switch" :class="{ active: editProfile.pushNotificationsEnabled && devicePushStatus !== 'denied' && devicePushStatus !== 'unsupported' }">
                 <span class="toggle-circle"></span>
               </div>
             </label>
@@ -430,7 +448,13 @@ import {
 } from '@lucide/vue'
 import PasswordStrengthIndicator from './PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
-import { subscribeUserToPush, unsubscribeUserFromPush } from '../utils/pushNotifications'
+import { 
+  subscribeUserToPush, 
+  unsubscribeUserFromPush, 
+  isDeviceSubscribedToPush, 
+  isPushSupported, 
+  getNotificationPermission 
+} from '../utils/pushNotifications'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -438,6 +462,8 @@ const store = useFamilyStore()
 
 const showProfileModal = ref(false)
 const saving = ref(false)
+const devicePushStatus = ref('default') // 'active', 'inactive', 'denied', 'unsupported'
+const initialDeviceSubscribed = ref(false)
 
 const avatarOptions = ['👨‍💼', '👩‍⚕️', '👦', '👧', '👶', '🧑', '👨‍🍳', '👵', '👴', '🐱', '🐶']
 const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
@@ -458,8 +484,22 @@ const sortedMembers = computed(() => {
   return [...store.members].sort((a, b) => b.points - a.points)
 })
 
-const openProfileModal = () => {
+const openProfileModal = async () => {
   if (!authStore.user) return
+
+  // Vérification de la disponibilité et du statut réel sur cet appareil
+  if (!isPushSupported()) {
+    devicePushStatus.value = 'unsupported'
+    initialDeviceSubscribed.value = false
+  } else if (getNotificationPermission() === 'denied') {
+    devicePushStatus.value = 'denied'
+    initialDeviceSubscribed.value = false
+  } else {
+    const isSub = await isDeviceSubscribedToPush()
+    initialDeviceSubscribed.value = isSub
+    devicePushStatus.value = isSub ? 'active' : 'inactive'
+  }
+
   editProfile.value = {
     firstName: authStore.user.firstName || '',
     lastName: authStore.user.lastName || '',
@@ -468,7 +508,7 @@ const openProfileModal = () => {
     role: authStore.user.role || 'Membre',
     avatar: authStore.user.avatar || '👨‍💼',
     color: authStore.user.color || '#6366f1',
-    pushNotificationsEnabled: authStore.user.pushNotificationsEnabled !== false,
+    pushNotificationsEnabled: initialDeviceSubscribed.value,
     emailNotificationsEnabled: Boolean(authStore.user.emailNotificationsEnabled)
   }
   showProfileModal.value = true
@@ -483,22 +523,24 @@ const handleSaveProfile = async () => {
   }
 
   saving.value = true
+
+  // Gestion de l'abonnement push spécifique à cet appareil
+  if (isPushSupported() && devicePushStatus.value !== 'denied' && devicePushStatus.value !== 'unsupported') {
+    if (editProfile.value.pushNotificationsEnabled && !initialDeviceSubscribed.value) {
+      await subscribeUserToPush().catch(err => {
+        console.warn('[WebPush] Erreur inscription push appareil:', err)
+      })
+    } else if (!editProfile.value.pushNotificationsEnabled && initialDeviceSubscribed.value) {
+      await unsubscribeUserFromPush().catch(err => {
+        console.warn('[WebPush] Erreur désabonnement push appareil:', err)
+      })
+    }
+  }
+
   const res = await authStore.updateProfile(editProfile.value)
   saving.value = false
 
   if (res.success) {
-    // Si l'utilisateur a activé les notifications, demander l'autorisation et abonner
-    if (editProfile.value.pushNotificationsEnabled) {
-      subscribeUserToPush().catch(err => {
-        console.warn('[WebPush] Inscription push non accordée:', err)
-      })
-    } else {
-      // Sinon, désabonner
-      unsubscribeUserFromPush().catch(err => {
-        console.warn('[WebPush] Erreur désabonnement push:', err)
-      })
-    }
-
     showProfileModal.value = false
     await store.fetchAllData()
   } else {
@@ -1214,6 +1256,12 @@ const handleDeleteShortcut = async () => {
 .notif-toggle-card.is-active {
   border-color: var(--accent-primary);
   background: rgba(99, 102, 241, 0.08);
+}
+
+.notif-toggle-card.is-disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .notif-hidden-input {

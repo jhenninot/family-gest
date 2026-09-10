@@ -409,11 +409,15 @@ app.post('/api/push/unsubscribe', requireAuth, async (req, res) => {
 
     if (endpoint) {
       await PushSubscription.deleteOne({ endpoint })
+      // Vérifier s'il reste d'autres appareils abonnés pour cet utilisateur
+      const remaining = await PushSubscription.countDocuments({ userId })
+      if (remaining === 0) {
+        await User.updateOne({ id: userId }, { pushNotificationsEnabled: false })
+      }
     } else {
       await PushSubscription.deleteMany({ userId })
+      await User.updateOne({ id: userId }, { pushNotificationsEnabled: false })
     }
-
-    await User.updateOne({ id: userId }, { pushNotificationsEnabled: false })
 
     res.json({ success: true, message: 'Désabonnement push effectué' })
   } catch (err) {
@@ -667,7 +671,12 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     if (color) user.color = color
 
     if (pushNotificationsEnabled !== undefined) {
-      user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
+      const activeSubs = await PushSubscription.countDocuments({ userId: user.id })
+      if (!pushNotificationsEnabled && activeSubs > 0) {
+        user.pushNotificationsEnabled = true
+      } else {
+        user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
+      }
     }
     if (emailNotificationsEnabled !== undefined) {
       user.emailNotificationsEnabled = Boolean(emailNotificationsEnabled)

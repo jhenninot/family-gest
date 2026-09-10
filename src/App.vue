@@ -36,6 +36,9 @@
 
     <!-- Bannière d'installation PWA -->
     <PwaInstallPrompt />
+
+    <!-- Invite de notifications Web Push par appareil -->
+    <DevicePushPrompt />
   </div>
 </template>
 
@@ -47,6 +50,7 @@ import { useFamilyStore } from './stores/familyStore'
 import { Sun, Moon, LogOut } from '@lucide/vue'
 import Sidebar from './components/Sidebar.vue'
 import PwaInstallPrompt from './components/PwaInstallPrompt.vue'
+import DevicePushPrompt from './components/DevicePushPrompt.vue'
 
 const route = useRoute()
 const router = useRouter()
