@@ -150,8 +150,88 @@ const sendWelcomeEmail = async (user, token) => {
   }
 }
 
+// Helpers pour le formatage iCalendar (.ics) et Google Agenda côté serveur
+const formatServerEventDates = (dateStr, timeStr) => {
+  if (!dateStr) return { start: '', end: '', isAllDay: true }
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const pad = (n) => String(n).padStart(2, '0')
+
+  if (timeStr && timeStr.includes(':')) {
+    const [hours, minutes] = timeStr.split(':').map(Number)
+    const startDate = new Date(year, month - 1, day, hours, minutes, 0)
+    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+
+    const formatCompact = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
+
+    return {
+      start: formatCompact(startDate),
+      end: formatCompact(endDate),
+      isAllDay: false
+    }
+  } else {
+    const start = `${year}${pad(month)}${pad(day)}`
+    const nextDay = new Date(year, month - 1, day + 1)
+    const end = `${nextDay.getFullYear()}${pad(nextDay.getMonth() + 1)}${pad(nextDay.getDate())}`
+    return { start, end, isAllDay: true }
+  }
+}
+
+const generateServerGoogleCalendarUrl = (event) => {
+  const { start, end } = formatServerEventDates(event.date, event.time)
+  const title = encodeURIComponent(event.title || 'Événement FamilyGest')
+  const location = encodeURIComponent(event.location || '')
+  let detailsText = 'Événement FamilyGest'
+  if (event.category) detailsText += ` (${event.category})`
+  const details = encodeURIComponent(detailsText)
+
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`
+}
+
+const generateServerIcsContent = (event) => {
+  const { start, end, isAllDay } = formatServerEventDates(event.date, event.time)
+  const now = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
+
+  const uid = `familygest-${event.id || Date.now()}@familygest.local`
+  const summary = (event.title || 'Événement FamilyGest').replace(/[,;\\]/g, ' ')
+  const location = (event.location || '').replace(/[,;\\]/g, ' ')
+  const description = `Événement FamilyGest${event.category ? ' - ' + event.category : ''}`
+
+  let dateLines = isAllDay
+    ? `DTSTART;VALUE=DATE:${start}\r\nDTEND;VALUE=DATE:${end}`
+    : `DTSTART:${start}\r\nDTEND:${end}`
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//FamilyGest//FR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:REQUEST',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${dtstamp}`,
+    dateLines,
+    `SUMMARY:${summary}`,
+    location ? `LOCATION:${location}` : '',
+    `DESCRIPTION:${description}`,
+    'STATUS:CONFIRMED',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].filter(Boolean).join('\r\n')
+}
+
 // Helper : Diffusion d'une notification par email aux membres ayant activé cette option
-const sendNotificationEmail = async ({ subject, title, badge = '🔔', detailsHtml, actionUrl = '/', actionText = 'Accéder à FamilyGest', excludeUserId = null }) => {
+const sendNotificationEmail = async ({ 
+  subject, 
+  title, 
+  badge = '🔔', 
+  detailsHtml, 
+  actionUrl = '/', 
+  actionText = 'Accéder à FamilyGest', 
+  excludeUserId = null,
+  calendarData = null 
+}) => {
   try {
     const config = await EmailConfig.findOne()
     if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
@@ -211,12 +291,29 @@ const sendNotificationEmail = async ({ subject, title, badge = '🔔', detailsHt
                     Bonjour <strong>${recipient.firstName || 'Membre'}</strong>,
                   </p>
 
-                  <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin-bottom: 24px;">
+                  <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin-bottom: 20px;">
                     ${detailsHtml}
                   </div>
 
-                  <!-- Bouton d'action -->
-                  <div style="text-align: center; margin: 28px 0;">
+                  <!-- Boutons d'export vers agenda personnel si disponible -->
+                  ${calendarData ? `
+                    <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px 18px; margin: 20px 0; text-align: center;">
+                      <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #334155;">
+                        📅 Ajouter directement à votre agenda personnel :
+                      </p>
+                      <div>
+                        <a href="${calendarData.googleUrl}" target="_blank" style="display: inline-block; background-color: #4285f4; color: #ffffff !important; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; text-decoration: none; margin: 4px 6px;">
+                          🌐 Google Agenda
+                        </a>
+                        <a href="${calendarData.icsUrl}" target="_blank" style="display: inline-block; background-color: #8b5cf6; color: #ffffff !important; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; text-decoration: none; margin: 4px 6px;">
+                          🍏 Apple / Outlook (.ics)
+                        </a>
+                      </div>
+                    </div>
+                  ` : ''}
+
+                  <!-- Bouton d'action principal -->
+                  <div style="text-align: center; margin: 24px 0;">
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto; border-collapse: separate;">
                       <tr>
                         <td align="center" bgcolor="#4f46e5" style="border-radius: 8px; background-color: #4f46e5; vertical-align: middle;">
@@ -238,7 +335,14 @@ const sendNotificationEmail = async ({ subject, title, badge = '🔔', detailsHt
             </table>
           </body>
           </html>
-        `
+        `,
+        attachments: (calendarData && calendarData.icsContent) ? [
+          {
+            filename: `${(calendarData.eventTitle || 'evenement').replace(/[^a-zA-Z0-9]/g, '_')}.ics`,
+            content: calendarData.icsContent,
+            contentType: 'text/calendar; charset=utf-8; method=REQUEST'
+          }
+        ] : []
       }
       return transporter.sendMail(mailOptions)
     })
@@ -308,7 +412,14 @@ const initVapid = async () => {
 }
 
 // Helper pour diffuser une notification push aux membres éligibles
-const sendPushNotification = async ({ title, body, url = '/', excludeUserId = null }) => {
+const sendPushNotification = async ({ 
+  title, 
+  body, 
+  url = '/', 
+  excludeUserId = null,
+  actions = [],
+  googleCalendarUrl = null
+}) => {
   try {
     if (!vapidPublicKey || !vapidPrivateKey) return
 
@@ -331,7 +442,9 @@ const sendPushNotification = async ({ title, body, url = '/', excludeUserId = nu
       url,
       icon: '/pwa-192x192.png',
       badge: '/pwa-192x192.png',
-      tag: `familygest-${Date.now()}`
+      tag: `familygest-${Date.now()}`,
+      actions,
+      googleCalendarUrl
     })
 
     const sendPromises = subscriptions.map(async (sub) => {
@@ -1099,7 +1212,14 @@ app.post('/api/events', requireAuth, async (req, res) => {
     })
     await newEvent.save()
 
-    // Notification push pour le nouvel événement agenda
+    // Liens et contenu pour ajout à l'agenda personnel
+    const emailConfig = await EmailConfig.findOne()
+    const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
+    const googleCalendarUrl = generateServerGoogleCalendarUrl(newEvent)
+    const icsContent = generateServerIcsContent(newEvent)
+    const icsDownloadUrl = `${baseServerUrl}/api/events/${newEvent.id}/ics`
+
+    // Notification push pour le nouvel événement agenda avec bouton Google Agenda
     const authorName = req.user ? req.user.firstName : 'Un membre'
     const timeStr = newEvent.time ? ` à ${newEvent.time}` : ''
     const locStr = newEvent.location ? ` (${newEvent.location})` : ''
@@ -1107,10 +1227,15 @@ app.post('/api/events', requireAuth, async (req, res) => {
       title: `📅 Nouvel événement : ${newEvent.title}`,
       body: `${newEvent.date}${timeStr}${locStr} • Ajouté par ${authorName}`,
       url: '/calendar',
-      excludeUserId: req.user ? req.user.id : null
+      excludeUserId: req.user ? req.user.id : null,
+      actions: [
+        { action: 'open', title: 'Voir' },
+        { action: 'add-google', title: '📅 Google Agenda' }
+      ],
+      googleCalendarUrl
     })
 
-    // Notification email pour le nouvel événement agenda
+    // Notification email pour le nouvel événement agenda avec boutons et invitation .ics
     sendNotificationEmail({
       subject: `📅 Nouvel événement agenda : ${newEvent.title}`,
       title: `Nouvel événement dans l'agenda`,
@@ -1128,12 +1253,35 @@ app.post('/api/events', requireAuth, async (req, res) => {
       `,
       actionUrl: '/calendar',
       actionText: 'Voir dans le calendrier',
-      excludeUserId: req.user ? req.user.id : null
+      excludeUserId: req.user ? req.user.id : null,
+      calendarData: {
+        googleUrl: googleCalendarUrl,
+        icsUrl: icsDownloadUrl,
+        icsContent,
+        eventTitle: newEvent.title
+      }
     })
 
     res.status(201).json(newEvent)
   } catch (err) {
     res.status(400).json({ error: err.message })
+  }
+})
+
+// GET /api/events/:id/ics (Téléchargement direct du fichier iCalendar pour ajout à Apple / Outlook)
+app.get('/api/events/:id/ics', async (req, res) => {
+  try {
+    const event = await Event.findOne({ id: Number(req.params.id) })
+    if (!event) return res.status(404).send('Événement introuvable')
+
+    const icsContent = generateServerIcsContent(event)
+    const sanitizedTitle = (event.title || 'evenement').toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30)
+
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
+    res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle || 'evenement'}.ics"`)
+    res.send(icsContent)
+  } catch (err) {
+    res.status(500).send('Erreur lors de la génération du fichier calendrier')
   }
 })
 

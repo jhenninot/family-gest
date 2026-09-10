@@ -12,8 +12,10 @@ self.addEventListener('push', (event) => {
       tag: data.tag || `familygest-${Date.now()}`,
       vibrate: [150, 80, 150],
       data: {
-        url: data.url || '/'
-      }
+        url: data.url || '/',
+        googleCalendarUrl: data.googleCalendarUrl || null
+      },
+      actions: data.actions || []
     };
 
     event.waitUntil(self.registration.showNotification(title, options));
@@ -24,6 +26,13 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
+  // Si l'utilisateur a cliqué sur le bouton d'action Google Agenda
+  if (event.action === 'add-google' && event.notification.data?.googleCalendarUrl) {
+    event.waitUntil(clients.openWindow(event.notification.data.googleCalendarUrl));
+    return;
+  }
+
   const targetUrl = event.notification.data?.url || '/';
 
   event.waitUntil(
@@ -43,3 +52,4 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
