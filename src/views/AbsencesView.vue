@@ -5,7 +5,7 @@
       <div>
         <h1 class="page-title">
           <HouseUser :size="28" class="text-indigo" />
-          <span>Absences, Repas & Invités</span>
+          <span>Présence & Invitations</span>
         </h1>
         <p class="page-subtitle">Indiquez vos absences ou vos invités au déjeuner, dîner et pour la nuit pour organiser sereinement les repas de famille.</p>
       </div>
