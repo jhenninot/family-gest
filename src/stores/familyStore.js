@@ -22,6 +22,7 @@ export const useFamilyStore = defineStore('family', () => {
   const tasks = ref([])
   const events = ref([])
   const shoppingList = ref([])
+  const shoppingCategories = ref([])
   const shortcuts = ref([])
   const absences = ref([])
   const mealGuests = ref([])
@@ -44,11 +45,12 @@ export const useFamilyStore = defineStore('family', () => {
       isLoading.value = true
       const headers = getHeaders()
 
-      const [membersRes, tasksRes, eventsRes, shoppingRes, shortcutsRes, absencesRes, guestsRes] = await Promise.all([
+      const [membersRes, tasksRes, eventsRes, shoppingRes, categoriesRes, shortcutsRes, absencesRes, guestsRes] = await Promise.all([
         fetch('/api/members', { headers }),
         fetch('/api/tasks', { headers }),
         fetch('/api/events', { headers }),
         fetch('/api/shopping', { headers }),
+        fetch('/api/shopping-categories', { headers }),
         fetch('/api/shortcuts', { headers }),
         fetch('/api/absences', { headers }),
         fetch('/api/meal-guests', { headers })
@@ -62,6 +64,7 @@ export const useFamilyStore = defineStore('family', () => {
         tasks.value = []
         events.value = []
         shoppingList.value = []
+        shoppingCategories.value = []
         shortcuts.value = []
         absences.value = []
         mealGuests.value = []
@@ -78,6 +81,7 @@ export const useFamilyStore = defineStore('family', () => {
       if (tasksRes.ok) tasks.value = await tasksRes.json()
       if (eventsRes.ok) events.value = await eventsRes.json()
       if (shoppingRes.ok) shoppingList.value = await shoppingRes.json()
+      if (categoriesRes && categoriesRes.ok) shoppingCategories.value = await categoriesRes.json()
       if (shortcutsRes.ok) shortcuts.value = await shortcutsRes.json()
       if (absencesRes.ok) absences.value = await absencesRes.json()
       if (guestsRes && guestsRes.ok) mealGuests.value = await guestsRes.json()
@@ -439,6 +443,112 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  const updateShoppingItem = async (id, itemData) => {
+    try {
+      const res = await fetch(`/api/shopping/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(itemData)
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        const index = shoppingList.value.findIndex(i => i.id === id)
+        if (index !== -1) shoppingList.value[index] = updated
+      }
+    } catch (err) {
+      console.error('Erreur updateShoppingItem API', err)
+      const index = shoppingList.value.findIndex(i => i.id === id)
+      if (index !== -1) shoppingList.value[index] = { ...shoppingList.value[index], ...itemData }
+    }
+  }
+
+  // --- SHOPPING CATEGORIES ACTIONS ---
+  const fetchShoppingCategories = async () => {
+    try {
+      const res = await fetch('/api/shopping-categories', { headers: getHeaders() })
+      if (res.ok) {
+        const data = await res.json()
+        shoppingCategories.value = data.sort((a, b) => a.rank - b.rank)
+      }
+    } catch (err) {
+      console.error('Erreur fetchShoppingCategories', err)
+    }
+  }
+
+  const addShoppingCategory = async (catData) => {
+    try {
+      const res = await fetch('/api/shopping-categories', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(catData)
+      })
+      if (res.ok) {
+        const created = await res.json()
+        shoppingCategories.value.push(created)
+        shoppingCategories.value.sort((a, b) => a.rank - b.rank)
+        return { success: true, category: created }
+      }
+    } catch (err) {
+      console.error('Erreur addShoppingCategory', err)
+    }
+    return { success: false }
+  }
+
+  const updateShoppingCategory = async (id, catData) => {
+    try {
+      const res = await fetch(`/api/shopping-categories/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(catData)
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        const index = shoppingCategories.value.findIndex(c => c.id === id)
+        if (index !== -1) shoppingCategories.value[index] = updated
+        shoppingCategories.value.sort((a, b) => a.rank - b.rank)
+        return { success: true, category: updated }
+      }
+    } catch (err) {
+      console.error('Erreur updateShoppingCategory', err)
+    }
+    return { success: false }
+  }
+
+  const deleteShoppingCategory = async (id) => {
+    try {
+      const res = await fetch(`/api/shopping-categories/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      })
+      if (res.ok) {
+        shoppingCategories.value = shoppingCategories.value.filter(c => c.id !== id)
+        return { success: true }
+      }
+    } catch (err) {
+      console.error('Erreur deleteShoppingCategory', err)
+    }
+    return { success: false }
+  }
+
+  const reorderShoppingCategories = async (orderedIds) => {
+    // orderedIds : tableau de { id, rank }
+    shoppingCategories.value = shoppingCategories.value
+      .map(c => {
+        const found = orderedIds.find(o => o.id === c.id)
+        return found ? { ...c, rank: found.rank } : c
+      })
+      .sort((a, b) => a.rank - b.rank)
+    try {
+      await fetch('/api/shopping-categories/reorder', {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(orderedIds)
+      })
+    } catch (err) {
+      console.error('Erreur reorderShoppingCategories', err)
+    }
+  }
+
   // --- SHORTCUTS ACTIONS ---
   const addShortcut = async (shortcutData) => {
     try {
@@ -642,6 +752,7 @@ export const useFamilyStore = defineStore('family', () => {
     tasks,
     events,
     shoppingList,
+    shoppingCategories,
     shortcuts,
     absences,
     mealGuests,
@@ -671,6 +782,12 @@ export const useFamilyStore = defineStore('family', () => {
     addShoppingItem,
     toggleShoppingItem,
     deleteShoppingItem,
+    updateShoppingItem,
+    addShoppingCategory,
+    updateShoppingCategory,
+    deleteShoppingCategory,
+    reorderShoppingCategories,
+    fetchShoppingCategories,
     addShortcut,
     updateShortcut,
     deleteShortcut,

@@ -86,6 +86,124 @@
         </div>
       </div>
 
+      <!-- Shopping Categories Card: Catégories de courses -->
+      <div class="card glass-card shopping-cats-card margin-top-lg">
+        <div class="shopping-cats-header">
+          <div class="section-title-group">
+            <h2 class="section-title">
+              <ShoppingCart :size="20" class="title-icon-shopping" /> Catégories de courses
+            </h2>
+            <p class="section-subtitle">
+              Personnalisez les rayons de courses et réorganisez leur ordre d'affichage par simple glisser-déposer. Le rang numérique détermine l'ordre d'apparition dans la liste de courses.
+            </p>
+          </div>
+          <button 
+            type="button" 
+            @click="openAddCategoryModal" 
+            class="btn btn-primary btn-add-category"
+          >
+            <Plus :size="16" />
+            <span>+ Nouvelle Catégorie</span>
+          </button>
+        </div>
+
+        <!-- Categories List with Drag and Drop -->
+        <div class="categories-dnd-list margin-top-md">
+          <div v-if="!store.shoppingCategories || store.shoppingCategories.length === 0" class="empty-cats-notice">
+            Aucune catégorie configurée. Cliquez sur « + Nouvelle Catégorie » pour en ajouter.
+          </div>
+
+          <div
+            v-for="(cat, index) in sortedCategories"
+            :key="cat.id"
+            class="cat-drag-item"
+            :class="{
+              'is-dragging': draggedIndex === index,
+              'drag-target-over': dragOverIndex === index
+            }"
+            draggable="true"
+            @dragstart="handleDragStart($event, index)"
+            @dragover.prevent="handleDragOver($event, index)"
+            @dragleave="handleDragLeave(index)"
+            @drop="handleDrop($event, index)"
+            @dragend="handleDragEnd"
+          >
+            <!-- Drag handle -->
+            <div class="drag-handle-wrapper" title="Glisser pour réorganiser l'ordre">
+              <svg class="drag-handle-svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="9" cy="5" r="2"/>
+                <circle cx="9" cy="12" r="2"/>
+                <circle cx="9" cy="19" r="2"/>
+                <circle cx="15" cy="5" r="2"/>
+                <circle cx="15" cy="12" r="2"/>
+                <circle cx="15" cy="19" r="2"/>
+              </svg>
+            </div>
+
+            <!-- Rank Badge -->
+            <div class="cat-rank-badge" title="Rang d'affichage">
+              Rang #{{ cat.rank }}
+            </div>
+
+            <!-- Icon -->
+            <span class="cat-icon-tag">{{ cat.icon }}</span>
+
+            <!-- Name -->
+            <span class="cat-name-text">{{ cat.name }}</span>
+
+            <!-- Quick move buttons (accessible alternative) -->
+            <div class="cat-arrows-wrapper">
+              <button 
+                type="button" 
+                class="btn-arrow-move" 
+                :disabled="index === 0" 
+                @click="moveCategory(index, -1)" 
+                title="Monter le rang"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+              </button>
+              <button 
+                type="button" 
+                class="btn-arrow-move" 
+                :disabled="index === sortedCategories.length - 1" 
+                @click="moveCategory(index, 1)" 
+                title="Descendre le rang"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Action buttons: Edit & Delete -->
+            <div class="cat-item-actions">
+              <button 
+                type="button" 
+                @click="openEditCategoryModal(cat)" 
+                class="btn-cat-action edit" 
+                title="Modifier la catégorie"
+              >
+                <Pencil :size="15" />
+              </button>
+              <button 
+                type="button" 
+                @click="confirmDeleteCategory(cat)" 
+                class="btn-cat-action delete" 
+                title="Supprimer la catégorie"
+              >
+                <Trash2 :size="15" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dnd-hint-footer margin-top-sm">
+          💡 <em>Astuce : Attrapez une catégorie par sa poignée ⠿ et glissez-la vers le haut ou vers le bas pour ajuster immédiatement son rang numérique d'affichage.</em>
+        </div>
+      </div>
+
       <div class="settings-grid">
       <!-- Left Column: Preset Selection & Configuration Form -->
       <div class="card glass-card form-card">
@@ -460,11 +578,87 @@
         </form>
       </div>
     </div>
+
+    <!-- Modal Ajouter / Modifier une Catégorie de courses -->
+    <div v-if="showCatModal" class="modal-overlay" @click.self="showCatModal = false">
+      <div class="modal-content modal-cat-content">
+        <div class="modal-header">
+          <h3>{{ isEditingCat ? 'Modifier la Catégorie' : 'Ajouter une Catégorie de courses' }}</h3>
+          <button @click="showCatModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <form @submit.prevent="handleSaveCategory">
+          <div class="form-group">
+            <label class="form-label">Nom de la catégorie *</label>
+            <input 
+              v-model="catForm.name" 
+              type="text" 
+              required 
+              placeholder="ex: Boucherie, Surgelés, Bio..."
+              class="form-input" 
+              autofocus
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Icône / Emoji :</label>
+            <div class="cat-icon-selector">
+              <input 
+                v-model="catForm.icon" 
+                type="text" 
+                maxlength="4" 
+                class="form-input icon-preview-input" 
+                placeholder="🛒" 
+              />
+              <span class="icon-help">Sélectionnez ci-dessous ou saisissez un emoji :</span>
+            </div>
+            
+            <div class="emoji-preset-grid">
+              <button 
+                v-for="emoji in categoryEmojiPresets" 
+                :key="emoji"
+                type="button"
+                class="emoji-pick-btn"
+                :class="{ active: catForm.icon === emoji }"
+                @click="catForm.icon = emoji"
+              >
+                {{ emoji }}
+              </button>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" @click="showCatModal = false" class="btn btn-secondary">Annuler</button>
+            <button type="submit" class="btn btn-primary">
+              {{ isEditingCat ? 'Enregistrer les modifications' : 'Créer la catégorie' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Confirmation Suppression Catégorie -->
+    <div v-if="catToDelete" class="modal-overlay" @click.self="catToDelete = null">
+      <div class="modal-content modal-sm">
+        <div class="modal-header">
+          <h3>Supprimer la catégorie</h3>
+          <button @click="catToDelete = null" class="btn-close">&times;</button>
+        </div>
+        <p class="confirm-text">
+          Voulez-vous vraiment supprimer la catégorie <strong>« {{ catToDelete.icon }} {{ catToDelete.name }} »</strong> ?<br>
+          Les articles de courses existants seront conservés.
+        </p>
+        <div class="modal-footer">
+          <button type="button" @click="catToDelete = null" class="btn btn-secondary">Annuler</button>
+          <button type="button" @click="executeDeleteCategory" class="btn btn-danger">Supprimer</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
@@ -474,9 +668,130 @@ import {
   Eye, EyeOff, Save, Send, HelpCircle, ShieldCheck, Loader2, AlertCircle, Globe,
   UserPlus
 } from 'lucide-vue-next'
+import { ShoppingCart, Plus, Pencil, Trash2 } from '@lucide/vue'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
+
+// --- Catégories de courses ---
+const categoryEmojiPresets = [
+  '🧀', '🥫', '🥦', '🥖', '🧃', '🏠', '🛒', '🥩', '🐟', '🍎',
+  '🧼', '🧴', '📦', '☕', '🍰', '🍕', '🍼', '🍬', '🧹', '💊',
+  '🍞', '❄️', '🥚', '🍝', '🍪'
+]
+
+const sortedCategories = computed(() => {
+  return [...store.shoppingCategories].sort((a, b) => a.rank - b.rank)
+})
+
+const showCatModal = ref(false)
+const isEditingCat = ref(false)
+const catForm = ref({ id: null, name: '', icon: '🛒' })
+const catToDelete = ref(null)
+
+const draggedIndex = ref(null)
+const dragOverIndex = ref(null)
+
+const openAddCategoryModal = () => {
+  isEditingCat.value = false
+  catForm.value = { id: null, name: '', icon: '🛒' }
+  showCatModal.value = true
+}
+
+const openEditCategoryModal = (cat) => {
+  isEditingCat.value = true
+  catForm.value = { id: cat.id, name: cat.name, icon: cat.icon }
+  showCatModal.value = true
+}
+
+const handleSaveCategory = async () => {
+  if (!catForm.value.name.trim()) return
+  if (isEditingCat.value) {
+    await store.updateShoppingCategory(catForm.value.id, {
+      name: catForm.value.name.trim(),
+      icon: catForm.value.icon.trim() || '🛒'
+    })
+  } else {
+    await store.addShoppingCategory({
+      name: catForm.value.name.trim(),
+      icon: catForm.value.icon.trim() || '🛒'
+    })
+  }
+  showCatModal.value = false
+}
+
+const confirmDeleteCategory = (cat) => {
+  catToDelete.value = cat
+}
+
+const executeDeleteCategory = async () => {
+  if (catToDelete.value) {
+    await store.deleteShoppingCategory(catToDelete.value.id)
+    catToDelete.value = null
+  }
+}
+
+// Glisser-déposer (Drag & Drop)
+const handleDragStart = (e, index) => {
+  draggedIndex.value = index
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('text/plain', index)
+}
+
+const handleDragOver = (e, index) => {
+  e.preventDefault()
+  dragOverIndex.value = index
+}
+
+const handleDragLeave = (index) => {
+  if (dragOverIndex.value === index) {
+    dragOverIndex.value = null
+  }
+}
+
+const handleDrop = async (e, targetIndex) => {
+  e.preventDefault()
+  if (draggedIndex.value === null || draggedIndex.value === targetIndex) {
+    draggedIndex.value = null
+    dragOverIndex.value = null
+    return
+  }
+
+  const list = [...sortedCategories.value]
+  const [movedItem] = list.splice(draggedIndex.value, 1)
+  list.splice(targetIndex, 0, movedItem)
+
+  const payload = list.map((cat, idx) => ({
+    id: cat.id,
+    rank: idx + 1
+  }))
+
+  await store.reorderShoppingCategories(payload)
+
+  draggedIndex.value = null
+  dragOverIndex.value = null
+}
+
+const handleDragEnd = () => {
+  draggedIndex.value = null
+  dragOverIndex.value = null
+}
+
+const moveCategory = async (index, direction) => {
+  const targetIndex = index + direction
+  if (targetIndex < 0 || targetIndex >= sortedCategories.value.length) return
+  const list = [...sortedCategories.value]
+  const temp = list[index]
+  list[index] = list[targetIndex]
+  list[targetIndex] = temp
+
+  const payload = list.map((cat, idx) => ({
+    id: cat.id,
+    rank: idx + 1
+  }))
+
+  await store.reorderShoppingCategories(payload)
+}
 
 const showAddMemberModal = ref(false)
 const addingMember = ref(false)
@@ -1316,5 +1631,257 @@ onMounted(() => {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Shopping Categories Card */
+.shopping-cats-card {
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.shopping-cats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.title-icon-shopping {
+  color: var(--accent-amber, #f59e0b);
+}
+
+.btn-add-category {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.categories-dnd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.empty-cats-notice {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.cat-drag-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  cursor: default;
+  user-select: none;
+}
+
+.cat-drag-item:hover {
+  border-color: var(--border-color-hover, rgba(99, 102, 241, 0.4));
+  background: var(--bg-secondary);
+}
+
+.cat-drag-item.is-dragging {
+  opacity: 0.4;
+  border: 2px dashed var(--accent-primary, #6366f1);
+  transform: scale(0.98);
+}
+
+.cat-drag-item.drag-target-over {
+  border-color: var(--accent-primary, #6366f1);
+  background: var(--accent-primary-light, rgba(99, 102, 241, 0.12));
+  box-shadow: 0 0 0 2px var(--accent-primary, #6366f1);
+}
+
+.drag-handle-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: grab;
+  padding: 0.35rem 0.2rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.drag-handle-wrapper:active {
+  cursor: grabbing;
+}
+
+.drag-handle-wrapper:hover {
+  color: var(--accent-primary, #6366f1);
+}
+
+.drag-handle-svg {
+  flex-shrink: 0;
+}
+
+.cat-rank-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--accent-primary, #6366f1);
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  min-width: 4.8rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.cat-icon-tag {
+  font-size: 1.35rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  flex-shrink: 0;
+}
+
+.cat-name-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.cat-arrows-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.btn-arrow-move {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.35rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: all var(--transition-fast);
+}
+
+.btn-arrow-move:hover:not(:disabled) {
+  color: var(--accent-primary, #6366f1);
+  border-color: var(--accent-primary, #6366f1);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.btn-arrow-move:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.cat-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.btn-cat-action {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.btn-cat-action.edit:hover {
+  color: var(--accent-primary, #6366f1);
+  border-color: var(--accent-primary, #6366f1);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.btn-cat-action.delete:hover {
+  color: var(--accent-rose, #f43f5e);
+  border-color: var(--accent-rose, #f43f5e);
+  background: rgba(244, 63, 94, 0.1);
+}
+
+.dnd-hint-footer {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding-left: 0.25rem;
+}
+
+/* Modal Catégories */
+.modal-cat-content {
+  max-width: 480px;
+}
+
+.cat-icon-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.icon-preview-input {
+  width: 60px;
+  text-align: center;
+  font-size: 1.35rem;
+  padding: 0.4rem;
+}
+
+.icon-help {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.emoji-preset-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  background: var(--bg-tertiary);
+  padding: 0.65rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.emoji-pick-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 1.25rem;
+  width: 2.35rem;
+  height: 2.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.emoji-pick-btn:hover {
+  transform: scale(1.15);
+  border-color: var(--accent-primary, #6366f1);
+}
+
+.emoji-pick-btn.active {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: var(--accent-primary, #6366f1);
+  transform: scale(1.1);
 }
 </style>

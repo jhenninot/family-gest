@@ -18,6 +18,7 @@ import User from './models/User.js'
 import Task from './models/Task.js'
 import Event from './models/Event.js'
 import ShoppingItem from './models/ShoppingItem.js'
+import ShoppingCategory from './models/ShoppingCategory.js'
 import EmailConfig from './models/EmailConfig.js'
 import Shortcut from './models/Shortcut.js'
 import Absence from './models/Absence.js'
@@ -1385,6 +1386,90 @@ app.delete('/api/events/:id', requireAuth, async (req, res) => {
 })
 
 
+// === SHOPPING CATEGORIES ROUTES ===
+const DEFAULT_CATEGORIES = [
+  { name: 'Frais',           icon: '🧀', rank: 1 },
+  { name: 'Épicerie',        icon: '🥫', rank: 2 },
+  { name: 'Fruits & Légumes',icon: '🥦', rank: 3 },
+  { name: 'Boulangerie',     icon: '🥖', rank: 4 },
+  { name: 'Boissons',        icon: '🧃', rank: 5 },
+  { name: 'Maison',          icon: '🏠', rank: 6 },
+  { name: 'Autre',           icon: '🛒', rank: 7 },
+]
+
+// Seed catégories par défaut si la collection est vide
+const seedCategoriesIfEmpty = async () => {
+  const count = await ShoppingCategory.countDocuments()
+  if (count === 0) {
+    const docs = DEFAULT_CATEGORIES.map((c, i) => ({ ...c, id: Date.now() + i }))
+    await ShoppingCategory.insertMany(docs)
+    console.log('🛒 Catégories de courses par défaut créées.')
+  }
+}
+seedCategoriesIfEmpty().catch(console.error)
+
+app.get('/api/shopping-categories', requireAuth, async (req, res) => {
+  try {
+    const cats = await ShoppingCategory.find().sort({ rank: 1 })
+    res.json(cats)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/shopping-categories', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const maxRank = await ShoppingCategory.findOne().sort({ rank: -1 })
+    const cat = new ShoppingCategory({
+      id: Date.now(),
+      name: req.body.name,
+      icon: req.body.icon || '🛒',
+      rank: maxRank ? maxRank.rank + 1 : 1
+    })
+    await cat.save()
+    res.status(201).json(cat)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+app.put('/api/shopping-categories/reorder', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    // Body: [{ id, rank }, ...]
+    const updates = req.body
+    await Promise.all(updates.map(({ id, rank }) =>
+      ShoppingCategory.updateOne({ id: Number(id) }, { rank })
+    ))
+    const cats = await ShoppingCategory.find().sort({ rank: 1 })
+    res.json(cats)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/shopping-categories/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const cat = await ShoppingCategory.findOne({ id: Number(req.params.id) })
+    if (!cat) return res.status(404).json({ error: 'Catégorie non trouvée' })
+    if (req.body.name !== undefined) cat.name = req.body.name
+    if (req.body.icon !== undefined) cat.icon = req.body.icon
+    if (req.body.rank !== undefined) cat.rank = Number(req.body.rank)
+    await cat.save()
+    res.json(cat)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+app.delete('/api/shopping-categories/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await ShoppingCategory.deleteOne({ id: Number(req.params.id) })
+    res.json({ message: 'Catégorie supprimée' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // === SHOPPING ROUTES ===
 app.get('/api/shopping', requireAuth, async (req, res) => {
   try {
@@ -1418,6 +1503,23 @@ app.put('/api/shopping/:id/toggle', requireAuth, async (req, res) => {
     if (!item) return res.status(404).json({ error: 'Article non trouvé' })
 
     item.checked = !item.checked
+    await item.save()
+    res.json(item)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/shopping/:id', requireAuth, async (req, res) => {
+  try {
+    const item = await ShoppingItem.findOne({ id: Number(req.params.id) })
+    if (!item) return res.status(404).json({ error: 'Article non trouvé' })
+
+    if (req.body.name !== undefined)     item.name     = req.body.name
+    if (req.body.category !== undefined) item.category = req.body.category
+    if (req.body.quantity !== undefined) item.quantity = Number(req.body.quantity)
+    if (req.body.urgent !== undefined)   item.urgent   = Boolean(req.body.urgent)
+
     await item.save()
     res.json(item)
   } catch (err) {
