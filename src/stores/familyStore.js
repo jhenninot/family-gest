@@ -137,17 +137,37 @@ export const useFamilyStore = defineStore('family', () => {
     const absenceRecords = dayRecords.filter(a => a.type !== 'presence')
     const presenceRecords = dayRecords.filter(a => a.type === 'presence')
 
-    const absentMembers = usuallyPresentMembers.filter(m => 
-      absenceRecords.some(a => a.memberId === m.id)
-    )
+    const absentMembers = usuallyPresentMembers
+      .filter(m => absenceRecords.some(a => Number(a.memberId) === Number(m.id)))
+      .map(m => {
+        const record = absenceRecords.find(a => Number(a.memberId) === Number(m.id))
+        return {
+          ...m,
+          memberId: m.id,
+          absenceId: record?.id,
+          note: record?.note || '',
+          declaredBy: record?.declaredBy || null,
+          record
+        }
+      })
 
     const presentUsualMembers = usuallyPresentMembers.filter(m => 
-      !absenceRecords.some(a => a.memberId === m.id)
+      !absenceRecords.some(a => Number(a.memberId) === Number(m.id))
     )
 
-    const exceptionalPresences = usuallyAbsentMembers.filter(m => 
-      presenceRecords.some(a => a.memberId === m.id)
-    )
+    const exceptionalPresences = usuallyAbsentMembers
+      .filter(m => presenceRecords.some(a => Number(a.memberId) === Number(m.id)))
+      .map(m => {
+        const record = presenceRecords.find(a => Number(a.memberId) === Number(m.id))
+        return {
+          ...m,
+          memberId: m.id,
+          absenceId: record?.id,
+          note: record?.note || '',
+          declaredBy: record?.declaredBy || null,
+          record
+        }
+      })
 
     const presentMembers = [...presentUsualMembers, ...exceptionalPresences]
     const dayGuests = mealGuests.value.filter(g => g.date === dateStr && g[slot])

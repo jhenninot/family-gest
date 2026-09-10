@@ -431,7 +431,7 @@
             <div class="upcoming-content-col">
               <div class="upcoming-card-header">
                 <div class="member-name-date">
-                  <strong>{{ getMemberName(abs.memberId) }}</strong>
+                  <strong>{{ getMemberFirstName(abs.memberId) }}</strong>
                   <span 
                     class="type-pill-badge" 
                     :class="abs.type === 'presence' ? 'is-presence' : 'is-absence'"
@@ -901,18 +901,18 @@
                   <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayLunchPresence.exceptionalPresences.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="pres in selectedDayLunchPresence.exceptionalPresences" :key="'lunch-pres-' + pres.id" class="slot-person-card presence">
-                      <span class="person-avatar">{{ getMemberAvatar(pres.memberId) }}</span>
+                      <span class="person-avatar">{{ pres.avatar || getMemberAvatar(pres) }}</span>
                       <div class="person-info">
-                        <strong>{{ getMemberName(pres.memberId) }}</strong>
+                        <strong>{{ pres.firstName || getMemberFirstName(pres) }}</strong>
                         <span class="presence-badge-text">🟢 Présence confirmée</span>
-                        <span v-if="pres.declaredBy && pres.declaredBy !== pres.memberId" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
+                        <span v-if="pres.declaredBy && pres.declaredBy !== (pres.memberId || pres.id)" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
                         <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-action" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(pres)" @click="handleDelete(pres.id)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-action text-danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -925,17 +925,17 @@
                   <span class="slot-section-title text-amber">Membres absents ({{ selectedDayLunchAbsents.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="abs in selectedDayLunchAbsents" :key="'lunch-abs-' + abs.id" class="slot-person-card absence">
-                      <span class="person-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
+                      <span class="person-avatar">{{ abs.avatar || getMemberAvatar(abs) }}</span>
                       <div class="person-info">
-                        <strong>{{ getMemberName(abs.memberId) }}</strong>
-                        <span v-if="abs.declaredBy && abs.declaredBy !== abs.memberId" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
+                        <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
+                        <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
                         <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(abs)" @click="handleDelete(abs.id)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -990,18 +990,18 @@
                   <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayDinnerPresence.exceptionalPresences.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="pres in selectedDayDinnerPresence.exceptionalPresences" :key="'dinner-pres-' + pres.id" class="slot-person-card presence">
-                      <span class="person-avatar">{{ getMemberAvatar(pres.memberId) }}</span>
+                      <span class="person-avatar">{{ pres.avatar || getMemberAvatar(pres) }}</span>
                       <div class="person-info">
-                        <strong>{{ getMemberName(pres.memberId) }}</strong>
+                        <strong>{{ pres.firstName || getMemberFirstName(pres) }}</strong>
                         <span class="presence-badge-text">🟢 Présence confirmée</span>
-                        <span v-if="pres.declaredBy && pres.declaredBy !== pres.memberId" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
+                        <span v-if="pres.declaredBy && pres.declaredBy !== (pres.memberId || pres.id)" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
                         <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-action" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(pres)" @click="handleDelete(pres.id)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-action text-danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -1014,17 +1014,17 @@
                   <span class="slot-section-title text-amber">Membres absents ({{ selectedDayDinnerAbsents.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="abs in selectedDayDinnerAbsents" :key="'dinner-abs-' + abs.id" class="slot-person-card absence">
-                      <span class="person-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
+                      <span class="person-avatar">{{ abs.avatar || getMemberAvatar(abs) }}</span>
                       <div class="person-info">
-                        <strong>{{ getMemberName(abs.memberId) }}</strong>
-                        <span v-if="abs.declaredBy && abs.declaredBy !== abs.memberId" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
+                        <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
+                        <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
                         <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(abs)" @click="handleDelete(abs.id)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -1079,18 +1079,18 @@
                   <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayNightPresence.exceptionalPresences.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="pres in selectedDayNightPresence.exceptionalPresences" :key="'night-pres-' + pres.id" class="slot-person-card presence">
-                      <span class="person-avatar">{{ getMemberAvatar(pres.memberId) }}</span>
+                      <span class="person-avatar">{{ pres.avatar || getMemberAvatar(pres) }}</span>
                       <div class="person-info">
-                        <strong>{{ getMemberName(pres.memberId) }}</strong>
+                        <strong>{{ pres.firstName || getMemberFirstName(pres) }}</strong>
                         <span class="presence-badge-text">🟢 Présence confirmée</span>
-                        <span v-if="pres.declaredBy && pres.declaredBy !== pres.memberId" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
+                        <span v-if="pres.declaredBy && pres.declaredBy !== (pres.memberId || pres.id)" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
                         <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-action" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(pres)" @click="handleDelete(pres.id)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-action text-danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -1103,17 +1103,17 @@
                   <span class="slot-section-title text-amber">Membres absents ({{ selectedDayNightAbsents.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="abs in selectedDayNightAbsents" :key="'night-abs-' + abs.id" class="slot-person-card absence">
-                      <span class="person-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
+                      <span class="person-avatar">{{ abs.avatar || getMemberAvatar(abs) }}</span>
                       <div class="person-info">
-                        <strong>{{ getMemberName(abs.memberId) }}</strong>
-                        <span v-if="abs.declaredBy && abs.declaredBy !== abs.memberId" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
+                        <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
+                        <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
                         <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(abs)" @click="handleDelete(abs.id)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -1289,28 +1289,37 @@ const isDayToday = (day) => {
 }
 
 // Helpers
-const getMemberName = (id) => {
-  const m = store.members.find(m => m.id === id)
+const getMemberName = (idOrMember) => {
+  if (!idOrMember) return 'Membre'
+  if (typeof idOrMember === 'object') return idOrMember.name || idOrMember.firstName || 'Membre'
+  const m = store.members.find(m => Number(m.id) === Number(idOrMember))
   return m ? m.name : 'Membre'
 }
 
-const getMemberFirstName = (id) => {
-  const m = store.members.find(m => m.id === id)
+const getMemberFirstName = (idOrMember) => {
+  if (!idOrMember) return 'Membre'
+  if (typeof idOrMember === 'object') return idOrMember.firstName || (idOrMember.name ? idOrMember.name.split(' ')[0] : 'Membre')
+  const m = store.members.find(m => Number(m.id) === Number(idOrMember))
   return m ? (m.firstName || m.name.split(' ')[0]) : 'Membre'
 }
 
-const getMemberAvatar = (id) => {
-  const m = store.members.find(m => m.id === id)
+const getMemberAvatar = (idOrMember) => {
+  if (!idOrMember) return '👤'
+  if (typeof idOrMember === 'object') return idOrMember.avatar || '👤'
+  const m = store.members.find(m => Number(m.id) === Number(idOrMember))
   return m ? m.avatar : '👤'
 }
 
 const getRecordForMember = (memberId, dateStr) => {
-  return store.absences.find(a => a.memberId === memberId && a.date === dateStr)
+  return store.absences.find(a => Number(a.memberId) === Number(memberId) && a.date === dateStr)
 }
 
 const canEdit = (abs) => {
-  if (!authStore.user) return false
-  return authStore.isAdmin || abs.memberId === authStore.user.id || abs.declaredBy === authStore.user.id
+  if (!authStore.user || !abs) return false
+  const mId = Number(abs.memberId || abs.id)
+  const dBy = abs.declaredBy ? Number(abs.declaredBy) : null
+  const currentUserId = Number(authStore.user.id)
+  return authStore.isAdmin || mId === currentUserId || (dBy !== null && dBy === currentUserId)
 }
 
 const hasUsuallyAbsentMembers = computed(() => store.members.some(m => m.usualPresence === 'absent'))
@@ -1474,11 +1483,12 @@ const handleSubmit = async () => {
   showModal.value = false
 }
 
-const handleDelete = async (id) => {
-  const isPres = form.value.type === 'presence'
+const handleDelete = async (idOrObj) => {
+  const targetId = typeof idOrObj === 'object' ? (idOrObj.absenceId || idOrObj.record?.id || idOrObj.id) : idOrObj
+  const isPres = typeof idOrObj === 'object' ? (idOrObj.record?.type === 'presence' || idOrObj.type === 'presence') : (form.value.type === 'presence')
   if (confirm(`Voulez-vous vraiment supprimer cette ${isPres ? 'présence' : 'absence'} ?`)) {
     saving.value = true
-    await store.deleteAbsence(id)
+    await store.deleteAbsence(targetId)
     saving.value = false
     showModal.value = false
   }
@@ -1550,7 +1560,8 @@ const openAddGuestModalFromDay = () => {
 
 const openEditModalFromDay = (abs) => {
   showDayDetailModal.value = false
-  openEditModal(abs)
+  const record = abs.record || (abs.memberId && abs.date ? abs : getRecordForMember(abs.id || abs.memberId, selectedDayDate.value)) || abs
+  openEditModal(record)
 }
 
 const openEditGuestModalFromDay = (g) => {
