@@ -58,7 +58,7 @@
       <!-- Card 3: Absences & Meals Today -->
       <router-link to="/absences" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper emerald">
-          <UtensilsCrossed :size="22" />
+          <HouseUser :size="22" />
         </div>
         <div class="metric-details">
           <span class="metric-label">Présence</span>
@@ -135,7 +135,7 @@
         <div class="glass-card section-card margin-bottom-md today-meals-widget">
           <div class="section-card-header">
             <div class="header-title">
-              <UtensilsCrossed :size="20" class="text-emerald" />
+              <HouseUser :size="20" class="text-emerald" />
               <h2>Présence</h2>
             </div>
             <router-link to="/absences" class="view-all-link">Voir le planning &rarr;</router-link>
@@ -818,7 +818,6 @@ import { useFamilyStore } from '../stores/familyStore'
 import { 
   CheckSquare, 
   Calendar, 
-  UtensilsCrossed, 
   ShoppingCart, 
   Plus, 
   UserPlus,
@@ -835,6 +834,7 @@ import {
   ExternalLink, 
   Download 
 } from '@lucide/vue'
+import HouseUser from '../components/icons/HouseUser.vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
