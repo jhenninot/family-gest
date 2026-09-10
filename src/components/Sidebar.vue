@@ -1218,13 +1218,11 @@ const handleDeleteShortcut = async () => {
   .shortcuts-list {
     display: flex;
     flex-direction: row;
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: wrap;
     gap: 0.5rem;
     padding-bottom: 0.35rem;
     max-height: none;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
+    overflow: visible;
   }
 
   .shortcut-item-row {
