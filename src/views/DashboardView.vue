@@ -399,18 +399,8 @@
               <h2>Membres ({{ store.members.length }} / {{ store.currentFamilyQuota?.maxMembers || 10 }})</h2>
             </div>
 
-            <!-- Only Family Admin can see export & invite buttons -->
+            <!-- Only Family Admin can see invite button -->
             <div v-if="store.isFamilyAdmin" class="dashboard-members-admin-actions">
-              <button 
-                type="button" 
-                @click="handleExportData" 
-                class="btn btn-sm btn-secondary" 
-                :disabled="exporting"
-                title="Exporter l'ensemble des données de la famille au format JSON"
-              >
-                <Download :size="14" />
-                <span>{{ exporting ? 'Export...' : 'Exporter (JSON)' }}</span>
-              </button>
               <button 
                 @click="openAddMemberModal" 
                 class="btn btn-sm btn-secondary"
@@ -821,8 +811,7 @@ import {
   Edit3, 
   Mail, 
   Bell, 
-  ExternalLink, 
-  Download 
+  ExternalLink 
 } from '@lucide/vue'
 import HouseUser from '../components/icons/HouseUser.vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
@@ -960,39 +949,6 @@ const getMemberFirstName = (memberId) => {
   return m.firstName || (m.name ? m.name.split(' ')[0] : 'Membre')
 }
 
-// --- Export des données de la famille ---
-const exporting = ref(false)
-
-const handleExportData = async () => {
-  exporting.value = true
-  try {
-    const res = await fetch('/api/admin/export', {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.error || 'Erreur lors de l\'export des données')
-    }
-    const data = await res.json()
-    const jsonStr = JSON.stringify(data, null, 2)
-    const blob = new Blob([jsonStr], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    const dateStr = new Date().toISOString().slice(0, 10)
-    a.href = url
-    a.download = `familygest-export-${dateStr}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  } catch (err) {
-    alert(`Erreur : ${err.message}`)
-  } finally {
-    exporting.value = false
-  }
-}
 
 const showAddMemberModal = ref(false)
 const showEditMemberModal = ref(false)
