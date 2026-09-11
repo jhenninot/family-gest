@@ -109,6 +109,16 @@ const routes = [
   {
     path: '/settings/email',
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+
+  // Catch-all 404 fallback (prevents infinite redirect loops)
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    redirect: () => {
+      const activeSlug = localStorage.getItem('familygest_active_slug')
+      return activeSlug ? `/${activeSlug}` : '/select-family'
+    }
   }
 ]
 
@@ -168,6 +178,7 @@ router.beforeEach(async (to, from, next) => {
       if (!ok && !authStore.isSuperAdmin) {
         return next({ name: 'select-family' })
       }
+      await familyStore.fetchAllData()
     }
 
     // Check family admin permissions if required
@@ -183,28 +194,42 @@ router.beforeEach(async (to, from, next) => {
     return next()
   }
 
-  // Redirect legacy / un-prefixed URLs (/, /tasks, etc.) to active family
-  let activeSlug = localStorage.getItem('familygest_active_slug')
-  let userFamilies = familyStore.userFamilies
-  if (!userFamilies || userFamilies.length === 0) {
-    userFamilies = await familyStore.fetchUserFamilies()
+  // Redirect known legacy / un-prefixed URLs (/, /tasks, etc.) to active family
+  const legacyMap = {
+    '/': '',
+    '/tasks': '/tasks',
+    '/calendar': '/calendar',
+    '/absences': '/absences',
+    '/shopping': '/shopping',
+    '/settings/email': '/settings/email',
+    '/settings': '/settings/email',
+    '/admin': '/settings/email'
   }
 
-  if (!activeSlug && userFamilies && userFamilies.length > 0) {
-    activeSlug = userFamilies[0].slug
-    localStorage.setItem('familygest_active_slug', activeSlug)
+  if (legacyMap[to.path] !== undefined) {
+    let activeSlug = localStorage.getItem('familygest_active_slug')
+    let userFamilies = familyStore.userFamilies
+    if (!userFamilies || userFamilies.length === 0) {
+      userFamilies = await familyStore.fetchUserFamilies()
+    }
+
+    if (!activeSlug && userFamilies && userFamilies.length > 0) {
+      activeSlug = userFamilies[0].slug
+      localStorage.setItem('familygest_active_slug', activeSlug)
+    }
+
+    if (activeSlug) {
+      return next({ path: `/${activeSlug}${legacyMap[to.path]}` })
+    }
+
+    if (authStore.isSuperAdmin) {
+      return next({ name: 'super-admin' })
+    }
+
+    return next({ name: 'select-family' })
   }
 
-  if (activeSlug) {
-    const sub = to.path === '/' ? '' : to.path
-    return next({ path: `/${activeSlug}${sub}` })
-  }
-
-  if (authStore.isSuperAdmin) {
-    return next({ name: 'super-admin' })
-  }
-
-  return next({ name: 'select-family' })
+  return next()
 })
 
 export default router

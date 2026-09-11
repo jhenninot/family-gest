@@ -5,7 +5,7 @@
     <!-- Summary Metrics Grid -->
     <div class="grid-4 metric-grid">
       <!-- Card 1: Task Completion -->
-      <router-link to="/tasks" class="glass-card metric-card clickable-card">
+      <router-link :to="getPath('/tasks')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper indigo">
           <CheckSquare :size="22" />
         </div>
@@ -20,7 +20,7 @@
       </router-link>
 
       <!-- Card 2: Upcoming Events -->
-      <router-link to="/calendar" class="glass-card metric-card clickable-card">
+      <router-link :to="getPath('/calendar')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper purple">
           <Calendar :size="22" />
         </div>
@@ -35,7 +35,7 @@
       </router-link>
 
       <!-- Card 3: Absences & Meals Today -->
-      <router-link to="/absences" class="glass-card metric-card clickable-card">
+      <router-link :to="getPath('/absences')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper emerald">
           <HouseUser :size="22" />
         </div>
@@ -51,7 +51,7 @@
       </router-link>
 
       <!-- Card 4: Shopping Items -->
-      <router-link to="/shopping" class="glass-card metric-card clickable-card">
+      <router-link :to="getPath('/shopping')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper amber">
           <ShoppingCart :size="22" />
         </div>
@@ -74,7 +74,7 @@
             <CheckSquare :size="20" class="text-indigo" />
             <h2>Tâches à réaliser</h2>
           </div>
-          <router-link to="/tasks" class="view-all-link">Tout voir &rarr;</router-link>
+          <router-link :to="getPath('/tasks')" class="view-all-link">Tout voir &rarr;</router-link>
         </div>
 
         <div class="tasks-list">
@@ -117,7 +117,7 @@
               <HouseUser :size="20" class="text-emerald" />
               <h2>Présence</h2>
             </div>
-            <router-link to="/absences" class="view-all-link">Voir le planning &rarr;</router-link>
+            <router-link :to="getPath('/absences')" class="view-all-link">Voir le planning &rarr;</router-link>
           </div>
 
           <div class="today-slots-list">
@@ -340,7 +340,7 @@
               <Calendar :size="20" class="text-purple" />
               <h2>Prochains événements</h2>
             </div>
-            <router-link to="/calendar" class="view-all-link">Voir l'agenda &rarr;</router-link>
+            <router-link :to="getPath('/calendar')" class="view-all-link">Voir l'agenda &rarr;</router-link>
           </div>
 
           <div class="events-list">
@@ -782,6 +782,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
@@ -808,8 +809,12 @@ import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.v
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 
+const route = useRoute()
 const authStore = useAuthStore()
 const store = useFamilyStore()
+
+const currentSlug = computed(() => route.params.familySlug || store.currentFamily?.slug || localStorage.getItem('familygest_active_slug') || '')
+const getPath = (sub) => currentSlug.value ? `/${currentSlug.value}${sub}` : (sub || '/')
 
 const todayLunchPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'lunch'))
 const todayDinnerPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'dinner'))

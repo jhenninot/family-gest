@@ -33,11 +33,13 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('familygest_token', data.token)
       localStorage.setItem('familygest_user', JSON.stringify(data.user))
 
-      if (data.user.families && data.user.families.length > 0) {
+      if (data.user.families && data.user.families.length === 1) {
+        localStorage.setItem('familygest_active_slug', data.user.families[0].slug)
+      } else if (data.user.families && data.user.families.length > 1) {
         const savedSlug = localStorage.getItem('familygest_active_slug')
         const hasSaved = data.user.families.some(f => f.slug === savedSlug)
         if (!hasSaved) {
-          localStorage.setItem('familygest_active_slug', data.user.families[0].slug)
+          localStorage.removeItem('familygest_active_slug')
         }
       }
 

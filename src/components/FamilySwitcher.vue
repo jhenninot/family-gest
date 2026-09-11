@@ -106,20 +106,26 @@ onUnmounted(() => {
 
 const handleSelectFamily = async (slug) => {
   isOpen.value = false
-  if (slug === currentSlug.value) return
+  const oldSlug = route.params.familySlug || familyStore.currentFamily?.slug || ''
+  if (slug === oldSlug) return
 
-  await familyStore.switchFamily(slug)
-
-  // Keep same subroute if applicable (e.g. /tasks -> /:newSlug/tasks)
-  const pathParts = route.path.split('/').filter(Boolean)
+  // Preserve subroute (e.g. /tasks, /calendar, /shopping, /absences)
   let subRoute = ''
-  if (pathParts.length > 1 && pathParts[0] === currentSlug.value) {
-    subRoute = '/' + pathParts.slice(1).join('/')
-  } else if (pathParts.length === 1 && pathParts[0] !== currentSlug.value) {
-    subRoute = '/' + pathParts[0]
+  if (oldSlug && route.path.startsWith(`/${oldSlug}`)) {
+    subRoute = route.path.slice(`/${oldSlug}`.length)
   }
 
-  router.push(`/${slug}${subRoute}`)
+  // If on admin settings, ensure user has admin rights in target family
+  if (subRoute.startsWith('/settings')) {
+    const targetFam = families.value.find(f => f.slug === slug)
+    const isAdminInTarget = authStore.isSuperAdmin || targetFam?.isAdmin
+    if (!isAdminInTarget) {
+      subRoute = ''
+    }
+  }
+
+  await familyStore.switchFamily(slug)
+  await router.push(`/${slug}${subRoute}`)
 }
 
 const goToSuperAdmin = () => {
