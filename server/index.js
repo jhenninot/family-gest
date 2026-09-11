@@ -483,20 +483,34 @@ const sendNotificationEmail = async ({
     }
 
     let recipientUsers = []
+    let familyName = ''
     if (familyId) {
-      const memberQuery = { familyId, emailNotificationsEnabled: true }
+      const familyDoc = await Family.findById(familyId).select('name slug')
+      if (familyDoc) familyName = familyDoc.name
+
+      const memberQuery = { familyId }
       if (excludeUserId) {
         memberQuery.userId = { $ne: Number(excludeUserId) }
       }
       const members = await FamilyMember.find(memberQuery)
-      const userIds = members.map(m => m.userId)
-      recipientUsers = await User.find({ id: { $in: userIds } }).select('email firstName')
+      const memberUserIds = members.map(m => m.userId)
+
+      // Membres éligibles : soit le compte User a emailNotificationsEnabled: true,
+      // soit la fiche FamilyMember a emailNotificationsEnabled: true
+      const explicitMemberUserIds = members.filter(m => m.emailNotificationsEnabled === true).map(m => m.userId)
+      recipientUsers = await User.find({
+        id: { $in: memberUserIds },
+        $or: [
+          { emailNotificationsEnabled: true },
+          { id: { $in: explicitMemberUserIds } }
+        ]
+      }).select('email firstName id')
     } else {
       const userQuery = { emailNotificationsEnabled: true }
       if (excludeUserId) {
         userQuery.id = { $ne: Number(excludeUserId) }
       }
-      recipientUsers = await User.find(userQuery).select('email firstName')
+      recipientUsers = await User.find(userQuery).select('email firstName id')
     }
 
     if (!recipientUsers || recipientUsers.length === 0) return { success: true, count: 0 }
@@ -517,11 +531,13 @@ const sendNotificationEmail = async ({
       }
     })
 
+    const finalSubject = familyName ? `[${familyName}] ${subject || title}` : (subject || `✨ FamilyGest - ${title}`)
+
     const emailPromises = recipientUsers.map(async (recipient) => {
       const mailOptions = {
         from: `"${config.fromName || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
         to: recipient.email,
-        subject: subject || `✨ FamilyGest - ${title}`,
+        subject: finalSubject,
         html: `
           <!DOCTYPE html>
           <html>
@@ -539,7 +555,7 @@ const sendNotificationEmail = async ({
                       ${badge}
                     </div>
                     <h1 style="color: #312e81; margin: 14px 0 4px 0; font-size: 22px; font-weight: 800;">${title}</h1>
-                    <p style="color: #64748b; margin: 0; font-size: 13px;">Notification FamilyGest • Espace Familial</p>
+                    <p style="color: #64748b; margin: 0; font-size: 13px;">Notification FamilyGest • ${familyName || 'Espace Familial'}</p>
                   </div>
 
                   <p style="font-size: 15px; line-height: 1.5; color: #1e293b; margin-bottom: 16px;">
@@ -680,7 +696,11 @@ const sendPushNotification = async ({
     if (!vapidPublicKey || !vapidPrivateKey) return
 
     let userIds = []
+    let familyName = ''
     if (familyId) {
+      const familyDoc = await Family.findById(familyId).select('name slug')
+      if (familyDoc) familyName = familyDoc.name
+
       const memberQuery = { familyId, pushNotificationsEnabled: { $ne: false } }
       if (excludeUserId) {
         memberQuery.userId = { $ne: Number(excludeUserId) }
@@ -698,11 +718,18 @@ const sendPushNotification = async ({
 
     if (userIds.length === 0) return
 
-    const subscriptions = await PushSubscription.find({ userId: { $in: userIds } })
+    // S'assurer que l'utilisateur n'a pas désactivé les notifications push globalement sur son compte
+    const activeUsers = await User.find({ id: { $in: userIds }, pushNotificationsEnabled: { $ne: false } }).select('id')
+    const finalUserIds = activeUsers.map(u => u.id)
+    if (finalUserIds.length === 0) return
+
+    const subscriptions = await PushSubscription.find({ userId: { $in: finalUserIds } })
     if (subscriptions.length === 0) return
 
+    const finalTitle = familyName ? `[${familyName}] ${title}` : title
+
     const payload = JSON.stringify({
-      title,
+      title: finalTitle,
       body,
       url,
       icon: '/pwa-192x192.png',
@@ -1154,9 +1181,11 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
       } else {
         user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
       }
+      await FamilyMember.updateMany({ userId: user.id }, { $set: { pushNotificationsEnabled: user.pushNotificationsEnabled } })
     }
     if (emailNotificationsEnabled !== undefined) {
       user.emailNotificationsEnabled = Boolean(emailNotificationsEnabled)
+      await FamilyMember.updateMany({ userId: user.id }, { $set: { emailNotificationsEnabled: Boolean(emailNotificationsEnabled) } })
     }
 
     if (email && email.toLowerCase().trim() !== user.email) {
@@ -2553,7 +2582,7 @@ app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
     sendPushNotification({
       title: `📋 Nouvelle tâche : ${newTask.title}`,
       body: `Assignée à ${assignedName} • +${newTask.points} pts • Ajoutée par ${authorName}`,
-      url: '/tasks',
+      url: `/${req.family.slug}/tasks`,
       excludeUserId: req.user ? req.user.id : null,
       familyId: req.family._id
     })
@@ -2576,7 +2605,7 @@ app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
           ${newTask.dueDate ? `<li><strong>Échéance :</strong> ${newTask.dueDate}</li>` : ''}
         </ul>
       `,
-      actionUrl: '/tasks',
+      actionUrl: `/${req.family.slug}/tasks`,
       actionText: 'Voir les tâches',
       excludeUserId: req.user ? req.user.id : null,
       familyId: req.family._id
@@ -2671,7 +2700,7 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
     sendPushNotification({
       title: `📅 Nouvel événement : ${newEvent.title}`,
       body: `${newEvent.date}${timeStr}${locStr} • Ajouté par ${authorName}`,
-      url: '/calendar',
+      url: `/${req.family.slug}/calendar`,
       excludeUserId: req.user ? req.user.id : null,
       familyId: req.family._id,
       actions: [
@@ -2697,7 +2726,7 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
           <li><strong>Catégorie :</strong> ${newEvent.category || 'Famille'}</li>
         </ul>
       `,
-      actionUrl: '/calendar',
+      actionUrl: `/${req.family.slug}/calendar`,
       actionText: 'Voir dans le calendrier',
       excludeUserId: req.user ? req.user.id : null,
       familyId: req.family._id,
@@ -2749,7 +2778,7 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
     sendPushNotification({
       title: `✏️ Événement modifié : ${event.title}`,
       body: `${event.date}${timeStr}${locStr} • Modifié par ${authorName}`,
-      url: '/calendar',
+      url: `/${req.family.slug}/calendar`,
       excludeUserId: req.user ? req.user.id : null,
       familyId: req.family._id,
       actions: [
@@ -2775,7 +2804,7 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
           <li><strong>Catégorie :</strong> ${event.category || 'Famille'}</li>
         </ul>
       `,
-      actionUrl: '/calendar',
+      actionUrl: `/${req.family.slug}/calendar`,
       actionText: 'Voir dans le calendrier',
       excludeUserId: req.user ? req.user.id : null,
       familyId: req.family._id,
@@ -2918,6 +2947,39 @@ app.post('/api/shopping', requireAuth, attachFamilyContext, async (req, res) => 
       checked: false
     })
     await newItem.save()
+
+    // Si l'article est marqué urgent, notifier la famille
+    if (newItem.urgent) {
+      const authorName = req.user ? req.user.firstName : 'Un membre'
+      sendPushNotification({
+        title: `🛒 Article urgent : ${newItem.name}`,
+        body: `${newItem.quantity > 1 ? `${newItem.quantity}x ` : ''}${newItem.name} (${newItem.category}) • Demandé par ${authorName}`,
+        url: `/${req.family.slug}/shopping`,
+        excludeUserId: req.user ? req.user.id : null,
+        familyId: req.family._id
+      })
+
+      sendNotificationEmail({
+        subject: `🛒 Article urgent : ${newItem.name}`,
+        title: `Article urgent sur la liste de courses`,
+        badge: '🛒',
+        detailsHtml: `
+          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+            <strong>${authorName}</strong> a ajouté un article urgent sur la liste de courses :
+          </p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+            <li><strong>Article :</strong> ${newItem.name}</li>
+            <li><strong>Quantité :</strong> ${newItem.quantity}</li>
+            <li><strong>Rayon :</strong> ${newItem.category}</li>
+          </ul>
+        `,
+        actionUrl: `/${req.family.slug}/shopping`,
+        actionText: 'Voir la liste de courses',
+        excludeUserId: req.user ? req.user.id : null,
+        familyId: req.family._id
+      })
+    }
+
     res.status(201).json(newItem)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -2942,12 +3004,47 @@ app.put('/api/shopping/:id', requireAuth, attachFamilyContext, async (req, res) 
     const item = await ShoppingItem.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!item) return res.status(404).json({ error: 'Article non trouvé' })
 
+    const wasUrgent = Boolean(item.urgent)
+
     if (req.body.name !== undefined)     item.name     = req.body.name
     if (req.body.category !== undefined) item.category = req.body.category
     if (req.body.quantity !== undefined) item.quantity = Number(req.body.quantity)
     if (req.body.urgent !== undefined)   item.urgent   = Boolean(req.body.urgent)
 
     await item.save()
+
+    // Si l'article passe à urgent, notifier la famille
+    if (item.urgent && !wasUrgent) {
+      const authorName = req.user ? req.user.firstName : 'Un membre'
+      sendPushNotification({
+        title: `🛒 Article urgent : ${item.name}`,
+        body: `${item.quantity > 1 ? `${item.quantity}x ` : ''}${item.name} (${item.category}) • Signalé par ${authorName}`,
+        url: `/${req.family.slug}/shopping`,
+        excludeUserId: req.user ? req.user.id : null,
+        familyId: req.family._id
+      })
+
+      sendNotificationEmail({
+        subject: `🛒 Article passé en urgent : ${item.name}`,
+        title: `Article passé en urgent`,
+        badge: '🛒',
+        detailsHtml: `
+          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+            <strong>${authorName}</strong> a marqué cet article comme urgent :
+          </p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+            <li><strong>Article :</strong> ${item.name}</li>
+            <li><strong>Quantité :</strong> ${item.quantity}</li>
+            <li><strong>Rayon :</strong> ${item.category}</li>
+          </ul>
+        `,
+        actionUrl: `/${req.family.slug}/shopping`,
+        actionText: 'Voir la liste de courses',
+        excludeUserId: req.user ? req.user.id : null,
+        familyId: req.family._id
+      })
+    }
+
     res.json(item)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -3009,7 +3106,7 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
           sendPushNotification({
             title: pushTitle,
             body: pushBody,
-            url: '/absences',
+            url: `/${req.family.slug}/absences`,
             excludeUserId: req.user ? req.user.id : null,
             familyId: req.family._id
           })
@@ -3038,7 +3135,7 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
                 ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
               </ul>
             `,
-            actionUrl: '/absences',
+            actionUrl: `/${req.family.slug}/absences`,
             actionText: 'Consulter les présences & repas',
             excludeUserId: req.user ? req.user.id : null,
             familyId: req.family._id
@@ -3052,7 +3149,7 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
           sendPushNotification({
             title: pushTitle,
             body: pushBody,
-            url: '/absences',
+            url: `/${req.family.slug}/absences`,
             excludeUserId: req.user ? req.user.id : null,
             familyId: req.family._id
           })
@@ -3081,7 +3178,7 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
                 ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
               </ul>
             `,
-            actionUrl: '/absences',
+            actionUrl: `/${req.family.slug}/absences`,
             actionText: 'Consulter les absences & repas',
             excludeUserId: req.user ? req.user.id : null,
             familyId: req.family._id
@@ -3242,7 +3339,7 @@ app.post('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) 
       sendPushNotification({
         title: `🍽️ Nouvel invité : ${namesStr}`,
         body: `${namesStr} invité(s) par ${hostName} le ${date.trim()} (${slotsStr})${noteStr}`,
-        url: '/absences',
+        url: `/${req.family.slug}/absences`,
         excludeUserId: req.user ? req.user.id : null,
         familyId: req.family._id
       })
@@ -3262,7 +3359,7 @@ app.post('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) 
             ${note ? `<li><strong>Remarque :</strong> ${note.trim()}</li>` : ''}
           </ul>
         `,
-        actionUrl: '/absences',
+        actionUrl: `/${req.family.slug}/absences`,
         actionText: 'Consulter le planning des repas',
         excludeUserId: req.user ? req.user.id : null,
         familyId: req.family._id
