@@ -94,18 +94,24 @@ const attachFamilyContext = async (req, res, next) => {
       family = await Family.findById(familyIdHeader)
     }
 
-    // Si aucune famille n'est explicitement demandée, fallback vers la première famille de l'utilisateur
+    // Si aucune famille n'est explicitement demandée, fallback vers la première famille active de l'utilisateur
     if (!family && req.user) {
-      const membership = await FamilyMember.findOne({ userId: req.user.id }).sort('createdAt')
-      if (membership) {
-        family = await Family.findById(membership.familyId)
-      } else if (req.user.isSuperAdmin) {
-        family = await Family.findOne().sort('createdAt')
+      if (req.user.isSuperAdmin) {
+        family = await Family.findOne({ isActive: true }).sort('createdAt')
+      } else {
+        const memberships = await FamilyMember.find({ userId: req.user.id })
+        const familyIds = memberships.map(m => m.familyId)
+        family = await Family.findOne({ _id: { $in: familyIds }, isActive: true }).sort('createdAt')
       }
     }
 
     if (!family) {
       return res.status(404).json({ error: 'Famille introuvable ou aucune famille active' })
+    }
+
+    // Vérifier si la famille est désactivée
+    if (!family.isActive && !req.user?.isSuperAdmin) {
+      return res.status(403).json({ error: 'Cet espace familial est actuellement désactivé' })
     }
 
     req.family = family

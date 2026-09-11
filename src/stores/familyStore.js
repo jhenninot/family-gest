@@ -73,6 +73,7 @@ export const useFamilyStore = defineStore('family', () => {
       if (res.ok) {
         const data = await res.json()
         userFamilies.value = data
+        authStore.families = data
         return data
       }
     } catch (err) {
@@ -107,6 +108,12 @@ export const useFamilyStore = defineStore('family', () => {
         }
         localStorage.setItem('familygest_active_slug', data.family.slug)
         return true
+      }
+      if (res.status === 403 || res.status === 404) {
+        clearFamilyData()
+        currentFamily.value = null
+        localStorage.removeItem('familygest_active_slug')
+        return false
       }
     } catch (err) {
       console.error('Erreur fetchCurrentFamily', err)
@@ -188,6 +195,15 @@ export const useFamilyStore = defineStore('family', () => {
         console.warn('Session expirée ou utilisateur non trouvé en base. Déconnexion automatique...')
         authStore.logout()
         clearFamilyData()
+        return
+      }
+
+      // Check if access forbidden (family deactivated or user not member) (403)
+      if (membersRes.status === 403 || tasksRes.status === 403) {
+        console.warn('Accès refusé à cet espace familial (désactivé ou non autorisé). Nettoyage des données...')
+        clearFamilyData()
+        currentFamily.value = null
+        localStorage.removeItem('familygest_active_slug')
         return
       }
 

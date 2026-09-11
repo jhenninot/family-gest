@@ -169,7 +169,7 @@ router.beforeEach(async (to, from, next) => {
 
     const hasAccess = authStore.isSuperAdmin || (userFamilies && userFamilies.some(f => f.slug === targetSlug))
 
-    if (!hasAccess && userFamilies && userFamilies.length > 0) {
+    if (!hasAccess) {
       return next({ name: 'select-family' })
     }
 
@@ -207,15 +207,28 @@ router.beforeEach(async (to, from, next) => {
   }
 
   if (legacyMap[to.path] !== undefined) {
-    let activeSlug = localStorage.getItem('familygest_active_slug')
     let userFamilies = familyStore.userFamilies
     if (!userFamilies || userFamilies.length === 0) {
       userFamilies = await familyStore.fetchUserFamilies()
     }
 
-    if (!activeSlug && userFamilies && userFamilies.length > 0) {
-      activeSlug = userFamilies[0].slug
-      localStorage.setItem('familygest_active_slug', activeSlug)
+    let activeSlug = localStorage.getItem('familygest_active_slug')
+
+    // Pour les non-superadmin, valider que activeSlug est réellement une famille active accessible
+    if (!authStore.isSuperAdmin) {
+      const isValidActive = activeSlug && userFamilies && userFamilies.some(f => f.slug === activeSlug)
+      if (!isValidActive) {
+        if (userFamilies && userFamilies.length > 0) {
+          activeSlug = userFamilies[0].slug
+          localStorage.setItem('familygest_active_slug', activeSlug)
+        } else {
+          // L'utilisateur n'a aucune famille active accessible
+          localStorage.removeItem('familygest_active_slug')
+          familyStore.clearFamilyData()
+          familyStore.currentFamily = null
+          return next({ name: 'select-family' })
+        }
+      }
     }
 
     if (activeSlug) {

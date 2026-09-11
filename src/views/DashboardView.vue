@@ -791,7 +791,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
@@ -819,6 +819,7 @@ import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValid
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const store = useFamilyStore()
 
@@ -875,9 +876,18 @@ const loadDashboardData = async () => {
   const targetSlug = route.params.familySlug || store.currentFamily?.slug || localStorage.getItem('familygest_active_slug')
   if (targetSlug) {
     if (!store.currentFamily || store.currentFamily.slug !== targetSlug) {
-      await store.fetchCurrentFamily(targetSlug)
+      const ok = await store.fetchCurrentFamily(targetSlug)
+      if (!ok && !authStore.isSuperAdmin) {
+        router.push({ name: 'select-family' })
+        return
+      }
     }
     await store.fetchAllData()
+    if (!store.currentFamily && !authStore.isSuperAdmin) {
+      router.push({ name: 'select-family' })
+    }
+  } else if (!authStore.isSuperAdmin) {
+    router.push({ name: 'select-family' })
   }
 }
 
