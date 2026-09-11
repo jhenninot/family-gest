@@ -1336,10 +1336,10 @@ app.get('/api/super-admin/smtp', requireAuth, requireSuperAdmin, async (req, res
   }
 })
 
-// POST /api/super-admin/smtp (Sauvegarde des paramètres SMTP plateforme)
-app.post('/api/super-admin/smtp', requireAuth, requireSuperAdmin, async (req, res) => {
+// PUT & POST /api/super-admin/smtp (Sauvegarde des paramètres SMTP plateforme)
+const handleSaveGlobalSmtp = async (req, res) => {
   try {
-    const { serverUrl, providerPreset, host, port, secure, user, pass, fromEmail, fromName } = req.body
+    const { serverUrl, providerPreset, host, port, secure, user, pass, password, from, fromEmail, fromName } = req.body
 
     let config = await GlobalConfig.findOne()
     if (!config) config = new GlobalConfig()
@@ -1350,8 +1350,12 @@ app.post('/api/super-admin/smtp', requireAuth, requireSuperAdmin, async (req, re
     if (port !== undefined) config.port = Number(port)
     if (secure !== undefined) config.secure = Boolean(secure)
     if (user !== undefined) config.user = user.trim()
-    if (pass !== undefined && pass !== '') config.pass = pass.trim()
-    if (fromEmail !== undefined) config.fromEmail = fromEmail.trim()
+    
+    const newPass = password !== undefined ? password : pass
+    if (newPass !== undefined && newPass !== '') config.pass = newPass.trim()
+
+    const newFromEmail = from !== undefined ? from : fromEmail
+    if (newFromEmail !== undefined) config.fromEmail = newFromEmail.trim()
     if (fromName !== undefined) config.fromName = fromName.trim()
 
     config.isConfigured = Boolean(config.host && config.user && config.pass)
@@ -1365,15 +1369,19 @@ app.post('/api/super-admin/smtp', requireAuth, requireSuperAdmin, async (req, re
       port: config.port,
       secure: config.secure,
       user: config.user,
-      hasPassword: Boolean(config.pass && config.pass.length > 0),
+      from: config.fromEmail,
       fromEmail: config.fromEmail,
       fromName: config.fromName,
+      hasPassword: Boolean(config.pass && config.pass.length > 0),
       isConfigured: config.isConfigured
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
-})
+}
+
+app.post('/api/super-admin/smtp', requireAuth, requireSuperAdmin, handleSaveGlobalSmtp)
+app.put('/api/super-admin/smtp', requireAuth, requireSuperAdmin, handleSaveGlobalSmtp)
 
 // POST /api/super-admin/smtp/test (Test d'envoi SMTP plateforme)
 app.post('/api/super-admin/smtp/test', requireAuth, requireSuperAdmin, async (req, res) => {

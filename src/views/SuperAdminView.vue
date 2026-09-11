@@ -709,18 +709,28 @@ const saveGlobalSmtp = async () => {
   savingSmtp.value = true
   smtpMessage.value = ''
   try {
+    const payload = {
+      host: smtpConfig.host,
+      port: smtpConfig.port,
+      secure: smtpConfig.secure,
+      user: smtpConfig.user,
+      password: smtpConfig.password,
+      pass: smtpConfig.password,
+      from: smtpConfig.from,
+      fromEmail: smtpConfig.from
+    }
     const res = await fetch('/api/super-admin/smtp', {
-      method: 'PUT',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authStore.token}`
       },
-      body: JSON.stringify(smtpConfig)
+      body: JSON.stringify(payload)
     })
     const data = await res.json()
     if (res.ok) {
       smtpSuccess.value = true
-      smtpMessage.value = 'Configuration SMTP enregistrée avec succès !'
+      smtpMessage.value = '✓ Configuration SMTP enregistrée avec succès !'
     } else {
       smtpSuccess.value = false
       smtpMessage.value = data.error || 'Erreur lors de l\'enregistrement'
