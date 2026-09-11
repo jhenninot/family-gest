@@ -1178,7 +1178,7 @@ const editingGuestId = ref(null)
 const guestForm = ref({
   name: '',
   date: store.todayStr,
-  lunch: true,
+  lunch: false,
   dinner: false,
   night: false,
   invitedBy: authStore.user?.id || null,
@@ -1422,7 +1422,7 @@ const openAddModal = (defaultDate = null, defaultType = null, defaultMemberId = 
     type: initialType,
     memberId: initialMemberId,
     date: defaultDate || store.todayStr,
-    lunch: true,
+    lunch: false,
     dinner: false,
     night: false,
     note: ''
@@ -1475,9 +1475,9 @@ const openAddGuestModal = (defaultDate = null, defaultSlot = null) => {
   guestForm.value = {
     name: '',
     date: defaultDate || store.todayStr,
-    lunch: defaultSlot ? defaultSlot === 'lunch' : true,
-    dinner: defaultSlot ? defaultSlot === 'dinner' : false,
-    night: defaultSlot ? defaultSlot === 'night' : false,
+    lunch: false,
+    dinner: false,
+    night: false,
     invitedBy: authStore.user?.id || null,
     note: ''
   }
