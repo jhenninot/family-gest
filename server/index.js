@@ -1520,6 +1520,237 @@ app.put('/api/super-admin/families/:id', requireAuth, requireSuperAdmin, async (
   }
 })
 
+// POST /api/super-admin/families/:id/import (Importer des données JSON dans une famille)
+app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const family = await Family.findById(req.params.id)
+    if (!family) return res.status(404).json({ error: 'Famille introuvable' })
+
+    const payload = req.body.data || req.body
+    if (!payload || typeof payload !== 'object') {
+      return res.status(400).json({ error: 'Données d\'import invalides (JSON attendu)' })
+    }
+
+    const {
+      users = [],
+      tasks = [],
+      shoppingItems = [],
+      shoppingCategories = [],
+      absences = [],
+      mealGuests = [],
+      shortcuts = [],
+      events = []
+    } = payload
+
+    // 1. Traitement des utilisateurs : mapping oldId -> targetUser.id & targetUser._id
+    const idMap = {}
+    const userRefMap = {}
+
+    for (const u of users) {
+      if (!u.email) continue
+      const cleanEmail = u.email.toLowerCase().trim()
+      let user = await User.findOne({ email: cleanEmail })
+
+      if (!user) {
+        // Obtenir le prochain ID utilisateur
+        const maxUser = await User.findOne().sort({ id: -1 })
+        const nextId = (maxUser?.id || 0) + 1
+
+        user = new User({
+          id: nextId,
+          firstName: u.firstName || 'Membre',
+          lastName: u.lastName || '',
+          email: cleanEmail,
+          password: u.password, // le hash bcrypt ne sera pas ré-encodé
+          isAdmin: false,
+          isSuperAdmin: false,
+          role: u.role || 'Membre',
+          avatar: u.avatar || '👤',
+          color: u.color || '#6366f1',
+          points: u.points || 0,
+          usualPresence: u.usualPresence || 'present',
+          pushNotificationsEnabled: u.pushNotificationsEnabled !== false,
+          emailNotificationsEnabled: Boolean(u.emailNotificationsEnabled)
+        })
+        await user.save()
+      }
+
+      if (u.id !== undefined) {
+        idMap[u.id] = user.id
+        userRefMap[u.id] = user._id
+      }
+    }
+
+    // 2. Écraser les données existantes de la famille cible
+    await Promise.all([
+      FamilyMember.deleteMany({ familyId: family._id }),
+      Task.deleteMany({ familyId: family._id }),
+      ShoppingItem.deleteMany({ familyId: family._id }),
+      ShoppingCategory.deleteMany({ familyId: family._id }),
+      Absence.deleteMany({ familyId: family._id }),
+      MealGuest.deleteMany({ familyId: family._id }),
+      Shortcut.deleteMany({ familyId: family._id }),
+      Event.deleteMany({ familyId: family._id })
+    ])
+
+    // 3. Insérer les membres de la famille
+    const createdMembers = []
+    for (const u of users) {
+      const targetUserId = idMap[u.id]
+      const targetUserRef = userRefMap[u.id]
+      if (!targetUserId) continue
+
+      // Éviter les doublons si l'utilisateur apparaît deux fois dans la liste
+      const alreadyAdded = createdMembers.some(m => m.userId === targetUserId)
+      if (!alreadyAdded) {
+        const fm = new FamilyMember({
+          familyId: family._id,
+          userId: targetUserId,
+          userRef: targetUserRef,
+          role: u.role || 'Membre',
+          isAdmin: Boolean(u.isAdmin),
+          usualPresence: u.usualPresence || 'present',
+          points: u.points || 0,
+          pushNotificationsEnabled: u.pushNotificationsEnabled !== false,
+          emailNotificationsEnabled: Boolean(u.emailNotificationsEnabled)
+        })
+        await fm.save()
+        createdMembers.push(fm)
+      }
+    }
+
+    // 4. Insérer les catégories de courses
+    for (const cat of shoppingCategories) {
+      await ShoppingCategory.create({
+        familyId: family._id,
+        id: cat.id,
+        name: cat.name,
+        icon: cat.icon || '🛒',
+        rank: cat.rank ?? 0
+      })
+    }
+
+    // 5. Insérer les articles de courses
+    for (const item of shoppingItems) {
+      await ShoppingItem.create({
+        familyId: family._id,
+        id: item.id,
+        name: item.name,
+        category: item.category || 'Frais',
+        quantity: item.quantity ?? 1,
+        urgent: Boolean(item.urgent),
+        checked: Boolean(item.checked)
+      })
+    }
+
+    // 6. Insérer les tâches (en re-mappant assignedTo si nécessaire)
+    for (const task of tasks) {
+      const assignedTo = task.assignedTo !== undefined && task.assignedTo !== null 
+        ? (idMap[task.assignedTo] || task.assignedTo) 
+        : null
+
+      await Task.create({
+        familyId: family._id,
+        id: task.id,
+        title: task.title,
+        category: task.category || 'Maison',
+        assignedTo,
+        priority: task.priority || 'Moyenne',
+        points: task.points ?? 10,
+        completed: Boolean(task.completed),
+        dueDate: task.dueDate
+      })
+    }
+
+    // 7. Insérer les absences
+    for (const abs of absences) {
+      const memberId = idMap[abs.memberId] || abs.memberId
+      const declaredBy = abs.declaredBy ? (idMap[abs.declaredBy] || abs.declaredBy) : null
+
+      await Absence.create({
+        familyId: family._id,
+        id: abs.id,
+        memberId,
+        date: abs.date,
+        type: abs.type || 'absence',
+        lunch: Boolean(abs.lunch),
+        dinner: Boolean(abs.dinner),
+        night: Boolean(abs.night),
+        note: abs.note || '',
+        declaredBy
+      })
+    }
+
+    // 8. Insérer les invités
+    for (const guest of mealGuests) {
+      const invitedBy = guest.invitedBy ? (idMap[guest.invitedBy] || guest.invitedBy) : null
+
+      await MealGuest.create({
+        familyId: family._id,
+        id: guest.id,
+        name: guest.name,
+        date: guest.date,
+        lunch: Boolean(guest.lunch),
+        dinner: Boolean(guest.dinner),
+        night: Boolean(guest.night),
+        invitedBy,
+        note: guest.note || ''
+      })
+    }
+
+    // 9. Insérer les raccourcis
+    for (const sc of shortcuts) {
+      await Shortcut.create({
+        familyId: family._id,
+        id: sc.id,
+        title: sc.title,
+        url: sc.url,
+        icon: sc.icon || '🌐',
+        order: sc.order ?? 0
+      })
+    }
+
+    // 10. Insérer les événements
+    for (const evt of events) {
+      const assignedTo = evt.assignedTo !== undefined && evt.assignedTo !== null
+        ? (idMap[evt.assignedTo] || evt.assignedTo)
+        : null
+
+      await Event.create({
+        familyId: family._id,
+        id: evt.id,
+        title: evt.title,
+        date: evt.date,
+        time: evt.time,
+        category: evt.category || 'Famille',
+        location: evt.location,
+        color: evt.color || '#8b5cf6',
+        assignedTo
+      })
+    }
+
+    res.json({
+      success: true,
+      message: `Données importées avec succès pour la famille « ${family.name} »`,
+      summary: {
+        family: family.name,
+        slug: family.slug,
+        membersCount: createdMembers.length,
+        tasksCount: tasks.length,
+        shoppingItemsCount: shoppingItems.length,
+        categoriesCount: shoppingCategories.length,
+        absencesCount: absences.length,
+        guestsCount: mealGuests.length,
+        shortcutsCount: shortcuts.length,
+        eventsCount: events.length
+      }
+    })
+  } catch (err) {
+    console.error('Erreur import-family:', err)
+    res.status(500).json({ error: 'Erreur lors de l\'importation : ' + err.message })
+  }
+})
+
 // GET /api/super-admin/users (Vue de tous les utilisateurs et de leurs familles)
 app.get('/api/super-admin/users', requireAuth, requireSuperAdmin, async (req, res) => {
   try {

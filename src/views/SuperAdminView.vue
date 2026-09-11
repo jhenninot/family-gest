@@ -11,6 +11,10 @@
         <p class="page-subtitle">Gestion centralisée des familles, quotas, utilisateurs et SMTP global.</p>
       </div>
       <div class="header-actions">
+        <button @click="openImportFamilyModal()" class="btn btn-secondary">
+          <Upload :size="18" />
+          <span>Importer des données</span>
+        </button>
         <button @click="openCreateFamilyModal" class="btn btn-primary">
           <Plus :size="18" />
           <span>Créer une famille</span>
@@ -108,6 +112,13 @@
                   :title="fam.isActive ? 'Désactiver la famille' : 'Activer la famille'"
                 >
                   <Power :size="16" />
+                </button>
+                <button 
+                  @click="openImportFamilyModal(fam)" 
+                  class="btn-icon text-amber" 
+                  title="Importer des données dans cette famille"
+                >
+                  <Upload :size="16" />
                 </button>
                 <button 
                   @click="switchAndGo(fam.slug)" 
@@ -717,6 +728,78 @@
         </div>
       </div>
     </div>
+
+    <!-- MODAL IMPORT FAMILY -->
+    <div v-if="showImportModal" class="modal-overlay" @click.self="showImportModal = false">
+      <div class="modal-content glass-card modal-md">
+        <div class="modal-header">
+          <div>
+            <h3>Importer les données d'une famille</h3>
+            <p class="modal-subtitle">Restaurez un export JSON provenant de la version mono-famille ou d'une sauvegarde.</p>
+          </div>
+          <button @click="showImportModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <form @submit.prevent="handleExecuteImport" class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Famille de destination *</label>
+            <select v-model="importTargetFamilyId" class="form-select" required>
+              <option value="" disabled>-- Choisir la famille cible --</option>
+              <option v-for="fam in families" :key="fam._id" :value="fam._id">
+                {{ fam.name }} (/{{ fam.slug }})
+              </option>
+            </select>
+            <span class="help-text">Les données importées seront rattachées à cette famille.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Fichier JSON d'exportation *</label>
+            <input 
+              type="file" 
+              accept=".json,application/json" 
+              @change="handleFileSelected" 
+              class="form-input" 
+              required 
+            />
+            <div v-if="importFileName" class="text-sm font-semibold text-indigo margin-top-xs">
+              📄 Fichier sélectionné : {{ importFileName }}
+            </div>
+          </div>
+
+          <!-- Avertissement écrasement des données -->
+          <div class="alert-box alert-warning">
+            <AlertTriangle :size="20" class="flex-shrink-0" />
+            <div>
+              <strong>Attention : Écrasement des données</strong>
+              <p class="margin-top-xs text-sm">
+                L'importation va écraser et remplacer <strong>toutes les données existantes</strong> de cette famille (tâches, liste de courses, catégories, absences, invités, raccourcis, événements et membres).
+              </p>
+            </div>
+          </div>
+
+          <div v-if="importError" class="alert-box alert-error">
+            {{ importError }}
+          </div>
+
+          <div v-if="importSuccess" class="alert-box alert-success">
+            {{ importSuccess }}
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" @click="showImportModal = false" class="btn btn-secondary">Annuler</button>
+            <button 
+              type="submit" 
+              class="btn btn-primary" 
+              :disabled="importing || !importTargetFamilyId || !importFileContent"
+            >
+              <Upload v-if="!importing" :size="16" />
+              <Loader2 v-else :size="16" class="spin" />
+              <span>{{ importing ? 'Importation en cours...' : 'Écraser et Importer les données' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -742,7 +825,10 @@ import {
   ShieldCheck,
   Settings,
   Trash2,
-  UserMinus
+  UserMinus,
+  Upload,
+  AlertTriangle,
+  Loader2
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -841,6 +927,86 @@ const unassignedFamilies = computed(() => {
   const userFamIds = (selectedUser.value.families || []).map(f => String(f.familyId || f._id || f.id))
   return families.value.filter(f => !userFamIds.includes(String(f._id || f.id)))
 })
+
+// --- Import Family Data State & Handlers ---
+const showImportModal = ref(false)
+const importTargetFamilyId = ref('')
+const importFileName = ref('')
+const importFileContent = ref(null)
+const importing = ref(false)
+const importError = ref('')
+const importSuccess = ref('')
+
+const openImportFamilyModal = (preselectedFamily = null) => {
+  importTargetFamilyId.value = preselectedFamily ? preselectedFamily._id : (families.value[0]?._id || '')
+  importFileName.value = ''
+  importFileContent.value = null
+  importError.value = ''
+  importSuccess.value = ''
+  showImportModal.value = true
+}
+
+const handleFileSelected = (event) => {
+  importError.value = ''
+  importSuccess.value = ''
+  const file = event.target.files?.[0]
+  if (!file) {
+    importFileName.value = ''
+    importFileContent.value = null
+    return
+  }
+  importFileName.value = file.name
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result)
+      importFileContent.value = parsed
+    } catch (err) {
+      importError.value = 'Le fichier sélectionné n\'est pas un JSON valide : ' + err.message
+      importFileContent.value = null
+    }
+  }
+  reader.onerror = () => {
+    importError.value = 'Erreur lors de la lecture du fichier.'
+    importFileContent.value = null
+  }
+  reader.readAsText(file)
+}
+
+const handleExecuteImport = async () => {
+  if (!importTargetFamilyId.value || !importFileContent.value) return
+
+  importing.value = true
+  importError.value = ''
+  importSuccess.value = ''
+
+  try {
+    const res = await fetch(`/api/super-admin/families/${importTargetFamilyId.value}/import`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({ data: importFileContent.value.data || importFileContent.value })
+    })
+
+    const result = await res.json()
+    if (res.ok && result.success) {
+      importSuccess.value = result.message || 'Données importées avec succès !'
+      await fetchFamilies()
+      await fetchUsers()
+      setTimeout(() => {
+        showImportModal.value = false
+      }, 1800)
+    } else {
+      importError.value = result.error || 'Erreur lors de l\'importation des données'
+    }
+  } catch (err) {
+    importError.value = 'Erreur réseau : ' + err.message
+  } finally {
+    importing.value = false
+  }
+}
 
 const fetchFamilies = async () => {
   loadingFamilies.value = true
@@ -2083,5 +2249,17 @@ const testGlobalSmtp = async () => {
   color: var(--text-muted, #64748b);
   font-style: italic;
   padding: 0.5rem 0;
+}
+
+.text-amber {
+  color: #f59e0b !important;
+}
+.text-amber:hover {
+  background: rgba(245, 158, 11, 0.15) !important;
+}
+
+.file-input {
+  padding: 0.5rem;
+  cursor: pointer;
 }
 </style>
