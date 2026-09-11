@@ -11,7 +11,9 @@ export const useAuthStore = defineStore('auth', () => {
   const isAdmin = computed(() => {
     if (!user.value) return false
     if (user.value.isSuperAdmin) return true
-    return user.value.isAdmin === true
+    if (user.value.isAdmin === true) return true
+    if (Array.isArray(user.value.families) && user.value.families.some(f => f.isAdmin === true)) return true
+    return false
   })
   const families = computed(() => user.value?.families || [])
 

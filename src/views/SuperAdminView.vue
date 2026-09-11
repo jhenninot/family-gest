@@ -155,6 +155,9 @@
                 <span v-if="u.isSuperAdmin" class="role-pill super-admin-role">
                   <ShieldAlert :size="14" /> Super Admin
                 </span>
+                <span v-else-if="u.isFamilyAdmin || u.families?.some(f => f.isAdmin)" class="role-pill family-admin-role">
+                  <ShieldCheck :size="14" /> Admin familial
+                </span>
                 <span v-else class="role-pill standard-user-role">
                   Utilisateur
                 </span>
@@ -163,10 +166,21 @@
                 <div class="family-tags">
                   <span 
                     v-for="f in u.families" 
-                    :key="f.slug" 
+                    :key="f.slug || f.familyId" 
                     class="family-tag"
+                    :class="{ 'admin-tag': f.isAdmin }"
                   >
+                    <ShieldCheck v-if="f.isAdmin" :size="12" class="tag-icon" />
                     {{ f.name }} <small>({{ f.role }})</small>
+                    <button 
+                      v-if="!u.isSuperAdmin"
+                      type="button"
+                      @click="toggleUserFamilyAdmin(u, f)" 
+                      class="tag-toggle-btn"
+                      :title="f.isAdmin ? 'Rétrograder en membre standard' : 'Nommer administrateur de cette famille'"
+                    >
+                      {{ f.isAdmin ? '👑 Retirer admin' : '⭐ Nommer admin' }}
+                    </button>
                   </span>
                   <span v-if="!u.families || u.families.length === 0" class="text-muted">
                     Aucune
@@ -531,7 +545,8 @@ import {
   ExternalLink, 
   Send, 
   Check,
-  UserPlus
+  UserPlus,
+  ShieldCheck
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -874,6 +889,39 @@ const handleAddAdminToFamily = async () => {
   }
 }
 
+const toggleUserFamilyAdmin = async (u, f) => {
+  const newAdminStatus = !f.isAdmin
+  const familyId = f.familyId || f._id || f.id
+  const actionText = newAdminStatus 
+    ? `Nommer ${u.firstName} ${u.lastName} administrateur de la famille "${f.name}" ?`
+    : `Retirer les droits d'administrateur de ${u.firstName} ${u.lastName} pour la famille "${f.name}" ?`
+  if (!confirm(actionText)) return
+
+  try {
+    const res = await fetch(`/api/super-admin/users/${u.id}/set-family-admin`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        familyId,
+        isAdmin: newAdminStatus
+      })
+    })
+    if (res.ok) {
+      await fetchUsers()
+      await fetchFamilies()
+    } else {
+      const err = await res.json()
+      alert(err.error || 'Erreur lors de la modification des droits')
+    }
+  } catch (err) {
+    console.error('Erreur toggleUserFamilyAdmin', err)
+    alert(err.message)
+  }
+}
+
 const toggleFamilyActive = async (fam) => {
   const action = fam.isActive ? 'désactiver' : 'activer'
   if (!confirm(`Êtes-vous sûr de vouloir ${action} la famille "${fam.name}" ?`)) return
@@ -1188,6 +1236,11 @@ const testGlobalSmtp = async () => {
   color: #d97706;
 }
 
+.role-pill.family-admin-role {
+  background: rgba(99, 102, 241, 0.15);
+  color: #4f46e5;
+}
+
 .role-pill.standard-user-role {
   background: rgba(148, 163, 184, 0.15);
   color: var(--text-muted, #64748b);
@@ -1200,11 +1253,37 @@ const testGlobalSmtp = async () => {
 }
 
 .family-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   background: rgba(99, 102, 241, 0.1);
   color: var(--primary, #6366f1);
   font-size: 0.8rem;
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
+}
+
+.family-tag.admin-tag {
+  background: rgba(99, 102, 241, 0.2);
+  color: #4338ca;
+  font-weight: 600;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
+
+.tag-toggle-btn {
+  background: rgba(0, 0, 0, 0.08);
+  border: none;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.35rem;
+  margin-left: 0.35rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: inherit;
+}
+
+.tag-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.18);
 }
 
 /* SMTP Tab */

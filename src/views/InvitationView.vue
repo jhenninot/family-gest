@@ -8,6 +8,10 @@
         <h2 class="title">Invitation Familiale</h2>
         <p v-if="invitationData" class="subtitle">
           Vous êtes invité(e) à rejoindre la famille <strong>{{ invitationData.family?.name }}</strong>
+          <br v-if="invitationData.isAdmin" />
+          <span v-if="invitationData.isAdmin" class="admin-subtitle-pill">
+            <ShieldCheck :size="14" /> En tant qu'Administrateur
+          </span>
         </p>
       </div>
 
@@ -24,18 +28,18 @@
 
       <div v-else-if="invitationData" class="invitation-content">
         <!-- CAS 1: UTILISATEUR EXISTANT -->
-        <div v-if="invitationData.userExists" class="existing-user-section">
+        <div v-if="invitationData.userExists || invitationData.isExistingUser" class="existing-user-section">
           <div class="welcome-box">
             <div class="avatar-large">{{ invitationData.existingUser?.avatar || '👋' }}</div>
             <h3>Ravi de vous revoir, {{ invitationData.existingUser?.firstName }} !</h3>
             <p>
-              Votre compte existant avec l'adresse <strong>{{ invitationData.invitation?.email }}</strong> a été invité à rejoindre cet espace familial.
+              Votre compte existant avec l'adresse <strong>{{ invitationData.email || invitationData.invitation?.email }}</strong> a été invité à rejoindre cet espace familial<span v-if="invitationData.isAdmin"> en tant qu'<strong>administrateur</strong></span>.
             </p>
           </div>
 
-          <div v-if="authStore.isAuthenticated && authStore.user?.email?.toLowerCase() === invitationData.invitation?.email?.toLowerCase()">
+          <div v-if="authStore.isAuthenticated && authStore.user?.email?.toLowerCase() === (invitationData.email || invitationData.invitation?.email)?.toLowerCase()">
             <button @click="handleAcceptExisting" class="btn btn-primary btn-block" :disabled="accepting">
-              {{ accepting ? 'Adhésion en cours...' : 'Rejoindre la famille maintenant' }}
+              {{ accepting ? 'Adhésion en cours...' : (invitationData.isAdmin ? 'Rejoindre en tant qu\'administrateur' : 'Rejoindre la famille maintenant') }}
             </button>
           </div>
           <div v-else>
@@ -51,7 +55,7 @@
           <div class="form-group">
             <label class="form-label">Adresse Email</label>
             <input 
-              :value="invitationData.invitation?.email" 
+              :value="invitationData.email || invitationData.invitation?.email" 
               type="email" 
               disabled 
               class="form-input disabled-input" 
@@ -84,6 +88,7 @@
           <div class="form-group">
             <label class="form-label">Rôle familial souhaité</label>
             <select v-model="formData.role" class="form-select">
+              <option v-if="invitationData.isAdmin" value="Administrateur">⭐ Administrateur</option>
               <option value="Papa">Papa</option>
               <option value="Maman">Maman</option>
               <option value="Fils">Fils</option>
@@ -93,6 +98,9 @@
               <option value="Baby-Sitter">Baby-Sitter</option>
               <option value="Autre">Autre</option>
             </select>
+            <span v-if="invitationData.isAdmin" class="help-subtext-admin">
+              🛡️ Vous disposerez des droits d'administration pour gérer cette famille.
+            </span>
           </div>
 
           <div class="grid-2">
@@ -161,7 +169,7 @@
             class="btn btn-primary btn-block" 
             :disabled="accepting || passwordMismatch || !isPasswordValid(formData.password)"
           >
-            {{ accepting ? 'Création de votre compte...' : 'Créer mon compte et rejoindre la famille' }}
+            {{ accepting ? 'Création de votre compte...' : (invitationData?.isAdmin ? 'Créer mon compte et administrer la famille' : 'Créer mon compte et rejoindre la famille') }}
           </button>
         </form>
       </div>
@@ -174,7 +182,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
-import { Sparkles, AlertCircle } from '@lucide/vue'
+import { Sparkles, AlertCircle, ShieldCheck } from '@lucide/vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 
@@ -219,10 +227,11 @@ onMounted(async () => {
       return
     }
     invitationData.value = data
-    if (data.invitation) {
-      formData.role = data.invitation.role || 'Membre'
-      if (data.invitation.firstName) formData.firstName = data.invitation.firstName
-      if (data.invitation.lastName) formData.lastName = data.invitation.lastName
+    const inv = data.invitation || data
+    if (inv) {
+      formData.role = (data.isAdmin || inv.isAdmin) ? 'Administrateur' : (inv.role || 'Membre')
+      if (inv.firstName) formData.firstName = inv.firstName
+      if (inv.lastName) formData.lastName = inv.lastName
     }
   } catch (err) {
     error.value = 'Erreur lors du contact du serveur'
@@ -331,6 +340,27 @@ const handleAcceptNew = async () => {
   color: var(--text-muted, #64748b);
   margin-top: 0.5rem;
   font-size: 1rem;
+}
+
+.admin-subtitle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(99, 102, 241, 0.15);
+  color: #4f46e5;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  margin-top: 0.5rem;
+}
+
+.help-subtext-admin {
+  display: block;
+  font-size: 0.82rem;
+  color: #4f46e5;
+  font-weight: 600;
+  margin-top: 0.4rem;
 }
 
 .welcome-box {

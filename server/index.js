@@ -1384,21 +1384,60 @@ app.get('/api/super-admin/users', requireAuth, requireSuperAdmin, async (req, re
       const memberships = await FamilyMember.find({ userId: u.id })
       const familyIds = memberships.map(m => m.familyId)
       const families = await Family.find({ _id: { $in: familyIds } }).select('name slug')
+
+      const mappedFamilies = memberships.map(m => {
+        const fam = families.find(f => f._id.toString() === m.familyId.toString())
+        return {
+          familyId: m.familyId,
+          id: m.familyId,
+          name: fam ? fam.name : 'Inconnue',
+          slug: fam ? fam.slug : '',
+          role: m.isAdmin ? 'Administrateur' : (m.role || 'Membre'),
+          isAdmin: Boolean(m.isAdmin)
+        }
+      })
+
+      const hasFamilyAdminRole = mappedFamilies.some(f => f.isAdmin)
+
       return {
         ...u.toObject(),
-        memberships: memberships.map(m => {
-          const fam = families.find(f => f._id.toString() === m.familyId.toString())
-          return {
-            familyId: m.familyId,
-            familyName: fam ? fam.name : 'Inconnue',
-            familySlug: fam ? fam.slug : '',
-            role: m.role,
-            isAdmin: m.isAdmin
-          }
-        })
+        isAdmin: hasFamilyAdminRole || Boolean(u.isAdmin),
+        isFamilyAdmin: hasFamilyAdminRole,
+        families: mappedFamilies,
+        memberships: mappedFamilies
       }
     }))
     res.json(usersWithFamilies)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PUT /api/super-admin/users/:userId/set-family-admin (Modifier les droits administrateur familial d'un utilisateur)
+app.put('/api/super-admin/users/:userId/set-family-admin', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.userId)
+    const { familyId, isAdmin } = req.body
+
+    const member = await FamilyMember.findOne({ userId, familyId })
+    if (!member) {
+      return res.status(404).json({ error: 'Rattachement familial introuvable' })
+    }
+
+    member.isAdmin = Boolean(isAdmin)
+    if (member.isAdmin && member.role === 'Membre') {
+      member.role = 'Administrateur'
+    } else if (!member.isAdmin && member.role === 'Administrateur') {
+      member.role = 'Membre'
+    }
+    await member.save()
+
+    // Mettre à jour le flag User.isAdmin si l'utilisateur est admin d'au moins une famille
+    const allMembers = await FamilyMember.find({ userId })
+    const isAnyAdmin = allMembers.some(m => m.isAdmin)
+    await User.updateOne({ id: userId }, { $set: { isAdmin: isAnyAdmin } })
+
+    res.json({ success: true, member })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -1571,6 +1610,7 @@ app.get('/api/user/families', requireAuth, async (req, res) => {
 app.get('/api/families/:familySlug', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const memberCount = await FamilyMember.countDocuments({ familyId: req.family._id })
+    const isFamilyAdmin = Boolean(req.user?.isSuperAdmin || req.membership?.isAdmin)
     res.json({
       family: {
         _id: req.family._id,
@@ -1579,7 +1619,9 @@ app.get('/api/families/:familySlug', requireAuth, attachFamilyContext, async (re
         maxMembers: req.family.maxMembers,
         memberCount
       },
-      membership: req.membership
+      membership: req.membership,
+      role: req.membership?.role || (isFamilyAdmin ? 'Administrateur' : 'Membre'),
+      isAdmin: isFamilyAdmin
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1696,11 +1738,21 @@ app.get('/api/invitations/:token', async (req, res) => {
         slug: family.slug
       },
       role: invitation.role,
-      isAdmin: invitation.isAdmin,
+      isAdmin: Boolean(invitation.isAdmin),
+      userExists: Boolean(existingUser),
       isExistingUser: Boolean(existingUser),
+      invitation: {
+        token: invitation.token,
+        email: invitation.email,
+        role: invitation.role,
+        isAdmin: Boolean(invitation.isAdmin),
+        firstName: invitation.firstName,
+        lastName: invitation.lastName
+      },
       existingUser: existingUser ? {
         firstName: existingUser.firstName,
-        lastName: existingUser.lastName
+        lastName: existingUser.lastName,
+        avatar: existingUser.avatar
       } : {
         firstName: invitation.firstName,
         lastName: invitation.lastName
@@ -1744,21 +1796,27 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
         // Mise à niveau du rôle (ex: promu administrateur)
         if (invitation.isAdmin) {
           alreadyMember.isAdmin = true
-          if (invitation.role) alreadyMember.role = invitation.role
+          alreadyMember.role = invitation.role || 'Administrateur'
           await alreadyMember.save()
+          await User.updateOne({ id: user.id }, { $set: { isAdmin: true } })
         }
       } else {
+        const isInvitedAdmin = Boolean(invitation.isAdmin)
+        const assignedRole = isInvitedAdmin ? 'Administrateur' : (req.body.role || invitation.role || 'Membre')
         const newMember = new FamilyMember({
           familyId: family._id,
           userId: user.id,
           userRef: user._id,
-          role: req.body.role || invitation.role || 'Membre',
-          isAdmin: Boolean(invitation.isAdmin),
+          role: assignedRole,
+          isAdmin: isInvitedAdmin,
           usualPresence: req.body.usualPresence || 'present',
           pushNotificationsEnabled: true,
           emailNotificationsEnabled: false
         })
         await newMember.save()
+        if (isInvitedAdmin) {
+          await User.updateOne({ id: user.id }, { $set: { isAdmin: true } })
+        }
       }
     } else {
       // Nouvel utilisateur : création complète
@@ -1775,6 +1833,9 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
       const highestUser = await User.findOne().sort('-id')
       const nextId = (highestUser && typeof highestUser.id === 'number') ? highestUser.id + 1 : 1
 
+      const isInvitedAdmin = Boolean(invitation.isAdmin)
+      const assignedRole = isInvitedAdmin ? 'Administrateur' : (role || invitation.role || 'Membre')
+
       user = new User({
         id: nextId,
         firstName: (firstName || invitation.firstName || 'Membre').trim(),
@@ -1783,8 +1844,8 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
         password,
         avatar: avatar || '👤',
         color: color || '#6366f1',
-        isAdmin: false,
-        role: role || invitation.role || 'Membre',
+        isAdmin: isInvitedAdmin,
+        role: assignedRole,
         usualPresence: usualPresence || 'present'
       })
       await user.save()
@@ -1793,8 +1854,8 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
         familyId: family._id,
         userId: user.id,
         userRef: user._id,
-        role: role || invitation.role || 'Membre',
-        isAdmin: Boolean(invitation.isAdmin),
+        role: assignedRole,
+        isAdmin: isInvitedAdmin,
         usualPresence: usualPresence || 'present',
         pushNotificationsEnabled: true,
         emailNotificationsEnabled: false
@@ -1820,7 +1881,8 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
         avatar: user.avatar,
         color: user.color,
         isSuperAdmin: Boolean(user.isSuperAdmin),
-        isAdmin: Boolean(invitation.isAdmin)
+        isAdmin: Boolean(user.isAdmin || invitation.isAdmin),
+        role: user.role
       }
     })
   } catch (err) {

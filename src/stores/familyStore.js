@@ -99,8 +99,8 @@ export const useFamilyStore = defineStore('family', () => {
       if (res.ok) {
         const data = await res.json()
         currentFamily.value = data.family
-        currentFamilyRole.value = data.role
-        currentFamilyIsAdmin.value = data.isAdmin
+        currentFamilyRole.value = data.role || data.membership?.role || 'Membre'
+        currentFamilyIsAdmin.value = Boolean(data.isAdmin ?? data.membership?.isAdmin ?? authStore.isSuperAdmin)
         currentFamilyQuota.value = {
           memberCount: data.memberCount,
           maxMembers: data.maxMembers
