@@ -1,7 +1,8 @@
 import mongoose from 'mongoose'
 
 const mealGuestSchema = new mongoose.Schema({
-  id: { type: Number, required: true, unique: true },
+  familyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Family', index: true },
+  id: { type: Number, required: true },
   name: { type: String, required: true, trim: true }, // Un seul champ pour nom et prénom
   date: { type: String, required: true }, // Format YYYY-MM-DD
   lunch: { type: Boolean, default: false }, // Présent au déjeuner (midi)
@@ -10,5 +11,8 @@ const mealGuestSchema = new mongoose.Schema({
   invitedBy: { type: Number, default: null }, // ID du membre qui invite (optionnel)
   note: { type: String, default: '', trim: true } // Remarques éventuelles
 }, { timestamps: true })
+
+mealGuestSchema.index({ familyId: 1, id: 1 }, { unique: true })
+mealGuestSchema.index({ familyId: 1, date: 1 })
 
 export default mongoose.model('MealGuest', mealGuestSchema)

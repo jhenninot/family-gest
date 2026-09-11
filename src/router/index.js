@@ -1,9 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { useFamilyStore } from '../stores/familyStore'
 import DashboardView from '../views/DashboardView.vue'
 import LoginView from '../views/LoginView.vue'
 
 const routes = [
+  // Public routes
   {
     path: '/login',
     name: 'login',
@@ -11,48 +13,102 @@ const routes = [
     meta: { title: 'Connexion', public: true }
   },
   {
-    path: '/',
-    name: 'dashboard',
-    component: DashboardView,
-    meta: { title: 'Tableau de bord', requiresAuth: true }
-  },
-  {
-    path: '/tasks',
-    name: 'tasks',
-    component: () => import('../views/TasksView.vue'),
-    meta: { title: 'Tâches', requiresAuth: true }
-  },
-  {
-    path: '/calendar',
-    name: 'calendar',
-    component: () => import('../views/CalendarView.vue'),
-    meta: { title: 'Calendrier familial', requiresAuth: true }
-  },
-
-  {
-    path: '/absences',
-    name: 'absences',
-    component: () => import('../views/AbsencesView.vue'),
-    meta: { title: 'Présence', requiresAuth: true }
-  },
-  {
-    path: '/shopping',
-    name: 'shopping',
-    component: () => import('../views/ShoppingView.vue'),
-    meta: { title: 'Liste de courses', requiresAuth: true }
-  },
-  {
-    path: '/settings/email',
-    name: 'admin-settings',
-    alias: '/admin',
-    component: () => import('../views/EmailSettingsView.vue'),
-    meta: { title: 'Administration', requiresAuth: true, requiresAdmin: true }
-  },
-  {
     path: '/set-password',
     name: 'set-password',
     component: () => import('../views/SetPasswordView.vue'),
     meta: { title: 'Définir mon mot de passe', public: true }
+  },
+  {
+    path: '/invitation/:token',
+    name: 'invitation',
+    component: () => import('../views/InvitationView.vue'),
+    meta: { title: 'Invitation Familiale', public: true }
+  },
+
+  // Special workspace selection & Super Admin
+  {
+    path: '/select-family',
+    name: 'select-family',
+    component: () => import('../views/SelectFamilyView.vue'),
+    meta: { title: 'Mes Familles', requiresAuth: true }
+  },
+  {
+    path: '/super-admin',
+    name: 'super-admin',
+    component: () => import('../views/SuperAdminView.vue'),
+    meta: { title: 'Super Administration', requiresAuth: true, requiresSuperAdmin: true }
+  },
+
+  // Family scoped routes
+  {
+    path: '/:familySlug',
+    name: 'family-dashboard',
+    component: DashboardView,
+    meta: { title: 'Tableau de bord', requiresAuth: true }
+  },
+  {
+    path: '/:familySlug/dashboard',
+    name: 'family-dashboard-explicit',
+    component: DashboardView,
+    meta: { title: 'Tableau de bord', requiresAuth: true }
+  },
+  {
+    path: '/:familySlug/tasks',
+    name: 'family-tasks',
+    component: () => import('../views/TasksView.vue'),
+    meta: { title: 'Tâches', requiresAuth: true }
+  },
+  {
+    path: '/:familySlug/calendar',
+    name: 'family-calendar',
+    component: () => import('../views/CalendarView.vue'),
+    meta: { title: 'Calendrier familial', requiresAuth: true }
+  },
+  {
+    path: '/:familySlug/absences',
+    name: 'family-absences',
+    component: () => import('../views/AbsencesView.vue'),
+    meta: { title: 'Présence', requiresAuth: true }
+  },
+  {
+    path: '/:familySlug/shopping',
+    name: 'family-shopping',
+    component: () => import('../views/ShoppingView.vue'),
+    meta: { title: 'Liste de courses', requiresAuth: true }
+  },
+  {
+    path: '/:familySlug/settings/email',
+    name: 'family-settings',
+    alias: ['/:familySlug/settings', '/:familySlug/admin'],
+    component: () => import('../views/EmailSettingsView.vue'),
+    meta: { title: 'Administration de la famille', requiresAuth: true, requiresAdmin: true }
+  },
+
+  // Root and legacy shortcuts (redirected via beforeEach)
+  {
+    path: '/',
+    name: 'root',
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/tasks',
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/calendar',
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/absences',
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/shopping',
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/settings/email',
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 
@@ -61,24 +117,94 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   document.title = `${to.meta.title || 'Accueil'} - FamilyGest`
   const authStore = useAuthStore()
+  const familyStore = useFamilyStore()
 
   // Déconnexion obligatoire de toute session active lors de l'arrivée sur la page de définition du mot de passe
   if (to.name === 'set-password' && authStore.isAuthenticated) {
     authStore.logout()
   }
 
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'login' })
-  } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
-    next({ name: 'dashboard' })
-  } else if (to.name === 'login' && authStore.isAuthenticated) {
-    next({ name: 'dashboard' })
-  } else {
-    next()
+  // Public route access
+  if (to.meta.public) {
+    if (to.name === 'login' && authStore.isAuthenticated) {
+      const activeSlug = localStorage.getItem('familygest_active_slug') || authStore.families[0]?.slug
+      if (activeSlug) return next({ path: `/${activeSlug}` })
+      return next({ name: 'select-family' })
+    }
+    return next()
   }
+
+  // Authentication check
+  if (!authStore.isAuthenticated) {
+    return next({ name: 'login' })
+  }
+
+  // Super Admin route check
+  if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin) {
+    return next({ path: '/' })
+  }
+
+  // If URL has :familySlug
+  if (to.params.familySlug) {
+    const targetSlug = to.params.familySlug
+
+    // Load user families if not already loaded
+    let userFamilies = familyStore.userFamilies
+    if (!userFamilies || userFamilies.length === 0) {
+      userFamilies = await familyStore.fetchUserFamilies()
+    }
+
+    const hasAccess = authStore.isSuperAdmin || (userFamilies && userFamilies.some(f => f.slug === targetSlug))
+
+    if (!hasAccess && userFamilies && userFamilies.length > 0) {
+      return next({ name: 'select-family' })
+    }
+
+    if (familyStore.currentFamily?.slug !== targetSlug) {
+      const ok = await familyStore.fetchCurrentFamily(targetSlug)
+      if (!ok && !authStore.isSuperAdmin) {
+        return next({ name: 'select-family' })
+      }
+    }
+
+    // Check family admin permissions if required
+    if (to.meta.requiresAdmin && !familyStore.isFamilyAdmin) {
+      return next({ path: `/${targetSlug}` })
+    }
+
+    return next()
+  }
+
+  // Special routes without familySlug
+  if (to.name === 'select-family' || to.name === 'super-admin') {
+    return next()
+  }
+
+  // Redirect legacy / un-prefixed URLs (/, /tasks, etc.) to active family
+  let activeSlug = localStorage.getItem('familygest_active_slug')
+  let userFamilies = familyStore.userFamilies
+  if (!userFamilies || userFamilies.length === 0) {
+    userFamilies = await familyStore.fetchUserFamilies()
+  }
+
+  if (!activeSlug && userFamilies && userFamilies.length > 0) {
+    activeSlug = userFamilies[0].slug
+    localStorage.setItem('familygest_active_slug', activeSlug)
+  }
+
+  if (activeSlug) {
+    const sub = to.path === '/' ? '' : to.path
+    return next({ path: `/${activeSlug}${sub}` })
+  }
+
+  if (authStore.isSuperAdmin) {
+    return next({ name: 'super-admin' })
+  }
+
+  return next({ name: 'select-family' })
 })
 
 export default router

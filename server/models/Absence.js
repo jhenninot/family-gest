@@ -1,7 +1,8 @@
 import mongoose from 'mongoose'
 
 const absenceSchema = new mongoose.Schema({
-  id: { type: Number, required: true, unique: true },
+  familyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Family', index: true },
+  id: { type: Number, required: true },
   memberId: { type: Number, required: true },
   date: { type: String, required: true }, // Format YYYY-MM-DD
   type: { type: String, enum: ['absence', 'presence'], default: 'absence' }, // 'absence' ou 'presence'
@@ -11,5 +12,8 @@ const absenceSchema = new mongoose.Schema({
   note: { type: String, default: '', trim: true }, // Motif optionnel
   declaredBy: { type: Number, default: null } // ID de l'utilisateur ayant saisi la déclaration
 }, { timestamps: true })
+
+absenceSchema.index({ familyId: 1, id: 1 }, { unique: true })
+absenceSchema.index({ familyId: 1, memberId: 1, date: 1 })
 
 export default mongoose.model('Absence', absenceSchema)

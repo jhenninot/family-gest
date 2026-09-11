@@ -1,11 +1,6 @@
 import mongoose from 'mongoose'
 
-const emailConfigSchema = new mongoose.Schema({
-  familyId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Family',
-    index: true
-  },
+const globalConfigSchema = new mongoose.Schema({
   serverUrl: {
     type: String,
     default: 'http://localhost:5173',
@@ -42,18 +37,12 @@ const emailConfigSchema = new mongoose.Schema({
   },
   fromName: {
     type: String,
-    default: 'FamilyGest'
+    default: 'FamilyGest Platform'
   },
   isConfigured: {
     type: Boolean,
     default: false
   }
-}, {
-  timestamps: true
-})
+}, { timestamps: true })
 
-emailConfigSchema.index({ familyId: 1 })
-
-const EmailConfig = mongoose.model('EmailConfig', emailConfigSchema)
-
-export default EmailConfig
+export default mongoose.model('GlobalConfig', globalConfigSchema)

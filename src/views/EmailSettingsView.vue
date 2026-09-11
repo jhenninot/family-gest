@@ -13,13 +13,15 @@
 
       <div class="header-right-actions">
         <button 
-          v-if="authStore.isAdmin" 
+          v-if="store.isFamilyAdmin" 
           type="button" 
-          @click="showAddMemberModal = true" 
+          @click="openAddMemberModal" 
           class="btn btn-primary btn-header-add-member"
+          :disabled="isQuotaReached"
+          :title="isQuotaReached ? 'Quota maximum de membres atteint' : 'Inviter un membre'"
         >
           <UserPlus :size="18" />
-          <span>+ Ajouter un Membre</span>
+          <span>+ Inviter un Membre ({{ store.members.length }} / {{ store.currentFamilyQuota?.maxMembers || 10 }})</span>
         </button>
 
         <div class="header-badges">
@@ -27,20 +29,23 @@
             <Loader2 :size="14" class="spin" /> Chargement...
           </span>
           <span v-else-if="emailConfig.isConfigured" class="status-badge success">
-            <CheckCircle2 :size="14" /> SMTP configuré
+            <CheckCircle2 :size="14" /> SMTP familial dédié
+          </span>
+          <span v-else-if="emailConfig.isUsingGlobalFallback" class="status-badge info">
+            <Globe :size="14" /> SMTP global actif
           </span>
           <span v-else class="status-badge warning">
-            <AlertTriangle :size="14" /> SMTP non configuré
+            <AlertTriangle :size="14" /> Aucun SMTP configuré
           </span>
         </div>
       </div>
     </div>
 
     <!-- Admin Protection Warning if non-admin -->
-    <div v-if="!authStore.isAdmin" class="alert-box danger">
+    <div v-if="!store.isFamilyAdmin" class="alert-box danger">
       <ShieldAlert :size="20" />
       <div>
-        <strong>Accès Restreint :</strong> Seul un utilisateur disposant du rôle <strong>Administrateur</strong> est autorisé à modifier les paramètres du système.
+        <strong>Accès Restreint :</strong> Seul un utilisateur disposant du rôle <strong>Administrateur de cette famille</strong> est autorisé à modifier ces paramètres.
       </div>
     </div>
 
@@ -444,12 +449,32 @@
     <div v-if="showAddMemberModal" class="modal-overlay" @click.self="showAddMemberModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Ajouter un Membre de la Famille</h3>
+          <h3>Inviter un Membre dans la Famille</h3>
           <button @click="showAddMemberModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleAddMember">
-          <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Adresse Email du membre</label>
+            <input 
+              v-model="newMember.email" 
+              @blur="checkMemberEmail" 
+              type="email" 
+              required 
+              placeholder="ex: membre@exemple.fr"
+              class="form-input" 
+            />
+            <div v-if="memberCheck.checked" class="email-check-info margin-top-xs">
+              <span v-if="memberCheck.exists" class="text-info font-semibold">
+                ℹ️ Compte existant détecté ({{ memberCheck.user?.firstName }} {{ memberCheck.user?.lastName }}). Une invitation lui sera envoyée pour rattacher votre famille à son compte.
+              </span>
+              <span v-else class="text-muted font-semibold">
+                ℹ️ Nouveau compte : une invitation contenant un lien d'activation sécurisé lui permettra de créer son mot de passe.
+              </span>
+            </div>
+          </div>
+
+          <div v-if="!memberCheck.checked || !memberCheck.exists" class="grid-2">
             <div class="form-group">
               <label class="form-label">Prénom</label>
               <input 
@@ -475,36 +500,6 @@
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Adresse Email (Login)</label>
-              <input 
-                v-model="newMember.email" 
-                type="email" 
-                required 
-                placeholder="lucas@family-gest.org"
-                class="form-input" 
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Mot de passe temporaire</label>
-              <input 
-                v-model="newMember.password" 
-                type="password" 
-                required 
-                placeholder="10 car. min, Maj, min, chiffre, spécial"
-                class="form-input" 
-              />
-              <PasswordStrengthIndicator :password="newMember.password" />
-            </div>
-          </div>
-
-          <div class="welcome-email-tip">
-            <Mail :size="16" class="text-indigo flex-shrink-0" />
-            <span>Un email de bienvenue contenant un lien d'activation sécurisé (validité 2h) sera automatiquement envoyé pour lui permettre de choisir son mot de passe.</span>
-          </div>
-
-          <div class="grid-2">
-            <div class="form-group">
               <label class="form-label">Rôle familial</label>
               <select v-model="newMember.role" class="form-select">
                 <option value="Papa">Papa</option>
@@ -524,7 +519,7 @@
                 <input type="checkbox" v-model="newMember.isAdmin" class="custom-checkbox" />
                 <span class="checkbox-text">
                   <ShieldCheck :size="16" class="text-indigo" />
-                  <strong>Définir comme Administrateur</strong>
+                  <strong>Administrateur de cette famille</strong>
                 </span>
               </label>
             </div>
@@ -538,41 +533,43 @@
             </select>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Choisissez un Avatar</label>
-            <div class="avatar-options">
-              <button 
-                v-for="emoji in avatarOptions" 
-                :key="emoji"
-                type="button"
-                class="avatar-option-btn"
-                :class="{ selected: newMember.avatar === emoji }"
-                @click="newMember.avatar = emoji"
-              >
-                {{ emoji }}
-              </button>
+          <div v-if="!memberCheck.checked || !memberCheck.exists">
+            <div class="form-group">
+              <label class="form-label">Avatar</label>
+              <div class="avatar-options">
+                <button 
+                  v-for="emoji in avatarOptions" 
+                  :key="emoji"
+                  type="button"
+                  class="avatar-option-btn"
+                  :class="{ selected: newMember.avatar === emoji }"
+                  @click="newMember.avatar = emoji"
+                >
+                  {{ emoji }}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div class="form-group">
-            <label class="form-label">Couleur de profil</label>
-            <div class="color-picker-options">
-              <button 
-                v-for="c in colorOptions" 
-                :key="c"
-                type="button"
-                class="color-btn"
-                :style="{ backgroundColor: c }"
-                :class="{ selected: newMember.color === c }"
-                @click="newMember.color = c"
-              ></button>
+            <div class="form-group">
+              <label class="form-label">Couleur de profil</label>
+              <div class="color-picker-options">
+                <button 
+                  v-for="c in colorOptions" 
+                  :key="c"
+                  type="button"
+                  class="color-btn"
+                  :style="{ backgroundColor: c }"
+                  :class="{ selected: newMember.color === c }"
+                  @click="newMember.color = c"
+                ></button>
+              </div>
             </div>
           </div>
 
           <div class="modal-footer">
             <button type="button" @click="showAddMemberModal = false" class="btn btn-secondary">Annuler</button>
             <button type="submit" class="btn btn-primary" :disabled="addingMember">
-              {{ addingMember ? 'Création en cours...' : 'Créer le membre' }}
+              {{ addingMember ? 'Envoi en cours...' : 'Envoyer l\'invitation' }}
             </button>
           </div>
         </form>
@@ -796,47 +793,81 @@ const moveCategory = async (index, direction) => {
 const showAddMemberModal = ref(false)
 const addingMember = ref(false)
 
+const isQuotaReached = computed(() => {
+  const max = store.currentFamilyQuota?.maxMembers || 10
+  return store.members.length >= max
+})
+
 const avatarOptions = ['👨‍💼', '👩‍⚕️', '👦', '👧', '👶', '🧑', '👨‍🍳', '👵', '👴', '🐱', '🐶']
 const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
 
 const newMember = ref({
   firstName: '',
-  lastName: 'Martin',
+  lastName: '',
   email: '',
-  password: 'Family2026!*',
-  role: 'Fils',
+  role: 'Membre',
   isAdmin: false,
   avatar: '👦',
   color: '#6366f1',
   usualPresence: 'present'
 })
 
-const handleAddMember = async () => {
-  if (!newMember.value.firstName.trim() || !newMember.value.email.trim() || !newMember.value.password) return
+const memberCheck = ref({
+  checked: false,
+  exists: false,
+  user: null
+})
 
-  if (!isPasswordValid(newMember.value.password)) {
-    alert(getPasswordErrorMessage(newMember.value.password))
+const openAddMemberModal = () => {
+  newMember.value = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: 'Membre',
+    isAdmin: false,
+    avatar: '👦',
+    color: '#6366f1',
+    usualPresence: 'present'
+  }
+  memberCheck.value = {
+    checked: false,
+    exists: false,
+    user: null
+  }
+  showAddMemberModal.value = true
+}
+
+const checkMemberEmail = async () => {
+  if (!newMember.value.email || !newMember.value.email.includes('@')) {
+    memberCheck.value.checked = false
     return
   }
+  const res = await store.checkEmailInFamily(newMember.value.email)
+  memberCheck.value.checked = true
+  memberCheck.value.exists = res.exists
+  memberCheck.value.user = res.user
+  if (res.exists && res.user) {
+    newMember.value.firstName = res.user.firstName || ''
+    newMember.value.lastName = res.user.lastName || ''
+    newMember.value.avatar = res.user.avatar || '👨‍💼'
+    newMember.value.color = res.user.color || '#6366f1'
+  }
+}
+
+const handleAddMember = async () => {
+  if (!newMember.value.email.trim()) return
 
   addingMember.value = true
   try {
-    const result = await store.addMember(newMember.value)
+    const result = await store.inviteMember(newMember.value)
     if (result.success) {
       showAddMemberModal.value = false
-      newMember.value = {
-        firstName: '',
-        lastName: 'Martin',
-        email: '',
-        password: 'Family2026!*',
-        role: 'Fils',
-        isAdmin: false,
-        avatar: '👦',
-        color: '#6366f1',
-        usualPresence: 'present'
-      }
+      alert(memberCheck.value.exists 
+        ? `✅ L'utilisateur ${newMember.value.firstName || ''} a été invité à rejoindre votre famille !` 
+        : `✅ Une invitation a été envoyée par email à ${newMember.value.email} !`
+      )
     } else {
-      alert(result.error || "Erreur lors de l'ajout du membre")
+      alert(result.error || "Erreur lors de l'invitation du membre")
     }
   } finally {
     addingMember.value = false
@@ -853,8 +884,19 @@ const testResult = ref(null)
 
 const emailConfig = ref({
   isConfigured: false,
+  isUsingGlobalFallback: false,
   hasPassword: false
 })
+
+const getSettingsHeaders = () => {
+  const h = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${authStore.token}`
+  }
+  const slug = store.currentFamily?.slug || localStorage.getItem('familygest_active_slug')
+  if (slug) h['X-Family-Slug'] = slug
+  return h
+}
 
 const form = ref({
   serverUrl: 'http://localhost:5173',
@@ -888,9 +930,7 @@ const fetchEmailConfig = async () => {
   loading.value = true
   try {
     const res = await fetch('/api/settings/email', {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
+      headers: getSettingsHeaders()
     })
     const data = await res.json()
     if (res.ok) {
@@ -917,10 +957,7 @@ const handleSave = async () => {
   try {
     const res = await fetch('/api/settings/email', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
+      headers: getSettingsHeaders(),
       body: JSON.stringify(form.value)
     })
     const data = await res.json()
@@ -957,10 +994,7 @@ const handleSendTest = async () => {
 
     const res = await fetch('/api/settings/email/test', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
+      headers: getSettingsHeaders(),
       body: JSON.stringify({ recipientEmail: testRecipient.value.trim() })
     })
 
@@ -978,7 +1012,7 @@ const handleSendTest = async () => {
 }
 
 onMounted(() => {
-  if (authStore.isAdmin) {
+  if (store.isFamilyAdmin) {
     fetchEmailConfig()
   } else {
     loading.value = false

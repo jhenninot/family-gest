@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true },
   isAdmin: { type: Boolean, default: false },
+  isSuperAdmin: { type: Boolean, default: false },
   role: { type: String, default: 'Membre' },
   avatar: { type: String, default: '👤' },
   color: { type: String, default: '#6366f1' },

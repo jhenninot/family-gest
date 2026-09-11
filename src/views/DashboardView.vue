@@ -393,15 +393,21 @@
           <div class="section-card-header">
             <div class="header-title">
               <Users :size="20" class="text-amber" />
-              <h2>Membres ({{ store.members.length }})</h2>
+              <h2>Membres ({{ store.members.length }} / {{ store.currentFamilyQuota?.maxMembers || 10 }})</h2>
             </div>
 
-            <!-- Only Admin can see + Membre button -->
-            <button v-if="authStore.isAdmin" @click="showAddMemberModal = true" class="btn btn-sm btn-secondary">
+            <!-- Only Family Admin can invite members -->
+            <button 
+              v-if="store.isFamilyAdmin" 
+              @click="openAddMemberModal" 
+              class="btn btn-sm btn-secondary"
+              :disabled="isQuotaReached"
+              :title="isQuotaReached ? 'Quota maximum de membres atteint' : 'Inviter un membre'"
+            >
               <UserPlus :size="14" />
-              <span>+ Membre</span>
+              <span>+ Inviter</span>
             </button>
-            <span v-else class="admin-only-tag" title="Seul l'administrateur peut gérer les membres">
+            <span v-else class="admin-only-tag" title="Seul l'administrateur de la famille peut inviter des membres">
               <ShieldAlert :size="14" /> Lecture seule
             </span>
           </div>
@@ -412,9 +418,9 @@
               v-for="member in store.members" 
               :key="member.id" 
               class="member-card"
-              :class="{ clickable: authStore.isAdmin }"
-              @click="authStore.isAdmin && openEditMemberModal(member)"
-              :title="authStore.isAdmin ? 'Cliquez pour modifier les informations de ce membre' : ''"
+              :class="{ clickable: store.isFamilyAdmin }"
+              @click="store.isFamilyAdmin && openEditMemberModal(member)"
+              :title="store.isFamilyAdmin ? 'Cliquez pour modifier les informations de ce membre' : ''"
             >
               <div class="member-card-top">
                 <span class="avatar-emoji">{{ member.avatar }}</span>
@@ -434,7 +440,7 @@
 
                   <!-- Edit icon button for Admin -->
                   <button 
-                    v-if="authStore.isAdmin" 
+                    v-if="store.isFamilyAdmin" 
                     @click.stop="openEditMemberModal(member)" 
                     class="btn-icon-action"
                     title="Modifier ce membre"
@@ -444,7 +450,7 @@
 
                   <!-- Toggle Admin status button (Admin only) -->
                   <button 
-                    v-if="authStore.isAdmin" 
+                    v-if="store.isFamilyAdmin" 
                     @click.stop="handleToggleAdmin(member)" 
                     class="btn-icon-action"
                     :class="{ 'is-admin': member.isAdmin }"
@@ -456,7 +462,7 @@
 
                   <!-- Delete member icon (Admin only) -->
                   <button 
-                    v-if="authStore.isAdmin" 
+                    v-if="store.isFamilyAdmin" 
                     @click.stop="handleDeleteMember(member)" 
                     class="btn-icon-action delete"
                     title="Supprimer ce membre (Administrateur)"
@@ -471,16 +477,36 @@
       </div>
     </div>
 
-    <!-- Modal Ajouter un Membre (Administrateur Uniquement) -->
+    <!-- Modal Inviter un Membre (Administrateur de la famille) -->
     <div v-if="showAddMemberModal" class="modal-overlay" @click.self="showAddMemberModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Ajouter un Membre de la Famille</h3>
+          <h3>Inviter un Membre dans la Famille</h3>
           <button @click="showAddMemberModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleAddMember">
-          <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Adresse Email du membre</label>
+            <input 
+              v-model="newMember.email" 
+              @blur="checkMemberEmail" 
+              type="email" 
+              required 
+              placeholder="ex: membre@exemple.fr"
+              class="form-input" 
+            />
+            <div v-if="memberCheck.checked" class="email-check-info margin-top-xs">
+              <span v-if="memberCheck.exists" class="text-info font-semibold">
+                ℹ️ Compte existant détecté ({{ memberCheck.user?.firstName }} {{ memberCheck.user?.lastName }}). Une invitation lui sera envoyée pour rejoindre votre famille.
+              </span>
+              <span v-else class="text-muted font-semibold">
+                ℹ️ Nouveau compte : une invitation contenant un lien d'activation sécurisé lui permettra de créer son mot de passe.
+              </span>
+            </div>
+          </div>
+
+          <div v-if="!memberCheck.checked || !memberCheck.exists" class="grid-2">
             <div class="form-group">
               <label class="form-label">Prénom</label>
               <input 
@@ -506,36 +532,6 @@
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Adresse Email (Login)</label>
-              <input 
-                v-model="newMember.email" 
-                type="email" 
-                required 
-                placeholder="lucas@family-gest.org"
-                class="form-input" 
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Mot de passe temporaire</label>
-              <input 
-                v-model="newMember.password" 
-                type="password" 
-                required 
-                placeholder="10 car. min, Maj, min, chiffre, spécial"
-                class="form-input" 
-              />
-              <PasswordStrengthIndicator :password="newMember.password" />
-            </div>
-          </div>
-
-          <div class="welcome-email-tip">
-            <Mail :size="16" class="text-indigo flex-shrink-0" />
-            <span>Un email de bienvenue contenant un lien d'activation sécurisé (validité 2h) sera automatiquement envoyé pour lui permettre de choisir son mot de passe.</span>
-          </div>
-
-          <div class="grid-2">
-            <div class="form-group">
               <label class="form-label">Rôle familial</label>
               <select v-model="newMember.role" class="form-select">
                 <option value="Papa">Papa</option>
@@ -555,7 +551,7 @@
                 <input type="checkbox" v-model="newMember.isAdmin" class="custom-checkbox" />
                 <span class="checkbox-text">
                   <ShieldCheck :size="16" class="text-indigo" />
-                  <strong>Définir comme Administrateur</strong>
+                  <strong>Administrateur de cette famille</strong>
                 </span>
               </label>
             </div>
@@ -569,40 +565,44 @@
             </select>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Choisissez un Avatar</label>
-            <div class="avatar-options">
-              <button 
-                v-for="emoji in avatarOptions" 
-                :key="emoji"
-                type="button"
-                class="avatar-option-btn"
-                :class="{ selected: newMember.avatar === emoji }"
-                @click="newMember.avatar = emoji"
-              >
-                {{ emoji }}
-              </button>
+          <div v-if="!memberCheck.checked || !memberCheck.exists">
+            <div class="form-group">
+              <label class="form-label">Avatar</label>
+              <div class="avatar-options">
+                <button 
+                  v-for="emoji in avatarOptions" 
+                  :key="emoji"
+                  type="button"
+                  class="avatar-option-btn"
+                  :class="{ selected: newMember.avatar === emoji }"
+                  @click="newMember.avatar = emoji"
+                >
+                  {{ emoji }}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div class="form-group">
-            <label class="form-label">Couleur de profil</label>
-            <div class="color-picker-options">
-              <button 
-                v-for="c in colorOptions" 
-                :key="c"
-                type="button"
-                class="color-btn"
-                :style="{ backgroundColor: c }"
-                :class="{ selected: newMember.color === c }"
-                @click="newMember.color = c"
-              ></button>
+            <div class="form-group">
+              <label class="form-label">Couleur de profil</label>
+              <div class="color-picker-options">
+                <button 
+                  v-for="c in colorOptions" 
+                  :key="c"
+                  type="button"
+                  class="color-btn"
+                  :style="{ backgroundColor: c }"
+                  :class="{ selected: newMember.color === c }"
+                  @click="newMember.color = c"
+                ></button>
+              </div>
             </div>
           </div>
 
           <div class="modal-footer">
             <button type="button" @click="showAddMemberModal = false" class="btn btn-secondary">Annuler</button>
-            <button type="submit" class="btn btn-primary">Créer le membre</button>
+            <button type="submit" class="btn btn-primary" :disabled="addingMember">
+              {{ addingMember ? 'Envoi en cours...' : 'Envoyer l\'invitation' }}
+            </button>
           </div>
         </form>
       </div>
@@ -881,99 +881,81 @@ const handleResendWelcomeEmail = async (memberId) => {
 const avatarOptions = ['👨‍💼', '👩‍⚕️', '👦', '👧', '👶', '🧑', '👨‍🍳', '👵', '👴', '🐱', '🐶']
 const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
 
+const isQuotaReached = computed(() => {
+  const max = store.currentFamilyQuota?.maxMembers || 10
+  return store.members.length >= max
+})
+
 const newMember = ref({
   firstName: '',
-  lastName: 'Martin',
+  lastName: '',
   email: '',
-  password: 'Family2026!*',
-  role: 'Fils',
+  role: 'Membre',
   isAdmin: false,
   avatar: '👦',
   color: '#6366f1',
   usualPresence: 'present'
 })
 
-const editMemberForm = ref({
-  id: null,
-  firstName: '',
-  lastName: '',
-  email: '',
-  password: '',
-  role: 'Membre',
-  points: 0,
-  isAdmin: false,
-  avatar: '👤',
-  color: '#6366f1',
-  pushNotificationsEnabled: true,
-  emailNotificationsEnabled: false,
-  usualPresence: 'present'
+const memberCheck = ref({
+  checked: false,
+  exists: false,
+  user: null
 })
 
-const dashboardTasks = computed(() => {
-  return store.tasks.slice(0, 5)
-})
-
-const dashboardEvents = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return store.events
-    .filter(event => new Date(event.date) >= today)
-    .slice(0, 3)
-})
-
-const nextEvent = computed(() => {
-  return store.events[0] || null
-})
-
-const urgentShoppingCount = computed(() => {
-  return store.shoppingList.filter(item => item.urgent && !item.checked).length
-})
-
-const getMemberName = (memberId) => {
-  const m = store.members.find(m => m.id === memberId)
-  return m ? m.name : 'Tous'
+const openAddMemberModal = () => {
+  newMember.value = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: 'Membre',
+    isAdmin: false,
+    avatar: '👦',
+    color: '#6366f1',
+    usualPresence: 'present'
+  }
+  memberCheck.value = {
+    checked: false,
+    exists: false,
+    user: null
+  }
+  showAddMemberModal.value = true
 }
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-}
-
-const getDayNumber = (dateStr) => {
-  if (!dateStr) return ''
-  return new Date(dateStr).getDate()
-}
-
-const getMonthShort = (dateStr) => {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()
+const checkMemberEmail = async () => {
+  if (!newMember.value.email || !newMember.value.email.includes('@')) {
+    memberCheck.value.checked = false
+    return
+  }
+  const res = await store.checkEmailInFamily(newMember.value.email)
+  memberCheck.value.checked = true
+  memberCheck.value.exists = res.exists
+  memberCheck.value.user = res.user
+  if (res.exists && res.user) {
+    newMember.value.firstName = res.user.firstName || ''
+    newMember.value.lastName = res.user.lastName || ''
+    newMember.value.avatar = res.user.avatar || '👨‍💼'
+    newMember.value.color = res.user.color || '#6366f1'
+  }
 }
 
 const handleAddMember = async () => {
-  if (!newMember.value.firstName.trim() || !newMember.value.email.trim() || !newMember.value.password) return
+  if (!newMember.value.email.trim()) return
 
-  if (!isPasswordValid(newMember.value.password)) {
-    alert(getPasswordErrorMessage(newMember.value.password))
-    return
-  }
-
-  const result = await store.addMember(newMember.value)
-  if (result.success) {
-    showAddMemberModal.value = false
-    newMember.value = {
-      firstName: '',
-      lastName: 'Martin',
-      email: '',
-      password: 'Family2026!*',
-      role: 'Fils',
-      isAdmin: false,
-      avatar: '👦',
-      color: '#6366f1',
-      usualPresence: 'present'
+  addingMember.value = true
+  try {
+    const result = await store.inviteMember(newMember.value)
+    if (result.success) {
+      showAddMemberModal.value = false
+      alert(memberCheck.value.exists 
+        ? `✅ L'utilisateur ${newMember.value.firstName || ''} a été invité à rejoindre votre famille !` 
+        : `✅ Une invitation a été envoyée par email à ${newMember.value.email} !`
+      )
+    } else {
+      alert(result.error || "Erreur lors de l'invitation du membre")
     }
-  } else {
-    alert(result.error || 'Erreur lors de l\'ajout du membre')
+  } finally {
+    addingMember.value = false
   }
 }
 

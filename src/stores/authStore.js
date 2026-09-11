@@ -7,7 +7,13 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref('')
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
-  const isAdmin = computed(() => user.value && user.value.isAdmin === true)
+  const isSuperAdmin = computed(() => user.value && user.value.isSuperAdmin === true)
+  const isAdmin = computed(() => {
+    if (!user.value) return false
+    if (user.value.isSuperAdmin) return true
+    return user.value.isAdmin === true
+  })
+  const families = computed(() => user.value?.families || [])
 
   const login = async (email, password) => {
     error.value = ''
@@ -30,6 +36,14 @@ export const useAuthStore = defineStore('auth', () => {
 
       localStorage.setItem('familygest_token', data.token)
       localStorage.setItem('familygest_user', JSON.stringify(data.user))
+
+      if (data.user.families && data.user.families.length > 0) {
+        const savedSlug = localStorage.getItem('familygest_active_slug')
+        const hasSaved = data.user.families.some(f => f.slug === savedSlug)
+        if (!hasSaved) {
+          localStorage.setItem('familygest_active_slug', data.user.families[0].slug)
+        }
+      }
 
       return true
     } catch (err) {
@@ -71,6 +85,13 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = userData
     localStorage.setItem('familygest_token', tokenStr)
     localStorage.setItem('familygest_user', JSON.stringify(userData))
+    if (userData.families && userData.families.length > 0) {
+      const savedSlug = localStorage.getItem('familygest_active_slug')
+      const hasSaved = userData.families.some(f => f.slug === savedSlug)
+      if (!hasSaved) {
+        localStorage.setItem('familygest_active_slug', userData.families[0].slug)
+      }
+    }
   }
 
   const setToken = (newToken) => {
@@ -111,6 +132,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     localStorage.removeItem('familygest_token')
     localStorage.removeItem('familygest_user')
+    localStorage.removeItem('familygest_active_slug')
   }
 
   return {
@@ -118,7 +140,9 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     error,
     isAuthenticated,
+    isSuperAdmin,
     isAdmin,
+    families,
     login,
     setAuth,
     setToken,

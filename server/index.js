@@ -6,7 +6,12 @@ import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { connectDB } from './config/db.js'
 import { seedDatabaseIfEmpty } from './seed.js'
-import { requireAuth, requireAdmin, generateToken } from './middleware/auth.js'
+import { requireAuth, requireAdmin, requireSuperAdmin, generateToken } from './middleware/auth.js'
+import Family from './models/Family.js'
+import FamilyMember from './models/FamilyMember.js'
+import GlobalConfig from './models/GlobalConfig.js'
+import FamilyInvitation from './models/FamilyInvitation.js'
+import { migrateToMultiFamily } from './scripts/migrate-to-multi-family.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -40,10 +45,93 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'API FamilyGest, Authentification & MongoDB opérationnelles' })
 })
 
+// Helper : Obtenir la configuration SMTP appropriée (priorité : familial si configuré, sinon global plateforme)
+const getSmtpConfig = async (familyId = null) => {
+  try {
+    if (familyId) {
+      const familyConfig = await EmailConfig.findOne({ familyId, isConfigured: true })
+      if (familyConfig && familyConfig.host && familyConfig.user && familyConfig.pass) {
+        return familyConfig
+      }
+    }
+    const globalConfig = await GlobalConfig.findOne({ isConfigured: true })
+    if (globalConfig && globalConfig.host && globalConfig.user && globalConfig.pass) {
+      return globalConfig
+    }
+    // Fallback à n'importe quelle configuration email configurée
+    const fallback = await EmailConfig.findOne({ isConfigured: true })
+    return fallback || null
+  } catch (err) {
+    console.error('Erreur getSmtpConfig:', err.message)
+    return null
+  }
+}
+
+// Middleware : Résolution et attachement de la famille courante (Multi-tenancy)
+const attachFamilyContext = async (req, res, next) => {
+  try {
+    const slug = req.params.familySlug || req.query.familySlug || req.headers['x-family-slug']
+    const familyIdHeader = req.headers['x-family-id']
+
+    let family = null
+    if (slug) {
+      family = await Family.findOne({ slug: String(slug).toLowerCase().trim() })
+    } else if (familyIdHeader) {
+      family = await Family.findById(familyIdHeader)
+    }
+
+    // Si aucune famille n'est explicitement demandée, fallback vers la première famille de l'utilisateur
+    if (!family && req.user) {
+      const membership = await FamilyMember.findOne({ userId: req.user.id }).sort('createdAt')
+      if (membership) {
+        family = await Family.findById(membership.familyId)
+      } else if (req.user.isSuperAdmin) {
+        family = await Family.findOne().sort('createdAt')
+      }
+    }
+
+    if (!family) {
+      return res.status(404).json({ error: 'Famille introuvable ou aucune famille active' })
+    }
+
+    req.family = family
+
+    // Vérification de l'appartenance
+    const membership = await FamilyMember.findOne({ familyId: family._id, userId: req.user.id })
+
+    if (req.user.isSuperAdmin) {
+      req.membership = membership || {
+        role: 'Super Administrateur',
+        isAdmin: true,
+        points: 0,
+        usualPresence: 'present'
+      }
+      return next()
+    }
+
+    if (!membership) {
+      return res.status(403).json({ error: 'Vous ne faites pas partie de cette famille' })
+    }
+
+    req.membership = membership
+    next()
+  } catch (err) {
+    console.error('attachFamilyContext error:', err.message)
+    res.status(500).json({ error: 'Erreur lors de la résolution du contexte familial' })
+  }
+}
+
+const requireFamilyAdmin = (req, res, next) => {
+  if (req.user?.isSuperAdmin || req.membership?.isAdmin) {
+    return next()
+  }
+  return res.status(403).json({ error: 'Action réservée aux administrateurs de cette famille' })
+}
+
 // Helper : Envoi d'email de bienvenue avec token d'activation (durée 2 heures)
 const sendWelcomeEmail = async (user, token) => {
   try {
-    const config = await EmailConfig.findOne()
+    const config = await getSmtpConfig()
     if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
       console.log(`[Email] Configuration SMTP non définie ou incomplète. Email de bienvenue non envoyé à ${user.email}`)
       return { success: false, reason: 'SMTP_NOT_CONFIGURED' }
@@ -151,6 +239,118 @@ const sendWelcomeEmail = async (user, token) => {
   }
 }
 
+// Helper : Envoi d'email d'invitation à une famille
+const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExistingUser, invitedByName }) => {
+  try {
+    const config = await getSmtpConfig(family._id)
+    if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
+      console.log(`[Email] Configuration SMTP non définie ou incomplète. Invitation non envoyée à ${email}`)
+      return { success: false, reason: 'SMTP_NOT_CONFIGURED' }
+    }
+
+    const baseServerUrl = (config.serverUrl || 'http://localhost:5173').replace(/\/+$/, '')
+    const invitationUrl = `${baseServerUrl}/invitation/${invitationToken}`
+
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: {
+        user: config.user,
+        pass: config.pass
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    })
+
+    const title = isExistingUser
+      ? `Invitation à rejoindre la famille « ${family.name} »`
+      : `Bienvenue sur FamilyGest - Rejoignez « ${family.name} »`
+
+    const introText = isExistingUser
+      ? `<strong>${invitedByName || 'Un administrateur'}</strong> vous invite à rejoindre l'espace familial <strong>${family.name}</strong> sur FamilyGest.`
+      : `Un nouvel espace familial <strong>${family.name}</strong> a été créé pour vous sur <strong>FamilyGest</strong> par <strong>${invitedByName || 'Un administrateur'}</strong>.`
+
+    const buttonText = isExistingUser
+      ? `✨ Rejoindre la famille ${family.name}`
+      : `🚀 Créer mon compte & rejoindre la famille`
+
+    const mailOptions = {
+      from: `"${config.fromName || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
+      to: email,
+      subject: `✨ ${title}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${title}</title>
+        </head>
+        <body style="margin: 0; padding: 20px; background-color: #f8fafc; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden;">
+            <tr>
+              <td style="padding: 32px 28px;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                  <div style="display: inline-block; width: 56px; height: 56px; line-height: 56px; border-radius: 14px; background-color: #6366f1; background: linear-gradient(135deg, #6366f1, #818cf8); font-size: 28px; text-align: center; color: #ffffff;">
+                    🏡
+                  </div>
+                  <h1 style="color: #4338ca; margin: 12px 0 4px 0; font-size: 22px; font-weight: 800;">${family.name}</h1>
+                  <p style="color: #64748b; margin: 0; font-size: 14px;">Espace partagé FamilyGest</p>
+                </div>
+
+                <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 16px;">
+                  Bonjour,
+                </p>
+                <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 24px;">
+                  ${introText}
+                </p>
+
+                <div style="text-align: center; margin: 32px 0;">
+                  <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto; border-collapse: separate;">
+                    <tr>
+                      <td align="center" bgcolor="#4f46e5" style="border-radius: 8px; background-color: #4f46e5; vertical-align: middle;">
+                        <a href="${invitationUrl}" target="_blank" style="background-color: #4f46e5; border: 14px solid #4f46e5; border-left: 28px solid #4f46e5; border-right: 28px solid #4f46e5; color: #ffffff !important; font-family: 'Segoe UI', sans-serif; font-size: 16px; font-weight: bold; text-decoration: none; display: inline-block; border-radius: 8px; line-height: 1.2;">
+                          ${buttonText}
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 14px 18px; border-radius: 6px; margin-bottom: 24px;">
+                  <p style="margin: 0; font-size: 13px; color: #92400e; line-height: 1.5;">
+                    ⏱️ Cette invitation sécurisée est valable pendant <strong>7 jours</strong>.
+                  </p>
+                </div>
+
+                <p style="font-size: 12px; color: #94a3b8; word-break: break-all; margin-top: 24px; line-height: 1.5;">
+                  Lien d'accès direct :<br/>
+                  <a href="${invitationUrl}" style="color: #6366f1; text-decoration: underline;">${invitationUrl}</a>
+                </p>
+
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+                <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+                  FamilyGest • Gestion collaborative et privée de la vie de famille
+                </p>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `
+    }
+
+    await transporter.sendMail(mailOptions)
+    console.log(`[Email] Invitation envoyée avec succès à ${email} pour la famille ${family.name}`)
+    return { success: true }
+  } catch (err) {
+    console.error(`[Email] Erreur lors de l'envoi de l'invitation à ${email} :`, err.message)
+    return { success: false, error: err.message }
+  }
+}
+
 // Helpers pour le formatage iCalendar (.ics) et Google Agenda côté serveur
 const formatServerEventDates = (dateStr, timeStr) => {
   if (!dateStr) return { start: '', end: '', isAllDay: true }
@@ -231,20 +431,32 @@ const sendNotificationEmail = async ({
   actionUrl = '/', 
   actionText = 'Accéder à FamilyGest', 
   excludeUserId = null,
-  calendarData = null 
+  calendarData = null,
+  familyId = null 
 }) => {
   try {
-    const config = await EmailConfig.findOne()
+    const config = await getSmtpConfig(familyId)
     if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
       return { success: false, reason: 'SMTP_NOT_CONFIGURED' }
     }
 
-    const userQuery = { emailNotificationsEnabled: true }
-    if (excludeUserId) {
-      userQuery.id = { $ne: Number(excludeUserId) }
+    let recipientUsers = []
+    if (familyId) {
+      const memberQuery = { familyId, emailNotificationsEnabled: true }
+      if (excludeUserId) {
+        memberQuery.userId = { $ne: Number(excludeUserId) }
+      }
+      const members = await FamilyMember.find(memberQuery)
+      const userIds = members.map(m => m.userId)
+      recipientUsers = await User.find({ id: { $in: userIds } }).select('email firstName')
+    } else {
+      const userQuery = { emailNotificationsEnabled: true }
+      if (excludeUserId) {
+        userQuery.id = { $ne: Number(excludeUserId) }
+      }
+      recipientUsers = await User.find(userQuery).select('email firstName')
     }
 
-    const recipientUsers = await User.find(userQuery).select('email firstName')
     if (!recipientUsers || recipientUsers.length === 0) return { success: true, count: 0 }
 
     const baseServerUrl = (config.serverUrl || 'http://localhost:5173').replace(/\/+$/, '')
@@ -419,19 +631,29 @@ const sendPushNotification = async ({
   url = '/', 
   excludeUserId = null,
   actions = [],
-  googleCalendarUrl = null
+  googleCalendarUrl = null,
+  familyId = null
 }) => {
   try {
     if (!vapidPublicKey || !vapidPrivateKey) return
 
-    // Sélectionne les utilisateurs ayant activé les notifications push
-    const userQuery = { pushNotificationsEnabled: { $ne: false } }
-    if (excludeUserId) {
-      userQuery.id = { $ne: Number(excludeUserId) }
+    let userIds = []
+    if (familyId) {
+      const memberQuery = { familyId, pushNotificationsEnabled: { $ne: false } }
+      if (excludeUserId) {
+        memberQuery.userId = { $ne: Number(excludeUserId) }
+      }
+      const eligibleMembers = await FamilyMember.find(memberQuery).select('userId')
+      userIds = eligibleMembers.map(m => m.userId)
+    } else {
+      const userQuery = { pushNotificationsEnabled: { $ne: false } }
+      if (excludeUserId) {
+        userQuery.id = { $ne: Number(excludeUserId) }
+      }
+      const eligibleUsers = await User.find(userQuery).select('id')
+      userIds = eligibleUsers.map(u => u.id)
     }
 
-    const eligibleUsers = await User.find(userQuery).select('id')
-    const userIds = eligibleUsers.map(u => u.id)
     if (userIds.length === 0) return
 
     const subscriptions = await PushSubscription.find({ userId: { $in: userIds } })
@@ -561,10 +783,44 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     await User.updateOne({ id: user.id }, { $set: { lastLogin: new Date() } })
-    const token = generateToken(user.id, user.email, user.isAdmin)
+    const token = generateToken(user.id, user.email, user.isAdmin, user.isSuperAdmin)
+
+    // Récupérer les familles de l'utilisateur
+    const memberships = await FamilyMember.find({ userId: user.id })
+    const familyIds = memberships.map(m => m.familyId)
+    const families = await Family.find({ _id: { $in: familyIds }, isActive: true })
+
+    const familiesData = families.map(f => {
+      const mem = memberships.find(m => m.familyId.toString() === f._id.toString())
+      return {
+        _id: f._id,
+        name: f.name,
+        slug: f.slug,
+        maxMembers: f.maxMembers,
+        role: mem ? mem.role : 'Membre',
+        isAdmin: mem ? mem.isAdmin : false
+      }
+    })
+
+    if (user.isSuperAdmin) {
+      const allActive = await Family.find({ isActive: true })
+      for (const f of allActive) {
+        if (!familiesData.some(fd => fd._id.toString() === f._id.toString())) {
+          familiesData.push({
+            _id: f._id,
+            name: f.name,
+            slug: f.slug,
+            maxMembers: f.maxMembers,
+            role: 'Super Admin',
+            isAdmin: true
+          })
+        }
+      }
+    }
 
     res.json({
       token,
+      families: familiesData,
       user: {
         id: user.id,
         firstName: user.firstName,
@@ -572,13 +828,15 @@ app.post('/api/auth/login', async (req, res) => {
         name: `${user.firstName} ${user.lastName}`,
         email: user.email,
         isAdmin: user.isAdmin,
+        isSuperAdmin: Boolean(user.isSuperAdmin),
         role: user.role,
         avatar: user.avatar,
         color: user.color,
         points: user.points,
         pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
         emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
-        usualPresence: user.usualPresence || 'present'
+        usualPresence: user.usualPresence || 'present',
+        families: familiesData
       }
     })
   } catch (err) {
@@ -591,10 +849,44 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
   try {
     const user = req.user
     await User.updateOne({ id: user.id }, { $set: { lastLogin: new Date() } })
-    const token = generateToken(user.id, user.email, user.isAdmin)
+    const token = generateToken(user.id, user.email, user.isAdmin, user.isSuperAdmin)
+
+    // Récupérer les familles de l'utilisateur
+    const memberships = await FamilyMember.find({ userId: user.id })
+    const familyIds = memberships.map(m => m.familyId)
+    const families = await Family.find({ _id: { $in: familyIds }, isActive: true })
+
+    const familiesData = families.map(f => {
+      const mem = memberships.find(m => m.familyId.toString() === f._id.toString())
+      return {
+        _id: f._id,
+        name: f.name,
+        slug: f.slug,
+        maxMembers: f.maxMembers,
+        role: mem ? mem.role : 'Membre',
+        isAdmin: mem ? mem.isAdmin : false
+      }
+    })
+
+    if (user.isSuperAdmin) {
+      const allActive = await Family.find({ isActive: true })
+      for (const f of allActive) {
+        if (!familiesData.some(fd => fd._id.toString() === f._id.toString())) {
+          familiesData.push({
+            _id: f._id,
+            name: f.name,
+            slug: f.slug,
+            maxMembers: f.maxMembers,
+            role: 'Super Admin',
+            isAdmin: true
+          })
+        }
+      }
+    }
 
     res.json({
       token,
+      families: familiesData,
       user: {
         id: user.id,
         firstName: user.firstName,
@@ -602,13 +894,15 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
         name: `${user.firstName} ${user.lastName}`,
         email: user.email,
         isAdmin: user.isAdmin,
+        isSuperAdmin: Boolean(user.isSuperAdmin),
         role: user.role,
         avatar: user.avatar,
         color: user.color,
         points: user.points,
         pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
         emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
-        usualPresence: user.usualPresence || 'present'
+        usualPresence: user.usualPresence || 'present',
+        families: familiesData
       }
     })
   } catch (err) {
@@ -840,25 +1134,606 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
   }
 })
 
-// === MEMBERS ROUTES ===
-app.get('/api/members', requireAuth, async (req, res) => {
+// === SUPER ADMIN ROUTES ===
+
+// GET /api/super-admin/families (Liste de toutes les familles et quotas)
+app.get('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
-    const users = await User.find().select('-password').sort({ points: -1 })
-    const members = users.map(u => ({
-      id: u.id,
-      name: `${u.firstName} ${u.lastName}`,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      email: u.email,
-      isAdmin: u.isAdmin,
-      role: u.role,
-      avatar: u.avatar,
-      color: u.color,
-      points: u.points,
-      pushNotificationsEnabled: u.pushNotificationsEnabled !== false,
-      emailNotificationsEnabled: Boolean(u.emailNotificationsEnabled),
-      usualPresence: u.usualPresence || 'present'
+    const families = await Family.find().sort({ createdAt: -1 })
+    const familiesWithStats = await Promise.all(families.map(async (f) => {
+      const memberCount = await FamilyMember.countDocuments({ familyId: f._id })
+      return {
+        _id: f._id,
+        name: f.name,
+        slug: f.slug,
+        maxMembers: f.maxMembers,
+        isActive: f.isActive,
+        createdAt: f.createdAt,
+        memberCount
+      }
     }))
+    res.json(familiesWithStats)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/super-admin/check-slug/:slug (Vérifie en temps réel si un slug est disponible)
+app.get('/api/super-admin/check-slug/:slug', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const slug = String(req.params.slug).toLowerCase().trim()
+    const reservedSlugs = ['admin', 'superadmin', 'super-admin', 'api', 'login', 'set-password', 'invitation', 'settings', 'dashboard', 'tasks', 'calendar', 'absences', 'shopping', 'select-family']
+    if (reservedSlugs.includes(slug)) {
+      return res.json({ available: false, reason: 'Ce nom est réservé par le système' })
+    }
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      return res.json({ available: false, reason: 'Le slug ne doit contenir que des lettres minuscules, chiffres et tirets' })
+    }
+    const existing = await Family.findOne({ slug })
+    res.json({ available: !existing })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/super-admin/check-email (Vérifie si un email existe déjà dans l'application)
+app.get('/api/super-admin/check-email', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const email = String(req.query.email || '').toLowerCase().trim()
+    if (!email) return res.status(400).json({ error: 'Email requis' })
+    const user = await User.findOne({ email }).select('id firstName lastName email avatar color')
+    if (user) {
+      return res.json({ exists: true, user })
+    }
+    res.json({ exists: false })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/super-admin/families (Création d'une famille par le Super Admin)
+app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { name, slug, maxMembers, adminEmail, adminFirstName, adminLastName } = req.body
+
+    if (!name || !slug || !adminEmail) {
+      return res.status(400).json({ error: 'Nom de famille, identifiant (slug) et email administrateur requis' })
+    }
+
+    const cleanSlug = String(slug).toLowerCase().trim()
+    if (!/^[a-z0-9-]+$/.test(cleanSlug)) {
+      return res.status(400).json({ error: 'L\'identifiant ne doit comporter que des minuscules, chiffres et tirets' })
+    }
+
+    const reservedSlugs = ['admin', 'superadmin', 'super-admin', 'api', 'login', 'set-password', 'invitation', 'settings', 'select-family']
+    if (reservedSlugs.includes(cleanSlug)) {
+      return res.status(400).json({ error: 'Cet identifiant est réservé par le système' })
+    }
+
+    const slugExists = await Family.findOne({ slug: cleanSlug })
+    if (slugExists) {
+      return res.status(400).json({ error: 'Cet identifiant de famille est déjà utilisé' })
+    }
+
+    const family = new Family({
+      name: name.trim(),
+      slug: cleanSlug,
+      maxMembers: Number(maxMembers) || 10,
+      isActive: true
+    })
+    await family.save()
+
+    const cleanEmail = adminEmail.toLowerCase().trim()
+    const existingUser = await User.findOne({ email: cleanEmail })
+
+    const token = crypto.randomBytes(32).toString('hex')
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 jours
+
+    const invitation = new FamilyInvitation({
+      token,
+      familyId: family._id,
+      email: cleanEmail,
+      role: 'Administrateur',
+      isAdmin: true,
+      invitedBy: req.user.id,
+      firstName: (existingUser ? existingUser.firstName : adminFirstName) || '',
+      lastName: (existingUser ? existingUser.lastName : adminLastName) || '',
+      status: 'pending',
+      expiresAt
+    })
+    await invitation.save()
+
+    // Envoi de l'email via SMTP Global
+    await sendFamilyInvitationEmail({
+      email: cleanEmail,
+      family,
+      invitationToken: token,
+      isExistingUser: Boolean(existingUser),
+      invitedByName: `${req.user.firstName} ${req.user.lastName}`
+    })
+
+    res.status(201).json({
+      family,
+      invitation: {
+        token,
+        email: cleanEmail,
+        isExistingUser: Boolean(existingUser)
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PUT /api/super-admin/families/:id (Modification d'une famille / quota)
+app.put('/api/super-admin/families/:id', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const family = await Family.findById(req.params.id)
+    if (!family) return res.status(404).json({ error: 'Famille introuvable' })
+
+    const { name, maxMembers, isActive } = req.body
+    if (name !== undefined) family.name = name.trim()
+    if (maxMembers !== undefined) family.maxMembers = Number(maxMembers)
+    if (isActive !== undefined) family.isActive = Boolean(isActive)
+
+    await family.save()
+    res.json(family)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/super-admin/users (Vue de tous les utilisateurs et de leurs familles)
+app.get('/api/super-admin/users', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const users = await User.find().select('-password').sort({ createdAt: -1 })
+    const usersWithFamilies = await Promise.all(users.map(async (u) => {
+      const memberships = await FamilyMember.find({ userId: u.id })
+      const familyIds = memberships.map(m => m.familyId)
+      const families = await Family.find({ _id: { $in: familyIds } }).select('name slug')
+      return {
+        ...u.toObject(),
+        memberships: memberships.map(m => {
+          const fam = families.find(f => f._id.toString() === m.familyId.toString())
+          return {
+            familyId: m.familyId,
+            familyName: fam ? fam.name : 'Inconnue',
+            familySlug: fam ? fam.slug : '',
+            role: m.role,
+            isAdmin: m.isAdmin
+          }
+        })
+      }
+    }))
+    res.json(usersWithFamilies)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/super-admin/smtp (Récupération des paramètres SMTP plateforme)
+app.get('/api/super-admin/smtp', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    let config = await GlobalConfig.findOne()
+    if (!config) {
+      config = new GlobalConfig()
+      await config.save()
+    }
+    res.json({
+      serverUrl: config.serverUrl || 'http://localhost:5173',
+      providerPreset: config.providerPreset || 'gmail',
+      host: config.host || 'smtp.gmail.com',
+      port: config.port || 587,
+      secure: Boolean(config.secure),
+      user: config.user || '',
+      hasPassword: Boolean(config.pass && config.pass.length > 0),
+      fromEmail: config.fromEmail || config.user || '',
+      fromName: config.fromName || 'FamilyGest Platform',
+      isConfigured: Boolean(config.isConfigured)
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/super-admin/smtp (Sauvegarde des paramètres SMTP plateforme)
+app.post('/api/super-admin/smtp', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { serverUrl, providerPreset, host, port, secure, user, pass, fromEmail, fromName } = req.body
+
+    let config = await GlobalConfig.findOne()
+    if (!config) config = new GlobalConfig()
+
+    if (serverUrl !== undefined) config.serverUrl = serverUrl.trim()
+    if (providerPreset) config.providerPreset = providerPreset
+    if (host !== undefined) config.host = host.trim()
+    if (port !== undefined) config.port = Number(port)
+    if (secure !== undefined) config.secure = Boolean(secure)
+    if (user !== undefined) config.user = user.trim()
+    if (pass !== undefined && pass !== '') config.pass = pass.trim()
+    if (fromEmail !== undefined) config.fromEmail = fromEmail.trim()
+    if (fromName !== undefined) config.fromName = fromName.trim()
+
+    config.isConfigured = Boolean(config.host && config.user && config.pass)
+    await config.save()
+
+    res.json({
+      message: 'Configuration SMTP globale enregistrée avec succès',
+      serverUrl: config.serverUrl,
+      providerPreset: config.providerPreset,
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      user: config.user,
+      hasPassword: Boolean(config.pass && config.pass.length > 0),
+      fromEmail: config.fromEmail,
+      fromName: config.fromName,
+      isConfigured: config.isConfigured
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/super-admin/smtp/test (Test d'envoi SMTP plateforme)
+app.post('/api/super-admin/smtp/test', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { recipientEmail } = req.body
+    if (!recipientEmail || !recipientEmail.trim()) {
+      return res.status(400).json({ error: 'Veuillez renseigner une adresse email destinataire' })
+    }
+
+    const config = await GlobalConfig.findOne()
+    if (!config || !config.host || !config.user || !config.pass) {
+      return res.status(400).json({ error: 'Le serveur SMTP plateforme n\'est pas encore configuré' })
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: { user: config.user, pass: config.pass },
+      tls: { rejectUnauthorized: false }
+    })
+
+    await transporter.sendMail({
+      from: `"${config.fromName || 'FamilyGest Platform'}" <${config.fromEmail || config.user}>`,
+      to: recipientEmail.trim(),
+      subject: '✨ Test de connexion SMTP Plateforme - FamilyGest',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
+          <h2 style="color: #4f46e5;">Connexion SMTP Plateforme Réussie !</h2>
+          <p>Le serveur SMTP global fonctionne correctement.</p>
+        </div>
+      `
+    })
+
+    res.json({ message: `Email de test plateforme envoyé avec succès à ${recipientEmail}` })
+  } catch (err) {
+    res.status(500).json({ error: `Échec de l'envoi : ${err.message}` })
+  }
+})
+
+// === USER FAMILIES & FAMILY CONTEXT ROUTES ===
+
+// GET /api/user/families (Liste des familles accessibles pour l'utilisateur connecté)
+app.get('/api/user/families', requireAuth, async (req, res) => {
+  try {
+    const memberships = await FamilyMember.find({ userId: req.user.id })
+    const familyIds = memberships.map(m => m.familyId)
+    const families = await Family.find({ _id: { $in: familyIds }, isActive: true })
+
+    const result = families.map(f => {
+      const mem = memberships.find(m => m.familyId.toString() === f._id.toString())
+      return {
+        _id: f._id,
+        name: f.name,
+        slug: f.slug,
+        maxMembers: f.maxMembers,
+        role: mem ? mem.role : 'Membre',
+        isAdmin: mem ? mem.isAdmin : false
+      }
+    })
+
+    if (req.user.isSuperAdmin) {
+      const allFamilies = await Family.find({ isActive: true })
+      for (const f of allFamilies) {
+        if (!result.some(r => r._id.toString() === f._id.toString())) {
+          result.push({
+            _id: f._id,
+            name: f.name,
+            slug: f.slug,
+            maxMembers: f.maxMembers,
+            role: 'Super Admin',
+            isAdmin: true
+          })
+        }
+      }
+    }
+
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/families/:familySlug (Détails de la famille demandée et membership du profil)
+app.get('/api/families/:familySlug', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const memberCount = await FamilyMember.countDocuments({ familyId: req.family._id })
+    res.json({
+      family: {
+        _id: req.family._id,
+        name: req.family.name,
+        slug: req.family.slug,
+        maxMembers: req.family.maxMembers,
+        memberCount
+      },
+      membership: req.membership
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/families/:familySlug/check-email (Vérification si un email existe avant invitation par l'admin familial)
+app.post('/api/families/:familySlug/check-email', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const email = String(req.body.email || '').toLowerCase().trim()
+    if (!email) return res.status(400).json({ error: 'Adresse email requise' })
+
+    const existingUser = await User.findOne({ email }).select('id firstName lastName email avatar color')
+    if (existingUser) {
+      const alreadyMember = await FamilyMember.findOne({ familyId: req.family._id, userId: existingUser.id })
+      return res.json({
+        exists: true,
+        alreadyMember: Boolean(alreadyMember),
+        user: {
+          id: existingUser.id,
+          firstName: existingUser.firstName,
+          lastName: existingUser.lastName,
+          email: existingUser.email
+        }
+      })
+    }
+
+    res.json({ exists: false, alreadyMember: false })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/families/:familySlug/invite (Invitation d'un utilisateur par l'admin familial)
+app.post('/api/families/:familySlug/invite', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const { email, firstName, lastName, role, isAdmin } = req.body
+    if (!email) return res.status(400).json({ error: 'Adresse email requise' })
+
+    const cleanEmail = email.toLowerCase().trim()
+
+    // Vérifier le quota
+    const currentMemberCount = await FamilyMember.countDocuments({ familyId: req.family._id })
+    if (currentMemberCount >= req.family.maxMembers) {
+      return res.status(400).json({ error: `Le quota maximal de cette famille (${req.family.maxMembers} membres) est atteint` })
+    }
+
+    const existingUser = await User.findOne({ email: cleanEmail })
+    if (existingUser) {
+      const alreadyMember = await FamilyMember.findOne({ familyId: req.family._id, userId: existingUser.id })
+      if (alreadyMember) {
+        return res.status(400).json({ error: 'Cet utilisateur fait déjà partie de la famille' })
+      }
+    }
+
+    const token = crypto.randomBytes(32).toString('hex')
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+
+    const invitation = new FamilyInvitation({
+      token,
+      familyId: req.family._id,
+      email: cleanEmail,
+      role: role || 'Membre',
+      isAdmin: Boolean(isAdmin),
+      invitedBy: req.user.id,
+      firstName: (existingUser ? existingUser.firstName : firstName) || '',
+      lastName: (existingUser ? existingUser.lastName : lastName) || '',
+      status: 'pending',
+      expiresAt
+    })
+    await invitation.save()
+
+    // Envoi email invitation
+    await sendFamilyInvitationEmail({
+      email: cleanEmail,
+      family: req.family,
+      invitationToken: token,
+      isExistingUser: Boolean(existingUser),
+      invitedByName: `${req.user.firstName} ${req.user.lastName}`
+    })
+
+    res.json({
+      success: true,
+      message: `Invitation envoyée avec succès à ${cleanEmail}`,
+      token
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// === INVITATION ACCEPTANCE ROUTES ===
+
+// GET /api/invitations/:token (Détails d'une invitation)
+app.get('/api/invitations/:token', async (req, res) => {
+  try {
+    const invitation = await FamilyInvitation.findOne({ token: req.params.token })
+    if (!invitation) return res.status(404).json({ error: 'Invitation introuvable' })
+
+    if (invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
+      return res.status(400).json({ error: 'Cette invitation a expiré ou a déjà été utilisée' })
+    }
+
+    const family = await Family.findById(invitation.familyId)
+    if (!family) return res.status(404).json({ error: 'Famille introuvable' })
+
+    const existingUser = await User.findOne({ email: invitation.email })
+
+    res.json({
+      token: invitation.token,
+      email: invitation.email,
+      family: {
+        name: family.name,
+        slug: family.slug
+      },
+      role: invitation.role,
+      isAdmin: invitation.isAdmin,
+      isExistingUser: Boolean(existingUser),
+      existingUser: existingUser ? {
+        firstName: existingUser.firstName,
+        lastName: existingUser.lastName
+      } : {
+        firstName: invitation.firstName,
+        lastName: invitation.lastName
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/invitations/:token/accept (Finalisation d'inscription ou acceptation de rejoindre)
+app.post('/api/invitations/:token/accept', async (req, res) => {
+  try {
+    const invitation = await FamilyInvitation.findOne({ token: req.params.token })
+    if (!invitation) return res.status(404).json({ error: 'Invitation introuvable' })
+
+    if (invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
+      return res.status(400).json({ error: 'Cette invitation a expiré ou a déjà été utilisée' })
+    }
+
+    const family = await Family.findById(invitation.familyId)
+    if (!family) return res.status(404).json({ error: 'Famille introuvable' })
+
+    // Contrôle quota
+    const currentMemberCount = await FamilyMember.countDocuments({ familyId: family._id })
+    if (currentMemberCount >= family.maxMembers) {
+      return res.status(400).json({ error: `Le quota de membres pour la famille "${family.name}" est atteint` })
+    }
+
+    let user = await User.findOne({ email: invitation.email })
+
+    if (user) {
+      // Utilisateur existant : vérification s'il est déjà membre
+      const alreadyMember = await FamilyMember.findOne({ familyId: family._id, userId: user.id })
+      if (!alreadyMember) {
+        const newMember = new FamilyMember({
+          familyId: family._id,
+          userId: user.id,
+          userRef: user._id,
+          role: req.body.role || invitation.role || 'Membre',
+          isAdmin: Boolean(invitation.isAdmin),
+          usualPresence: req.body.usualPresence || 'present',
+          pushNotificationsEnabled: true,
+          emailNotificationsEnabled: false
+        })
+        await newMember.save()
+      }
+    } else {
+      // Nouvel utilisateur : création complète
+      const { password, firstName, lastName, avatar, color, usualPresence, role } = req.body
+      if (!password) {
+        return res.status(400).json({ error: 'Veuillez définir un mot de passe' })
+      }
+
+      const pwdCheck = validatePasswordSecurity(password)
+      if (!pwdCheck.valid) {
+        return res.status(400).json({ error: pwdCheck.error })
+      }
+
+      const highestUser = await User.findOne().sort('-id')
+      const nextId = (highestUser && typeof highestUser.id === 'number') ? highestUser.id + 1 : 1
+
+      user = new User({
+        id: nextId,
+        firstName: (firstName || invitation.firstName || 'Membre').trim(),
+        lastName: (lastName || invitation.lastName || '').trim(),
+        email: invitation.email,
+        password,
+        avatar: avatar || '👤',
+        color: color || '#6366f1',
+        isAdmin: false,
+        role: role || invitation.role || 'Membre',
+        usualPresence: usualPresence || 'present'
+      })
+      await user.save()
+
+      const newMember = new FamilyMember({
+        familyId: family._id,
+        userId: user.id,
+        userRef: user._id,
+        role: role || invitation.role || 'Membre',
+        isAdmin: Boolean(invitation.isAdmin),
+        usualPresence: usualPresence || 'present',
+        pushNotificationsEnabled: true,
+        emailNotificationsEnabled: false
+      })
+      await newMember.save()
+    }
+
+    invitation.status = 'accepted'
+    await invitation.save()
+
+    const token = generateToken(user.id, user.email, user.isAdmin, user.isSuperAdmin)
+
+    res.json({
+      success: true,
+      token,
+      familySlug: family.slug,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        avatar: user.avatar,
+        color: user.color,
+        isSuperAdmin: Boolean(user.isSuperAdmin),
+        isAdmin: Boolean(invitation.isAdmin)
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// === MEMBERS ROUTES (SCOPED TO FAMILY) ===
+app.get('/api/members', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const memberships = await FamilyMember.find({ familyId: req.family._id })
+    const userIds = memberships.map(m => m.userId)
+    const users = await User.find({ id: { $in: userIds } }).select('-password')
+
+    const members = memberships.map(mem => {
+      const u = users.find(user => user.id === mem.userId)
+      if (!u) return null
+      return {
+        id: u.id,
+        name: `${u.firstName} ${u.lastName}`,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        email: u.email,
+        isAdmin: mem.isAdmin,
+        role: mem.role || 'Membre',
+        avatar: u.avatar,
+        color: u.color,
+        points: mem.points || 0,
+        pushNotificationsEnabled: mem.pushNotificationsEnabled !== false,
+        emailNotificationsEnabled: Boolean(mem.emailNotificationsEnabled),
+        usualPresence: mem.usualPresence || 'present',
+        isSuperAdmin: Boolean(u.isSuperAdmin)
+      }
+    }).filter(Boolean)
+
     res.json(members)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -866,9 +1741,15 @@ app.get('/api/members', requireAuth, async (req, res) => {
 })
 
 // Ajouter un membre : Réservé à l'Administrateur
-app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/members', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, usualPresence } = req.body
+
+    // Vérification du quota
+    const currentMemberCount = await FamilyMember.countDocuments({ familyId: req.family._id })
+    if (currentMemberCount >= req.family.maxMembers) {
+      return res.status(400).json({ error: `Le quota maximal de cette famille (${req.family.maxMembers} membres) est atteint` })
+    }
 
     const fName = firstName || (name ? name.split(' ')[0] : 'Membre')
     const lName = lastName || (name && name.split(' ').length > 1 ? name.split(' ').slice(1).join(' ') : 'Famille')
@@ -882,47 +1763,65 @@ app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
       }
     }
 
-    const existingUser = await User.findOne({ email: userEmail })
-    if (existingUser) {
-      return res.status(400).json({ error: 'Un membre avec cet email existe déjà' })
+    let user = await User.findOne({ email: userEmail })
+    if (user) {
+      const already = await FamilyMember.findOne({ familyId: req.family._id, userId: user.id })
+      if (already) {
+        return res.status(400).json({ error: 'Ce membre fait déjà partie de la famille' })
+      }
+    } else {
+      const highestUser = await User.findOne().sort('-id')
+      const nextId = (highestUser && typeof highestUser.id === 'number') ? highestUser.id + 1 : Date.now()
+
+      const welcomeToken = crypto.randomBytes(32).toString('hex')
+      const welcomeTokenExpires = new Date(Date.now() + 2 * 60 * 60 * 1000)
+
+      user = new User({
+        id: nextId,
+        firstName: fName,
+        lastName: lName,
+        email: userEmail,
+        password: userPassword,
+        isAdmin: false,
+        role: role || 'Membre',
+        avatar: avatar || '👤',
+        color: color || '#6366f1',
+        points: 0,
+        welcomeToken,
+        welcomeTokenExpires,
+        usualPresence: usualPresence || 'present'
+      })
+      await user.save()
+
+      // Envoi de l'email de bienvenue
+      sendWelcomeEmail(user, welcomeToken)
     }
 
-    const welcomeToken = crypto.randomBytes(32).toString('hex')
-    const welcomeTokenExpires = new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 heures
-
-    const newUser = new User({
-      id: Date.now(),
-      firstName: fName,
-      lastName: lName,
-      email: userEmail,
-      password: userPassword,
-      isAdmin: Boolean(isAdmin),
+    const newMembership = new FamilyMember({
+      familyId: req.family._id,
+      userId: user.id,
+      userRef: user._id,
       role: role || (isAdmin ? 'Administrateur' : 'Membre'),
-      avatar: avatar || '👤',
-      color: color || '#6366f1',
+      isAdmin: Boolean(isAdmin),
+      usualPresence: usualPresence || 'present',
       points: Number(points) || 0,
-      welcomeToken,
-      welcomeTokenExpires,
-      usualPresence: usualPresence || 'present'
+      pushNotificationsEnabled: true,
+      emailNotificationsEnabled: false
     })
-
-    await newUser.save()
-
-    // Envoi de l'email de bienvenue en arrière-plan
-    sendWelcomeEmail(newUser, welcomeToken)
+    await newMembership.save()
 
     res.status(201).json({
-      id: newUser.id,
-      name: `${newUser.firstName} ${newUser.lastName}`,
-      firstName: newUser.firstName,
-      lastName: newUser.lastName,
-      email: newUser.email,
-      isAdmin: newUser.isAdmin,
-      role: newUser.role,
-      avatar: newUser.avatar,
-      color: newUser.color,
-      points: newUser.points,
-      usualPresence: newUser.usualPresence || 'present'
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      isAdmin: newMembership.isAdmin,
+      role: newMembership.role,
+      avatar: user.avatar,
+      color: user.color,
+      points: newMembership.points,
+      usualPresence: newMembership.usualPresence
     })
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -930,11 +1829,14 @@ app.post('/api/members', requireAuth, requireAdmin, async (req, res) => {
 })
 
 // Modifier un membre : Réservé à l'Administrateur
-app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
+app.put('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const memberId = Number(req.params.id)
     const user = await User.findOne({ id: memberId })
     if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
+
+    const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: memberId })
+    if (!membership) return res.status(404).json({ error: 'Membre non trouvé dans cette famille' })
 
     const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, pushNotificationsEnabled, emailNotificationsEnabled, usualPresence } = req.body
 
@@ -945,28 +1847,29 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
       user.lastName = name.split(' ').slice(1).join(' ') || user.lastName
     }
 
-    if (role) user.role = role
     if (avatar) user.avatar = avatar
     if (color) user.color = color
-    if (points !== undefined && points !== null) user.points = Number(points)
-    if (pushNotificationsEnabled !== undefined) user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
-    if (emailNotificationsEnabled !== undefined) user.emailNotificationsEnabled = Boolean(emailNotificationsEnabled)
+
+    if (role) membership.role = role
+    if (points !== undefined && points !== null) membership.points = Number(points)
+    if (pushNotificationsEnabled !== undefined) membership.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
+    if (emailNotificationsEnabled !== undefined) membership.emailNotificationsEnabled = Boolean(emailNotificationsEnabled)
     if (usualPresence && ['present', 'absent'].includes(usualPresence)) {
-      user.usualPresence = usualPresence
+      membership.usualPresence = usualPresence
     }
 
     if (isAdmin !== undefined && isAdmin !== null) {
       const newAdminState = Boolean(isAdmin)
-      if (user.id === req.user.id && !newAdminState && user.isAdmin) {
+      if (user.id === req.user.id && !newAdminState && membership.isAdmin) {
         return res.status(400).json({ error: 'Vous ne pouvez pas retirer vos propres privilèges d\'administrateur' })
       }
-      if (user.isAdmin && !newAdminState) {
-        const adminCount = await User.countDocuments({ isAdmin: true })
+      if (membership.isAdmin && !newAdminState) {
+        const adminCount = await FamilyMember.countDocuments({ familyId: req.family._id, isAdmin: true })
         if (adminCount <= 1) {
-          return res.status(400).json({ error: 'Impossible de retirer le statut administrateur car il s\'agit du dernier administrateur du système.' })
+          return res.status(400).json({ error: 'Impossible de retirer le statut administrateur car il s\'agit du dernier administrateur de cette famille.' })
         }
       }
-      user.isAdmin = newAdminState
+      membership.isAdmin = newAdminState
     }
 
     if (email && email.toLowerCase().trim() !== user.email) {
@@ -986,6 +1889,7 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
     }
 
     await user.save()
+    await membership.save()
 
     res.json({
       id: user.id,
@@ -993,14 +1897,14 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      isAdmin: user.isAdmin,
-      role: user.role,
+      isAdmin: membership.isAdmin,
+      role: membership.role,
       avatar: user.avatar,
       color: user.color,
-      points: user.points,
-      pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
-      emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
-      usualPresence: user.usualPresence || 'present'
+      points: membership.points,
+      pushNotificationsEnabled: membership.pushNotificationsEnabled !== false,
+      emailNotificationsEnabled: Boolean(membership.emailNotificationsEnabled),
+      usualPresence: membership.usualPresence || 'present'
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1008,25 +1912,28 @@ app.put('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
 })
 
 // Modifier le statut Administrateur d'un membre : Réservé à l'Administrateur
-app.put('/api/members/:id/toggle-admin', requireAuth, requireAdmin, async (req, res) => {
+app.put('/api/members/:id/toggle-admin', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const memberId = Number(req.params.id)
-    const user = await User.findOne({ id: memberId })
-    if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
+    const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: memberId })
+    if (!membership) return res.status(404).json({ error: 'Membre non trouvé dans cette famille' })
 
-    if (user.id === req.user.id && user.isAdmin) {
+    const user = await User.findOne({ id: memberId })
+    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
+
+    if (user.id === req.user.id && membership.isAdmin) {
       return res.status(400).json({ error: 'Vous ne pouvez pas retirer vos propres privilèges d\'administrateur' })
     }
 
-    if (user.isAdmin) {
-      const adminCount = await User.countDocuments({ isAdmin: true })
+    if (membership.isAdmin) {
+      const adminCount = await FamilyMember.countDocuments({ familyId: req.family._id, isAdmin: true })
       if (adminCount <= 1) {
-        return res.status(400).json({ error: 'Impossible de retirer le statut administrateur car il s\'agit du dernier administrateur du système.' })
+        return res.status(400).json({ error: 'Impossible de retirer le statut administrateur car il s\'agit du dernier administrateur de cette famille.' })
       }
     }
 
-    user.isAdmin = !user.isAdmin
-    await user.save()
+    membership.isAdmin = !membership.isAdmin
+    await membership.save()
 
     res.json({
       id: user.id,
@@ -1034,49 +1941,49 @@ app.put('/api/members/:id/toggle-admin', requireAuth, requireAdmin, async (req, 
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      isAdmin: user.isAdmin,
-      role: user.role,
+      isAdmin: membership.isAdmin,
+      role: membership.role,
       avatar: user.avatar,
       color: user.color,
-      points: user.points
+      points: membership.points
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// Supprimer un membre : Réservé à l'Administrateur
-app.delete('/api/members/:id', requireAuth, requireAdmin, async (req, res) => {
+// Supprimer un membre de la famille : Réservé à l'Administrateur
+app.delete('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const memberId = Number(req.params.id)
     if (req.user.id === memberId) {
-      return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte administrateur' })
+      return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte de la famille' })
     }
-    const member = await User.findOne({ id: memberId })
-    if (!member) return res.status(404).json({ error: 'Membre non trouvé' })
+    const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: memberId })
+    if (!membership) return res.status(404).json({ error: 'Membre non trouvé dans cette famille' })
 
-    if (member.isAdmin) {
-      const adminCount = await User.countDocuments({ isAdmin: true })
+    if (membership.isAdmin) {
+      const adminCount = await FamilyMember.countDocuments({ familyId: req.family._id, isAdmin: true })
       if (adminCount <= 1) {
-        return res.status(400).json({ error: 'Impossible de supprimer cet administrateur car il s\'agit du dernier administrateur du système.' })
+        return res.status(400).json({ error: 'Impossible de supprimer cet administrateur car il s\'agit du dernier administrateur de cette famille.' })
       }
     }
 
-    await User.deleteOne({ id: memberId })
-    res.json({ message: 'Membre supprimé par l\'administrateur' })
+    await FamilyMember.deleteOne({ familyId: req.family._id, userId: memberId })
+    res.json({ message: 'Membre retiré de la famille' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
 // Renvoyer manuellement un email de bienvenue avec un nouveau token de 2h : Réservé à l'Administrateur
-app.post('/api/members/:id/resend-welcome', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/members/:id/resend-welcome', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const memberId = Number(req.params.id)
     const user = await User.findOne({ id: memberId })
     if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
 
-    const config = await EmailConfig.findOne()
+    const config = await getSmtpConfig(req.family._id)
     if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
       return res.status(400).json({ 
         error: 'Le serveur email SMTP n\'est pas encore configuré. Rendez-vous dans Administration pour le paramétrer.' 
@@ -1105,18 +2012,19 @@ app.post('/api/members/:id/resend-welcome', requireAuth, requireAdmin, async (re
 })
 
 // === TASKS ROUTES ===
-app.get('/api/tasks', requireAuth, async (req, res) => {
+app.get('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 })
+    const tasks = await Task.find({ familyId: req.family._id }).sort({ createdAt: -1 })
     res.json(tasks)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-app.post('/api/tasks', requireAuth, async (req, res) => {
+app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const newTask = new Task({
+      familyId: req.family._id,
       id: Date.now(),
       title: req.body.title,
       category: req.body.category || 'Maison',
@@ -1138,7 +2046,8 @@ app.post('/api/tasks', requireAuth, async (req, res) => {
       title: `📋 Nouvelle tâche : ${newTask.title}`,
       body: `Assignée à ${assignedName} • +${newTask.points} pts • Ajoutée par ${authorName}`,
       url: '/tasks',
-      excludeUserId: req.user ? req.user.id : null
+      excludeUserId: req.user ? req.user.id : null,
+      familyId: req.family._id
     })
 
     // Notification email pour la nouvelle tâche
@@ -1161,7 +2070,8 @@ app.post('/api/tasks', requireAuth, async (req, res) => {
       `,
       actionUrl: '/tasks',
       actionText: 'Voir les tâches',
-      excludeUserId: req.user ? req.user.id : null
+      excludeUserId: req.user ? req.user.id : null,
+      familyId: req.family._id
     })
 
     res.status(201).json(newTask)
@@ -1170,20 +2080,31 @@ app.post('/api/tasks', requireAuth, async (req, res) => {
   }
 })
 
-app.put('/api/tasks/:id/toggle', requireAuth, async (req, res) => {
+app.put('/api/tasks/:id/toggle', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const task = await Task.findOne({ id: Number(req.params.id) })
+    const task = await Task.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!task) return res.status(404).json({ error: 'Tâche non trouvée' })
 
     task.completed = !task.completed
     await task.save()
 
+    // Mise à jour des points du membre dans la famille
+    const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: task.assignedTo })
+    if (membership) {
+      if (task.completed) {
+        membership.points = (membership.points || 0) + task.points
+      } else {
+        membership.points = Math.max(0, (membership.points || 0) - task.points)
+      }
+      await membership.save()
+    }
+
     const user = await User.findOne({ id: task.assignedTo })
     if (user) {
       if (task.completed) {
-        user.points += task.points
+        user.points = (user.points || 0) + task.points
       } else {
-        user.points = Math.max(0, user.points - task.points)
+        user.points = Math.max(0, (user.points || 0) - task.points)
       }
       await user.save()
     }
@@ -1194,9 +2115,9 @@ app.put('/api/tasks/:id/toggle', requireAuth, async (req, res) => {
   }
 })
 
-app.delete('/api/tasks/:id', requireAuth, async (req, res) => {
+app.delete('/api/tasks/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    await Task.deleteOne({ id: Number(req.params.id) })
+    await Task.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
     res.json({ message: 'Tâche supprimée' })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1204,18 +2125,19 @@ app.delete('/api/tasks/:id', requireAuth, async (req, res) => {
 })
 
 // === EVENTS ROUTES ===
-app.get('/api/events', requireAuth, async (req, res) => {
+app.get('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const events = await Event.find().sort({ date: 1 })
+    const events = await Event.find({ familyId: req.family._id }).sort({ date: 1 })
     res.json(events)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-app.post('/api/events', requireAuth, async (req, res) => {
+app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const newEvent = new Event({
+      familyId: req.family._id,
       id: Date.now(),
       title: req.body.title,
       date: req.body.date,
@@ -1228,7 +2150,7 @@ app.post('/api/events', requireAuth, async (req, res) => {
     await newEvent.save()
 
     // Liens et contenu pour ajout à l'agenda personnel
-    const emailConfig = await EmailConfig.findOne()
+    const emailConfig = await getSmtpConfig(req.family._id)
     const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
     const googleCalendarUrl = generateServerGoogleCalendarUrl(newEvent)
     const icsContent = generateServerIcsContent(newEvent)
@@ -1243,6 +2165,7 @@ app.post('/api/events', requireAuth, async (req, res) => {
       body: `${newEvent.date}${timeStr}${locStr} • Ajouté par ${authorName}`,
       url: '/calendar',
       excludeUserId: req.user ? req.user.id : null,
+      familyId: req.family._id,
       actions: [
         { action: 'open', title: 'Voir' },
         { action: 'add-google', title: '📅 Google Agenda' }
@@ -1269,6 +2192,7 @@ app.post('/api/events', requireAuth, async (req, res) => {
       actionUrl: '/calendar',
       actionText: 'Voir dans le calendrier',
       excludeUserId: req.user ? req.user.id : null,
+      familyId: req.family._id,
       calendarData: {
         googleUrl: googleCalendarUrl,
         icsUrl: icsDownloadUrl,
@@ -1284,10 +2208,10 @@ app.post('/api/events', requireAuth, async (req, res) => {
 })
 
 // PUT /api/events/:id (Modification d'un événement avec alertes push & email)
-app.put('/api/events/:id', requireAuth, async (req, res) => {
+app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const eventId = Number(req.params.id)
-    const event = await Event.findOne({ id: eventId })
+    const event = await Event.findOne({ id: eventId, familyId: req.family._id })
     if (!event) return res.status(404).json({ error: 'Événement non trouvé' })
 
     const { title, date, time, category, location, color, assignedTo } = req.body
@@ -1303,7 +2227,7 @@ app.put('/api/events/:id', requireAuth, async (req, res) => {
     await event.save()
 
     // Liens et contenu pour ajout/mise à jour sur l'agenda personnel
-    const emailConfig = await EmailConfig.findOne()
+    const emailConfig = await getSmtpConfig(req.family._id)
     const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
     const googleCalendarUrl = generateServerGoogleCalendarUrl(event)
     const icsContent = generateServerIcsContent(event)
@@ -1319,6 +2243,7 @@ app.put('/api/events/:id', requireAuth, async (req, res) => {
       body: `${event.date}${timeStr}${locStr} • Modifié par ${authorName}`,
       url: '/calendar',
       excludeUserId: req.user ? req.user.id : null,
+      familyId: req.family._id,
       actions: [
         { action: 'open', title: 'Voir l\'agenda' },
         { action: 'add-google', title: '📅 Mettre à jour' }
@@ -1345,6 +2270,7 @@ app.put('/api/events/:id', requireAuth, async (req, res) => {
       actionUrl: '/calendar',
       actionText: 'Voir dans le calendrier',
       excludeUserId: req.user ? req.user.id : null,
+      familyId: req.family._id,
       calendarData: {
         googleUrl: googleCalendarUrl,
         icsUrl: icsDownloadUrl,
@@ -1376,15 +2302,14 @@ app.get('/api/events/:id/ics', async (req, res) => {
   }
 })
 
-app.delete('/api/events/:id', requireAuth, async (req, res) => {
+app.delete('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    await Event.deleteOne({ id: Number(req.params.id) })
+    await Event.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
     res.json({ message: 'Événement supprimé' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
-
 
 // === SHOPPING CATEGORIES ROUTES ===
 const DEFAULT_CATEGORIES = [
@@ -1397,30 +2322,24 @@ const DEFAULT_CATEGORIES = [
   { name: 'Autre',           icon: '🛒', rank: 7 },
 ]
 
-// Seed catégories par défaut si la collection est vide
-const seedCategoriesIfEmpty = async () => {
-  const count = await ShoppingCategory.countDocuments()
-  if (count === 0) {
-    const docs = DEFAULT_CATEGORIES.map((c, i) => ({ ...c, id: Date.now() + i }))
-    await ShoppingCategory.insertMany(docs)
-    console.log('🛒 Catégories de courses par défaut créées.')
-  }
-}
-seedCategoriesIfEmpty().catch(console.error)
-
-app.get('/api/shopping-categories', requireAuth, async (req, res) => {
+app.get('/api/shopping-categories', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const cats = await ShoppingCategory.find().sort({ rank: 1 })
+    let cats = await ShoppingCategory.find({ familyId: req.family._id }).sort({ rank: 1 })
+    if (cats.length === 0) {
+      const docs = DEFAULT_CATEGORIES.map((c, i) => ({ ...c, familyId: req.family._id, id: Date.now() + i }))
+      cats = await ShoppingCategory.insertMany(docs)
+    }
     res.json(cats)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-app.post('/api/shopping-categories', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/shopping-categories', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
-    const maxRank = await ShoppingCategory.findOne().sort({ rank: -1 })
+    const maxRank = await ShoppingCategory.findOne({ familyId: req.family._id }).sort({ rank: -1 })
     const cat = new ShoppingCategory({
+      familyId: req.family._id,
       id: Date.now(),
       name: req.body.name,
       icon: req.body.icon || '🛒',
@@ -1433,23 +2352,22 @@ app.post('/api/shopping-categories', requireAuth, requireAdmin, async (req, res)
   }
 })
 
-app.put('/api/shopping-categories/reorder', requireAuth, requireAdmin, async (req, res) => {
+app.put('/api/shopping-categories/reorder', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
-    // Body: [{ id, rank }, ...]
     const updates = req.body
     await Promise.all(updates.map(({ id, rank }) =>
-      ShoppingCategory.updateOne({ id: Number(id) }, { rank })
+      ShoppingCategory.updateOne({ id: Number(id), familyId: req.family._id }, { rank })
     ))
-    const cats = await ShoppingCategory.find().sort({ rank: 1 })
+    const cats = await ShoppingCategory.find({ familyId: req.family._id }).sort({ rank: 1 })
     res.json(cats)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-app.put('/api/shopping-categories/:id', requireAuth, requireAdmin, async (req, res) => {
+app.put('/api/shopping-categories/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
-    const cat = await ShoppingCategory.findOne({ id: Number(req.params.id) })
+    const cat = await ShoppingCategory.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!cat) return res.status(404).json({ error: 'Catégorie non trouvée' })
     if (req.body.name !== undefined) cat.name = req.body.name
     if (req.body.icon !== undefined) cat.icon = req.body.icon
@@ -1461,9 +2379,9 @@ app.put('/api/shopping-categories/:id', requireAuth, requireAdmin, async (req, r
   }
 })
 
-app.delete('/api/shopping-categories/:id', requireAuth, requireAdmin, async (req, res) => {
+app.delete('/api/shopping-categories/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
-    await ShoppingCategory.deleteOne({ id: Number(req.params.id) })
+    await ShoppingCategory.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
     res.json({ message: 'Catégorie supprimée' })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1471,18 +2389,19 @@ app.delete('/api/shopping-categories/:id', requireAuth, requireAdmin, async (req
 })
 
 // === SHOPPING ROUTES ===
-app.get('/api/shopping', requireAuth, async (req, res) => {
+app.get('/api/shopping', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const items = await ShoppingItem.find().sort({ createdAt: -1 })
+    const items = await ShoppingItem.find({ familyId: req.family._id }).sort({ createdAt: -1 })
     res.json(items)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-app.post('/api/shopping', requireAuth, async (req, res) => {
+app.post('/api/shopping', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const newItem = new ShoppingItem({
+      familyId: req.family._id,
       id: Date.now(),
       name: req.body.name,
       category: req.body.category || 'Frais',
@@ -1497,9 +2416,9 @@ app.post('/api/shopping', requireAuth, async (req, res) => {
   }
 })
 
-app.put('/api/shopping/:id/toggle', requireAuth, async (req, res) => {
+app.put('/api/shopping/:id/toggle', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const item = await ShoppingItem.findOne({ id: Number(req.params.id) })
+    const item = await ShoppingItem.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!item) return res.status(404).json({ error: 'Article non trouvé' })
 
     item.checked = !item.checked
@@ -1510,9 +2429,9 @@ app.put('/api/shopping/:id/toggle', requireAuth, async (req, res) => {
   }
 })
 
-app.put('/api/shopping/:id', requireAuth, async (req, res) => {
+app.put('/api/shopping/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const item = await ShoppingItem.findOne({ id: Number(req.params.id) })
+    const item = await ShoppingItem.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!item) return res.status(404).json({ error: 'Article non trouvé' })
 
     if (req.body.name !== undefined)     item.name     = req.body.name
@@ -1527,9 +2446,9 @@ app.put('/api/shopping/:id', requireAuth, async (req, res) => {
   }
 })
 
-app.delete('/api/shopping/:id', requireAuth, async (req, res) => {
+app.delete('/api/shopping/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    await ShoppingItem.deleteOne({ id: Number(req.params.id) })
+    await ShoppingItem.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
     res.json({ message: 'Article supprimé' })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1537,16 +2456,16 @@ app.delete('/api/shopping/:id', requireAuth, async (req, res) => {
 })
 
 // === ABSENCES & MEALS ROUTES ===
-app.get('/api/absences', requireAuth, async (req, res) => {
+app.get('/api/absences', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const absences = await Absence.find().sort({ date: 1 })
+    const absences = await Absence.find({ familyId: req.family._id }).sort({ date: 1 })
     res.json(absences)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-app.post('/api/absences', requireAuth, async (req, res) => {
+app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const { memberId, date, type, lunch, dinner, night, note } = req.body
 
@@ -1583,7 +2502,8 @@ app.post('/api/absences', requireAuth, async (req, res) => {
             title: pushTitle,
             body: pushBody,
             url: '/absences',
-            excludeUserId: req.user ? req.user.id : null
+            excludeUserId: req.user ? req.user.id : null,
+            familyId: req.family._id
           })
 
           const emailSubject = isSelf 
@@ -1612,7 +2532,8 @@ app.post('/api/absences', requireAuth, async (req, res) => {
             `,
             actionUrl: '/absences',
             actionText: 'Consulter les présences & repas',
-            excludeUserId: req.user ? req.user.id : null
+            excludeUserId: req.user ? req.user.id : null,
+            familyId: req.family._id
           })
         } else {
           const pushTitle = `🚫 Nouvelle absence : ${mName}`
@@ -1624,7 +2545,8 @@ app.post('/api/absences', requireAuth, async (req, res) => {
             title: pushTitle,
             body: pushBody,
             url: '/absences',
-            excludeUserId: req.user ? req.user.id : null
+            excludeUserId: req.user ? req.user.id : null,
+            familyId: req.family._id
           })
 
           const emailSubject = isSelf 
@@ -1653,7 +2575,8 @@ app.post('/api/absences', requireAuth, async (req, res) => {
             `,
             actionUrl: '/absences',
             actionText: 'Consulter les absences & repas',
-            excludeUserId: req.user ? req.user.id : null
+            excludeUserId: req.user ? req.user.id : null,
+            familyId: req.family._id
           })
         }
       } catch (e) {
@@ -1661,7 +2584,7 @@ app.post('/api/absences', requireAuth, async (req, res) => {
       }
     }
 
-    let existing = await Absence.findOne({ memberId: Number(memberId), date: date.trim() })
+    let existing = await Absence.findOne({ memberId: Number(memberId), date: date.trim(), familyId: req.family._id })
     if (existing) {
       existing.type = recordType
       existing.lunch = Boolean(lunch)
@@ -1675,6 +2598,7 @@ app.post('/api/absences', requireAuth, async (req, res) => {
     }
 
     const newAbsence = new Absence({
+      familyId: req.family._id,
       id: Date.now(),
       memberId: Number(memberId),
       date: date.trim(),
@@ -1694,17 +2618,18 @@ app.post('/api/absences', requireAuth, async (req, res) => {
   }
 })
 
-app.put('/api/absences/:id', requireAuth, async (req, res) => {
+app.put('/api/absences/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const absence = await Absence.findOne({ id: Number(req.params.id) })
+    const absence = await Absence.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!absence) return res.status(404).json({ error: 'Absence non trouvée' })
 
-    if (absence.memberId !== req.user.id && absence.declaredBy !== req.user.id && !req.user.isAdmin) {
+    const isAuthorized = absence.memberId === req.user.id || absence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
+    if (!isAuthorized) {
       return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres déclarations d\'absence ou de présence' })
     }
 
     const { memberId, date, type, lunch, dinner, night, note } = req.body
-    if (memberId !== undefined && req.user.isAdmin) absence.memberId = Number(memberId)
+    if (memberId !== undefined && (req.membership?.isAdmin || req.user?.isSuperAdmin)) absence.memberId = Number(memberId)
     if (date) absence.date = date.trim()
     if (type && ['absence', 'presence'].includes(type)) absence.type = type
     if (lunch !== undefined) absence.lunch = Boolean(lunch)
@@ -1713,7 +2638,7 @@ app.put('/api/absences/:id', requireAuth, async (req, res) => {
     if (note !== undefined) absence.note = note.trim()
 
     if (!absence.lunch && !absence.dinner && !absence.night) {
-      await Absence.deleteOne({ id: absence.id })
+      await Absence.deleteOne({ id: absence.id, familyId: req.family._id })
       return res.json({ message: 'Absence supprimée car aucun créneau n\'est sélectionné' })
     }
 
@@ -1724,16 +2649,17 @@ app.put('/api/absences/:id', requireAuth, async (req, res) => {
   }
 })
 
-app.delete('/api/absences/:id', requireAuth, async (req, res) => {
+app.delete('/api/absences/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const absence = await Absence.findOne({ id: Number(req.params.id) })
+    const absence = await Absence.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!absence) return res.status(404).json({ error: 'Absence non trouvée' })
 
-    if (absence.memberId !== req.user.id && absence.declaredBy !== req.user.id && !req.user.isAdmin) {
+    const isAuthorized = absence.memberId === req.user.id || absence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
+    if (!isAuthorized) {
       return res.status(403).json({ error: 'Vous ne pouvez supprimer que vos propres déclarations d\'absence ou de présence' })
     }
 
-    await Absence.deleteOne({ id: Number(req.params.id) })
+    await Absence.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
     res.json({ message: 'Absence supprimée' })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -1741,16 +2667,16 @@ app.delete('/api/absences/:id', requireAuth, async (req, res) => {
 })
 
 // === MEAL GUESTS ROUTES (INVITÉS AUX REPAS) ===
-app.get('/api/meal-guests', requireAuth, async (req, res) => {
+app.get('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const guests = await MealGuest.find().sort({ date: 1, createdAt: 1 })
+    const guests = await MealGuest.find({ familyId: req.family._id }).sort({ date: 1, createdAt: 1 })
     res.json(guests)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-app.post('/api/meal-guests', requireAuth, async (req, res) => {
+app.post('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const { name, names, date, lunch, dinner, night, invitedBy, note } = req.body
 
@@ -1762,12 +2688,10 @@ app.post('/api/meal-guests', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Veuillez sélectionner au moins un créneau (Déjeuner, Dîner ou Nuit)' })
     }
 
-    // Support single name or list of names (separated by commas or array)
     let guestNames = []
     if (Array.isArray(names) && names.length > 0) {
       guestNames = names.map(n => String(n).trim()).filter(Boolean)
     } else if (name && typeof name === 'string') {
-      // Split by comma if user typed multiple names separated by comma
       guestNames = name.split(',').map(n => n.trim()).filter(Boolean)
     }
 
@@ -1781,6 +2705,7 @@ app.post('/api/meal-guests', requireAuth, async (req, res) => {
     for (let i = 0; i < guestNames.length; i++) {
       const gName = guestNames[i]
       const newGuest = new MealGuest({
+        familyId: req.family._id,
         id: Date.now() + i + Math.floor(Math.random() * 100),
         name: gName,
         date: date.trim(),
@@ -1810,7 +2735,8 @@ app.post('/api/meal-guests', requireAuth, async (req, res) => {
         title: `🍽️ Nouvel invité : ${namesStr}`,
         body: `${namesStr} invité(s) par ${hostName} le ${date.trim()} (${slotsStr})${noteStr}`,
         url: '/absences',
-        excludeUserId: req.user ? req.user.id : null
+        excludeUserId: req.user ? req.user.id : null,
+        familyId: req.family._id
       })
 
       sendNotificationEmail({
@@ -1830,13 +2756,13 @@ app.post('/api/meal-guests', requireAuth, async (req, res) => {
         `,
         actionUrl: '/absences',
         actionText: 'Consulter le planning des repas',
-        excludeUserId: req.user ? req.user.id : null
+        excludeUserId: req.user ? req.user.id : null,
+        familyId: req.family._id
       })
     } catch (e) {
       console.error('[WebPush] Erreur notification invité:', e.message)
     }
 
-    // Return the created guest or array of guests
     if (createdGuests.length === 1) {
       res.status(201).json(createdGuests[0])
     } else {
@@ -1847,9 +2773,9 @@ app.post('/api/meal-guests', requireAuth, async (req, res) => {
   }
 })
 
-app.put('/api/meal-guests/:id', requireAuth, async (req, res) => {
+app.put('/api/meal-guests/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const guest = await MealGuest.findOne({ id: Number(req.params.id) })
+    const guest = await MealGuest.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!guest) return res.status(404).json({ error: 'Invité non trouvé' })
 
     const { name, date, lunch, dinner, night, invitedBy, note } = req.body
@@ -1862,7 +2788,7 @@ app.put('/api/meal-guests/:id', requireAuth, async (req, res) => {
     if (note !== undefined) guest.note = note.trim()
 
     if (!guest.lunch && !guest.dinner && !guest.night) {
-      await MealGuest.deleteOne({ id: guest.id })
+      await MealGuest.deleteOne({ id: guest.id, familyId: req.family._id })
       return res.json({ message: 'Invité supprimé car aucun créneau n\'est sélectionné' })
     }
 
@@ -1873,50 +2799,46 @@ app.put('/api/meal-guests/:id', requireAuth, async (req, res) => {
   }
 })
 
-app.delete('/api/meal-guests/:id', requireAuth, async (req, res) => {
+app.delete('/api/meal-guests/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const guest = await MealGuest.findOne({ id: Number(req.params.id) })
-    if (!guest) return res.status(404).json({ error: 'Invité non trouvé' })
-
-    await MealGuest.deleteOne({ id: Number(req.params.id) })
+    await MealGuest.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
     res.json({ message: 'Invité supprimé' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// === EMAIL & APP SETTINGS ROUTES (ADMIN ONLY) ===
-app.get('/api/settings/email', requireAuth, requireAdmin, async (req, res) => {
+// === EMAIL & APP SETTINGS ROUTES (ADMIN FAMILIAL) ===
+app.get('/api/settings/email', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
-    let config = await EmailConfig.findOne()
-    if (!config) {
-      config = new EmailConfig()
-      await config.save()
-    }
+    let config = await EmailConfig.findOne({ familyId: req.family._id })
+    const globalConfig = await GlobalConfig.findOne()
+
     res.json({
-      serverUrl: config.serverUrl || 'http://localhost:5173',
-      providerPreset: config.providerPreset || 'gmail',
-      host: config.host || 'smtp.gmail.com',
-      port: config.port || 587,
-      secure: Boolean(config.secure),
-      user: config.user || '',
-      hasPassword: Boolean(config.pass && config.pass.length > 0),
-      fromEmail: config.fromEmail || config.user || '',
-      fromName: config.fromName || 'FamilyGest',
-      isConfigured: Boolean(config.isConfigured)
+      serverUrl: config?.serverUrl || globalConfig?.serverUrl || 'http://localhost:5173',
+      providerPreset: config?.providerPreset || 'gmail',
+      host: config?.host || '',
+      port: config?.port || 587,
+      secure: Boolean(config?.secure),
+      user: config?.user || '',
+      hasPassword: Boolean(config?.pass && config.pass.length > 0),
+      fromEmail: config?.fromEmail || config?.user || '',
+      fromName: config?.fromName || req.family.name || 'FamilyGest',
+      isConfigured: Boolean(config?.isConfigured),
+      isUsingGlobalFallback: Boolean(!config?.isConfigured && globalConfig?.isConfigured)
     })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-app.post('/api/settings/email', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/settings/email', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const { serverUrl, providerPreset, host, port, secure, user, pass, fromEmail, fromName } = req.body
 
-    let config = await EmailConfig.findOne()
+    let config = await EmailConfig.findOne({ familyId: req.family._id })
     if (!config) {
-      config = new EmailConfig()
+      config = new EmailConfig({ familyId: req.family._id })
     }
 
     if (serverUrl !== undefined) config.serverUrl = serverUrl.trim()
@@ -1933,7 +2855,7 @@ app.post('/api/settings/email', requireAuth, requireAdmin, async (req, res) => {
     await config.save()
 
     res.json({
-      message: 'Paramètres enregistrés avec succès',
+      message: 'Paramètres email de la famille enregistrés avec succès',
       serverUrl: config.serverUrl,
       providerPreset: config.providerPreset,
       host: config.host,
@@ -1950,16 +2872,16 @@ app.post('/api/settings/email', requireAuth, requireAdmin, async (req, res) => {
   }
 })
 
-app.post('/api/settings/email/test', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/settings/email/test', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const { recipientEmail } = req.body
     if (!recipientEmail || !recipientEmail.trim()) {
       return res.status(400).json({ error: 'Veuillez renseigner une adresse email destinataire' })
     }
 
-    const config = await EmailConfig.findOne()
+    const config = await getSmtpConfig(req.family._id)
     if (!config || !config.host || !config.user || !config.pass) {
-      return res.status(400).json({ error: 'Le serveur email n\'est pas encore configuré' })
+      return res.status(400).json({ error: 'Aucun serveur email n\'est configuré (ni familial, ni plateforme)' })
     }
 
     const transporter = nodemailer.createTransport({
@@ -1976,21 +2898,20 @@ app.post('/api/settings/email/test', requireAuth, requireAdmin, async (req, res)
     })
 
     const mailOptions = {
-      from: `"${config.fromName || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
+      from: `"${config.fromName || req.family.name || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
       to: recipientEmail.trim(),
-      subject: '✨ Test de configuration Email - FamilyGest',
+      subject: `✨ Test de configuration Email - ${req.family.name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 12px; border: 1px solid #e0e7ff; background-color: #f8fafc;">
-          <h2 style="color: #4f46e5; margin-top: 0;">🎉 Connexion Email Réussie !</h2>
+          <h2 style="color: #4f46e5; margin-top: 0;">🎉 Connexion Email Réussie pour ${req.family.name} !</h2>
           <p>Bonjour,</p>
-          <p>Ceci est un message de test envoyé depuis votre application <strong>FamilyGest</strong>.</p>
-          <p>Vos paramètres de serveur d'envoi Email (SMTP / IMAP) sont enregistrés et opérationnels :</p>
+          <p>Ceci est un message de test envoyé depuis votre espace familial <strong>${req.family.name}</strong> sur <strong>FamilyGest</strong>.</p>
+          <p>Vos paramètres de serveur d'envoi Email sont opérationnels :</p>
           <ul>
             <li><strong>Serveur :</strong> ${config.host}:${config.port}</li>
             <li><strong>Compte :</strong> ${config.user}</li>
-            <li><strong>Expéditeur :</strong> ${config.fromName || 'FamilyGest'}</li>
+            <li><strong>Expéditeur :</strong> ${config.fromName || req.family.name}</li>
           </ul>
-          <p style="color: #64748b; font-size: 0.9em; margin-top: 30px;">Envoyé automatiquement par FamilyGest • Espace Familial</p>
         </div>
       `
     }
@@ -2004,16 +2925,16 @@ app.post('/api/settings/email/test', requireAuth, requireAdmin, async (req, res)
 })
 
 // === SHORTCUTS / APPS ROUTES ===
-app.get('/api/shortcuts', requireAuth, async (req, res) => {
+app.get('/api/shortcuts', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const shortcuts = await Shortcut.find().sort({ order: 1, createdAt: 1 })
+    const shortcuts = await Shortcut.find({ familyId: req.family._id }).sort({ order: 1, createdAt: 1 })
     res.json(shortcuts)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-app.post('/api/shortcuts', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/shortcuts', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const { title, url, icon, order } = req.body
     if (!title || !url) {
@@ -2026,6 +2947,7 @@ app.post('/api/shortcuts', requireAuth, requireAdmin, async (req, res) => {
     }
 
     const newShortcut = new Shortcut({
+      familyId: req.family._id,
       id: Date.now(),
       title: title.trim(),
       url: validUrl,
@@ -2040,9 +2962,9 @@ app.post('/api/shortcuts', requireAuth, requireAdmin, async (req, res) => {
   }
 })
 
-app.put('/api/shortcuts/:id', requireAuth, requireAdmin, async (req, res) => {
+app.put('/api/shortcuts/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
-    const shortcut = await Shortcut.findOne({ id: Number(req.params.id) })
+    const shortcut = await Shortcut.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!shortcut) return res.status(404).json({ error: 'Raccourci non trouvé' })
 
     const { title, url, icon, order } = req.body
@@ -2064,9 +2986,9 @@ app.put('/api/shortcuts/:id', requireAuth, requireAdmin, async (req, res) => {
   }
 })
 
-app.delete('/api/shortcuts/:id', requireAuth, requireAdmin, async (req, res) => {
+app.delete('/api/shortcuts/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
-    await Shortcut.deleteOne({ id: Number(req.params.id) })
+    await Shortcut.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
     res.json({ message: 'Raccourci supprimé' })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -2093,6 +3015,7 @@ if (fs.existsSync(distPath)) {
 const startServer = async () => {
   await connectDB()
   await seedDatabaseIfEmpty()
+  await migrateToMultiFamily()
   await initVapid()
 
   app.listen(PORT, '0.0.0.0', () => {
