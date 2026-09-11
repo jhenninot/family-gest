@@ -155,9 +155,6 @@
                 <span v-if="u.isSuperAdmin" class="role-pill super-admin-role">
                   <ShieldAlert :size="14" /> Super Admin
                 </span>
-                <span v-else-if="u.isFamilyAdmin || u.families?.some(f => f.isAdmin)" class="role-pill family-admin-role">
-                  <ShieldCheck :size="14" /> Admin familial
-                </span>
                 <span v-else class="role-pill standard-user-role">
                   Utilisateur
                 </span>

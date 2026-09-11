@@ -1397,12 +1397,10 @@ app.get('/api/super-admin/users', requireAuth, requireSuperAdmin, async (req, re
         }
       })
 
-      const hasFamilyAdminRole = mappedFamilies.some(f => f.isAdmin)
-
       return {
         ...u.toObject(),
-        isAdmin: hasFamilyAdminRole || Boolean(u.isAdmin),
-        isFamilyAdmin: hasFamilyAdminRole,
+        isAdmin: Boolean(u.isSuperAdmin),
+        isSuperAdmin: Boolean(u.isSuperAdmin),
         families: mappedFamilies,
         memberships: mappedFamilies
       }
@@ -1413,7 +1411,7 @@ app.get('/api/super-admin/users', requireAuth, requireSuperAdmin, async (req, re
   }
 })
 
-// PUT /api/super-admin/users/:userId/set-family-admin (Modifier les droits administrateur familial d'un utilisateur)
+// PUT /api/super-admin/users/:userId/set-family-admin (Modifier les droits administrateur familial d'un utilisateur pour une famille spécifique)
 app.put('/api/super-admin/users/:userId/set-family-admin', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const userId = Number(req.params.userId)
@@ -1431,11 +1429,6 @@ app.put('/api/super-admin/users/:userId/set-family-admin', requireAuth, requireS
       member.role = 'Membre'
     }
     await member.save()
-
-    // Mettre à jour le flag User.isAdmin si l'utilisateur est admin d'au moins une famille
-    const allMembers = await FamilyMember.find({ userId })
-    const isAnyAdmin = allMembers.some(m => m.isAdmin)
-    await User.updateOne({ id: userId }, { $set: { isAdmin: isAnyAdmin } })
 
     res.json({ success: true, member })
   } catch (err) {
@@ -1793,12 +1786,11 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
     if (user) {
       // Utilisateur existant : vérification s'il est déjà membre
       if (alreadyMember) {
-        // Mise à niveau du rôle (ex: promu administrateur)
+        // Mise à niveau du rôle (ex: promu administrateur de cette famille)
         if (invitation.isAdmin) {
           alreadyMember.isAdmin = true
           alreadyMember.role = invitation.role || 'Administrateur'
           await alreadyMember.save()
-          await User.updateOne({ id: user.id }, { $set: { isAdmin: true } })
         }
       } else {
         const isInvitedAdmin = Boolean(invitation.isAdmin)
@@ -1814,9 +1806,6 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
           emailNotificationsEnabled: false
         })
         await newMember.save()
-        if (isInvitedAdmin) {
-          await User.updateOne({ id: user.id }, { $set: { isAdmin: true } })
-        }
       }
     } else {
       // Nouvel utilisateur : création complète
@@ -1844,7 +1833,8 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
         password,
         avatar: avatar || '👤',
         color: color || '#6366f1',
-        isAdmin: isInvitedAdmin,
+        isAdmin: false, // Les droits admin sont purement familiaux (sur FamilyMember)
+        isSuperAdmin: false,
         role: assignedRole,
         usualPresence: usualPresence || 'present'
       })
@@ -1855,7 +1845,7 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
         userId: user.id,
         userRef: user._id,
         role: assignedRole,
-        isAdmin: isInvitedAdmin,
+        isAdmin: isInvitedAdmin, // Le rôle d'administrateur familial réside ici
         usualPresence: usualPresence || 'present',
         pushNotificationsEnabled: true,
         emailNotificationsEnabled: false
@@ -1866,7 +1856,7 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
     invitation.status = 'accepted'
     await invitation.save()
 
-    const token = generateToken(user.id, user.email, user.isAdmin, user.isSuperAdmin)
+    const token = generateToken(user.id, user.email, false, user.isSuperAdmin)
 
     res.json({
       success: true,
@@ -1881,7 +1871,7 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
         avatar: user.avatar,
         color: user.color,
         isSuperAdmin: Boolean(user.isSuperAdmin),
-        isAdmin: Boolean(user.isAdmin || invitation.isAdmin),
+        isAdmin: Boolean(user.isSuperAdmin),
         role: user.role
       }
     })

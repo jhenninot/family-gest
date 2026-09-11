@@ -8,13 +8,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
   const isSuperAdmin = computed(() => user.value && user.value.isSuperAdmin === true)
-  const isAdmin = computed(() => {
-    if (!user.value) return false
-    if (user.value.isSuperAdmin) return true
-    if (user.value.isAdmin === true) return true
-    if (Array.isArray(user.value.families) && user.value.families.some(f => f.isAdmin === true)) return true
-    return false
-  })
+  const isAdmin = computed(() => isSuperAdmin.value)
   const families = computed(() => user.value?.families || [])
 
   const login = async (email, password) => {

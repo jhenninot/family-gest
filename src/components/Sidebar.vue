@@ -210,13 +210,13 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Statut d'Administrateur</label>
-              <div class="admin-status-box" :class="{ 'is-admin': authStore.isAdmin }">
-                <ShieldCheck v-if="authStore.isAdmin" :size="16" />
+              <label class="form-label">Statut dans cette famille</label>
+              <div class="admin-status-box" :class="{ 'is-admin': store.isFamilyAdmin }">
+                <ShieldCheck v-if="store.isFamilyAdmin" :size="16" />
                 <Shield v-else :size="16" />
-                <span>{{ authStore.isAdmin ? 'Administrateur' : 'Membre Standard' }}</span>
+                <span>{{ store.isFamilyAdmin ? 'Administrateur de la famille' : 'Membre Standard' }}</span>
               </div>
-              <span class="help-subtext">* Le statut d'administrateur ne peut être modifié que par un autre administrateur.</span>
+              <span class="help-subtext">* Ce statut administrateur ne s'applique qu'à cet espace familial.</span>
             </div>
           </div>
 

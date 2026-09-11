@@ -1294,7 +1294,7 @@ const canEdit = (abs) => {
   const mId = Number(abs.memberId || abs.id)
   const dBy = abs.declaredBy ? Number(abs.declaredBy) : null
   const currentUserId = Number(authStore.user.id)
-  return authStore.isAdmin || mId === currentUserId || (dBy !== null && dBy === currentUserId)
+  return store.isFamilyAdmin || mId === currentUserId || (dBy !== null && dBy === currentUserId)
 }
 
 const hasUsuallyAbsentMembers = computed(() => store.members.some(m => m.usualPresence === 'absent'))
