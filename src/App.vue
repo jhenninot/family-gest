@@ -1,7 +1,17 @@
 <template>
   <div class="app-container" :class="{ 'auth-page-container': isAuthPage }">
-    <!-- 2 Petites icônes tout en haut à droite : Mode Nuit & Déconnexion -->
+    <!-- 3 Petites icônes tout en haut à droite : Profil Utilisateur, Mode Nuit & Déconnexion -->
     <div v-if="authStore.isAuthenticated && !isAuthPage" class="top-header-actions">
+      <!-- Bouton Profil avec Avatar de l'utilisateur -->
+      <button 
+        @click="showProfileModal = true" 
+        class="top-icon-btn profile-btn" 
+        :title="`Modifier mon profil (${authStore.user?.name || authStore.user?.firstName || 'Utilisateur'})`"
+        aria-label="Mon Profil"
+      >
+        <span class="top-avatar-emoji">{{ authStore.user?.avatar || '👨‍💼' }}</span>
+      </button>
+
       <button 
         @click="familyStore.toggleTheme" 
         class="top-icon-btn" 
@@ -21,6 +31,12 @@
         <LogOut :size="17" />
       </button>
     </div>
+
+    <!-- Modale Profil Utilisateur -->
+    <UserProfileModal 
+      v-if="authStore.isAuthenticated && !isAuthPage" 
+      v-model="showProfileModal" 
+    />
 
     <!-- Sidebar Navigation (Only when logged in and NOT on an auth/activation page) -->
     <Sidebar v-if="authStore.isAuthenticated && !isAuthPage" />
@@ -43,12 +59,13 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 import { useFamilyStore } from './stores/familyStore'
 import { Sun, Moon, LogOut } from '@lucide/vue'
 import Sidebar from './components/Sidebar.vue'
+import UserProfileModal from './components/UserProfileModal.vue'
 import PwaInstallPrompt from './components/PwaInstallPrompt.vue'
 import DevicePushPrompt from './components/DevicePushPrompt.vue'
 
@@ -56,6 +73,8 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
+
+const showProfileModal = ref(false)
 
 const isAuthPage = computed(() => {
   return route.name === 'login' || route.name === 'set-password' || route.path === '/login' || route.path === '/set-password'
@@ -76,7 +95,7 @@ onMounted(async () => {
 </script>
 
 <style>
-/* 2 Petites icônes tout en haut à droite */
+/* 3 Petites icônes tout en haut à droite */
 .top-header-actions {
   position: fixed;
   top: 1rem;
@@ -112,6 +131,23 @@ onMounted(async () => {
   box-shadow: var(--shadow-md);
 }
 
+.top-icon-btn.profile-btn {
+  font-size: 1.15rem;
+}
+
+.top-icon-btn.profile-btn:hover {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-light, rgba(99, 102, 241, 0.15));
+}
+
+.top-avatar-emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
 .top-icon-btn.logout-btn:hover {
   color: var(--accent-rose);
   border-color: var(--accent-rose);
@@ -126,6 +162,9 @@ onMounted(async () => {
   .top-icon-btn {
     width: 33px;
     height: 33px;
+  }
+  .top-avatar-emoji {
+    font-size: 1.05rem;
   }
 }
 
