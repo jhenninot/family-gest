@@ -634,7 +634,7 @@
             />
           </div>
 
-          <div class="modal-footer flex-between">
+          <div class="modal-footer" :class="{ 'modal-footer-center': !editingId, 'flex-between': editingId }">
             <button 
               v-if="editingId" 
               type="button" 
@@ -645,9 +645,8 @@
               <Trash2 :size="15" />
               <span>Supprimer</span>
             </button>
-            <span v-else></span>
 
-            <div class="modal-actions-right">
+            <div class="modal-actions-buttons" :class="{ 'center-actions': !editingId }">
               <button type="button" @click="showModal = false" class="btn btn-secondary">Annuler</button>
               <button 
                 type="submit" 
@@ -770,7 +769,7 @@
             />
           </div>
 
-          <div class="modal-footer flex-between">
+          <div class="modal-footer" :class="{ 'modal-footer-center': !editingGuestId, 'flex-between': editingGuestId }">
             <button 
               v-if="editingGuestId" 
               type="button" 
@@ -781,9 +780,8 @@
               <Trash2 :size="15" />
               <span>Supprimer</span>
             </button>
-            <span v-else></span>
 
-            <div class="modal-actions-right">
+            <div class="modal-actions-buttons" :class="{ 'center-actions': !editingGuestId }">
               <button type="button" @click="showGuestModal = false" class="btn btn-secondary">Annuler</button>
               <button 
                 type="submit" 
@@ -2778,5 +2776,69 @@ const handleDeleteGuest = async (id) => {
   .headcount-num {
     font-size: 0.72rem;
   }
+}
+
+/* Modals layout, header close button, and centered actions */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.btn-close {
+  background: transparent !important;
+  border: none !important;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-close:hover {
+  color: var(--text-primary);
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="dark"] .btn-close:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  margin-top: 1.75rem;
+}
+
+.modal-footer.modal-footer-center {
+  justify-content: center;
+}
+
+.modal-footer.flex-between {
+  justify-content: space-between;
+}
+
+.modal-actions-buttons {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.modal-actions-buttons.center-actions {
+  justify-content: center;
+  width: 100%;
 }
 </style>
