@@ -10,7 +10,7 @@
       </div>
 
       <div class="user-badge glass-panel">
-        <span class="user-avatar">{{ authStore.user?.avatar || '👤' }}</span>
+        <UserAvatar :avatar="authStore.user?.avatar" :name="authStore.user?.firstName" size="md" />
         <div class="user-info">
           <span class="user-name">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</span>
           <span class="user-email">{{ authStore.user?.email }}</span>
@@ -87,6 +87,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { Sparkles, LogOut, ShieldAlert, ShieldCheck, User, Users, ArrowRight } from '@lucide/vue'
+import UserAvatar from '../components/UserAvatar.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

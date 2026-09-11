@@ -156,7 +156,7 @@
             <tr v-for="u in users" :key="u.id || u._id">
               <td>
                 <div class="user-cell">
-                  <span class="avatar-cell">{{ u.avatar || '👤' }}</span>
+                  <UserAvatar :avatar="u.avatar" :name="u.firstName" size="sm" />
                   <div>
                     <strong>{{ u.firstName }} {{ u.lastName }}</strong>
                   </div>
@@ -866,6 +866,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
+import UserAvatar from '../components/UserAvatar.vue'
 import { 
   ShieldAlert, 
   Home, 

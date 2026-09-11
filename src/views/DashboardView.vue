@@ -149,7 +149,8 @@
                       class="person-tag absent-tag"
                       :title="m.name"
                     >
-                      {{ m.avatar }} {{ m.firstName }}
+                      <UserAvatar :avatar="m.avatar" :name="m.firstName" size="xs" />
+                      <span>{{ m.firstName }}</span>
                     </span>
                   </div>
                 </div>
@@ -164,7 +165,9 @@
                       class="person-tag presence-tag"
                       :title="m.name"
                     >
-                      🟢 {{ m.avatar }} {{ m.firstName }}
+                      <span class="presence-dot">🟢</span>
+                      <UserAvatar :avatar="m.avatar" :name="m.firstName" size="xs" />
+                      <span>{{ m.firstName }}</span>
                     </span>
                   </div>
                 </div>
@@ -219,7 +222,8 @@
                       class="person-tag absent-tag"
                       :title="m.name"
                     >
-                      {{ m.avatar }} {{ m.firstName }}
+                      <UserAvatar :avatar="m.avatar" :name="m.firstName" size="xs" />
+                      <span>{{ m.firstName }}</span>
                     </span>
                   </div>
                 </div>
@@ -234,7 +238,9 @@
                       class="person-tag presence-tag"
                       :title="m.name"
                     >
-                      🟢 {{ m.avatar }} {{ m.firstName }}
+                      <span class="presence-dot">🟢</span>
+                      <UserAvatar :avatar="m.avatar" :name="m.firstName" size="xs" />
+                      <span>{{ m.firstName }}</span>
                     </span>
                   </div>
                 </div>
@@ -289,7 +295,8 @@
                       class="person-tag absent-tag"
                       :title="m.name"
                     >
-                      {{ m.avatar }} {{ m.firstName }}
+                      <UserAvatar :avatar="m.avatar" :name="m.firstName" size="xs" />
+                      <span>{{ m.firstName }}</span>
                     </span>
                   </div>
                 </div>
@@ -304,7 +311,9 @@
                       class="person-tag presence-tag"
                       :title="m.name"
                     >
-                      🟢 {{ m.avatar }} {{ m.firstName }}
+                      <span class="presence-dot">🟢</span>
+                      <UserAvatar :avatar="m.avatar" :name="m.firstName" size="xs" />
+                      <span>{{ m.firstName }}</span>
                     </span>
                   </div>
                 </div>
@@ -427,7 +436,7 @@
               :title="store.isFamilyAdmin ? (member.isPending ? 'Invitation en attente d\'activation' : 'Cliquez pour modifier les informations de ce membre') : ''"
             >
               <div class="member-card-top">
-                <span class="avatar-emoji">{{ member.avatar }}</span>
+                <UserAvatar :avatar="member.avatar" :name="member.name" size="md" :border-color="member.color" />
                 <div class="member-card-name">
                   <strong>{{ member.name }}</strong>
                   <span v-if="member.isAdmin && !member.isPending" class="admin-badge-mini" title="Administrateur">
@@ -577,19 +586,12 @@
 
           <div v-if="!memberCheck.checked || !memberCheck.exists">
             <div class="form-group">
-              <label class="form-label">Avatar</label>
-              <div class="avatar-options">
-                <button 
-                  v-for="emoji in avatarOptions" 
-                  :key="emoji"
-                  type="button"
-                  class="avatar-option-btn"
-                  :class="{ selected: newMember.avatar === emoji }"
-                  @click="newMember.avatar = emoji"
-                >
-                  {{ emoji }}
-                </button>
-              </div>
+              <label class="form-label">Avatar ou Photo</label>
+              <AvatarPicker 
+                v-model="newMember.avatar" 
+                :color="newMember.color" 
+                :name="`${newMember.firstName} ${newMember.lastName}`"
+              />
             </div>
 
             <div class="form-group">
@@ -734,19 +736,12 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Choisissez un Avatar</label>
-            <div class="avatar-options">
-              <button 
-                v-for="emoji in avatarOptions" 
-                :key="emoji"
-                type="button"
-                class="avatar-option-btn"
-                :class="{ selected: editMemberForm.avatar === emoji }"
-                @click="editMemberForm.avatar = emoji"
-              >
-                {{ emoji }}
-              </button>
-            </div>
+            <label class="form-label">Avatar ou Photo</label>
+            <AvatarPicker 
+              v-model="editMemberForm.avatar" 
+              :color="editMemberForm.color" 
+              :name="`${editMemberForm.firstName} ${editMemberForm.lastName}`" 
+            />
           </div>
 
           <div class="form-group">
@@ -816,6 +811,9 @@ import {
 import HouseUser from '../components/icons/HouseUser.vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
+import UserAvatar from '../components/UserAvatar.vue'
+import AvatarPicker from '../components/AvatarPicker.vue'
+import { DEFAULT_AVATAR } from '../utils/avatarHelper'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 
 const route = useRoute()
@@ -1000,7 +998,7 @@ const newMember = ref({
   email: '',
   role: 'Membre',
   isAdmin: false,
-  avatar: '👦',
+  avatar: DEFAULT_AVATAR,
   color: '#6366f1',
   usualPresence: 'present'
 })
@@ -1018,7 +1016,7 @@ const openAddMemberModal = () => {
     email: '',
     role: 'Membre',
     isAdmin: false,
-    avatar: '👦',
+    avatar: DEFAULT_AVATAR,
     color: '#6366f1',
     usualPresence: 'present'
   }
@@ -1042,7 +1040,7 @@ const checkMemberEmail = async () => {
   if (res.exists && res.user) {
     newMember.value.firstName = res.user.firstName || ''
     newMember.value.lastName = res.user.lastName || ''
-    newMember.value.avatar = res.user.avatar || '👨‍💼'
+    newMember.value.avatar = res.user.avatar || DEFAULT_AVATAR
     newMember.value.color = res.user.color || '#6366f1'
   }
 }
@@ -1082,7 +1080,7 @@ const openEditMemberModal = (member) => {
     role: member.role || 'Membre',
     points: member.points || 0,
     isAdmin: Boolean(member.isAdmin),
-    avatar: member.avatar || '👤',
+    avatar: member.avatar || DEFAULT_AVATAR,
     color: member.color || '#6366f1',
     pushNotificationsEnabled: member.pushNotificationsEnabled !== false,
     emailNotificationsEnabled: Boolean(member.emailNotificationsEnabled),

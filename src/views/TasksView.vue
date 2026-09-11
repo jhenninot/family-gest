@@ -48,7 +48,7 @@
         <select v-model="memberFilter" class="form-select select-sm">
           <option value="all">Tous les membres</option>
           <option v-for="m in store.members" :key="m.id" :value="m.id">
-            {{ m.avatar }} {{ m.name }}
+            {{ getAvatarTextFallback(m.avatar) }} {{ m.name }}
           </option>
         </select>
       </div>
@@ -87,11 +87,9 @@
 
         <div class="task-card-footer">
           <div class="assignee-info">
-            <span class="avatar-sm">{{ getMemberAvatar(task.assignedTo) }}</span>
+            <UserAvatar :avatar="getMemberAvatar(task.assignedTo)" :name="getMemberName(task.assignedTo)" size="xs" />
             <span class="assignee-name">{{ getMemberName(task.assignedTo) }}</span>
           </div>
-
-
         </div>
       </div>
     </div>
@@ -136,7 +134,7 @@
               <label class="form-label">Attribuer à</label>
               <select v-model="newTask.assignedTo" class="form-select">
                 <option v-for="m in store.members" :key="m.id" :value="m.id">
-                  {{ m.avatar }} {{ m.name }} ({{ m.role }})
+                  {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} ({{ m.role }})
                 </option>
               </select>
             </div>
@@ -169,6 +167,8 @@
 import { ref, computed } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
 import { CheckSquare, Plus, Trash2 } from '@lucide/vue'
+import UserAvatar from '../components/UserAvatar.vue'
+import { getAvatarTextFallback } from '../utils/avatarHelper'
 
 const store = useFamilyStore()
 

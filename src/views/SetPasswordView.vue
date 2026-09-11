@@ -48,7 +48,7 @@
       <!-- Password form state -->
       <div v-else>
         <div class="welcome-user-box">
-          <span class="user-avatar-badge">{{ memberUser?.avatar || '👤' }}</span>
+          <UserAvatar :avatar="memberUser?.avatar" :name="memberUser?.firstName" size="lg" />
           <div class="user-details-col">
             <span class="user-greeting">Bienvenue, <strong>{{ memberUser?.firstName }} {{ memberUser?.lastName }}</strong></span>
             <span class="user-email-sub">{{ memberUser?.email }}</span>
@@ -195,6 +195,7 @@ import {
   Mail
 } from '@lucide/vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
+import UserAvatar from '../components/UserAvatar.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 import { subscribeUserToPush } from '../utils/pushNotifications'
 

@@ -72,7 +72,8 @@
                   :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Absent'"
                   @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
-                  {{ m.avatar }} {{ m.firstName || m.name }}
+                  <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
+                  <span>{{ m.firstName || m.name }}</span>
                 </span>
               </div>
             </div>
@@ -88,7 +89,9 @@
                   :title="getRecordForMember(m.id, store.todayStr)?.note ? `Note: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Présence confirmée'"
                   @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
-                  🟢 {{ m.avatar }} {{ m.firstName || m.name }}
+                  <span class="presence-dot">🟢</span>
+                  <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
+                  <span>{{ m.firstName || m.name }}</span>
                 </span>
               </div>
             </div>
@@ -140,7 +143,8 @@
                   :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Absent'"
                   @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
-                  {{ m.avatar }} {{ m.firstName || m.name }}
+                  <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
+                  <span>{{ m.firstName || m.name }}</span>
                 </span>
               </div>
             </div>
@@ -156,7 +160,9 @@
                   :title="getRecordForMember(m.id, store.todayStr)?.note ? `Note: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Présence confirmée'"
                   @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
-                  🟢 {{ m.avatar }} {{ m.firstName || m.name }}
+                  <span class="presence-dot">🟢</span>
+                  <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
+                  <span>{{ m.firstName || m.name }}</span>
                 </span>
               </div>
             </div>
@@ -208,7 +214,8 @@
                   :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Dort ailleurs'"
                   @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
-                  {{ m.avatar }} {{ m.firstName || m.name }}
+                  <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
+                  <span>{{ m.firstName || m.name }}</span>
                 </span>
               </div>
             </div>
@@ -224,7 +231,9 @@
                   :title="getRecordForMember(m.id, store.todayStr)?.note ? `Note: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Dort à la maison'"
                   @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
-                  🟢 {{ m.avatar }} {{ m.firstName || m.name }}
+                  <span class="presence-dot">🟢</span>
+                  <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
+                  <span>{{ m.firstName || m.name }}</span>
                 </span>
               </div>
             </div>
@@ -271,7 +280,7 @@
           :class="{ active: selectedMemberFilter === member.id }"
           @click="selectedMemberFilter = member.id"
         >
-          <span>{{ member.avatar }}</span>
+          <UserAvatar :avatar="member.avatar" :name="member.firstName || member.name" size="xs" />
           <span>{{ member.firstName || member.name.split(' ')[0] }}</span>
         </button>
       </div>
@@ -379,7 +388,7 @@
             :class="{ 'presence-card-theme': abs.type === 'presence' }"
           >
             <div class="upcoming-avatar-col">
-              <span class="upcoming-avatar">{{ getMemberAvatar(abs.memberId) }}</span>
+              <UserAvatar :avatar="getMemberAvatar(abs.memberId)" :name="getMemberFirstName(abs.memberId)" size="md" />
             </div>
 
             <div class="upcoming-content-col">
@@ -549,7 +558,7 @@
             <label class="form-label">Membre concerné</label>
             <select v-model="form.memberId" @change="onMemberChange" class="form-select" required>
               <option v-for="m in store.members" :key="m.id" :value="m.id">
-                {{ m.avatar }} {{ m.name }} {{ m.usualPresence === 'absent' ? '(Habituellement absent)' : '' }} {{ m.id === authStore.user?.id ? '• Moi' : '' }}
+                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ m.usualPresence === 'absent' ? '(Habituellement absent)' : '' }} {{ m.id === authStore.user?.id ? '• Moi' : '' }}
               </option>
             </select>
             <span v-if="form.memberId !== authStore.user?.id" class="help-subtext text-indigo">
@@ -753,7 +762,7 @@
             <select v-model="guestForm.invitedBy" class="form-select">
               <option :value="null">Toute la famille</option>
               <option v-for="m in store.members" :key="m.id" :value="m.id">
-                {{ m.avatar }} {{ m.name }} {{ m.id === authStore.user?.id ? '(Moi)' : '' }}
+                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ m.id === authStore.user?.id ? '(Moi)' : '' }}
               </option>
             </select>
           </div>
@@ -853,7 +862,7 @@
                   <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayLunchPresence.exceptionalPresences.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="pres in selectedDayLunchPresence.exceptionalPresences" :key="'lunch-pres-' + pres.id" class="slot-person-card presence">
-                      <span class="person-avatar">{{ pres.avatar || getMemberAvatar(pres) }}</span>
+                      <UserAvatar :avatar="pres.avatar || getMemberAvatar(pres)" :name="pres.firstName || getMemberFirstName(pres)" size="sm" />
                       <div class="person-info">
                         <strong>{{ pres.firstName || getMemberFirstName(pres) }}</strong>
                         <span class="presence-badge-text">🟢 Présence confirmée</span>
@@ -877,7 +886,7 @@
                   <span class="slot-section-title text-amber">Membres absents ({{ selectedDayLunchAbsents.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="abs in selectedDayLunchAbsents" :key="'lunch-abs-' + abs.id" class="slot-person-card absence">
-                      <span class="person-avatar">{{ abs.avatar || getMemberAvatar(abs) }}</span>
+                      <UserAvatar :avatar="abs.avatar || getMemberAvatar(abs)" :name="abs.firstName || getMemberFirstName(abs)" size="sm" />
                       <div class="person-info">
                         <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
                         <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
@@ -942,7 +951,7 @@
                   <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayDinnerPresence.exceptionalPresences.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="pres in selectedDayDinnerPresence.exceptionalPresences" :key="'dinner-pres-' + pres.id" class="slot-person-card presence">
-                      <span class="person-avatar">{{ pres.avatar || getMemberAvatar(pres) }}</span>
+                      <UserAvatar :avatar="pres.avatar || getMemberAvatar(pres)" :name="pres.firstName || getMemberFirstName(pres)" size="sm" />
                       <div class="person-info">
                         <strong>{{ pres.firstName || getMemberFirstName(pres) }}</strong>
                         <span class="presence-badge-text">🟢 Présence confirmée</span>
@@ -966,7 +975,7 @@
                   <span class="slot-section-title text-amber">Membres absents ({{ selectedDayDinnerAbsents.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="abs in selectedDayDinnerAbsents" :key="'dinner-abs-' + abs.id" class="slot-person-card absence">
-                      <span class="person-avatar">{{ abs.avatar || getMemberAvatar(abs) }}</span>
+                      <UserAvatar :avatar="abs.avatar || getMemberAvatar(abs)" :name="abs.firstName || getMemberFirstName(abs)" size="sm" />
                       <div class="person-info">
                         <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
                         <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
@@ -1031,7 +1040,7 @@
                   <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayNightPresence.exceptionalPresences.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="pres in selectedDayNightPresence.exceptionalPresences" :key="'night-pres-' + pres.id" class="slot-person-card presence">
-                      <span class="person-avatar">{{ pres.avatar || getMemberAvatar(pres) }}</span>
+                      <UserAvatar :avatar="pres.avatar || getMemberAvatar(pres)" :name="pres.firstName || getMemberFirstName(pres)" size="sm" />
                       <div class="person-info">
                         <strong>{{ pres.firstName || getMemberFirstName(pres) }}</strong>
                         <span class="presence-badge-text">🟢 Présence confirmée</span>
@@ -1055,7 +1064,7 @@
                   <span class="slot-section-title text-amber">Membres absents ({{ selectedDayNightAbsents.length }}) :</span>
                   <div class="slot-person-cards">
                     <div v-for="abs in selectedDayNightAbsents" :key="'night-abs-' + abs.id" class="slot-person-card absence">
-                      <span class="person-avatar">{{ abs.avatar || getMemberAvatar(abs) }}</span>
+                      <UserAvatar :avatar="abs.avatar || getMemberAvatar(abs)" :name="abs.firstName || getMemberFirstName(abs)" size="sm" />
                       <div class="person-info">
                         <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
                         <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
@@ -1132,6 +1141,8 @@ import {
   CheckCircle2
 } from '@lucide/vue'
 import HouseUser from '../components/icons/HouseUser.vue'
+import UserAvatar from '../components/UserAvatar.vue'
+import { getAvatarTextFallback } from '../utils/avatarHelper'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
@@ -1777,6 +1788,9 @@ const handleDeleteGuest = async (id) => {
   font-size: 0.76rem;
   font-weight: 600;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   transition: transform var(--transition-fast);
 }
 

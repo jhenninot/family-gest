@@ -30,7 +30,7 @@
         <!-- CAS 1: UTILISATEUR EXISTANT -->
         <div v-if="invitationData.userExists || invitationData.isExistingUser" class="existing-user-section">
           <div class="welcome-box">
-            <div class="avatar-large">{{ invitationData.existingUser?.avatar || '👋' }}</div>
+            <UserAvatar :avatar="invitationData.existingUser?.avatar" :name="invitationData.existingUser?.firstName" size="xxl" />
             <h3>Ravi de vous revoir, {{ invitationData.existingUser?.firstName }} !</h3>
             <p>
               Votre compte existant avec l'adresse <strong>{{ invitationData.email || invitationData.invitation?.email }}</strong> a été invité à rejoindre cet espace familial<span v-if="invitationData.isAdmin"> en tant qu'<strong>administrateur</strong></span>.
@@ -130,19 +130,12 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Choisissez un Avatar</label>
-            <div class="avatar-options">
-              <button 
-                v-for="emoji in avatarOptions" 
-                :key="emoji"
-                type="button"
-                class="avatar-option-btn"
-                :class="{ selected: formData.avatar === emoji }"
-                @click="formData.avatar = emoji"
-              >
-                {{ emoji }}
-              </button>
-            </div>
+            <label class="form-label">Avatar ou Photo</label>
+            <AvatarPicker 
+              v-model="formData.avatar" 
+              :color="formData.color" 
+              :name="`${formData.firstName} ${formData.lastName}`" 
+            />
           </div>
 
           <div class="form-group">
@@ -183,6 +176,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { Sparkles, AlertCircle, ShieldCheck } from '@lucide/vue'
+import UserAvatar from '../components/UserAvatar.vue'
+import AvatarPicker from '../components/AvatarPicker.vue'
+import { DEFAULT_AVATAR } from '../utils/avatarHelper'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 
@@ -198,7 +194,6 @@ const invitationData = ref(null)
 const accepting = ref(false)
 const formError = ref('')
 
-const avatarOptions = ['👨‍💼', '👩‍💼', '👦', '👧', '👶', '👴', '👵', '🧑‍🍳', '🦸‍♂️', '🦸‍♀️', '🐱', '🐶']
 const colorOptions = [
   '#6366f1', '#a855f7', '#ec4899', '#f43f5e',
   '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6'
@@ -210,7 +205,7 @@ const formData = reactive({
   role: 'Membre',
   password: '',
   confirmPassword: '',
-  avatar: '👨‍💼',
+  avatar: DEFAULT_AVATAR,
   color: '#6366f1'
 })
 

@@ -89,20 +89,14 @@
           </span>
         </div>
 
+        <!-- Sélecteur d'Avatar & Import de Photo -->
         <div class="form-group">
-          <label class="form-label">Choisissez un Avatar</label>
-          <div class="avatar-options">
-            <button 
-              v-for="emoji in avatarOptions" 
-              :key="emoji"
-              type="button"
-              class="avatar-option-btn"
-              :class="{ selected: editProfile.avatar === emoji }"
-              @click="editProfile.avatar = emoji"
-            >
-              {{ emoji }}
-            </button>
-          </div>
+          <label class="form-label">Avatar ou Photo de profil</label>
+          <AvatarPicker 
+            v-model="editProfile.avatar" 
+            :color="editProfile.color" 
+            :name="`${editProfile.firstName} ${editProfile.lastName}`"
+          />
         </div>
 
         <div class="form-group">
@@ -202,8 +196,10 @@ import { ref, watch } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { ShieldCheck, Shield, Mail, Bell, BellOff } from '@lucide/vue'
+import AvatarPicker from './AvatarPicker.vue'
 import PasswordStrengthIndicator from './PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
+import { DEFAULT_AVATAR } from '../utils/avatarHelper'
 import { 
   subscribeUserToPush, 
   unsubscribeUserFromPush, 
@@ -228,7 +224,6 @@ const saving = ref(false)
 const devicePushStatus = ref('default') // 'active', 'inactive', 'denied', 'unsupported'
 const initialDeviceSubscribed = ref(false)
 
-const avatarOptions = ['👨‍💼', '👩‍⚕️', '👦', '👧', '👶', '🧑', '👨‍🍳', '👵', '👴', '🐱', '🐶']
 const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
 
 const editProfile = ref({
@@ -237,7 +232,7 @@ const editProfile = ref({
   email: '',
   password: '',
   role: 'Membre',
-  avatar: '👨‍💼',
+  avatar: DEFAULT_AVATAR,
   color: '#6366f1',
   pushNotificationsEnabled: true,
   emailNotificationsEnabled: false,
@@ -269,7 +264,7 @@ const loadUserData = async () => {
     email: authStore.user.email || '',
     password: '',
     role: authStore.user.role || 'Membre',
-    avatar: authStore.user.avatar || '👨‍💼',
+    avatar: authStore.user.avatar || DEFAULT_AVATAR,
     color: authStore.user.color || '#6366f1',
     pushNotificationsEnabled: initialDeviceSubscribed.value,
     emailNotificationsEnabled: Boolean(authStore.user.emailNotificationsEnabled),
@@ -348,32 +343,7 @@ const handleSaveProfile = async () => {
   margin-top: 0.35rem;
 }
 
-/* Avatar picker */
-.avatar-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
 
-.avatar-option-btn {
-  font-size: 1.5rem;
-  width: 42px;
-  height: 42px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background: var(--bg-tertiary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.avatar-option-btn.selected {
-  border-color: var(--accent-primary);
-  background: var(--accent-primary-light);
-  transform: scale(1.1);
-}
 
 /* Color picker */
 .color-picker-options {

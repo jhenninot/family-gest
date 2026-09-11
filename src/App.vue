@@ -9,7 +9,11 @@
         :title="`Modifier mon profil (${authStore.user?.name || authStore.user?.firstName || 'Utilisateur'})`"
         aria-label="Mon Profil"
       >
-        <span class="top-avatar-emoji">{{ authStore.user?.avatar || '👨‍💼' }}</span>
+        <UserAvatar 
+          :avatar="authStore.user?.avatar" 
+          :name="authStore.user?.name || authStore.user?.firstName" 
+          size="sm" 
+        />
       </button>
 
       <button 
@@ -65,6 +69,7 @@ import { useAuthStore } from './stores/authStore'
 import { useFamilyStore } from './stores/familyStore'
 import { Sun, Moon, LogOut } from '@lucide/vue'
 import Sidebar from './components/Sidebar.vue'
+import UserAvatar from './components/UserAvatar.vue'
 import UserProfileModal from './components/UserProfileModal.vue'
 import PwaInstallPrompt from './components/PwaInstallPrompt.vue'
 import DevicePushPrompt from './components/DevicePushPrompt.vue'
@@ -132,20 +137,12 @@ onMounted(async () => {
 }
 
 .top-icon-btn.profile-btn {
-  font-size: 1.15rem;
+  padding: 0;
+  overflow: hidden;
 }
 
 .top-icon-btn.profile-btn:hover {
   border-color: var(--accent-primary);
-  background: var(--accent-primary-light, rgba(99, 102, 241, 0.15));
-}
-
-.top-avatar-emoji {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  line-height: 1;
 }
 
 .top-icon-btn.logout-btn:hover {
@@ -162,9 +159,6 @@ onMounted(async () => {
   .top-icon-btn {
     width: 33px;
     height: 33px;
-  }
-  .top-avatar-emoji {
-    font-size: 1.05rem;
   }
 }
 

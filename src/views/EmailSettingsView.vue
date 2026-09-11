@@ -531,19 +531,12 @@
 
           <div v-if="!memberCheck.checked || !memberCheck.exists">
             <div class="form-group">
-              <label class="form-label">Avatar</label>
-              <div class="avatar-options">
-                <button 
-                  v-for="emoji in avatarOptions" 
-                  :key="emoji"
-                  type="button"
-                  class="avatar-option-btn"
-                  :class="{ selected: newMember.avatar === emoji }"
-                  @click="newMember.avatar = emoji"
-                >
-                  {{ emoji }}
-                </button>
-              </div>
+              <label class="form-label">Avatar ou Photo</label>
+              <AvatarPicker 
+                v-model="newMember.avatar" 
+                :color="newMember.color" 
+                :name="`${newMember.firstName} ${newMember.lastName}`"
+              />
             </div>
 
             <div class="form-group">
@@ -656,6 +649,8 @@ import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
+import AvatarPicker from '../components/AvatarPicker.vue'
+import { DEFAULT_AVATAR } from '../utils/avatarHelper'
 import { 
   Mail, Settings, CheckCircle2, AlertTriangle, ShieldAlert, 
   Eye, EyeOff, Save, Send, HelpCircle, ShieldCheck, Loader2, AlertCircle, Globe,
@@ -803,7 +798,7 @@ const newMember = ref({
   email: '',
   role: 'Membre',
   isAdmin: false,
-  avatar: '👦',
+  avatar: DEFAULT_AVATAR,
   color: '#6366f1',
   usualPresence: 'present'
 })
@@ -821,7 +816,7 @@ const openAddMemberModal = () => {
     email: '',
     role: 'Membre',
     isAdmin: false,
-    avatar: '👦',
+    avatar: DEFAULT_AVATAR,
     color: '#6366f1',
     usualPresence: 'present'
   }
@@ -845,7 +840,7 @@ const checkMemberEmail = async () => {
   if (res.exists && res.user) {
     newMember.value.firstName = res.user.firstName || ''
     newMember.value.lastName = res.user.lastName || ''
-    newMember.value.avatar = res.user.avatar || '👨‍💼'
+    newMember.value.avatar = res.user.avatar || DEFAULT_AVATAR
     newMember.value.color = res.user.color || '#6366f1'
   }
 }
