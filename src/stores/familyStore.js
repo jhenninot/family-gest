@@ -18,6 +18,12 @@ export const useFamilyStore = defineStore('family', () => {
   }
 
   // Reactive State
+  const currentFamily = ref(null)
+  const currentFamilyRole = ref('')
+  const currentFamilyIsAdmin = ref(false)
+  const currentFamilyQuota = ref({ memberCount: 0, maxMembers: 10 })
+  const userFamilies = ref([])
+
   const members = ref([])
   const tasks = ref([])
   const events = ref([])
@@ -28,11 +34,139 @@ export const useFamilyStore = defineStore('family', () => {
   const mealGuests = ref([])
   const isLoading = ref(false)
 
+  const isFamilyAdmin = computed(() => {
+    const authStore = useAuthStore()
+    if (authStore.isSuperAdmin) return true
+    return currentFamilyIsAdmin.value === true || currentFamilyRole.value === 'admin'
+  })
+
   const getHeaders = () => {
     const authStore = useAuthStore()
-    return {
+    const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${authStore.token}`
+    }
+    const slug = currentFamily.value?.slug || localStorage.getItem('familygest_active_slug')
+    if (slug) {
+      headers['X-Family-Slug'] = slug
+    }
+    return headers
+  }
+
+  const clearFamilyData = () => {
+    members.value = []
+    tasks.value = []
+    events.value = []
+    shoppingList.value = []
+    shoppingCategories.value = []
+    shortcuts.value = []
+    absences.value = []
+    mealGuests.value = []
+  }
+
+  // Fetch accessible families for user
+  const fetchUserFamilies = async () => {
+    const authStore = useAuthStore()
+    if (!authStore.isAuthenticated) return []
+    try {
+      const res = await fetch('/api/user/families', { headers: getHeaders() })
+      if (res.ok) {
+        const data = await res.json()
+        userFamilies.value = data
+        authStore.families = data
+        return data
+      }
+    } catch (err) {
+      console.error('Erreur fetchUserFamilies', err)
+    }
+    return []
+  }
+
+  // Fetch current family info & quota
+  const fetchCurrentFamily = async (slug) => {
+    const authStore = useAuthStore()
+    if (!authStore.isAuthenticated) return false
+
+    const targetSlug = slug || currentFamily.value?.slug || localStorage.getItem('familygest_active_slug')
+    if (!targetSlug) return false
+
+    try {
+      const res = await fetch(`/api/families/${targetSlug}`, {
+        headers: {
+          'Authorization': `Bearer ${authStore.token}`,
+          'X-Family-Slug': targetSlug
+        }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        currentFamily.value = data.family
+        currentFamilyRole.value = data.role || data.membership?.role || 'Membre'
+        currentFamilyIsAdmin.value = Boolean(data.isAdmin ?? data.membership?.isAdmin ?? authStore.isSuperAdmin)
+        currentFamilyQuota.value = {
+          memberCount: data.memberCount,
+          maxMembers: data.maxMembers
+        }
+        localStorage.setItem('familygest_active_slug', data.family.slug)
+        return true
+      }
+      if (res.status === 403 || res.status === 404) {
+        clearFamilyData()
+        currentFamily.value = null
+        localStorage.removeItem('familygest_active_slug')
+        return false
+      }
+    } catch (err) {
+      console.error('Erreur fetchCurrentFamily', err)
+    }
+    return false
+  }
+
+  // Switch active family
+  const switchFamily = async (slug) => {
+    localStorage.setItem('familygest_active_slug', slug)
+    clearFamilyData()
+    const ok = await fetchCurrentFamily(slug)
+    if (ok) {
+      await fetchAllData()
+    }
+    return ok
+  }
+
+  // Check email before sending invitation
+  const checkEmailInFamily = async (email) => {
+    try {
+      const slug = currentFamily.value?.slug || localStorage.getItem('familygest_active_slug')
+      const res = await fetch(`/api/families/${slug}/check-email`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ email })
+      })
+      return await res.json()
+    } catch (err) {
+      return { exists: false, error: err.message }
+    }
+  }
+
+  // Invite member to current family
+  const inviteMember = async (inviteData) => {
+    try {
+      const slug = currentFamily.value?.slug || localStorage.getItem('familygest_active_slug')
+      const res = await fetch(`/api/families/${slug}/invite`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(inviteData)
+      })
+      const data = await res.json()
+      if (res.ok) {
+        // Refresh members & quota
+        await fetchCurrentFamily(slug)
+        const membersRes = await fetch('/api/members', { headers: getHeaders() })
+        if (membersRes.ok) members.value = await membersRes.json()
+        return { success: true, ...data }
+      }
+      return { success: false, error: data.error }
+    } catch (err) {
+      return { success: false, error: err.message }
     }
   }
 
@@ -60,14 +194,16 @@ export const useFamilyStore = defineStore('family', () => {
       if (membersRes.status === 401 || tasksRes.status === 401) {
         console.warn('Session expirée ou utilisateur non trouvé en base. Déconnexion automatique...')
         authStore.logout()
-        members.value = []
-        tasks.value = []
-        events.value = []
-        shoppingList.value = []
-        shoppingCategories.value = []
-        shortcuts.value = []
-        absences.value = []
-        mealGuests.value = []
+        clearFamilyData()
+        return
+      }
+
+      // Check if access forbidden (family deactivated or user not member) (403)
+      if (membersRes.status === 403 || tasksRes.status === 403) {
+        console.warn('Accès refusé à cet espace familial (désactivé ou non autorisé). Nettoyage des données...')
+        clearFamilyData()
+        currentFamily.value = null
+        localStorage.removeItem('familygest_active_slug')
         return
       }
 
@@ -748,6 +884,17 @@ export const useFamilyStore = defineStore('family', () => {
   return {
     isDarkMode,
     toggleTheme,
+    currentFamily,
+    currentFamilyRole,
+    currentFamilyIsAdmin,
+    currentFamilyQuota,
+    userFamilies,
+    isFamilyAdmin,
+    fetchUserFamilies,
+    fetchCurrentFamily,
+    switchFamily,
+    checkEmailInFamily,
+    inviteMember,
     members,
     tasks,
     events,

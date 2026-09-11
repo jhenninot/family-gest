@@ -5,7 +5,7 @@
     <!-- Summary Metrics Grid -->
     <div class="grid-4 metric-grid">
       <!-- Card 1: Task Completion -->
-      <router-link to="/tasks" class="glass-card metric-card clickable-card">
+      <router-link :to="getPath('/tasks')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper indigo">
           <CheckSquare :size="22" />
         </div>
@@ -20,7 +20,7 @@
       </router-link>
 
       <!-- Card 2: Upcoming Events -->
-      <router-link to="/calendar" class="glass-card metric-card clickable-card">
+      <router-link :to="getPath('/calendar')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper purple">
           <Calendar :size="22" />
         </div>
@@ -35,7 +35,7 @@
       </router-link>
 
       <!-- Card 3: Absences & Meals Today -->
-      <router-link to="/absences" class="glass-card metric-card clickable-card">
+      <router-link :to="getPath('/absences')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper emerald">
           <HouseUser :size="22" />
         </div>
@@ -51,7 +51,7 @@
       </router-link>
 
       <!-- Card 4: Shopping Items -->
-      <router-link to="/shopping" class="glass-card metric-card clickable-card">
+      <router-link :to="getPath('/shopping')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper amber">
           <ShoppingCart :size="22" />
         </div>
@@ -74,7 +74,7 @@
             <CheckSquare :size="20" class="text-indigo" />
             <h2>Tâches à réaliser</h2>
           </div>
-          <router-link to="/tasks" class="view-all-link">Tout voir &rarr;</router-link>
+          <router-link :to="getPath('/tasks')" class="view-all-link">Tout voir &rarr;</router-link>
         </div>
 
         <div class="tasks-list">
@@ -117,7 +117,7 @@
               <HouseUser :size="20" class="text-emerald" />
               <h2>Présence</h2>
             </div>
-            <router-link to="/absences" class="view-all-link">Voir le planning &rarr;</router-link>
+            <router-link :to="getPath('/absences')" class="view-all-link">Voir le planning &rarr;</router-link>
           </div>
 
           <div class="today-slots-list">
@@ -340,7 +340,7 @@
               <Calendar :size="20" class="text-purple" />
               <h2>Prochains événements</h2>
             </div>
-            <router-link to="/calendar" class="view-all-link">Voir l'agenda &rarr;</router-link>
+            <router-link :to="getPath('/calendar')" class="view-all-link">Voir l'agenda &rarr;</router-link>
           </div>
 
           <div class="events-list">
@@ -385,6 +385,9 @@
                 </button>
               </div>
             </div>
+            <div v-if="dashboardEvents.length === 0" class="empty-state">
+              📅 Aucun événement à venir pour le moment.
+            </div>
           </div>
         </div>
 
@@ -393,11 +396,11 @@
           <div class="section-card-header">
             <div class="header-title">
               <Users :size="20" class="text-amber" />
-              <h2>Membres ({{ store.members.length }})</h2>
+              <h2>Membres ({{ store.members.length }} / {{ store.currentFamilyQuota?.maxMembers || 10 }})</h2>
             </div>
 
-            <!-- Only Admin can see export & + Membre buttons -->
-            <div v-if="authStore.isAdmin" class="dashboard-members-admin-actions">
+            <!-- Only Family Admin can see export & invite buttons -->
+            <div v-if="store.isFamilyAdmin" class="dashboard-members-admin-actions">
               <button 
                 type="button" 
                 @click="handleExportData" 
@@ -408,12 +411,17 @@
                 <Download :size="14" />
                 <span>{{ exporting ? 'Export...' : 'Exporter (JSON)' }}</span>
               </button>
-              <button @click="showAddMemberModal = true" class="btn btn-sm btn-secondary">
+              <button 
+                @click="openAddMemberModal" 
+                class="btn btn-sm btn-secondary"
+                :disabled="isQuotaReached"
+                :title="isQuotaReached ? 'Quota maximum de membres atteint' : 'Inviter un membre'"
+              >
                 <UserPlus :size="14" />
-                <span>+ Membre</span>
+                <span>+ Inviter</span>
               </button>
             </div>
-            <span v-else class="admin-only-tag" title="Seul l'administrateur peut gérer les membres">
+            <span v-else class="admin-only-tag" title="Seul l'administrateur de la famille peut inviter des membres">
               <ShieldAlert :size="14" /> Lecture seule
             </span>
           </div>
@@ -424,16 +432,19 @@
               v-for="member in store.members" 
               :key="member.id" 
               class="member-card"
-              :class="{ clickable: authStore.isAdmin }"
-              @click="authStore.isAdmin && openEditMemberModal(member)"
-              :title="authStore.isAdmin ? 'Cliquez pour modifier les informations de ce membre' : ''"
+              :class="{ clickable: store.isFamilyAdmin && !member.isPending, 'is-pending-card': member.isPending }"
+              @click="store.isFamilyAdmin && !member.isPending && openEditMemberModal(member)"
+              :title="store.isFamilyAdmin ? (member.isPending ? 'Invitation en attente d\'activation' : 'Cliquez pour modifier les informations de ce membre') : ''"
             >
               <div class="member-card-top">
                 <span class="avatar-emoji">{{ member.avatar }}</span>
                 <div class="member-card-name">
                   <strong>{{ member.name }}</strong>
-                  <span v-if="member.isAdmin" class="admin-badge-mini" title="Administrateur">
+                  <span v-if="member.isAdmin && !member.isPending" class="admin-badge-mini" title="Administrateur">
                     <ShieldCheck :size="12" /> Admin
+                  </span>
+                  <span v-if="member.isPending" class="pending-badge-mini" title="Invitation envoyée, en attente d'activation par l'utilisateur">
+                    ⏳ En attente
                   </span>
                 </div>
               </div>
@@ -442,11 +453,11 @@
                   <span class="member-role-text">{{ member.role }}</span>
                   <span v-if="member.email" class="member-email-sub">{{ member.email }}</span>
                 </div>
-                <div class="member-actions">
+                <div class="member-actions" v-if="!member.isPending">
 
                   <!-- Edit icon button for Admin -->
                   <button 
-                    v-if="authStore.isAdmin" 
+                    v-if="store.isFamilyAdmin" 
                     @click.stop="openEditMemberModal(member)" 
                     class="btn-icon-action"
                     title="Modifier ce membre"
@@ -456,7 +467,7 @@
 
                   <!-- Toggle Admin status button (Admin only) -->
                   <button 
-                    v-if="authStore.isAdmin" 
+                    v-if="store.isFamilyAdmin" 
                     @click.stop="handleToggleAdmin(member)" 
                     class="btn-icon-action"
                     :class="{ 'is-admin': member.isAdmin }"
@@ -468,7 +479,7 @@
 
                   <!-- Delete member icon (Admin only) -->
                   <button 
-                    v-if="authStore.isAdmin" 
+                    v-if="store.isFamilyAdmin" 
                     @click.stop="handleDeleteMember(member)" 
                     class="btn-icon-action delete"
                     title="Supprimer ce membre (Administrateur)"
@@ -478,21 +489,44 @@
                 </div>
               </div>
             </div>
+            <div v-if="store.members.length === 0" class="empty-state">
+              👥 Aucun membre trouvé dans cette famille.
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Modal Ajouter un Membre (Administrateur Uniquement) -->
+    <!-- Modal Inviter un Membre (Administrateur de la famille) -->
     <div v-if="showAddMemberModal" class="modal-overlay" @click.self="showAddMemberModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Ajouter un Membre de la Famille</h3>
+          <h3>Inviter un Membre dans la Famille</h3>
           <button @click="showAddMemberModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleAddMember">
-          <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Adresse Email du membre</label>
+            <input 
+              v-model="newMember.email" 
+              @blur="checkMemberEmail" 
+              type="email" 
+              required 
+              placeholder="ex: membre@exemple.fr"
+              class="form-input" 
+            />
+            <div v-if="memberCheck.checked" class="email-check-info margin-top-xs">
+              <span v-if="memberCheck.exists" class="text-info font-semibold">
+                ℹ️ Compte existant détecté ({{ memberCheck.user?.firstName }} {{ memberCheck.user?.lastName }}). Une invitation lui sera envoyée pour rejoindre votre famille.
+              </span>
+              <span v-else class="text-muted font-semibold">
+                ℹ️ Nouveau compte : une invitation contenant un lien d'activation sécurisé lui permettra de créer son mot de passe.
+              </span>
+            </div>
+          </div>
+
+          <div v-if="!memberCheck.checked || !memberCheck.exists" class="grid-2">
             <div class="form-group">
               <label class="form-label">Prénom</label>
               <input 
@@ -518,36 +552,6 @@
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Adresse Email (Login)</label>
-              <input 
-                v-model="newMember.email" 
-                type="email" 
-                required 
-                placeholder="lucas@family-gest.org"
-                class="form-input" 
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Mot de passe temporaire</label>
-              <input 
-                v-model="newMember.password" 
-                type="password" 
-                required 
-                placeholder="10 car. min, Maj, min, chiffre, spécial"
-                class="form-input" 
-              />
-              <PasswordStrengthIndicator :password="newMember.password" />
-            </div>
-          </div>
-
-          <div class="welcome-email-tip">
-            <Mail :size="16" class="text-indigo flex-shrink-0" />
-            <span>Un email de bienvenue contenant un lien d'activation sécurisé (validité 2h) sera automatiquement envoyé pour lui permettre de choisir son mot de passe.</span>
-          </div>
-
-          <div class="grid-2">
-            <div class="form-group">
               <label class="form-label">Rôle familial</label>
               <select v-model="newMember.role" class="form-select">
                 <option value="Papa">Papa</option>
@@ -567,7 +571,7 @@
                 <input type="checkbox" v-model="newMember.isAdmin" class="custom-checkbox" />
                 <span class="checkbox-text">
                   <ShieldCheck :size="16" class="text-indigo" />
-                  <strong>Définir comme Administrateur</strong>
+                  <strong>Administrateur de cette famille</strong>
                 </span>
               </label>
             </div>
@@ -581,40 +585,44 @@
             </select>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Choisissez un Avatar</label>
-            <div class="avatar-options">
-              <button 
-                v-for="emoji in avatarOptions" 
-                :key="emoji"
-                type="button"
-                class="avatar-option-btn"
-                :class="{ selected: newMember.avatar === emoji }"
-                @click="newMember.avatar = emoji"
-              >
-                {{ emoji }}
-              </button>
+          <div v-if="!memberCheck.checked || !memberCheck.exists">
+            <div class="form-group">
+              <label class="form-label">Avatar</label>
+              <div class="avatar-options">
+                <button 
+                  v-for="emoji in avatarOptions" 
+                  :key="emoji"
+                  type="button"
+                  class="avatar-option-btn"
+                  :class="{ selected: newMember.avatar === emoji }"
+                  @click="newMember.avatar = emoji"
+                >
+                  {{ emoji }}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div class="form-group">
-            <label class="form-label">Couleur de profil</label>
-            <div class="color-picker-options">
-              <button 
-                v-for="c in colorOptions" 
-                :key="c"
-                type="button"
-                class="color-btn"
-                :style="{ backgroundColor: c }"
-                :class="{ selected: newMember.color === c }"
-                @click="newMember.color = c"
-              ></button>
+            <div class="form-group">
+              <label class="form-label">Couleur de profil</label>
+              <div class="color-picker-options">
+                <button 
+                  v-for="c in colorOptions" 
+                  :key="c"
+                  type="button"
+                  class="color-btn"
+                  :style="{ backgroundColor: c }"
+                  :class="{ selected: newMember.color === c }"
+                  @click="newMember.color = c"
+                ></button>
+              </div>
             </div>
           </div>
 
           <div class="modal-footer">
             <button type="button" @click="showAddMemberModal = false" class="btn btn-secondary">Annuler</button>
-            <button type="submit" class="btn btn-primary">Créer le membre</button>
+            <button type="submit" class="btn btn-primary" :disabled="addingMember">
+              {{ addingMember ? 'Envoi en cours...' : 'Envoyer l\'invitation' }}
+            </button>
           </div>
         </form>
       </div>
@@ -793,7 +801,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
@@ -820,8 +829,88 @@ import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.v
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 
+const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const store = useFamilyStore()
+
+const currentSlug = computed(() => route.params.familySlug || store.currentFamily?.slug || localStorage.getItem('familygest_active_slug') || '')
+const getPath = (sub) => currentSlug.value ? `/${currentSlug.value}${sub}` : (sub || '/')
+
+const urgentShoppingCount = computed(() => {
+  return (store.shoppingList || []).filter(item => !item.checked && item.urgent).length
+})
+
+const dashboardTasks = computed(() => {
+  return (store.tasks || []).slice(0, 6)
+})
+
+const dashboardEvents = computed(() => {
+  const today = store.todayStr
+  return (store.events || [])
+    .filter(e => e.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 5)
+})
+
+const nextEvent = computed(() => {
+  const today = store.todayStr
+  const upcoming = (store.events || [])
+    .filter(e => e.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+  return upcoming.length > 0 ? upcoming[0] : null
+})
+
+const getMemberName = (id) => {
+  if (!id) return 'Non assigné'
+  const m = store.members.find(m => m.id === id || String(m.id) === String(id))
+  return m ? (m.firstName || m.name) : 'Non assigné'
+}
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long' })
+}
+
+const getDayNumber = (dateStr) => {
+  if (!dateStr) return ''
+  const parts = dateStr.split('-')
+  return parts[2] ? String(parseInt(parts[2], 10)) : ''
+}
+
+const getMonthShort = (dateStr) => {
+  if (!dateStr) return ''
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { month: 'short' })
+}
+
+const loadDashboardData = async () => {
+  const targetSlug = route.params.familySlug || store.currentFamily?.slug || localStorage.getItem('familygest_active_slug')
+  if (targetSlug) {
+    if (!store.currentFamily || store.currentFamily.slug !== targetSlug) {
+      const ok = await store.fetchCurrentFamily(targetSlug)
+      if (!ok && !authStore.isSuperAdmin) {
+        router.push({ name: 'select-family' })
+        return
+      }
+    }
+    await store.fetchAllData()
+    if (!store.currentFamily && !authStore.isSuperAdmin) {
+      router.push({ name: 'select-family' })
+    }
+  } else if (!authStore.isSuperAdmin) {
+    router.push({ name: 'select-family' })
+  }
+}
+
+onMounted(async () => {
+  await loadDashboardData()
+})
+
+watch(() => route.params.familySlug, async (newSlug) => {
+  if (newSlug) {
+    await loadDashboardData()
+  }
+})
 
 const todayLunchPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'lunch'))
 const todayDinnerPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'dinner'))
@@ -908,36 +997,9 @@ const handleExportData = async () => {
 const showAddMemberModal = ref(false)
 const showEditMemberModal = ref(false)
 const editingMember = ref(null)
+const addingMember = ref(false)
 const savingEdit = ref(false)
 const resendingEmail = ref(false)
-
-const handleResendWelcomeEmail = async (memberId) => {
-  if (!memberId) return
-  resendingEmail.value = true
-  const res = await store.resendWelcomeEmail(memberId)
-  resendingEmail.value = false
-
-  if (res.success) {
-    alert(`✉️ ${res.message || 'Email de bienvenue envoyé avec succès !'}`)
-  } else {
-    alert(`⚠️ ${res.error || 'Erreur lors de l\'envoi de l\'email'}`)
-  }
-}
-
-const avatarOptions = ['👨‍💼', '👩‍⚕️', '👦', '👧', '👶', '🧑', '👨‍🍳', '👵', '👴', '🐱', '🐶']
-const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
-
-const newMember = ref({
-  firstName: '',
-  lastName: 'Martin',
-  email: '',
-  password: 'Family2026!*',
-  role: 'Fils',
-  isAdmin: false,
-  avatar: '👦',
-  color: '#6366f1',
-  usualPresence: 'present'
-})
 
 const editMemberForm = ref({
   id: null,
@@ -955,71 +1017,97 @@ const editMemberForm = ref({
   usualPresence: 'present'
 })
 
-const dashboardTasks = computed(() => {
-  return store.tasks.slice(0, 5)
-})
+const handleResendWelcomeEmail = async (memberId) => {
+  if (!memberId) return
+  resendingEmail.value = true
+  const res = await store.resendWelcomeEmail(memberId)
+  resendingEmail.value = false
 
-const dashboardEvents = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return store.events
-    .filter(event => new Date(event.date) >= today)
-    .slice(0, 3)
-})
-
-const nextEvent = computed(() => {
-  return store.events[0] || null
-})
-
-const urgentShoppingCount = computed(() => {
-  return store.shoppingList.filter(item => item.urgent && !item.checked).length
-})
-
-const getMemberName = (memberId) => {
-  const m = store.members.find(m => m.id === memberId)
-  return m ? m.name : 'Tous'
+  if (res.success) {
+    alert(`✉️ ${res.message || 'Email de bienvenue envoyé avec succès !'}`)
+  } else {
+    alert(`⚠️ ${res.error || 'Erreur lors de l\'envoi de l\'email'}`)
+  }
 }
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+const avatarOptions = ['👨‍💼', '👩‍⚕️', '👦', '👧', '👶', '🧑', '👨‍🍳', '👵', '👴', '🐱', '🐶']
+const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
+
+const isQuotaReached = computed(() => {
+  const max = store.currentFamilyQuota?.maxMembers || 10
+  return store.members.length >= max
+})
+
+const newMember = ref({
+  firstName: '',
+  lastName: '',
+  email: '',
+  role: 'Membre',
+  isAdmin: false,
+  avatar: '👦',
+  color: '#6366f1',
+  usualPresence: 'present'
+})
+
+const memberCheck = ref({
+  checked: false,
+  exists: false,
+  user: null
+})
+
+const openAddMemberModal = () => {
+  newMember.value = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: 'Membre',
+    isAdmin: false,
+    avatar: '👦',
+    color: '#6366f1',
+    usualPresence: 'present'
+  }
+  memberCheck.value = {
+    checked: false,
+    exists: false,
+    user: null
+  }
+  showAddMemberModal.value = true
 }
 
-const getDayNumber = (dateStr) => {
-  if (!dateStr) return ''
-  return new Date(dateStr).getDate()
-}
-
-const getMonthShort = (dateStr) => {
-  if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()
+const checkMemberEmail = async () => {
+  if (!newMember.value.email || !newMember.value.email.includes('@')) {
+    memberCheck.value.checked = false
+    return
+  }
+  const res = await store.checkEmailInFamily(newMember.value.email)
+  memberCheck.value.checked = true
+  memberCheck.value.exists = res.exists
+  memberCheck.value.user = res.user
+  if (res.exists && res.user) {
+    newMember.value.firstName = res.user.firstName || ''
+    newMember.value.lastName = res.user.lastName || ''
+    newMember.value.avatar = res.user.avatar || '👨‍💼'
+    newMember.value.color = res.user.color || '#6366f1'
+  }
 }
 
 const handleAddMember = async () => {
-  if (!newMember.value.firstName.trim() || !newMember.value.email.trim() || !newMember.value.password) return
+  if (!newMember.value.email.trim()) return
 
-  if (!isPasswordValid(newMember.value.password)) {
-    alert(getPasswordErrorMessage(newMember.value.password))
-    return
-  }
-
-  const result = await store.addMember(newMember.value)
-  if (result.success) {
-    showAddMemberModal.value = false
-    newMember.value = {
-      firstName: '',
-      lastName: 'Martin',
-      email: '',
-      password: 'Family2026!*',
-      role: 'Fils',
-      isAdmin: false,
-      avatar: '👦',
-      color: '#6366f1',
-      usualPresence: 'present'
+  addingMember.value = true
+  try {
+    const result = await store.inviteMember(newMember.value)
+    if (result.success) {
+      showAddMemberModal.value = false
+      alert(memberCheck.value.exists 
+        ? `✅ L'utilisateur ${newMember.value.firstName || ''} a été invité à rejoindre votre famille !` 
+        : `✅ Une invitation a été envoyée par email à ${newMember.value.email} !`
+      )
+    } else {
+      alert(result.error || "Erreur lors de l'invitation du membre")
     }
-  } else {
-    alert(result.error || 'Erreur lors de l\'ajout du membre')
+  } finally {
+    addingMember.value = false
   }
 }
 
@@ -1739,6 +1827,26 @@ const handleDeleteMember = async (member) => {
   align-items: center;
   gap: 0.1rem;
   flex-shrink: 0;
+}
+
+.pending-badge-mini {
+  font-size: 0.625rem;
+  font-weight: 800;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.member-card.is-pending-card {
+  opacity: 0.85;
+  border-style: dashed;
+  border-color: rgba(245, 158, 11, 0.4);
 }
 
 /* Ligne du bas : rôle/email + pts/actions */

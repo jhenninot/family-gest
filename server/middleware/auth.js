@@ -20,7 +20,7 @@ export const requireAuth = async (req, res, next) => {
 
       // Renouvellement glissant : à chaque requête avec token valide,
       // on émet un token renouvelé qui repousse l'échéance à 30 jours à partir de cet instant
-      const renewedToken = generateToken(user.id, user.email, user.isAdmin)
+      const renewedToken = generateToken(user.id, user.email, user.isAdmin, user.isSuperAdmin)
       res.setHeader('X-Renewed-Token', renewedToken)
       res.setHeader('Access-Control-Expose-Headers', 'X-Renewed-Token')
 
@@ -37,13 +37,21 @@ export const requireAuth = async (req, res, next) => {
 }
 
 export const requireAdmin = (req, res, next) => {
-  if (req.user && (req.user.isAdmin || req.user.role === 'admin' || req.user.role === 'Administrateur')) {
+  if (req.user && (req.user.isAdmin || req.user.isSuperAdmin || req.user.role === 'admin' || req.user.role === 'Administrateur')) {
     return next()
   } else {
     return res.status(403).json({ error: 'Action réservée aux utilisateurs administrateurs' })
   }
 }
 
-export const generateToken = (userId, email, isAdmin) => {
-  return jwt.sign({ id: userId, email, isAdmin }, JWT_SECRET, { expiresIn: '30d' })
+export const requireSuperAdmin = (req, res, next) => {
+  if (req.user && req.user.isSuperAdmin) {
+    return next()
+  } else {
+    return res.status(403).json({ error: 'Action réservée au Super Administrateur de la plateforme' })
+  }
+}
+
+export const generateToken = (userId, email, isAdmin, isSuperAdmin = false) => {
+  return jwt.sign({ id: userId, email, isAdmin, isSuperAdmin }, JWT_SECRET, { expiresIn: '30d' })
 }

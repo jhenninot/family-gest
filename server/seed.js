@@ -11,6 +11,7 @@ export const DEFAULT_USERS = [
     email: 'admin@family-gest.org',
     password: 'Admin1234!',
     isAdmin: true,
+    isSuperAdmin: true,
     role: 'Administrateur',
     avatar: '👨‍💼',
     color: '#6366f1',

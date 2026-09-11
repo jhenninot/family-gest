@@ -83,8 +83,14 @@ const handleLogin = async () => {
   loading.value = false
 
   if (success) {
-    await familyStore.fetchAllData()
-    router.push('/')
+    const fams = authStore.families || []
+    if (fams.length === 1) {
+      const targetSlug = fams[0].slug
+      await familyStore.switchFamily(targetSlug)
+      router.push(`/${targetSlug}`)
+    } else {
+      router.push('/select-family')
+    }
   }
 }
 </script>

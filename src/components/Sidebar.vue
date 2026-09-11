@@ -11,6 +11,11 @@
       </div>
     </div>
 
+    <!-- Family Switcher Dropdown -->
+    <div class="family-switcher-section">
+      <FamilySwitcher />
+    </div>
+
     <!-- Logged in User Badge (Clickable to edit profile) -->
     <div 
       v-if="authStore.user" 
@@ -22,7 +27,10 @@
       <div class="user-profile-info">
         <div class="user-full-name">
           <span>{{ authStore.user.name || authStore.user.firstName }}</span>
-          <span v-if="authStore.isAdmin" class="admin-badge" title="Compte Administrateur">
+          <span v-if="authStore.isSuperAdmin" class="super-admin-badge" title="Super Administrateur de la plateforme">
+            <ShieldAlert :size="12" /> Super Admin
+          </span>
+          <span v-else-if="store.isFamilyAdmin" class="admin-badge" title="Administrateur de la famille">
             <ShieldCheck :size="12" /> Admin
           </span>
         </div>
@@ -33,24 +41,24 @@
 
     <!-- Navigation Menu -->
     <nav class="nav-menu">
-      <router-link to="/" class="nav-item" active-class="active">
+      <router-link :to="getPath('')" class="nav-item" active-class="active">
         <LayoutDashboard :size="20" />
         <span>Tableau de bord</span>
       </router-link>
 
-      <router-link to="/tasks" class="nav-item" active-class="active">
+      <router-link :to="getPath('/tasks')" class="nav-item" active-class="active">
         <CheckSquare :size="20" />
         <span>Tâches</span>
         <span v-if="store.pendingTasksCount > 0" class="badge-count">{{ store.pendingTasksCount }}</span>
       </router-link>
 
-      <router-link to="/calendar" class="nav-item" active-class="active">
+      <router-link :to="getPath('/calendar')" class="nav-item" active-class="active">
         <Calendar :size="20" />
         <span>Calendrier</span>
         <span v-if="store.events.length > 0" class="badge-count info">{{ store.events.length }}</span>
       </router-link>
 
-      <router-link to="/absences" class="nav-item" active-class="active">
+      <router-link :to="getPath('/absences')" class="nav-item" active-class="active">
         <HouseUser :size="20" />
         <span>Présence</span>
         <span v-if="store.todayAbsences.length > 0" class="badge-count warning" title="Absence(s) aujourd'hui">
@@ -58,20 +66,24 @@
         </span>
       </router-link>
 
-
-      <router-link to="/shopping" class="nav-item" active-class="active">
+      <router-link :to="getPath('/shopping')" class="nav-item" active-class="active">
         <ShoppingCart :size="20" />
         <span>Liste de courses</span>
         <span v-if="store.pendingShoppingCount > 0" class="badge-count warning">{{ store.pendingShoppingCount }}</span>
       </router-link>
 
-      <router-link v-if="authStore.isAdmin" to="/settings/email" class="nav-item admin-nav" active-class="active">
+      <router-link v-if="store.isFamilyAdmin" :to="getPath('/settings/email')" class="nav-item admin-nav" active-class="active">
         <Settings :size="20" />
         <span>Administration</span>
       </router-link>
 
+      <router-link v-if="authStore.isSuperAdmin" to="/super-admin" class="nav-item super-admin-nav" active-class="active">
+        <ShieldAlert :size="20" />
+        <span>Super Admin</span>
+      </router-link>
+
       <button 
-        v-if="authStore.isAdmin" 
+        v-if="store.isFamilyAdmin" 
         type="button" 
         @click="handleExportData" 
         class="nav-item export-nav-btn"
@@ -91,7 +103,7 @@
           <span>Raccourcis</span>
         </div>
         <button 
-          v-if="authStore.isAdmin" 
+          v-if="store.isFamilyAdmin" 
           @click="openAddShortcutModal" 
           class="add-shortcut-btn-mini" 
           title="Ajouter un raccourci web (Administrateur)"
@@ -119,7 +131,7 @@
             <ExternalLink :size="12" class="shortcut-ext-icon" />
           </a>
           <button 
-            v-if="authStore.isAdmin" 
+            v-if="store.isFamilyAdmin" 
             @click.stop="openEditShortcutModal(item)" 
             class="shortcut-edit-btn-mini"
             title="Modifier / Supprimer ce raccourci"
@@ -130,7 +142,7 @@
       </div>
 
       <!-- Empty state for Admin -->
-      <div v-else-if="authStore.isAdmin" class="shortcuts-empty-admin">
+      <div v-else-if="store.isFamilyAdmin" class="shortcuts-empty-admin">
         <button @click="openAddShortcutModal" class="btn-create-first-shortcut">
           <Plus :size="13" />
           <span>Ajouter un raccourci</span>
@@ -210,13 +222,13 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Statut d'Administrateur</label>
-              <div class="admin-status-box" :class="{ 'is-admin': authStore.isAdmin }">
-                <ShieldCheck v-if="authStore.isAdmin" :size="16" />
+              <label class="form-label">Statut dans cette famille</label>
+              <div class="admin-status-box" :class="{ 'is-admin': store.isFamilyAdmin }">
+                <ShieldCheck v-if="store.isFamilyAdmin" :size="16" />
                 <Shield v-else :size="16" />
-                <span>{{ authStore.isAdmin ? 'Administrateur' : 'Membre Standard' }}</span>
+                <span>{{ store.isFamilyAdmin ? 'Administrateur de la famille' : 'Membre Standard' }}</span>
               </div>
-              <span class="help-subtext">* Le statut d'administrateur ne peut être modifié que par un autre administrateur.</span>
+              <span class="help-subtext">* Ce statut administrateur ne s'applique qu'à cet espace familial.</span>
             </div>
           </div>
 
@@ -437,6 +449,7 @@ import {
   Award, 
   ShieldCheck, 
   Shield, 
+  ShieldAlert,
   Edit3, 
   Mail, 
   Settings, 
@@ -450,6 +463,7 @@ import {
   Download 
 } from '@lucide/vue'
 import HouseUser from './icons/HouseUser.vue'
+import FamilySwitcher from './FamilySwitcher.vue'
 import PasswordStrengthIndicator from './PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 import { 
@@ -463,6 +477,9 @@ import {
 const router = useRouter()
 const authStore = useAuthStore()
 const store = useFamilyStore()
+
+const currentSlug = computed(() => store.currentFamily?.slug || localStorage.getItem('familygest_active_slug') || '')
+const getPath = (sub) => currentSlug.value ? `/${currentSlug.value}${sub}` : (sub || '/')
 
 const showProfileModal = ref(false)
 const saving = ref(false)
@@ -757,6 +774,10 @@ const handleDeleteShortcut = async () => {
   line-height: 1.2;
 }
 
+.family-switcher-section {
+  margin-bottom: 0.5rem;
+}
+
 .admin-badge {
   font-size: 0.65rem;
   font-weight: 800;
@@ -767,6 +788,31 @@ const handleDeleteShortcut = async () => {
   display: inline-flex;
   align-items: center;
   gap: 0.15rem;
+}
+
+.super-admin-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: rgba(245, 158, 11, 0.2);
+  color: #d97706;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.nav-item.super-admin-nav {
+  color: #d97706;
+  border: 1px dashed rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.05);
+  margin-top: 0.25rem;
+}
+
+.nav-item.super-admin-nav:hover,
+.nav-item.super-admin-nav.active {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
 }
 
 .user-email-text {

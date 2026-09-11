@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true },
   isAdmin: { type: Boolean, default: false },
+  isSuperAdmin: { type: Boolean, default: false },
   role: { type: String, default: 'Membre' },
   avatar: { type: String, default: '👤' },
   color: { type: String, default: '#6366f1' },
@@ -23,6 +24,8 @@ const userSchema = new mongoose.Schema({
 // Pre-save hook to hash password if modified (Mongoose 8 async hook syntax without callback parameters)
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return
+  // Ne pas ré-encoder si le mot de passe est déjà un hash bcrypt valide
+  if (typeof this.password === 'string' && (this.password.startsWith('$2a$') || this.password.startsWith('$2b$'))) return
   const salt = await bcrypt.genSalt(10)
   this.password = await bcrypt.hash(this.password, salt)
 })
