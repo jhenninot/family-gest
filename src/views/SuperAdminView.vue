@@ -88,6 +88,13 @@
               </td>
               <td class="cell-actions">
                 <button 
+                  @click="openAddAdminModal(fam)" 
+                  class="btn-icon text-indigo" 
+                  title="Ajouter un administrateur familial"
+                >
+                  <UserPlus :size="16" />
+                </button>
+                <button 
                   @click="openEditQuotaModal(fam)" 
                   class="btn-icon" 
                   title="Modifier le quota"
@@ -436,6 +443,73 @@
         </form>
       </div>
     </div>
+
+    <!-- MODAL ADD ADMIN TO FAMILY -->
+    <div v-if="showAddAdminModal" class="modal-overlay" @click.self="showAddAdminModal = false">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <div>
+            <h3>Ajouter un administrateur familial</h3>
+            <p class="modal-subtitle">Famille : <strong>{{ selectedFamilyForAdmin?.name }}</strong></p>
+          </div>
+          <button @click="showAddAdminModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <form @submit.prevent="handleAddAdminToFamily" class="modal-form">
+          <div class="form-group">
+            <label class="form-label">Adresse Email du futur administrateur</label>
+            <input 
+              v-model="newAdmin.email" 
+              @blur="checkNewAdminEmail" 
+              type="email" 
+              placeholder="admin@exemple.fr" 
+              class="form-input" 
+              required 
+            />
+            <div v-if="newAdminUserCheck.checked" class="user-check-info">
+              <span v-if="newAdminUserCheck.exists" class="text-info">
+                ℹ️ Compte existant détecté ({{ newAdminUserCheck.user?.firstName }} {{ newAdminUserCheck.user?.lastName }}). Un email d'invitation lui sera envoyé pour rejoindre cette famille en tant qu'administrateur.
+              </span>
+              <span v-else class="text-muted">
+                ℹ️ Nouveau compte : une invitation pour créer son mot de passe et rejoindre la famille en tant qu'administrateur lui sera envoyée.
+              </span>
+            </div>
+          </div>
+
+          <!-- Si nouveau compte -->
+          <div v-if="newAdminUserCheck.checked && !newAdminUserCheck.exists" class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Prénom</label>
+              <input v-model="newAdmin.firstName" type="text" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nom</label>
+              <input v-model="newAdmin.lastName" type="text" class="form-input" required />
+            </div>
+          </div>
+
+          <div v-if="addAdminError" class="alert-box alert-error">
+            {{ addAdminError }}
+          </div>
+
+          <div v-if="addAdminSuccess" class="alert-box alert-success">
+            {{ addAdminSuccess }}
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" @click="showAddAdminModal = false" class="btn btn-secondary">Annuler</button>
+            <button 
+              type="submit" 
+              class="btn btn-primary" 
+              :disabled="submittingAdmin"
+            >
+              <Send :size="15" />
+              <span>{{ submittingAdmin ? 'Envoi en cours...' : 'Envoyer l\'invitation administrateur' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -456,7 +530,8 @@ import {
   Power, 
   ExternalLink, 
   Send, 
-  Check 
+  Check,
+  UserPlus
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -512,6 +587,23 @@ const adminUserCheck = reactive({
 const showQuotaModal = ref(false)
 const selectedFamily = ref(null)
 const editQuotaValue = ref(10)
+
+// Add Family Admin Modal
+const showAddAdminModal = ref(false)
+const selectedFamilyForAdmin = ref(null)
+const newAdmin = reactive({
+  email: '',
+  firstName: '',
+  lastName: ''
+})
+const newAdminUserCheck = reactive({
+  checked: false,
+  exists: false,
+  user: null
+})
+const submittingAdmin = ref(false)
+const addAdminError = ref('')
+const addAdminSuccess = ref('')
 
 const fetchFamilies = async () => {
   loadingFamilies.value = true
@@ -708,6 +800,77 @@ const handleSaveQuota = async () => {
     }
   } catch (err) {
     console.error('Erreur handleSaveQuota', err)
+  }
+}
+
+const openAddAdminModal = (fam) => {
+  selectedFamilyForAdmin.value = fam
+  newAdmin.email = ''
+  newAdmin.firstName = ''
+  newAdmin.lastName = ''
+  newAdminUserCheck.checked = false
+  newAdminUserCheck.exists = false
+  newAdminUserCheck.user = null
+  addAdminError.value = ''
+  addAdminSuccess.value = ''
+  showAddAdminModal.value = true
+}
+
+const checkNewAdminEmail = async () => {
+  if (!newAdmin.email) {
+    newAdminUserCheck.checked = false
+    return
+  }
+  try {
+    const res = await fetch(`/api/super-admin/check-email?email=${encodeURIComponent(newAdmin.email)}`, {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    const data = await res.json()
+    newAdminUserCheck.checked = true
+    newAdminUserCheck.exists = data.exists
+    newAdminUserCheck.user = data.user || null
+    if (data.exists && data.user) {
+      newAdmin.firstName = data.user.firstName || ''
+      newAdmin.lastName = data.user.lastName || ''
+    }
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const handleAddAdminToFamily = async () => {
+  if (!selectedFamilyForAdmin.value) return
+  submittingAdmin.value = true
+  addAdminError.value = ''
+  addAdminSuccess.value = ''
+  try {
+    const res = await fetch(`/api/super-admin/families/${selectedFamilyForAdmin.value._id}/invite-admin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        email: newAdmin.email,
+        firstName: newAdmin.firstName,
+        lastName: newAdmin.lastName
+      })
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      addAdminError.value = data.error || 'Erreur lors de l\'envoi de l\'invitation'
+      return
+    }
+    addAdminSuccess.value = `✓ Invitation envoyée avec succès à ${newAdmin.email} !`
+    await fetchFamilies()
+    await fetchUsers()
+    setTimeout(() => {
+      showAddAdminModal.value = false
+    }, 1800)
+  } catch (err) {
+    addAdminError.value = err.message || 'Erreur réseau'
+  } finally {
+    submittingAdmin.value = false
   }
 }
 
@@ -973,6 +1136,21 @@ const testGlobalSmtp = async () => {
 .btn-icon:hover {
   background: rgba(0, 0, 0, 0.05);
   color: var(--text-color, #1e293b);
+}
+
+.btn-icon.text-indigo {
+  color: #6366f1;
+}
+
+.btn-icon.text-indigo:hover {
+  color: #4f46e5;
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.modal-subtitle {
+  color: var(--text-muted, #64748b);
+  font-size: 0.88rem;
+  margin-top: 0.2rem;
 }
 
 .btn-icon.text-danger:hover {

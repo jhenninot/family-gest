@@ -254,7 +254,7 @@ const sendWelcomeEmail = async (user, token) => {
 }
 
 // Helper : Envoi d'email d'invitation à une famille
-const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExistingUser, invitedByName }) => {
+const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExistingUser, invitedByName, isAdmin = false }) => {
   try {
     const config = await getSmtpConfig(family._id)
     if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
@@ -279,16 +279,20 @@ const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExi
     })
 
     const title = isExistingUser
-      ? `Invitation à rejoindre la famille « ${family.name} »`
-      : `Bienvenue sur FamilyGest - Rejoignez « ${family.name} »`
+      ? (isAdmin ? `Invitation à devenir administrateur de « ${family.name} »` : `Invitation à rejoindre la famille « ${family.name} »`)
+      : (isAdmin ? `Bienvenue sur FamilyGest - Administrez « ${family.name} »` : `Bienvenue sur FamilyGest - Rejoignez « ${family.name} »`)
 
     const introText = isExistingUser
-      ? `<strong>${invitedByName || 'Un administrateur'}</strong> vous invite à rejoindre l'espace familial <strong>${family.name}</strong> sur FamilyGest.`
-      : `Un nouvel espace familial <strong>${family.name}</strong> a été créé pour vous sur <strong>FamilyGest</strong> par <strong>${invitedByName || 'Un administrateur'}</strong>.`
+      ? (isAdmin
+          ? `<strong>${invitedByName || 'Le Super Administrateur'}</strong> vous a désigné comme <strong>administrateur</strong> de l'espace familial <strong>${family.name}</strong> sur FamilyGest.`
+          : `<strong>${invitedByName || 'Un administrateur'}</strong> vous invite à rejoindre l'espace familial <strong>${family.name}</strong> sur FamilyGest.`)
+      : (isAdmin
+          ? `Un espace familial <strong>${family.name}</strong> vous attend sur <strong>FamilyGest</strong>, où vous avez été invité en tant qu'<strong>administrateur</strong> par <strong>${invitedByName || 'Le Super Administrateur'}</strong>.`
+          : `Un nouvel espace familial <strong>${family.name}</strong> a été créé pour vous sur <strong>FamilyGest</strong> par <strong>${invitedByName || 'Un administrateur'}</strong>.`)
 
     const buttonText = isExistingUser
-      ? `✨ Rejoindre la famille ${family.name}`
-      : `🚀 Créer mon compte & rejoindre la famille`
+      ? (isAdmin ? `✨ Rejoindre en tant qu'administrateur` : `✨ Rejoindre la famille ${family.name}`)
+      : (isAdmin ? `🚀 Définir mon mot de passe & administrer` : `🚀 Créer mon compte & rejoindre la famille`)
 
     const mailOptions = {
       from: `"${config.fromName || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
@@ -1263,7 +1267,8 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
       family,
       invitationToken: token,
       isExistingUser: Boolean(existingUser),
-      invitedByName: `${req.user.firstName} ${req.user.lastName}`
+      invitedByName: `${req.user.firstName} ${req.user.lastName}`,
+      isAdmin: true
     })
 
     res.status(201).json({
@@ -1275,6 +1280,80 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
       }
     })
   } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/super-admin/families/:id/invite-admin (Inviter un nouvel administrateur familial pour une famille)
+app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const family = await Family.findById(req.params.id)
+    if (!family) {
+      return res.status(404).json({ error: 'Famille introuvable' })
+    }
+
+    const { email, firstName, lastName } = req.body
+    if (!email) {
+      return res.status(400).json({ error: 'L\'adresse email est requise' })
+    }
+
+    const cleanEmail = String(email).toLowerCase().trim()
+    const existingUser = await User.findOne({ email: cleanEmail })
+
+    if (existingUser) {
+      const existingMember = await FamilyMember.findOne({ familyId: family._id, userId: existingUser.id })
+      if (existingMember && existingMember.isAdmin) {
+        return res.status(400).json({
+          error: `L'utilisateur ${existingUser.firstName || ''} ${existingUser.lastName || ''} (${cleanEmail}) est déjà administrateur de la famille « ${family.name} »`
+        })
+      }
+    } else {
+      if (!firstName || !firstName.trim()) {
+        return res.status(400).json({ error: 'Le prénom est requis pour un nouveau compte' })
+      }
+    }
+
+    // Supprimer les invitations en attente précédentes pour cet email dans cette famille
+    await FamilyInvitation.deleteMany({ familyId: family._id, email: cleanEmail, status: 'pending' })
+
+    const token = crypto.randomBytes(32).toString('hex')
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 jours
+
+    const invitation = new FamilyInvitation({
+      token,
+      familyId: family._id,
+      email: cleanEmail,
+      role: 'Administrateur',
+      isAdmin: true,
+      invitedBy: req.user.id,
+      firstName: (existingUser ? existingUser.firstName : firstName) || '',
+      lastName: (existingUser ? existingUser.lastName : lastName) || '',
+      status: 'pending',
+      expiresAt
+    })
+    await invitation.save()
+
+    // Envoi de l'email via SMTP
+    const emailResult = await sendFamilyInvitationEmail({
+      email: cleanEmail,
+      family,
+      invitationToken: token,
+      isExistingUser: Boolean(existingUser),
+      invitedByName: `${req.user.firstName} ${req.user.lastName}`,
+      isAdmin: true
+    })
+
+    res.status(201).json({
+      message: `Invitation administrateur envoyée avec succès à ${cleanEmail}`,
+      emailSent: Boolean(emailResult?.success),
+      invitation: {
+        token,
+        email: cleanEmail,
+        isExistingUser: Boolean(existingUser)
+      }
+    })
+  } catch (err) {
+    console.error('Erreur invite-admin:', err)
     res.status(500).json({ error: err.message })
   }
 })
@@ -1645,18 +1724,30 @@ app.post('/api/invitations/:token/accept', async (req, res) => {
     const family = await Family.findById(invitation.familyId)
     if (!family) return res.status(404).json({ error: 'Famille introuvable' })
 
-    // Contrôle quota
-    const currentMemberCount = await FamilyMember.countDocuments({ familyId: family._id })
-    if (currentMemberCount >= family.maxMembers) {
-      return res.status(400).json({ error: `Le quota de membres pour la famille "${family.name}" est atteint` })
+    let user = await User.findOne({ email: invitation.email })
+    let alreadyMember = false
+    if (user) {
+      alreadyMember = await FamilyMember.findOne({ familyId: family._id, userId: user.id })
     }
 
-    let user = await User.findOne({ email: invitation.email })
+    // Contrôle quota uniquement pour les nouveaux membres arrivants
+    if (!alreadyMember) {
+      const currentMemberCount = await FamilyMember.countDocuments({ familyId: family._id })
+      if (currentMemberCount >= family.maxMembers) {
+        return res.status(400).json({ error: `Le quota de membres pour la famille "${family.name}" est atteint` })
+      }
+    }
 
     if (user) {
       // Utilisateur existant : vérification s'il est déjà membre
-      const alreadyMember = await FamilyMember.findOne({ familyId: family._id, userId: user.id })
-      if (!alreadyMember) {
+      if (alreadyMember) {
+        // Mise à niveau du rôle (ex: promu administrateur)
+        if (invitation.isAdmin) {
+          alreadyMember.isAdmin = true
+          if (invitation.role) alreadyMember.role = invitation.role
+          await alreadyMember.save()
+        }
+      } else {
         const newMember = new FamilyMember({
           familyId: family._id,
           userId: user.id,
