@@ -2947,39 +2947,6 @@ app.post('/api/shopping', requireAuth, attachFamilyContext, async (req, res) => 
       checked: false
     })
     await newItem.save()
-
-    // Si l'article est marqué urgent, notifier la famille
-    if (newItem.urgent) {
-      const authorName = req.user ? req.user.firstName : 'Un membre'
-      sendPushNotification({
-        title: `🛒 Article urgent : ${newItem.name}`,
-        body: `${newItem.quantity > 1 ? `${newItem.quantity}x ` : ''}${newItem.name} (${newItem.category}) • Demandé par ${authorName}`,
-        url: `/${req.family.slug}/shopping`,
-        excludeUserId: req.user ? req.user.id : null,
-        familyId: req.family._id
-      })
-
-      sendNotificationEmail({
-        subject: `🛒 Article urgent : ${newItem.name}`,
-        title: `Article urgent sur la liste de courses`,
-        badge: '🛒',
-        detailsHtml: `
-          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-            <strong>${authorName}</strong> a ajouté un article urgent sur la liste de courses :
-          </p>
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-            <li><strong>Article :</strong> ${newItem.name}</li>
-            <li><strong>Quantité :</strong> ${newItem.quantity}</li>
-            <li><strong>Rayon :</strong> ${newItem.category}</li>
-          </ul>
-        `,
-        actionUrl: `/${req.family.slug}/shopping`,
-        actionText: 'Voir la liste de courses',
-        excludeUserId: req.user ? req.user.id : null,
-        familyId: req.family._id
-      })
-    }
-
     res.status(201).json(newItem)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -3004,47 +2971,12 @@ app.put('/api/shopping/:id', requireAuth, attachFamilyContext, async (req, res) 
     const item = await ShoppingItem.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!item) return res.status(404).json({ error: 'Article non trouvé' })
 
-    const wasUrgent = Boolean(item.urgent)
-
     if (req.body.name !== undefined)     item.name     = req.body.name
     if (req.body.category !== undefined) item.category = req.body.category
     if (req.body.quantity !== undefined) item.quantity = Number(req.body.quantity)
     if (req.body.urgent !== undefined)   item.urgent   = Boolean(req.body.urgent)
 
     await item.save()
-
-    // Si l'article passe à urgent, notifier la famille
-    if (item.urgent && !wasUrgent) {
-      const authorName = req.user ? req.user.firstName : 'Un membre'
-      sendPushNotification({
-        title: `🛒 Article urgent : ${item.name}`,
-        body: `${item.quantity > 1 ? `${item.quantity}x ` : ''}${item.name} (${item.category}) • Signalé par ${authorName}`,
-        url: `/${req.family.slug}/shopping`,
-        excludeUserId: req.user ? req.user.id : null,
-        familyId: req.family._id
-      })
-
-      sendNotificationEmail({
-        subject: `🛒 Article passé en urgent : ${item.name}`,
-        title: `Article passé en urgent`,
-        badge: '🛒',
-        detailsHtml: `
-          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-            <strong>${authorName}</strong> a marqué cet article comme urgent :
-          </p>
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-            <li><strong>Article :</strong> ${item.name}</li>
-            <li><strong>Quantité :</strong> ${item.quantity}</li>
-            <li><strong>Rayon :</strong> ${item.category}</li>
-          </ul>
-        `,
-        actionUrl: `/${req.family.slug}/shopping`,
-        actionText: 'Voir la liste de courses',
-        excludeUserId: req.user ? req.user.id : null,
-        familyId: req.family._id
-      })
-    }
-
     res.json(item)
   } catch (err) {
     res.status(500).json({ error: err.message })
