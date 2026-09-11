@@ -1265,10 +1265,14 @@ app.get('/api/super-admin/check-slug/:slug', requireAuth, requireSuperAdmin, asy
       return res.json({ available: false, reason: 'Ce nom est réservé par le système' })
     }
     if (!/^[a-z0-9-]+$/.test(slug)) {
-      return res.json({ available: false, reason: 'Le slug ne doit contenir que des lettres minuscules, chiffres et tirets' })
+      return res.json({ available: false, reason: 'Le slug ne doit contenir que des lettres minuscules, chiffres et tirets (-)' })
     }
-    const existing = await Family.findOne({ slug })
-    res.json({ available: !existing })
+    const filter = { slug }
+    if (req.query.excludeId) {
+      filter._id = { $ne: req.query.excludeId }
+    }
+    const existing = await Family.findOne(filter)
+    res.json({ available: !existing, reason: existing ? 'Identifiant déjà utilisé par une autre famille' : null })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -1502,14 +1506,37 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
   }
 })
 
-// PUT /api/super-admin/families/:id (Modification d'une famille / quota)
+// PUT /api/super-admin/families/:id (Modification d'une famille / nom / slug / quota)
 app.put('/api/super-admin/families/:id', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const family = await Family.findById(req.params.id)
     if (!family) return res.status(404).json({ error: 'Famille introuvable' })
 
-    const { name, maxMembers, isActive } = req.body
-    if (name !== undefined) family.name = name.trim()
+    const { name, slug, maxMembers, isActive } = req.body
+
+    if (name !== undefined) {
+      const cleanName = String(name).trim()
+      if (!cleanName) return res.status(400).json({ error: 'Le nom de la famille ne peut pas être vide' })
+      family.name = cleanName
+    }
+
+    if (slug !== undefined) {
+      const cleanSlug = String(slug).toLowerCase().trim()
+      if (!cleanSlug) return res.status(400).json({ error: 'L\'identifiant (slug) ne peut pas être vide' })
+      if (!/^[a-z0-9-]+$/.test(cleanSlug)) {
+        return res.status(400).json({ error: 'L\'identifiant ne doit contenir que des lettres minuscules, chiffres et tirets (-)' })
+      }
+      const reservedSlugs = ['admin', 'superadmin', 'super-admin', 'api', 'login', 'set-password', 'invitation', 'settings', 'dashboard', 'tasks', 'calendar', 'absences', 'shopping', 'select-family']
+      if (reservedSlugs.includes(cleanSlug)) {
+        return res.status(400).json({ error: 'Cet identifiant est réservé par le système' })
+      }
+      const existing = await Family.findOne({ slug: cleanSlug, _id: { $ne: family._id } })
+      if (existing) {
+        return res.status(400).json({ error: 'Cet identifiant (slug) est déjà utilisé par une autre famille' })
+      }
+      family.slug = cleanSlug
+    }
+
     if (maxMembers !== undefined) family.maxMembers = Number(maxMembers)
     if (isActive !== undefined) family.isActive = Boolean(isActive)
 

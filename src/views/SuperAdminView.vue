@@ -99,9 +99,9 @@
                   <UserPlus :size="16" />
                 </button>
                 <button 
-                  @click="openEditQuotaModal(fam)" 
-                  class="btn-icon" 
-                  title="Modifier le quota"
+                  @click="openEditFamilyModal(fam)" 
+                  class="btn-icon text-indigo" 
+                  title="Modifier la famille (Nom, Identifiant URL, Quota)"
                 >
                   <Edit2 :size="16" />
                 </button>
@@ -449,18 +449,65 @@
       </div>
     </div>
 
-    <!-- MODAL EDIT QUOTA -->
-    <div v-if="showQuotaModal" class="modal-overlay" @click.self="showQuotaModal = false">
-      <div class="modal-content glass-card modal-sm">
+    <!-- MODAL EDIT FAMILY (NAME, SLUG, QUOTA) -->
+    <div v-if="showEditFamilyModal" class="modal-overlay" @click.self="showEditFamilyModal = false">
+      <div class="modal-content glass-card">
         <div class="modal-header">
-          <h3>Modifier le quota : {{ selectedFamily?.name }}</h3>
-          <button @click="showQuotaModal = false" class="btn-close">&times;</button>
+          <div>
+            <h3>Modifier la famille</h3>
+            <p class="modal-subtitle">Famille : <strong>{{ selectedFamily?.name }}</strong></p>
+          </div>
+          <button @click="showEditFamilyModal = false" class="btn-close">&times;</button>
         </div>
-        <form @submit.prevent="handleSaveQuota" class="modal-form">
+
+        <form @submit.prevent="handleSaveEditFamily" class="modal-form">
           <div class="form-group">
-            <label class="form-label">Nombre maximum de membres</label>
+            <label class="form-label">Nom de la famille</label>
             <input 
-              v-model.number="editQuotaValue" 
+              v-model="editFamilyForm.name" 
+              type="text" 
+              placeholder="Ex: Famille Toto" 
+              class="form-input" 
+              required 
+            />
+          </div>
+
+          <div class="form-group">
+            <div class="label-with-action">
+              <label class="form-label">Identifiant URL (Slug)</label>
+              <button 
+                type="button" 
+                @click="generateSlugFromEditName" 
+                class="btn-link-action"
+                title="Générer automatiquement un identifiant à partir du nom"
+              >
+                🪄 Générer depuis le nom
+              </button>
+            </div>
+            <div class="slug-input-wrapper">
+              <span class="slug-prefix">family-gest/</span>
+              <input 
+                v-model="editFamilyForm.slug" 
+                @input="checkEditSlugAvailability" 
+                type="text" 
+                placeholder="famille-toto" 
+                class="form-input slug-input" 
+                required 
+              />
+            </div>
+            <div v-if="editSlugStatus.checked" class="slug-status" :class="{ available: editSlugStatus.available, unavailable: !editSlugStatus.available }">
+              <span v-if="editSlugStatus.available">✓ Identifiant disponible</span>
+              <span v-else>✗ {{ editSlugStatus.message || 'Identifiant déjà utilisé' }}</span>
+            </div>
+            <span class="help-subtext">
+              ⚠️ Attention : La modification de l'identifiant modifie l'adresse URL d'accès à cette famille (<code>/{{ editFamilyForm.slug || '...' }}</code>).
+            </span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Quota maximum de membres</label>
+            <input 
+              v-model.number="editFamilyForm.maxMembers" 
               type="number" 
               min="1" 
               max="100" 
@@ -468,9 +515,20 @@
               required 
             />
           </div>
+
+          <div v-if="editFamilyError" class="alert-box alert-error">
+            {{ editFamilyError }}
+          </div>
+
           <div class="modal-footer">
-            <button type="button" @click="showQuotaModal = false" class="btn btn-secondary">Annuler</button>
-            <button type="submit" class="btn btn-primary">Enregistrer</button>
+            <button type="button" @click="showEditFamilyModal = false" class="btn btn-secondary">Annuler</button>
+            <button 
+              type="submit" 
+              class="btn btn-primary" 
+              :disabled="savingFamily || (editSlugStatus.checked && !editSlugStatus.available)"
+            >
+              {{ savingFamily ? 'Enregistrement...' : 'Enregistrer les modifications' }}
+            </button>
           </div>
         </form>
       </div>
@@ -880,10 +938,21 @@ const adminUserCheck = reactive({
   user: null
 })
 
-// Quota Modal
-const showQuotaModal = ref(false)
+// Edit Family Modal
+const showEditFamilyModal = ref(false)
 const selectedFamily = ref(null)
-const editQuotaValue = ref(10)
+const editFamilyForm = reactive({
+  name: '',
+  slug: '',
+  maxMembers: 10
+})
+const editSlugStatus = reactive({
+  checked: false,
+  available: true,
+  message: ''
+})
+const savingFamily = ref(false)
+const editFamilyError = ref('')
 
 // Add Family Admin Modal
 const showAddAdminModal = ref(false)
@@ -1180,29 +1249,88 @@ const handleCreateFamily = async () => {
   }
 }
 
-const openEditQuotaModal = (fam) => {
+const openEditFamilyModal = (fam) => {
   selectedFamily.value = fam
-  editQuotaValue.value = fam.maxMembers
-  showQuotaModal.value = true
+  editFamilyForm.name = fam.name
+  editFamilyForm.slug = fam.slug
+  editFamilyForm.maxMembers = fam.maxMembers
+  editSlugStatus.checked = false
+  editSlugStatus.available = true
+  editSlugStatus.message = ''
+  editFamilyError.value = ''
+  showEditFamilyModal.value = true
 }
 
-const handleSaveQuota = async () => {
+let editSlugTimer = null
+const checkEditSlugAvailability = () => {
+  clearTimeout(editSlugTimer)
+  if (!editFamilyForm.slug) {
+    editSlugStatus.checked = false
+    return
+  }
+  const clean = slugify(editFamilyForm.slug)
+  editFamilyForm.slug = clean
+  editSlugTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/super-admin/check-slug/${encodeURIComponent(clean)}?excludeId=${selectedFamily.value?._id}`, {
+        headers: { 'Authorization': `Bearer ${authStore.token}` }
+      })
+      const data = await res.json()
+      editSlugStatus.checked = true
+      editSlugStatus.available = data.available
+      editSlugStatus.message = data.reason || (data.available ? '' : 'Identifiant déjà utilisé')
+    } catch (err) {
+      console.error(err)
+    }
+  }, 300)
+}
+
+const generateSlugFromEditName = () => {
+  editFamilyForm.slug = slugify(editFamilyForm.name)
+  checkEditSlugAvailability()
+}
+
+const handleSaveEditFamily = async () => {
   if (!selectedFamily.value) return
+  savingFamily.value = true
+  editFamilyError.value = ''
   try {
+    const oldSlug = selectedFamily.value.slug
     const res = await fetch(`/api/super-admin/families/${selectedFamily.value._id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authStore.token}`
       },
-      body: JSON.stringify({ maxMembers: editQuotaValue.value })
+      body: JSON.stringify({
+        name: editFamilyForm.name,
+        slug: editFamilyForm.slug,
+        maxMembers: editFamilyForm.maxMembers
+      })
     })
-    if (res.ok) {
-      showQuotaModal.value = false
-      await fetchFamilies()
+    const data = await res.json()
+    if (!res.ok) {
+      throw new Error(data.error || 'Erreur lors de la modification de la famille')
     }
+
+    showEditFamilyModal.value = false
+
+    // Si le slug de la famille active a été modifié, mettre à jour le store et localStorage
+    if (localStorage.getItem('familygest_active_slug') === oldSlug) {
+      localStorage.setItem('familygest_active_slug', data.slug)
+      if (store.currentFamily && (store.currentFamily._id === data._id || store.currentFamily.id === data._id)) {
+        store.currentFamily.slug = data.slug
+        store.currentFamily.name = data.name
+      }
+    }
+
+    await fetchFamilies()
+    await fetchUsers()
+    await store.fetchUserFamilies()
   } catch (err) {
-    console.error('Erreur handleSaveQuota', err)
+    editFamilyError.value = err.message
+  } finally {
+    savingFamily.value = false
   }
 }
 
@@ -1915,6 +2043,29 @@ const testGlobalSmtp = async () => {
   color: var(--text-color, #1e293b);
   font-size: 0.95rem;
   box-sizing: border-box;
+}
+
+.label-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.btn-link-action {
+  background: none;
+  border: none;
+  color: var(--primary, #6366f1);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: opacity 0.2s;
+}
+
+.btn-link-action:hover {
+  opacity: 0.8;
 }
 
 .slug-input-wrapper {
