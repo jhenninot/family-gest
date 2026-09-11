@@ -2071,6 +2071,50 @@ app.delete('/api/shortcuts/:id', requireAuth, requireAdmin, async (req, res) => 
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
+// === EXPORT DES DONNÉES DE LA FAMILLE (ADMINISTRATION) ===
+app.get('/api/admin/export', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const [
+      users,
+      tasks,
+      shoppingItems,
+      shoppingCategories,
+      absences,
+      mealGuests,
+      shortcuts,
+      events
+    ] = await Promise.all([
+      User.find().lean(),
+      Task.find().lean(),
+      ShoppingItem.find().lean(),
+      ShoppingCategory.find().sort({ rank: 1 }).lean(),
+      Absence.find().lean(),
+      MealGuest.find().lean(),
+      Shortcut.find().sort({ order: 1 }).lean(),
+      Event.find().lean()
+    ])
+
+    const exportPayload = {
+      version: '1.0',
+      exportDate: new Date().toISOString(),
+      source: 'familygest-mono',
+      data: {
+        users,
+        tasks,
+        shoppingItems,
+        shoppingCategories,
+        absences,
+        mealGuests,
+        shortcuts,
+        events
+      }
+    }
+
+    res.json(exportPayload)
+  } catch (err) {
+    console.error('Erreur lors de l\'export des données', err)
+    res.status(500).json({ error: 'Erreur lors de l\'export des données : ' + err.message })
+  }
 })
 
 

@@ -86,6 +86,30 @@
         </div>
       </div>
 
+      <!-- Export Data Card: Sauvegarde et Export des données -->
+      <div class="card glass-card export-config-card margin-top-lg">
+        <div class="export-config-header">
+          <div class="section-title-group">
+            <h2 class="section-title">
+              <Download :size="20" class="title-icon-export" /> Sauvegarde et Export des données
+            </h2>
+            <p class="section-subtitle">
+              Exportez l'ensemble des données de votre famille (utilisateurs avec mots de passe, liste de courses, catégories ordonnées, tâches, absences, invités, raccourcis et événements) au format JSON pour sauvegarde ou pour importation dans la nouvelle version multi-familles.
+            </p>
+          </div>
+          <button 
+            type="button" 
+            @click="handleExportData" 
+            class="btn btn-primary btn-export-data"
+            :disabled="exporting"
+          >
+            <Download v-if="!exporting" :size="16" />
+            <Loader2 v-else :size="16" class="spin" />
+            <span>{{ exporting ? 'Exportation en cours...' : 'Télécharger l\'export (JSON)' }}</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Shopping Categories Card: Catégories de courses -->
       <div class="card glass-card shopping-cats-card margin-top-lg">
         <div class="shopping-cats-header">
@@ -666,7 +690,7 @@ import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.v
 import { 
   Mail, Settings, CheckCircle2, AlertTriangle, ShieldAlert, 
   Eye, EyeOff, Save, Send, HelpCircle, ShieldCheck, Loader2, AlertCircle, Globe,
-  UserPlus
+  UserPlus, Download
 } from 'lucide-vue-next'
 import { ShoppingCart, Plus, Pencil, Trash2 } from '@lucide/vue'
 
@@ -974,6 +998,40 @@ const handleSendTest = async () => {
     testResult.value = { success: false, message: 'Erreur réseau : ' + err.message }
   } finally {
     sendingTest.value = false
+  }
+}
+
+// --- Export des données de la famille ---
+const exporting = ref(false)
+
+const handleExportData = async () => {
+  exporting.value = true
+  try {
+    const res = await fetch('/api/admin/export', {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || 'Erreur lors de l\'export des données')
+    }
+    const data = await res.json()
+    const jsonStr = JSON.stringify(data, null, 2)
+    const blob = new Blob([jsonStr], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const dateStr = new Date().toISOString().slice(0, 10)
+    a.href = url
+    a.download = `familygest-export-${dateStr}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    alert(`Erreur : ${err.message}`)
+  } finally {
+    exporting.value = false
   }
 }
 
@@ -1883,5 +1941,30 @@ onMounted(() => {
   background: rgba(99, 102, 241, 0.2);
   border-color: var(--accent-primary, #6366f1);
   transform: scale(1.1);
+}
+
+/* Export Config Card */
+.export-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.title-icon-export {
+  color: var(--accent-indigo, #6366f1);
+}
+
+.btn-export-data {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+  cursor: pointer;
 }
 </style>
