@@ -1378,37 +1378,46 @@ app.post('/api/super-admin/smtp', requireAuth, requireSuperAdmin, async (req, re
 // POST /api/super-admin/smtp/test (Test d'envoi SMTP plateforme)
 app.post('/api/super-admin/smtp/test', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
-    const { recipientEmail } = req.body
+    const recipientEmail = req.body.recipientEmail || req.user?.email
     if (!recipientEmail || !recipientEmail.trim()) {
       return res.status(400).json({ error: 'Veuillez renseigner une adresse email destinataire' })
     }
 
     const config = await GlobalConfig.findOne()
-    if (!config || !config.host || !config.user || !config.pass) {
-      return res.status(400).json({ error: 'Le serveur SMTP plateforme n\'est pas encore configuré' })
+    const host = (req.body.host || config?.host || '').trim()
+    const port = Number(req.body.port || config?.port || 587)
+    const secure = req.body.secure !== undefined ? Boolean(req.body.secure) : Boolean(config?.secure)
+    const user = (req.body.user || config?.user || '').trim()
+    const pass = req.body.password || req.body.pass || config?.pass
+    const fromName = req.body.fromName || config?.fromName || 'FamilyGest Platform'
+    const fromEmail = (req.body.from || req.body.fromEmail || config?.fromEmail || user).trim()
+
+    if (!host || !user || !pass) {
+      return res.status(400).json({ error: 'Veuillez renseigner l\'hôte, l\'utilisateur et le mot de passe SMTP' })
     }
 
     const transporter = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-      auth: { user: config.user, pass: config.pass },
+      host,
+      port,
+      secure,
+      auth: { user, pass },
       tls: { rejectUnauthorized: false }
     })
 
     await transporter.sendMail({
-      from: `"${config.fromName || 'FamilyGest Platform'}" <${config.fromEmail || config.user}>`,
+      from: `"${fromName}" <${fromEmail}>`,
       to: recipientEmail.trim(),
       subject: '✨ Test de connexion SMTP Plateforme - FamilyGest',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
           <h2 style="color: #4f46e5;">Connexion SMTP Plateforme Réussie !</h2>
-          <p>Le serveur SMTP global fonctionne correctement.</p>
+          <p>Le serveur SMTP global de FamilyGest fonctionne correctement.</p>
+          <p style="color: #64748b; font-size: 13px;">Expédié depuis : ${fromEmail}</p>
         </div>
       `
     })
 
-    res.json({ message: `Email de test plateforme envoyé avec succès à ${recipientEmail}` })
+    res.json({ success: true, message: `Email de test plateforme envoyé avec succès à ${recipientEmail.trim()}` })
   } catch (err) {
     res.status(500).json({ error: `Échec de l'envoi : ${err.message}` })
   }

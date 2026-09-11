@@ -248,6 +248,17 @@
             </div>
           </div>
 
+          <div class="form-group">
+            <label class="form-label">Email de destination pour le test</label>
+            <input 
+              v-model="testRecipient" 
+              type="email" 
+              placeholder="votre-email@exemple.fr" 
+              class="form-input" 
+            />
+            <span class="help-subtext">Un email de test sera envoyé à cette adresse pour vérifier la délivrabilité.</span>
+          </div>
+
           <div v-if="smtpMessage" class="alert-box" :class="smtpSuccess ? 'alert-success' : 'alert-error'">
             {{ smtpMessage }}
           </div>
@@ -451,6 +462,7 @@ const savingSmtp = ref(false)
 const testingSmtp = ref(false)
 const smtpMessage = ref('')
 const smtpSuccess = ref(false)
+const testRecipient = ref(authStore.user?.email || '')
 
 // Create Family State
 const showCreateModal = ref(false)
@@ -725,18 +737,23 @@ const testGlobalSmtp = async () => {
   testingSmtp.value = true
   smtpMessage.value = ''
   try {
+    const targetRecipient = (testRecipient.value || authStore.user?.email || smtpConfig.from || smtpConfig.user || '').trim()
+    const payload = {
+      ...smtpConfig,
+      recipientEmail: targetRecipient
+    }
     const res = await fetch('/api/super-admin/smtp/test', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authStore.token}`
       },
-      body: JSON.stringify(smtpConfig)
+      body: JSON.stringify(payload)
     })
     const data = await res.json()
     if (res.ok && data.success) {
       smtpSuccess.value = true
-      smtpMessage.value = 'Test réussi ! Connexion au serveur SMTP globale validée.'
+      smtpMessage.value = `✓ ${data.message || 'Test réussi ! Connexion au serveur SMTP globale validée.'}`
     } else {
       smtpSuccess.value = false
       smtpMessage.value = `Échec du test : ${data.error || 'Impossible de se connecter'}`
