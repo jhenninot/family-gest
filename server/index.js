@@ -1436,6 +1436,193 @@ app.put('/api/super-admin/users/:userId/set-family-admin', requireAuth, requireS
   }
 })
 
+// PUT /api/super-admin/users/:userId (Modifier les informations globales d'un utilisateur)
+app.put('/api/super-admin/users/:userId', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.userId)
+    const user = await User.findOne({ id: userId })
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' })
+
+    const { firstName, lastName, email, isSuperAdmin } = req.body
+
+    if (email) {
+      const cleanEmail = String(email).toLowerCase().trim()
+      const existing = await User.findOne({ email: cleanEmail, id: { $ne: userId } })
+      if (existing) {
+        return res.status(400).json({ error: 'Cette adresse email est déjà utilisée par un autre compte' })
+      }
+      user.email = cleanEmail
+    }
+
+    if (firstName) user.firstName = firstName.trim()
+    if (lastName) user.lastName = lastName.trim()
+
+    if (isSuperAdmin !== undefined) {
+      if (!isSuperAdmin && user.isSuperAdmin) {
+        const superAdminCount = await User.countDocuments({ isSuperAdmin: true })
+        if (superAdminCount <= 1) {
+          return res.status(400).json({ error: 'Impossible de retirer les droits du dernier Super Administrateur de la plateforme' })
+        }
+      }
+      user.isSuperAdmin = Boolean(isSuperAdmin)
+    }
+
+    await user.save()
+    res.json({
+      message: 'Utilisateur mis à jour avec succès',
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        isSuperAdmin: Boolean(user.isSuperAdmin)
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/super-admin/users/:userId/families (Rattacher un utilisateur à une famille existante)
+app.post('/api/super-admin/users/:userId/families', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.userId)
+    const { familyId, role, isAdmin } = req.body
+
+    if (!familyId) {
+      return res.status(400).json({ error: 'Identifiant de famille requis' })
+    }
+
+    const user = await User.findOne({ id: userId })
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' })
+
+    const family = await Family.findById(familyId)
+    if (!family) return res.status(404).json({ error: 'Famille introuvable' })
+
+    const existingMember = await FamilyMember.findOne({ userId, familyId })
+    if (existingMember) {
+      return res.status(400).json({ error: `Cet utilisateur fait déjà partie de la famille « ${family.name} »` })
+    }
+
+    // Contrôle quota
+    const currentMemberCount = await FamilyMember.countDocuments({ familyId: family._id })
+    if (currentMemberCount >= family.maxMembers) {
+      return res.status(400).json({ error: `Le quota maximal de cette famille (${family.maxMembers} membres) est atteint` })
+    }
+
+    const isMemberAdmin = Boolean(isAdmin)
+    const assignedRole = role && role.trim() ? role.trim() : (isMemberAdmin ? 'Administrateur' : 'Membre')
+
+    const newMember = new FamilyMember({
+      familyId: family._id,
+      userId: user.id,
+      userRef: user._id,
+      role: assignedRole,
+      isAdmin: isMemberAdmin,
+      usualPresence: 'present',
+      pushNotificationsEnabled: true,
+      emailNotificationsEnabled: false
+    })
+    await newMember.save()
+
+    res.status(201).json({
+      message: `Utilisateur rattaché à la famille « ${family.name} » avec succès`,
+      member: {
+        familyId: family._id,
+        familyName: family.name,
+        familySlug: family.slug,
+        role: newMember.role,
+        isAdmin: newMember.isAdmin
+      }
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PUT /api/super-admin/users/:userId/families/:familyId (Modifier le rôle et statut admin dans une famille)
+app.put('/api/super-admin/users/:userId/families/:familyId', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.userId)
+    const { familyId } = req.params
+    const { role, isAdmin } = req.body
+
+    const member = await FamilyMember.findOne({ userId, familyId })
+    if (!member) {
+      return res.status(404).json({ error: 'Rattachement familial introuvable' })
+    }
+
+    if (isAdmin !== undefined) {
+      member.isAdmin = Boolean(isAdmin)
+    }
+
+    if (role !== undefined && role.trim()) {
+      member.role = role.trim()
+    } else if (isAdmin !== undefined) {
+      if (member.isAdmin && member.role === 'Membre') {
+        member.role = 'Administrateur'
+      } else if (!member.isAdmin && member.role === 'Administrateur') {
+        member.role = 'Membre'
+      }
+    }
+
+    await member.save()
+    res.json({ message: 'Rôle familial mis à jour avec succès', member })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/super-admin/users/:userId/families/:familyId (Retirer un utilisateur d'une famille)
+app.delete('/api/super-admin/users/:userId/families/:familyId', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.userId)
+    const { familyId } = req.params
+
+    const member = await FamilyMember.findOne({ userId, familyId })
+    if (!member) {
+      return res.status(404).json({ error: 'Rattachement familial introuvable' })
+    }
+
+    await FamilyMember.deleteOne({ _id: member._id })
+    res.json({ message: 'Utilisateur retiré de la famille avec succès' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/super-admin/users/:userId (Supprimer définitivement un compte utilisateur)
+app.delete('/api/super-admin/users/:userId', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.userId)
+
+    if (req.user.id === userId) {
+      return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte Super Administrateur' })
+    }
+
+    const user = await User.findOne({ id: userId })
+    if (!user) {
+      return res.status(404).json({ error: 'Utilisateur introuvable' })
+    }
+
+    if (user.isSuperAdmin) {
+      const superAdminCount = await User.countDocuments({ isSuperAdmin: true })
+      if (superAdminCount <= 1) {
+        return res.status(400).json({ error: 'Impossible de supprimer le dernier Super Administrateur de la plateforme' })
+      }
+    }
+
+    // Suppression en cascade : memberships et invitations
+    await FamilyMember.deleteMany({ userId: user.id })
+    await FamilyInvitation.deleteMany({ email: user.email })
+    await User.deleteOne({ id: user.id })
+
+    res.json({ message: `Le compte de ${user.firstName} ${user.lastName} (${user.email}) a été supprimé avec succès` })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // GET /api/super-admin/smtp (Récupération des paramètres SMTP plateforme)
 app.get('/api/super-admin/smtp', requireAuth, requireSuperAdmin, async (req, res) => {
   try {

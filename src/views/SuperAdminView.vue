@@ -138,6 +138,7 @@
               <th>Email</th>
               <th>Rôle Global</th>
               <th>Familles associées</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -183,6 +184,15 @@
                     Aucune
                   </span>
                 </div>
+              </td>
+              <td class="cell-actions">
+                <button 
+                  @click="openManageUserModal(u)" 
+                  class="btn-icon text-indigo" 
+                  title="Gérer l'utilisateur"
+                >
+                  <Settings :size="16" />
+                </button>
               </td>
             </tr>
           </tbody>
@@ -521,11 +531,197 @@
         </form>
       </div>
     </div>
+
+    <!-- MODAL MANAGE USER -->
+    <div v-if="showUserModal" class="modal-overlay" @click.self="showUserModal = false">
+      <div class="modal-content glass-card modal-lg">
+        <div class="modal-header">
+          <div>
+            <h3>Gestion du compte utilisateur</h3>
+            <p class="modal-subtitle">
+              {{ selectedUser?.firstName }} {{ selectedUser?.lastName }} &bull; {{ selectedUser?.email }}
+            </p>
+          </div>
+          <button @click="showUserModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <div class="modal-body user-management-body">
+          <!-- Messages -->
+          <div v-if="userModalError" class="alert-box alert-error">
+            {{ userModalError }}
+          </div>
+          <div v-if="userModalSuccess" class="alert-box alert-success">
+            {{ userModalSuccess }}
+          </div>
+
+          <!-- Section 1: Informations Générales & Statut Global -->
+          <div class="card-section">
+            <h4 class="sub-section-title">
+              <Users :size="16" /> Informations Générales & Statut Global
+            </h4>
+            <form @submit.prevent="handleUpdateUserProfile" class="modal-form">
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">Prénom</label>
+                  <input v-model="userForm.firstName" type="text" class="form-input" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Nom</label>
+                  <input v-model="userForm.lastName" type="text" class="form-input" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Adresse Email</label>
+                <input v-model="userForm.email" type="email" class="form-input" required />
+              </div>
+              <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                  <input v-model="userForm.isSuperAdmin" type="checkbox" />
+                  <span>
+                    <strong>Super Administrateur Global de la plateforme</strong>
+                    <small class="help-text">Donne accès à cette console super admin et au contrôle global de toutes les familles.</small>
+                  </span>
+                </label>
+              </div>
+              <div class="form-actions-right">
+                <button type="submit" class="btn btn-primary btn-sm" :disabled="savingUser">
+                  {{ savingUser ? 'Enregistrement...' : 'Mettre à jour le profil' }}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div class="separator-divider"></div>
+
+          <!-- Section 2: Familles Associées & Rôles Familiaux -->
+          <div class="card-section">
+            <h4 class="sub-section-title">
+              <Home :size="16" /> Familles associées
+            </h4>
+            <div v-if="!selectedUser?.families || selectedUser.families.length === 0" class="empty-state-text">
+              Cet utilisateur n'appartient actuellement à aucune famille.
+            </div>
+            <div v-else class="user-families-list">
+              <div 
+                v-for="f in selectedUser.families" 
+                :key="f.familyId || f._id" 
+                class="user-family-row"
+              >
+                <div class="family-info-col">
+                  <strong>{{ f.name }}</strong>
+                  <code class="text-xs">/{{ f.slug }}</code>
+                </div>
+                <div class="family-role-col">
+                  <input 
+                    v-model="f.role" 
+                    type="text" 
+                    placeholder="Rôle (ex: Parent)" 
+                    class="form-input form-input-sm"
+                  />
+                </div>
+                <div class="family-admin-col">
+                  <label class="admin-checkbox-label">
+                    <input v-model="f.isAdmin" type="checkbox" />
+                    <span>Admin Familial</span>
+                  </label>
+                </div>
+                <div class="family-actions-col">
+                  <button 
+                    type="button" 
+                    @click="handleUpdateFamilyRole(f)" 
+                    class="btn btn-sm btn-secondary" 
+                    title="Enregistrer pour cette famille"
+                  >
+                    <Check :size="14" />
+                    <span>Sauvegarder</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    @click="handleRemoveFromFamily(f)" 
+                    class="btn btn-sm btn-danger-ghost" 
+                    title="Retirer de cette famille"
+                  >
+                    <UserMinus :size="14" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ajouter à une nouvelle famille -->
+            <div class="add-to-family-box margin-top-md">
+              <h5 class="sub-box-title">Rattacher à une nouvelle famille</h5>
+              <form @submit.prevent="handleAttachFamily" class="attach-family-form">
+                <div class="form-group flex-1">
+                  <select v-model="newFamilyAttach.familyId" class="form-select form-input-sm" required>
+                    <option value="" disabled>Sélectionner une famille...</option>
+                    <option v-for="fam in unassignedFamilies" :key="fam._id" :value="fam._id">
+                      {{ fam.name }} ({{ fam.memberCount || 0 }}/{{ fam.maxMembers }})
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group flex-1">
+                  <input 
+                    v-model="newFamilyAttach.role" 
+                    type="text" 
+                    placeholder="Rôle (ex: Membre)" 
+                    class="form-input form-input-sm" 
+                  />
+                </div>
+                <div class="form-group flex-checkbox">
+                  <label class="admin-checkbox-label">
+                    <input v-model="newFamilyAttach.isAdmin" type="checkbox" />
+                    <span>Admin</span>
+                  </label>
+                </div>
+                <button 
+                  type="submit" 
+                  class="btn btn-primary btn-sm" 
+                  :disabled="!newFamilyAttach.familyId || attachingFamily"
+                >
+                  <Plus :size="14" />
+                  <span>Rattacher</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div class="separator-divider"></div>
+
+          <!-- Section 3: Zone Danger - Suppression de compte -->
+          <div class="card-section danger-zone">
+            <h4 class="sub-section-title text-danger">
+              <Trash2 :size="16" /> Zone de danger
+            </h4>
+            <div class="danger-zone-content">
+              <div>
+                <strong>Supprimer définitivement ce compte utilisateur</strong>
+                <p class="text-sm text-muted">
+                  Supprime le compte, retire l'utilisateur de toutes ses familles et efface ses invitations en attente. Cette action est irréversible.
+                </p>
+              </div>
+              <button 
+                type="button" 
+                @click="handleDeleteUser" 
+                class="btn btn-danger btn-sm" 
+                :disabled="deletingUser"
+              >
+                <Trash2 :size="14" />
+                <span>{{ deletingUser ? 'Suppression...' : 'Supprimer le compte' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" @click="showUserModal = false" class="btn btn-secondary">Fermer</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
@@ -543,7 +739,10 @@ import {
   Send, 
   Check,
   UserPlus,
-  ShieldCheck
+  ShieldCheck,
+  Settings,
+  Trash2,
+  UserMinus
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -616,6 +815,32 @@ const newAdminUserCheck = reactive({
 const submittingAdmin = ref(false)
 const addAdminError = ref('')
 const addAdminSuccess = ref('')
+
+// User Management Modal State
+const showUserModal = ref(false)
+const selectedUser = ref(null)
+const userForm = reactive({
+  firstName: '',
+  lastName: '',
+  email: '',
+  isSuperAdmin: false
+})
+const savingUser = ref(false)
+const userModalError = ref('')
+const userModalSuccess = ref('')
+const newFamilyAttach = reactive({
+  familyId: '',
+  role: 'Membre',
+  isAdmin: false
+})
+const attachingFamily = ref(false)
+const deletingUser = ref(false)
+
+const unassignedFamilies = computed(() => {
+  if (!selectedUser.value) return []
+  const userFamIds = (selectedUser.value.families || []).map(f => String(f.familyId || f._id || f.id))
+  return families.value.filter(f => !userFamIds.includes(String(f._id || f.id)))
+})
 
 const fetchFamilies = async () => {
   loadingFamilies.value = true
@@ -916,6 +1141,186 @@ const toggleUserFamilyAdmin = async (u, f) => {
   } catch (err) {
     console.error('Erreur toggleUserFamilyAdmin', err)
     alert(err.message)
+  }
+}
+
+const openManageUserModal = (u) => {
+  selectedUser.value = JSON.parse(JSON.stringify(u))
+  userForm.firstName = u.firstName || ''
+  userForm.lastName = u.lastName || ''
+  userForm.email = u.email || ''
+  userForm.isSuperAdmin = Boolean(u.isSuperAdmin)
+  userModalError.value = ''
+  userModalSuccess.value = ''
+  newFamilyAttach.familyId = ''
+  newFamilyAttach.role = 'Membre'
+  newFamilyAttach.isAdmin = false
+  showUserModal.value = true
+}
+
+const handleUpdateUserProfile = async () => {
+  if (!selectedUser.value) return
+  savingUser.value = true
+  userModalError.value = ''
+  userModalSuccess.value = ''
+  try {
+    const userId = selectedUser.value.id || selectedUser.value._id
+    const res = await fetch(`/api/super-admin/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify(userForm)
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      userModalError.value = data.error || 'Erreur lors de la mise à jour du profil'
+      return
+    }
+    userModalSuccess.value = '✓ Informations de l\'utilisateur mises à jour avec succès !'
+    selectedUser.value.firstName = userForm.firstName
+    selectedUser.value.lastName = userForm.lastName
+    selectedUser.value.email = userForm.email
+    selectedUser.value.isSuperAdmin = userForm.isSuperAdmin
+    await fetchUsers()
+  } catch (err) {
+    userModalError.value = err.message || 'Erreur réseau'
+  } finally {
+    savingUser.value = false
+  }
+}
+
+const handleUpdateFamilyRole = async (f) => {
+  if (!selectedUser.value) return
+  userModalError.value = ''
+  userModalSuccess.value = ''
+  try {
+    const userId = selectedUser.value.id || selectedUser.value._id
+    const familyId = f.familyId || f._id || f.id
+    const res = await fetch(`/api/super-admin/users/${userId}/families/${familyId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        role: f.role,
+        isAdmin: Boolean(f.isAdmin)
+      })
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      userModalError.value = data.error || 'Erreur lors de la modification du rôle'
+      return
+    }
+    userModalSuccess.value = `✓ Rôle pour "${f.name}" mis à jour avec succès !`
+    await fetchUsers()
+    await fetchFamilies()
+  } catch (err) {
+    userModalError.value = err.message || 'Erreur réseau'
+  }
+}
+
+const handleRemoveFromFamily = async (f) => {
+  if (!selectedUser.value) return
+  if (!confirm(`Retirer ${selectedUser.value.firstName} de la famille "${f.name}" ?`)) return
+  userModalError.value = ''
+  userModalSuccess.value = ''
+  try {
+    const userId = selectedUser.value.id || selectedUser.value._id
+    const familyId = f.familyId || f._id || f.id
+    const res = await fetch(`/api/super-admin/users/${userId}/families/${familyId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      userModalError.value = data.error || 'Erreur lors du retrait de la famille'
+      return
+    }
+    userModalSuccess.value = `✓ Retiré de la famille "${f.name}" avec succès !`
+    selectedUser.value.families = selectedUser.value.families.filter(
+      item => (item.familyId || item._id || item.id) !== familyId
+    )
+    await fetchUsers()
+    await fetchFamilies()
+  } catch (err) {
+    userModalError.value = err.message || 'Erreur réseau'
+  }
+}
+
+const handleAttachFamily = async () => {
+  if (!selectedUser.value || !newFamilyAttach.familyId) return
+  attachingFamily.value = true
+  userModalError.value = ''
+  userModalSuccess.value = ''
+  try {
+    const userId = selectedUser.value.id || selectedUser.value._id
+    const res = await fetch(`/api/super-admin/users/${userId}/families`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({
+        familyId: newFamilyAttach.familyId,
+        role: newFamilyAttach.role || 'Membre',
+        isAdmin: Boolean(newFamilyAttach.isAdmin)
+      })
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      userModalError.value = data.error || 'Erreur lors du rattachement'
+      return
+    }
+    userModalSuccess.value = '✓ Utilisateur rattaché à la famille avec succès !'
+    await fetchUsers()
+    await fetchFamilies()
+    const updated = users.value.find(u => (u.id || u._id) === userId)
+    if (updated) {
+      selectedUser.value = JSON.parse(JSON.stringify(updated))
+    }
+    newFamilyAttach.familyId = ''
+    newFamilyAttach.role = 'Membre'
+    newFamilyAttach.isAdmin = false
+  } catch (err) {
+    userModalError.value = err.message || 'Erreur réseau'
+  } finally {
+    attachingFamily.value = false
+  }
+}
+
+const handleDeleteUser = async () => {
+  if (!selectedUser.value) return
+  const fullName = `${selectedUser.value.firstName} ${selectedUser.value.lastName}`
+  if (!confirm(`Êtes-vous ABSOLUMENT certain de vouloir supprimer le compte de ${fullName} ?\nCette action est irréversible et supprimera tous ses accès.`)) {
+    return
+  }
+  deletingUser.value = true
+  userModalError.value = ''
+  try {
+    const userId = selectedUser.value.id || selectedUser.value._id
+    const res = await fetch(`/api/super-admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      userModalError.value = data.error || 'Erreur lors de la suppression du compte'
+      return
+    }
+    showUserModal.value = false
+    await fetchUsers()
+    await fetchFamilies()
+  } catch (err) {
+    userModalError.value = err.message || 'Erreur réseau'
+  } finally {
+    deletingUser.value = false
   }
 }
 
@@ -1489,5 +1894,194 @@ const testGlobalSmtp = async () => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Modal LG & User Management */
+.modal-lg {
+  max-width: 680px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.user-management-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card-section .sub-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.checkbox-group {
+  margin-top: 0.25rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-top: 0.2rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.help-text {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  margin-top: 0.15rem;
+}
+
+.form-actions-right {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.user-families-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.user-family-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.family-info-col {
+  flex: 1.2;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+}
+
+.family-role-col {
+  flex: 1;
+  min-width: 100px;
+}
+
+.form-input-sm {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.family-admin-col {
+  display: flex;
+  align-items: center;
+}
+
+.admin-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.family-actions-col {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-danger-ghost {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.btn-danger-ghost:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.add-to-family-box {
+  padding: 0.75rem;
+  background: rgba(99, 102, 241, 0.04);
+  border: 1px dashed rgba(99, 102, 241, 0.25);
+  border-radius: 8px;
+}
+
+.sub-box-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--primary, #6366f1);
+}
+
+.attach-family-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.attach-family-form .flex-1 {
+  flex: 1;
+  min-width: 120px;
+}
+
+.attach-family-form .flex-checkbox {
+  display: flex;
+  align-items: center;
+}
+
+.form-select {
+  width: 100%;
+  background: var(--card-bg, #1e293b);
+  color: var(--text-color, #f8fafc);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+}
+
+.danger-zone {
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.05);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.danger-zone-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.empty-state-text {
+  font-size: 0.85rem;
+  color: var(--text-muted, #64748b);
+  font-style: italic;
+  padding: 0.5rem 0;
 }
 </style>
