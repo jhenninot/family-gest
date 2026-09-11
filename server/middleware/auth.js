@@ -37,7 +37,7 @@ export const requireAuth = async (req, res, next) => {
 }
 
 export const requireAdmin = (req, res, next) => {
-  if (req.user && req.user.isAdmin) {
+  if (req.user && (req.user.isAdmin || req.user.role === 'admin' || req.user.role === 'Administrateur')) {
     return next()
   } else {
     return res.status(403).json({ error: 'Action réservée aux utilisateurs administrateurs' })

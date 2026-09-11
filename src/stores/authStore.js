@@ -7,7 +7,14 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref('')
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
-  const isAdmin = computed(() => user.value && user.value.isAdmin === true)
+  const isAdmin = computed(() => {
+    if (!user.value) return false
+    return user.value.isAdmin === true || 
+      user.value.isAdmin === 'true' || 
+      user.value.role === 'admin' || 
+      user.value.role === 'Administrateur' ||
+      user.value.role === 'Admin'
+  })
 
   const login = async (email, password) => {
     error.value = ''

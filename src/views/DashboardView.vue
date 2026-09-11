@@ -396,11 +396,23 @@
               <h2>Membres ({{ store.members.length }})</h2>
             </div>
 
-            <!-- Only Admin can see + Membre button -->
-            <button v-if="authStore.isAdmin" @click="showAddMemberModal = true" class="btn btn-sm btn-secondary">
-              <UserPlus :size="14" />
-              <span>+ Membre</span>
-            </button>
+            <!-- Only Admin can see export & + Membre buttons -->
+            <div v-if="authStore.isAdmin" class="dashboard-members-admin-actions">
+              <button 
+                type="button" 
+                @click="handleExportData" 
+                class="btn btn-sm btn-secondary" 
+                :disabled="exporting"
+                title="Exporter l'ensemble des données de la famille au format JSON"
+              >
+                <Download :size="14" />
+                <span>{{ exporting ? 'Export...' : 'Exporter (JSON)' }}</span>
+              </button>
+              <button @click="showAddMemberModal = true" class="btn btn-sm btn-secondary">
+                <UserPlus :size="14" />
+                <span>+ Membre</span>
+              </button>
+            </div>
             <span v-else class="admin-only-tag" title="Seul l'administrateur peut gérer les membres">
               <ShieldAlert :size="14" /> Lecture seule
             </span>
@@ -859,6 +871,40 @@ const getMemberFirstName = (memberId) => {
   return m.firstName || (m.name ? m.name.split(' ')[0] : 'Membre')
 }
 
+// --- Export des données de la famille ---
+const exporting = ref(false)
+
+const handleExportData = async () => {
+  exporting.value = true
+  try {
+    const res = await fetch('/api/admin/export', {
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      }
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || 'Erreur lors de l\'export des données')
+    }
+    const data = await res.json()
+    const jsonStr = JSON.stringify(data, null, 2)
+    const blob = new Blob([jsonStr], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const dateStr = new Date().toISOString().slice(0, 10)
+    a.href = url
+    a.download = `familygest-export-${dateStr}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    alert(`Erreur : ${err.message}`)
+  } finally {
+    exporting.value = false
+  }
+}
+
 const showAddMemberModal = ref(false)
 const showEditMemberModal = ref(false)
 const editingMember = ref(null)
@@ -1226,6 +1272,12 @@ const handleDeleteMember = async (member) => {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.dashboard-members-admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .view-all-link {

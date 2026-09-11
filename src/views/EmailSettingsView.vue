@@ -15,6 +15,19 @@
         <button 
           v-if="authStore.isAdmin" 
           type="button" 
+          @click="handleExportData" 
+          class="btn btn-secondary btn-header-export"
+          :disabled="exporting"
+          title="Exporter l'ensemble des données de la famille au format JSON"
+        >
+          <Download v-if="!exporting" :size="18" />
+          <Loader2 v-else :size="18" class="spin" />
+          <span>{{ exporting ? 'Exportation...' : 'Exporter les données (JSON)' }}</span>
+        </button>
+
+        <button 
+          v-if="authStore.isAdmin" 
+          type="button" 
           @click="showAddMemberModal = true" 
           class="btn btn-primary btn-header-add-member"
         >
