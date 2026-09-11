@@ -230,11 +230,32 @@ const selectPreset = (path) => {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 0.55rem;
+  max-height: 290px;
+  overflow-y: auto;
+  padding: 4px 4px 8px 4px;
+}
+
+.preset-3d-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.preset-3d-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.preset-3d-grid::-webkit-scrollbar-thumb {
+  background: var(--border-color, rgba(148, 163, 184, 0.3));
+  border-radius: var(--radius-full, 9999px);
+}
+
+.preset-3d-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary, #6366f1);
 }
 
 @media (max-width: 500px) {
   .preset-3d-grid {
     grid-template-columns: repeat(4, 1fr);
+    max-height: 250px;
   }
 }
 
