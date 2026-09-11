@@ -50,11 +50,12 @@ export const migrateToMultiFamily = async () => {
       }
     }
 
-    // 3. Migration des utilisateurs vers FamilyMember pour la famille par défaut
+    // 3. Migration des utilisateurs orphelins vers FamilyMember pour la famille par défaut
     const allUsers = await User.find()
     for (const u of allUsers) {
-      const existingMember = await FamilyMember.findOne({ familyId, userId: u.id })
-      if (!existingMember) {
+      // Si l'utilisateur appartient déjà à au moins une famille, on ne le force pas dans la famille par défaut
+      const anyMember = await FamilyMember.findOne({ userId: u.id })
+      if (!anyMember) {
         const newMember = new FamilyMember({
           familyId,
           userId: u.id,
@@ -67,7 +68,7 @@ export const migrateToMultiFamily = async () => {
           emailNotificationsEnabled: Boolean(u.emailNotificationsEnabled)
         })
         await newMember.save()
-        console.log(`👤 [Migration] Membre ${u.firstName} ${u.lastName} (ID: ${u.id}) rattaché à "${defaultFamily.name}"`)
+        console.log(`👤 [Migration] Membre orphelin ${u.firstName} ${u.lastName} (ID: ${u.id}) rattaché à "${defaultFamily.name}"`)
       }
     }
 
