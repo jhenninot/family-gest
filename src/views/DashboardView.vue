@@ -385,6 +385,9 @@
                 </button>
               </div>
             </div>
+            <div v-if="dashboardEvents.length === 0" class="empty-state">
+              📅 Aucun événement à venir pour le moment.
+            </div>
           </div>
         </div>
 
@@ -418,16 +421,19 @@
               v-for="member in store.members" 
               :key="member.id" 
               class="member-card"
-              :class="{ clickable: store.isFamilyAdmin }"
-              @click="store.isFamilyAdmin && openEditMemberModal(member)"
-              :title="store.isFamilyAdmin ? 'Cliquez pour modifier les informations de ce membre' : ''"
+              :class="{ clickable: store.isFamilyAdmin && !member.isPending, 'is-pending-card': member.isPending }"
+              @click="store.isFamilyAdmin && !member.isPending && openEditMemberModal(member)"
+              :title="store.isFamilyAdmin ? (member.isPending ? 'Invitation en attente d\'activation' : 'Cliquez pour modifier les informations de ce membre') : ''"
             >
               <div class="member-card-top">
                 <span class="avatar-emoji">{{ member.avatar }}</span>
                 <div class="member-card-name">
                   <strong>{{ member.name }}</strong>
-                  <span v-if="member.isAdmin" class="admin-badge-mini" title="Administrateur">
+                  <span v-if="member.isAdmin && !member.isPending" class="admin-badge-mini" title="Administrateur">
                     <ShieldCheck :size="12" /> Admin
+                  </span>
+                  <span v-if="member.isPending" class="pending-badge-mini" title="Invitation envoyée, en attente d'activation par l'utilisateur">
+                    ⏳ En attente
                   </span>
                 </div>
               </div>
@@ -436,7 +442,7 @@
                   <span class="member-role-text">{{ member.role }}</span>
                   <span v-if="member.email" class="member-email-sub">{{ member.email }}</span>
                 </div>
-                <div class="member-actions">
+                <div class="member-actions" v-if="!member.isPending">
 
                   <!-- Edit icon button for Admin -->
                   <button 
@@ -471,6 +477,9 @@
                   </button>
                 </div>
               </div>
+            </div>
+            <div v-if="store.members.length === 0" class="empty-state">
+              👥 Aucun membre trouvé dans cette famille.
             </div>
           </div>
         </div>
@@ -781,7 +790,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
@@ -815,6 +824,72 @@ const store = useFamilyStore()
 
 const currentSlug = computed(() => route.params.familySlug || store.currentFamily?.slug || localStorage.getItem('familygest_active_slug') || '')
 const getPath = (sub) => currentSlug.value ? `/${currentSlug.value}${sub}` : (sub || '/')
+
+const urgentShoppingCount = computed(() => {
+  return (store.shoppingList || []).filter(item => !item.checked && item.urgent).length
+})
+
+const dashboardTasks = computed(() => {
+  return (store.tasks || []).slice(0, 6)
+})
+
+const dashboardEvents = computed(() => {
+  const today = store.todayStr
+  return (store.events || [])
+    .filter(e => e.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 5)
+})
+
+const nextEvent = computed(() => {
+  const today = store.todayStr
+  const upcoming = (store.events || [])
+    .filter(e => e.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+  return upcoming.length > 0 ? upcoming[0] : null
+})
+
+const getMemberName = (id) => {
+  if (!id) return 'Non assigné'
+  const m = store.members.find(m => m.id === id || String(m.id) === String(id))
+  return m ? (m.firstName || m.name) : 'Non assigné'
+}
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long' })
+}
+
+const getDayNumber = (dateStr) => {
+  if (!dateStr) return ''
+  const parts = dateStr.split('-')
+  return parts[2] ? String(parseInt(parts[2], 10)) : ''
+}
+
+const getMonthShort = (dateStr) => {
+  if (!dateStr) return ''
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { month: 'short' })
+}
+
+const loadDashboardData = async () => {
+  const targetSlug = route.params.familySlug || store.currentFamily?.slug || localStorage.getItem('familygest_active_slug')
+  if (targetSlug) {
+    if (!store.currentFamily || store.currentFamily.slug !== targetSlug) {
+      await store.fetchCurrentFamily(targetSlug)
+    }
+    await store.fetchAllData()
+  }
+}
+
+onMounted(async () => {
+  await loadDashboardData()
+})
+
+watch(() => route.params.familySlug, async (newSlug) => {
+  if (newSlug) {
+    await loadDashboardData()
+  }
+})
 
 const todayLunchPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'lunch'))
 const todayDinnerPresence = computed(() => store.getMealSlotPresence(store.todayStr, 'dinner'))
@@ -867,8 +942,25 @@ const getMemberFirstName = (memberId) => {
 const showAddMemberModal = ref(false)
 const showEditMemberModal = ref(false)
 const editingMember = ref(null)
+const addingMember = ref(false)
 const savingEdit = ref(false)
 const resendingEmail = ref(false)
+
+const editMemberForm = ref({
+  id: null,
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  role: 'Membre',
+  points: 0,
+  isAdmin: false,
+  avatar: '👤',
+  color: '#6366f1',
+  pushNotificationsEnabled: true,
+  emailNotificationsEnabled: false,
+  usualPresence: 'present'
+})
 
 const handleResendWelcomeEmail = async (memberId) => {
   if (!memberId) return
@@ -1674,6 +1766,26 @@ const handleDeleteMember = async (member) => {
   align-items: center;
   gap: 0.1rem;
   flex-shrink: 0;
+}
+
+.pending-badge-mini {
+  font-size: 0.625rem;
+  font-weight: 800;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.member-card.is-pending-card {
+  opacity: 0.85;
+  border-style: dashed;
+  border-color: rgba(245, 158, 11, 0.4);
 }
 
 /* Ligne du bas : rôle/email + pts/actions */

@@ -111,7 +111,31 @@ const attachFamilyContext = async (req, res, next) => {
     req.family = family
 
     // Vérification de l'appartenance
-    const membership = await FamilyMember.findOne({ familyId: family._id, userId: req.user.id })
+    let membership = await FamilyMember.findOne({ familyId: family._id, userId: req.user.id })
+
+    // Si pas encore membre, vérifier si cet utilisateur a une invitation en attente pour cette famille
+    if (!membership && req.user?.email) {
+      const pendingInv = await FamilyInvitation.findOne({
+        familyId: family._id,
+        email: req.user.email.toLowerCase().trim(),
+        status: 'pending'
+      })
+      if (pendingInv) {
+        membership = new FamilyMember({
+          familyId: family._id,
+          userId: req.user.id,
+          userRef: req.user._id,
+          role: pendingInv.role || 'Administrateur',
+          isAdmin: Boolean(pendingInv.isAdmin),
+          usualPresence: req.user.usualPresence || 'present',
+          pushNotificationsEnabled: true,
+          emailNotificationsEnabled: false
+        })
+        await membership.save()
+        pendingInv.status = 'accepted'
+        await pendingInv.save()
+      }
+    }
 
     if (req.user.isSuperAdmin) {
       req.membership = membership || {
@@ -803,6 +827,27 @@ app.post('/api/auth/login', async (req, res) => {
     await User.updateOne({ id: user.id }, { $set: { lastLogin: new Date() } })
     const token = generateToken(user.id, user.email, user.isAdmin, user.isSuperAdmin)
 
+    // Auto-rattachement des invitations en attente pour cet utilisateur
+    const pendingInvs = await FamilyInvitation.find({ email: user.email.toLowerCase().trim(), status: 'pending' })
+    for (const inv of pendingInvs) {
+      const already = await FamilyMember.findOne({ familyId: inv.familyId, userId: user.id })
+      if (!already) {
+        const m = new FamilyMember({
+          familyId: inv.familyId,
+          userId: user.id,
+          userRef: user._id,
+          role: inv.role || 'Membre',
+          isAdmin: Boolean(inv.isAdmin),
+          usualPresence: user.usualPresence || 'present',
+          pushNotificationsEnabled: true,
+          emailNotificationsEnabled: false
+        })
+        await m.save()
+      }
+      inv.status = 'accepted'
+      await inv.save()
+    }
+
     // Récupérer les familles de l'utilisateur
     const memberships = await FamilyMember.find({ userId: user.id })
     const familyIds = memberships.map(m => m.familyId)
@@ -1244,6 +1289,53 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
     const cleanEmail = adminEmail.toLowerCase().trim()
     const existingUser = await User.findOne({ email: cleanEmail })
 
+    if (existingUser) {
+      // Compte existant : rattacher directement l'utilisateur comme administrateur de la famille
+      const newMember = new FamilyMember({
+        familyId: family._id,
+        userId: existingUser.id,
+        userRef: existingUser._id,
+        role: 'Administrateur',
+        isAdmin: true,
+        usualPresence: existingUser.usualPresence || 'present',
+        pushNotificationsEnabled: true,
+        emailNotificationsEnabled: false
+      })
+      await newMember.save()
+    }
+
+    // Initialiser les catégories de courses par défaut
+    const catDocs = DEFAULT_CATEGORIES.map((c, i) => ({ ...c, familyId: family._id, id: Date.now() + i }))
+    await ShoppingCategory.insertMany(catDocs)
+
+    // Initialiser 2 tâches d'accueil pour la nouvelle famille
+    await Task.insertMany([
+      {
+        id: Date.now(),
+        familyId: family._id,
+        title: 'Inviter les membres de la famille',
+        description: 'Ajoutez les membres de votre famille depuis la section Membres.',
+        category: 'Organisation',
+        assignedTo: existingUser ? existingUser.id : null,
+        priority: 'Haute',
+        points: 10,
+        completed: false,
+        dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      },
+      {
+        id: Date.now() + 1,
+        familyId: family._id,
+        title: 'Découvrir le calendrier et les courses',
+        description: 'Planifiez vos premiers événements familiaux et préparez la liste de courses.',
+        category: 'Maison',
+        assignedTo: existingUser ? existingUser.id : null,
+        priority: 'Moyenne',
+        points: 5,
+        completed: false,
+        dueDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      }
+    ])
+
     const token = crypto.randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 jours
 
@@ -1256,7 +1348,7 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
       invitedBy: req.user.id,
       firstName: (existingUser ? existingUser.firstName : adminFirstName) || '',
       lastName: (existingUser ? existingUser.lastName : adminLastName) || '',
-      status: 'pending',
+      status: existingUser ? 'accepted' : 'pending',
       expiresAt
     })
     await invitation.save()
@@ -1301,11 +1393,28 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
     const existingUser = await User.findOne({ email: cleanEmail })
 
     if (existingUser) {
-      const existingMember = await FamilyMember.findOne({ familyId: family._id, userId: existingUser.id })
+      let existingMember = await FamilyMember.findOne({ familyId: family._id, userId: existingUser.id })
       if (existingMember && existingMember.isAdmin) {
         return res.status(400).json({
           error: `L'utilisateur ${existingUser.firstName || ''} ${existingUser.lastName || ''} (${cleanEmail}) est déjà administrateur de la famille « ${family.name} »`
         })
+      }
+      if (!existingMember) {
+        existingMember = new FamilyMember({
+          familyId: family._id,
+          userId: existingUser.id,
+          userRef: existingUser._id,
+          role: 'Administrateur',
+          isAdmin: true,
+          usualPresence: existingUser.usualPresence || 'present',
+          pushNotificationsEnabled: true,
+          emailNotificationsEnabled: false
+        })
+        await existingMember.save()
+      } else {
+        existingMember.isAdmin = true
+        existingMember.role = 'Administrateur'
+        await existingMember.save()
       }
     } else {
       if (!firstName || !firstName.trim()) {
@@ -1328,7 +1437,7 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
       invitedBy: req.user.id,
       firstName: (existingUser ? existingUser.firstName : firstName) || '',
       lastName: (existingUser ? existingUser.lastName : lastName) || '',
-      status: 'pending',
+      status: existingUser ? 'accepted' : 'pending',
       expiresAt
     })
     await invitation.save()
@@ -2094,6 +2203,44 @@ app.get('/api/members', requireAuth, attachFamilyContext, async (req, res) => {
         isSuperAdmin: Boolean(u.isSuperAdmin)
       }
     }).filter(Boolean)
+
+    // Inclure les invitations en attente pour cette famille
+    const pendingInvs = await FamilyInvitation.find({ familyId: req.family._id, status: 'pending' })
+    for (const inv of pendingInvs) {
+      members.push({
+        id: `inv-${inv._id}`,
+        name: `${inv.firstName || ''} ${inv.lastName || ''}`.trim() || inv.email,
+        firstName: inv.firstName || 'Invité',
+        lastName: inv.lastName || '',
+        email: inv.email,
+        isAdmin: Boolean(inv.isAdmin),
+        role: inv.role || (inv.isAdmin ? 'Administrateur' : 'Membre'),
+        avatar: '✉️',
+        color: '#94a3b8',
+        points: 0,
+        usualPresence: 'present',
+        isPending: true,
+        invitationToken: inv.token
+      })
+    }
+
+    // Si aucun membre actif et que c'est le Super Admin qui consulte, inclure le Super Admin
+    if (memberships.length === 0 && req.user.isSuperAdmin) {
+      members.unshift({
+        id: req.user.id,
+        name: `${req.user.firstName} ${req.user.lastName}`,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        email: req.user.email,
+        isAdmin: true,
+        role: 'Super Administrateur',
+        avatar: req.user.avatar || '👑',
+        color: '#f59e0b',
+        points: 0,
+        usualPresence: 'present',
+        isSuperAdmin: true
+      })
+    }
 
     res.json(members)
   } catch (err) {
