@@ -45,8 +45,8 @@
         :class="{ active: activeTab === 'smtp' }" 
         @click="activeTab = 'smtp'"
       >
-        <Mail :size="18" />
-        <span>SMTP Global de secours</span>
+        <Globe :size="18" />
+        <span>Configuration Globale & SMTP</span>
       </button>
     </div>
 
@@ -172,18 +172,37 @@
       </div>
     </div>
 
-    <!-- TAB 3: GLOBAL SMTP -->
+    <!-- TAB 3: GLOBAL CONFIG & SMTP -->
     <div v-if="activeTab === 'smtp'" class="tab-content">
       <div class="smtp-container glass-card">
         <div class="smtp-intro">
-          <h3>Configuration SMTP Globale de la Plateforme</h3>
+          <h3>Paramétrage Global de la Plateforme</h3>
           <p>
-            Ce serveur SMTP sera utilisé par défaut pour envoyer les emails d'invitation,
-            réinitialisations de mot de passe et notifications pour toutes les familles qui n'ont pas configuré leur propre serveur SMTP.
+            Configurez l'adresse web publique principale de FamilyGest et le serveur SMTP global utilisé par défaut pour toutes les familles.
           </p>
         </div>
 
         <form @submit.prevent="saveGlobalSmtp" class="smtp-form">
+          <!-- Section URL Publique de la plateforme -->
+          <div class="form-group margin-bottom-lg">
+            <label class="form-label">
+              <strong>URL publique de l'application / du serveur (Base URL)</strong>
+            </label>
+            <input 
+              v-model="smtpConfig.serverUrl" 
+              type="text" 
+              placeholder="Ex: https://famille.mondomaine.fr ou http://192.168.1.50:5000" 
+              class="form-input" 
+              required 
+            />
+            <span class="help-subtext">
+              Exemple : <code>https://famille.mondomaine.fr</code> ou <code>http://localhost:5000</code>. Sans barre oblique finale. Cette adresse sera insérée dans tous les emails d'invitation et de notification pour que les membres de chaque famille puissent accéder à l'application.
+            </span>
+          </div>
+
+          <div class="separator-divider"></div>
+          <h4 class="sub-section-title margin-top-md">Serveur SMTP Global de secours</h4>
+
           <div class="grid-2">
             <div class="form-group">
               <label class="form-label">Hôte SMTP (Host)</label>
@@ -430,6 +449,7 @@ import {
   Home, 
   Users, 
   Mail, 
+  Globe,
   Plus, 
   ArrowLeft, 
   Edit2, 
@@ -449,8 +469,9 @@ const users = ref([])
 const loadingFamilies = ref(false)
 const loadingUsers = ref(false)
 
-// Global SMTP State
+// Global Platform & SMTP State
 const smtpConfig = reactive({
+  serverUrl: 'http://localhost:5173',
   host: '',
   port: 587,
   secure: false,
@@ -531,7 +552,12 @@ const fetchSmtp = async () => {
     })
     if (res.ok) {
       const data = await res.json()
-      Object.assign(smtpConfig, data)
+      smtpConfig.serverUrl = data.serverUrl || 'http://localhost:5173'
+      smtpConfig.host = data.host || ''
+      smtpConfig.port = data.port || 587
+      smtpConfig.secure = Boolean(data.secure)
+      smtpConfig.user = data.user || ''
+      smtpConfig.from = data.fromEmail || data.from || ''
     }
   } catch (err) {
     console.error('Erreur fetchSmtp', err)
@@ -710,6 +736,7 @@ const saveGlobalSmtp = async () => {
   smtpMessage.value = ''
   try {
     const payload = {
+      serverUrl: (smtpConfig.serverUrl || '').trim(),
       host: smtpConfig.host,
       port: smtpConfig.port,
       secure: smtpConfig.secure,
@@ -730,7 +757,7 @@ const saveGlobalSmtp = async () => {
     const data = await res.json()
     if (res.ok) {
       smtpSuccess.value = true
-      smtpMessage.value = '✓ Configuration SMTP enregistrée avec succès !'
+      smtpMessage.value = '✓ Paramètres de la plateforme et SMTP enregistrés avec succès !'
     } else {
       smtpSuccess.value = false
       smtpMessage.value = data.error || 'Erreur lors de l\'enregistrement'

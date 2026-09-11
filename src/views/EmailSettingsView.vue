@@ -50,49 +50,8 @@
     </div>
 
     <div v-else class="admin-body-wrapper">
-      <!-- App Settings Card: Paramétrage de l'application -->
-      <div class="card glass-card app-config-card">
-        <div class="app-config-header">
-          <div class="section-title-group">
-            <h2 class="section-title">
-              <Globe :size="20" class="title-icon-globe" /> Paramétrage de l'application
-            </h2>
-            <p class="section-subtitle">
-              Adresse web globale de FamilyGest utilisée pour expédier les emails de bienvenue avec lien d'activation sécurisé (2h).
-            </p>
-          </div>
-          <button 
-            type="button" 
-            @click="handleSave" 
-            class="btn btn-primary btn-save-url"
-            :disabled="saving"
-          >
-            <Save :size="15" />
-            <span>{{ saving ? 'Enregistrement...' : 'Enregistrer les paramètres' }}</span>
-          </button>
-        </div>
-
-        <div class="app-config-fields margin-top-md">
-          <div class="form-group">
-            <label class="input-label">URL du serveur / de l'application :</label>
-            <div class="input-url-wrapper">
-              <input 
-                v-model="form.serverUrl" 
-                type="text" 
-                class="form-input" 
-                placeholder="http://localhost:5173" 
-                required 
-              />
-            </div>
-            <span class="help-text">
-              Exemple : <code>http://localhost:5173</code> (en local / développement), ou votre nom de domaine / adresse réseau (ex: <code>https://famille.mondomaine.fr</code>). Cette adresse sera insérée dans les emails de bienvenue pour que les nouveaux membres puissent définir leur mot de passe.
-            </span>
-          </div>
-        </div>
-      </div>
-
       <!-- Shopping Categories Card: Catégories de courses -->
-      <div class="card glass-card shopping-cats-card margin-top-lg">
+      <div class="card glass-card shopping-cats-card">
         <div class="shopping-cats-header">
           <div class="section-title-group">
             <h2 class="section-title">

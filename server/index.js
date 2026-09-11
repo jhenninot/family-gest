@@ -48,19 +48,33 @@ app.get('/api/health', (req, res) => {
 // Helper : Obtenir la configuration SMTP appropriée (priorité : familial si configuré, sinon global plateforme)
 const getSmtpConfig = async (familyId = null) => {
   try {
+    const globalConfig = await GlobalConfig.findOne()
+    let config = null
     if (familyId) {
       const familyConfig = await EmailConfig.findOne({ familyId, isConfigured: true })
       if (familyConfig && familyConfig.host && familyConfig.user && familyConfig.pass) {
-        return familyConfig
+        config = familyConfig.toObject ? familyConfig.toObject() : { ...familyConfig }
       }
     }
-    const globalConfig = await GlobalConfig.findOne({ isConfigured: true })
-    if (globalConfig && globalConfig.host && globalConfig.user && globalConfig.pass) {
-      return globalConfig
+    if (!config) {
+      if (globalConfig && globalConfig.isConfigured && globalConfig.host && globalConfig.user && globalConfig.pass) {
+        config = globalConfig.toObject ? globalConfig.toObject() : { ...globalConfig }
+      } else {
+        const fallback = await EmailConfig.findOne({ isConfigured: true })
+        if (fallback) {
+          config = fallback.toObject ? fallback.toObject() : { ...fallback }
+        }
+      }
     }
-    // Fallback à n'importe quelle configuration email configurée
-    const fallback = await EmailConfig.findOne({ isConfigured: true })
-    return fallback || null
+
+    if (config) {
+      // L'URL de base configurée au niveau Super Admin s'applique à toute l'application et à toutes les familles
+      if (globalConfig?.serverUrl) {
+        config.serverUrl = globalConfig.serverUrl
+      }
+    }
+
+    return config
   } catch (err) {
     console.error('Erreur getSmtpConfig:', err.message)
     return null
