@@ -82,17 +82,6 @@
         <span>Super Admin</span>
       </router-link>
 
-      <button 
-        v-if="store.isFamilyAdmin" 
-        type="button" 
-        @click="handleExportData" 
-        class="nav-item export-nav-btn"
-        :disabled="exporting"
-        title="Exporter l'ensemble des données de la famille au format JSON"
-      >
-        <Download :size="20" />
-        <span>{{ exporting ? 'Exportation...' : 'Exporter (JSON)' }}</span>
-      </button>
     </nav>
 
     <!-- Shortcuts / Web Apps Section -->
@@ -459,8 +448,7 @@ import {
   MoreVertical, 
   Trash2, 
   Bell, 
-  BellOff,
-  Download 
+  BellOff
 } from '@lucide/vue'
 import HouseUser from './icons/HouseUser.vue'
 import FamilySwitcher from './FamilySwitcher.vue'
@@ -485,40 +473,6 @@ const showProfileModal = ref(false)
 const saving = ref(false)
 const devicePushStatus = ref('default') // 'active', 'inactive', 'denied', 'unsupported'
 const initialDeviceSubscribed = ref(false)
-
-// --- Export des données de la famille ---
-const exporting = ref(false)
-
-const handleExportData = async () => {
-  exporting.value = true
-  try {
-    const res = await fetch('/api/admin/export', {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      throw new Error(err.error || 'Erreur lors de l\'export des données')
-    }
-    const data = await res.json()
-    const jsonStr = JSON.stringify(data, null, 2)
-    const blob = new Blob([jsonStr], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    const dateStr = new Date().toISOString().slice(0, 10)
-    a.href = url
-    a.download = `familygest-export-${dateStr}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  } catch (err) {
-    alert(`Erreur : ${err.message}`)
-  } finally {
-    exporting.value = false
-  }
-}
 
 const avatarOptions = ['👨‍💼', '👩‍⚕️', '👦', '👧', '👶', '🧑', '👨‍🍳', '👵', '👴', '🐱', '🐶']
 const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
@@ -1426,27 +1380,5 @@ const handleDeleteShortcut = async () => {
 
 .toggle-switch.active .toggle-circle {
   transform: translateX(20px);
-}
-
-.export-nav-btn {
-  background: transparent;
-  border: none;
-  width: 100%;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-  font-size: inherit;
-  color: var(--accent-primary, #6366f1);
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-}
-
-.export-nav-btn:hover {
-  background: rgba(99, 102, 241, 0.1);
-  color: var(--accent-primary, #6366f1);
 }
 </style>
