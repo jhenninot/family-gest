@@ -2071,6 +2071,8 @@ app.delete('/api/shortcuts/:id', requireAuth, requireAdmin, async (req, res) => 
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
+})
+
 // === EXPORT DES DONNÉES DE LA FAMILLE (ADMINISTRATION) ===
 app.get('/api/admin/export', requireAuth, requireAdmin, async (req, res) => {
   try {
