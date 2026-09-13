@@ -24,18 +24,7 @@
         <span>Tableau de bord</span>
       </router-link>
 
-      <router-link :to="getPath('/tasks')" class="nav-item" active-class="active">
-        <CheckSquare :size="20" />
-        <span>Tâches</span>
-        <span v-if="store.pendingTasksCount > 0" class="badge-count">{{ store.pendingTasksCount }}</span>
-      </router-link>
-
-      <router-link :to="getPath('/calendar')" class="nav-item" active-class="active">
-        <Calendar :size="20" />
-        <span>Calendrier</span>
-        <span v-if="store.events.length > 0" class="badge-count info">{{ store.events.length }}</span>
-      </router-link>
-
+      <!-- 1. Présence -->
       <router-link :to="getPath('/absences')" class="nav-item" active-class="active">
         <HouseUser :size="20" />
         <span>Présence</span>
@@ -44,10 +33,25 @@
         </span>
       </router-link>
 
+      <!-- 2. Liste de courses -->
       <router-link :to="getPath('/shopping')" class="nav-item" active-class="active">
         <ShoppingCart :size="20" />
         <span>Liste de courses</span>
         <span v-if="store.pendingShoppingCount > 0" class="badge-count warning">{{ store.pendingShoppingCount }}</span>
+      </router-link>
+
+      <!-- 3. Tâches -->
+      <router-link :to="getPath('/tasks')" class="nav-item" active-class="active">
+        <CheckSquare :size="20" />
+        <span>Tâches</span>
+        <span v-if="store.pendingTasksCount > 0" class="badge-count">{{ store.pendingTasksCount }}</span>
+      </router-link>
+
+      <!-- 4. Evénements du calendrier -->
+      <router-link :to="getPath('/calendar')" class="nav-item" active-class="active">
+        <Calendar :size="20" />
+        <span>Calendrier</span>
+        <span v-if="store.events.length > 0" class="badge-count info">{{ store.events.length }}</span>
       </router-link>
     </nav>
 

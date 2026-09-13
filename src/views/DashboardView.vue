@@ -3,38 +3,9 @@
 
 
     <!-- Summary Metrics Grid -->
+    <!-- Summary Metrics Grid : 1. Présence, 2. Courses, 3. Tâches, 4. Calendrier -->
     <div class="grid-4 metric-grid">
-      <!-- Card 1: Task Completion -->
-      <router-link :to="getPath('/tasks')" class="glass-card metric-card clickable-card">
-        <div class="metric-icon-wrapper indigo">
-          <CheckSquare :size="22" />
-        </div>
-        <div class="metric-details">
-          <span class="metric-label">Progression des Tâches</span>
-          <div class="metric-value">{{ store.taskCompletionPercentage }}%</div>
-          <div class="progress-bar-bg margin-top-xs">
-            <div class="progress-bar-fill" :style="{ width: store.taskCompletionPercentage + '%' }"></div>
-          </div>
-          <span class="metric-subtext">{{ store.pendingTasksCount }} tâche(s) en attente</span>
-        </div>
-      </router-link>
-
-      <!-- Card 2: Upcoming Events -->
-      <router-link :to="getPath('/calendar')" class="glass-card metric-card clickable-card">
-        <div class="metric-icon-wrapper purple">
-          <Calendar :size="22" />
-        </div>
-        <div class="metric-details">
-          <span class="metric-label">Événements à venir</span>
-          <div class="metric-value">{{ store.events.length }}</div>
-          <span class="metric-subtext" v-if="nextEvent">
-            Prochain : {{ nextEvent.title }} ({{ formatDate(nextEvent.date) }})
-          </span>
-          <span class="metric-subtext" v-else>Aucun événement planifié</span>
-        </div>
-      </router-link>
-
-      <!-- Card 3: Absences & Meals Today -->
+      <!-- Card 1: Présence (Absences & Repas aujourd'hui) -->
       <router-link :to="getPath('/absences')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper emerald">
           <HouseUser :size="22" />
@@ -50,7 +21,7 @@
         </div>
       </router-link>
 
-      <!-- Card 4: Shopping Items -->
+      <!-- Card 2: Liste de courses -->
       <router-link :to="getPath('/shopping')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper amber">
           <ShoppingCart :size="22" />
@@ -63,54 +34,43 @@
           </span>
         </div>
       </router-link>
+
+      <!-- Card 3: Progression des Tâches -->
+      <router-link :to="getPath('/tasks')" class="glass-card metric-card clickable-card">
+        <div class="metric-icon-wrapper indigo">
+          <CheckSquare :size="22" />
+        </div>
+        <div class="metric-details">
+          <span class="metric-label">Progression des Tâches</span>
+          <div class="metric-value">{{ store.taskCompletionPercentage }}%</div>
+          <div class="progress-bar-bg margin-top-xs">
+            <div class="progress-bar-fill" :style="{ width: store.taskCompletionPercentage + '%' }"></div>
+          </div>
+          <span class="metric-subtext">{{ store.pendingTasksCount }} tâche(s) en attente</span>
+        </div>
+      </router-link>
+
+      <!-- Card 4: Événements à venir (Calendrier) -->
+      <router-link :to="getPath('/calendar')" class="glass-card metric-card clickable-card">
+        <div class="metric-icon-wrapper purple">
+          <Calendar :size="22" />
+        </div>
+        <div class="metric-details">
+          <span class="metric-label">Événements à venir</span>
+          <div class="metric-value">{{ store.events.length }}</div>
+          <span class="metric-subtext" v-if="nextEvent">
+            Prochain : {{ nextEvent.title }} ({{ formatDate(nextEvent.date) }})
+          </span>
+          <span class="metric-subtext" v-else>Aucun événement planifié</span>
+        </div>
+      </router-link>
     </div>
 
-    <!-- Main Content Section: 2 Columns -->
+    <!-- Main Content Section: 2 Columns (1. Présence, 2. Courses | 3. Tâches, 4. Événements, 5. Membres) -->
     <div class="grid-2 dashboard-main-grid">
-      <!-- Column 1: Today's Tasks Checklist -->
-      <div class="glass-card section-card">
-        <div class="section-card-header">
-          <div class="header-title">
-            <CheckSquare :size="20" class="text-indigo" />
-            <h2>Tâches à réaliser</h2>
-          </div>
-          <router-link :to="getPath('/tasks')" class="view-all-link">Tout voir &rarr;</router-link>
-        </div>
-
-        <div class="tasks-list">
-          <div 
-            v-for="task in dashboardTasks" 
-            :key="task.id"
-            class="task-item-row"
-            :class="{ completed: task.completed }"
-          >
-            <input 
-              type="checkbox" 
-              :checked="task.completed" 
-              @change="store.toggleTask(task.id)" 
-              class="custom-checkbox"
-            />
-            <div class="task-info">
-              <span class="task-title-text">{{ task.title }}</span>
-              <div class="task-meta">
-                <span class="badge badge-indigo">{{ task.category }}</span>
-                <span class="assigned-tag">
-                  {{ getMemberName(task.assignedTo) }}
-                </span>
-              </div>
-            </div>
-
-          </div>
-
-          <div v-if="dashboardTasks.length === 0" class="empty-state">
-            🎉 Toutes les tâches sont terminées ! Bravo !
-          </div>
-        </div>
-      </div>
-
-      <!-- Column 2: Upcoming Calendar Events & Members Overview -->
-      <div class="dashboard-column-right">
-        <!-- Today's Meals & Night Breakdown Widget -->
+      <!-- Column 1 (Left): 1. Présence, 2. Liste de courses -->
+      <div class="dashboard-column-left">
+        <!-- 1. Présence : Today's Meals & Night Breakdown Widget -->
         <div class="glass-card section-card margin-bottom-md today-meals-widget">
           <div class="section-card-header">
             <div class="header-title">
@@ -342,7 +302,95 @@
           </div>
         </div>
 
-        <!-- Events List Widget -->
+        <!-- 2. Liste de courses Widget -->
+        <div class="glass-card section-card margin-bottom-md shopping-dashboard-widget">
+          <div class="section-card-header">
+            <div class="header-title">
+              <ShoppingCart :size="20" class="text-amber" />
+              <h2>Liste de courses</h2>
+            </div>
+            <router-link :to="getPath('/shopping')" class="view-all-link">Voir la liste &rarr;</router-link>
+          </div>
+
+          <div class="tasks-list">
+            <div 
+              v-for="item in dashboardShoppingItems" 
+              :key="item.id"
+              class="task-item-row"
+            >
+              <input 
+                type="checkbox" 
+                :checked="item.checked" 
+                @change="store.toggleShoppingItem(item.id)" 
+                class="custom-checkbox"
+                :title="item.checked ? 'Décocher cet article' : 'Cocher cet article (acheté)'"
+              />
+              <div class="task-info">
+                <span class="task-title-text">{{ item.name }}</span>
+                <div class="task-meta">
+                  <span class="badge badge-amber" v-if="item.category">
+                    {{ getShoppingCategoryIcon(item.category) }} {{ item.category }}
+                  </span>
+                  <span v-if="item.quantity" class="assigned-tag">
+                    Qté : {{ item.quantity }}
+                  </span>
+                  <span v-if="item.urgent" class="badge badge-rose">
+                    Urgent 🔥
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="dashboardShoppingItems.length === 0" class="empty-state">
+              🛒 La liste de courses est vide ! Tout est sous contrôle.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 2 (Right): 3. Tâches, 4. Événements, 5. Membres -->
+      <div class="dashboard-column-right">
+        <!-- 3. Tâches : Today's Tasks Checklist -->
+        <div class="glass-card section-card margin-bottom-md">
+          <div class="section-card-header">
+            <div class="header-title">
+              <CheckSquare :size="20" class="text-indigo" />
+              <h2>Tâches à réaliser</h2>
+            </div>
+            <router-link :to="getPath('/tasks')" class="view-all-link">Tout voir &rarr;</router-link>
+          </div>
+
+          <div class="tasks-list">
+            <div 
+              v-for="task in dashboardTasks" 
+              :key="task.id"
+              class="task-item-row"
+              :class="{ completed: task.completed }"
+            >
+              <input 
+                type="checkbox" 
+                :checked="task.completed" 
+                @change="store.toggleTask(task.id)" 
+                class="custom-checkbox"
+              />
+              <div class="task-info">
+                <span class="task-title-text">{{ task.title }}</span>
+                <div class="task-meta">
+                  <span class="badge badge-indigo">{{ task.category }}</span>
+                  <span class="assigned-tag">
+                    {{ getMemberName(task.assignedTo) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="dashboardTasks.length === 0" class="empty-state">
+              🎉 Toutes les tâches sont terminées ! Bravo !
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Prochains événements (Calendrier) -->
         <div class="glass-card section-card margin-bottom-md">
           <div class="section-card-header">
             <div class="header-title">
@@ -400,7 +448,7 @@
           </div>
         </div>
 
-        <!-- Members Points & Rewards -->
+        <!-- 5. Membres Points & Rewards -->
         <div class="glass-card section-card">
           <div class="section-card-header">
             <div class="header-title">
@@ -828,6 +876,17 @@ const urgentShoppingCount = computed(() => {
   return (store.shoppingList || []).filter(item => !item.checked && item.urgent).length
 })
 
+const dashboardShoppingItems = computed(() => {
+  return (store.shoppingList || [])
+    .filter(item => !item.checked)
+    .sort((a, b) => {
+      if (a.urgent && !b.urgent) return -1
+      if (!a.urgent && b.urgent) return 1
+      return 0
+    })
+    .slice(0, 6)
+})
+
 const dashboardTasks = computed(() => {
   return (store.tasks || []).slice(0, 6)
 })
@@ -847,6 +906,11 @@ const nextEvent = computed(() => {
     .sort((a, b) => a.date.localeCompare(b.date))
   return upcoming.length > 0 ? upcoming[0] : null
 })
+
+const getShoppingCategoryIcon = (categoryName) => {
+  const cat = (store.shoppingCategories || []).find(c => c.name === categoryName)
+  return cat?.icon || '🛒'
+}
 
 const getMemberName = (id) => {
   if (!id) return 'Non assigné'
@@ -1262,6 +1326,13 @@ const handleDeleteMember = async (member) => {
 .margin-top-xs { margin-top: 0.4rem; }
 .margin-bottom-md { margin-bottom: 1.5rem; }
 .margin-left-xs { margin-left: 0.5rem; }
+
+.dashboard-column-left,
+.dashboard-column-right {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 
 .section-card {
   padding: 1.5rem;
