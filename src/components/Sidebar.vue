@@ -49,12 +49,6 @@
         <span>Liste de courses</span>
         <span v-if="store.pendingShoppingCount > 0" class="badge-count warning">{{ store.pendingShoppingCount }}</span>
       </router-link>
-
-      <router-link v-if="authStore.isSuperAdmin" to="/super-admin" class="nav-item super-admin-nav" active-class="active">
-        <ShieldAlert :size="20" />
-        <span>Super Admin</span>
-      </router-link>
-
     </nav>
 
     <!-- Shortcuts / Web Apps Section (Masqué sur la console Super Admin) -->
@@ -211,7 +205,6 @@ import {
   Calendar, 
   ShoppingCart, 
   Award, 
-  ShieldAlert,
   Globe, 
   Plus, 
   ExternalLink, 
@@ -364,19 +357,6 @@ const handleDeleteShortcut = async () => {
 
 .family-switcher-section {
   margin-bottom: 0.5rem;
-}
-
-.nav-item.super-admin-nav {
-  color: #d97706;
-  border: 1px dashed rgba(245, 158, 11, 0.3);
-  background: rgba(245, 158, 11, 0.05);
-  margin-top: 0.25rem;
-}
-
-.nav-item.super-admin-nav:hover,
-.nav-item.super-admin-nav.active {
-  background: rgba(245, 158, 11, 0.15);
-  color: #b45309;
 }
 
 /* Nav Menu */
