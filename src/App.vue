@@ -1,28 +1,8 @@
 <template>
   <div class="app-container" :class="{ 'auth-page-container': isAuthPage }">
-    <!-- Actions en haut à droite : Profil Utilisateur (Menu Dropdown sur mobile) & Raccourcis rapides desktop -->
+    <!-- Actions en haut à droite : Menu Utilisateur (Bouton Avatar unique avec Dropdown iOS Glassmorphism) -->
     <div v-if="authStore.isAuthenticated && !isAuthPage" class="top-header-actions" ref="userMenuRef">
-      <!-- Raccourcis rapides visibles uniquement sur desktop (> 900px) -->
-      <button 
-        @click="familyStore.toggleTheme" 
-        class="top-icon-btn desktop-only-action" 
-        :title="familyStore.isDarkMode ? 'Passer en mode clair' : 'Passer en mode sombre'"
-        aria-label="Mode Nuit / Jour"
-      >
-        <Sun v-if="familyStore.isDarkMode" :size="17" />
-        <Moon v-else :size="17" />
-      </button>
-
-      <button 
-        @click="handleLogout" 
-        class="top-icon-btn logout-btn desktop-only-action" 
-        title="Se déconnecter"
-        aria-label="Déconnexion"
-      >
-        <LogOut :size="17" />
-      </button>
-
-      <!-- Bouton Profil avec Avatar de l'utilisateur + Menu Déroulant (Compact sur mobile) -->
+      <!-- Bouton Profil avec Avatar de l'utilisateur + Menu Déroulant -->
       <div class="user-menu-wrapper">
         <button 
           @click="toggleUserMenu" 
@@ -398,17 +378,12 @@ onUnmounted(() => {
   gap: 0.35rem;
 }
 
-/* Section Espaces Familiaux (Mobile Only) */
+/* Section Espaces Familiaux dans le menu utilisateur */
+.dropdown-family-section,
 .mobile-family-section {
-  display: none;
-}
-
-@media (max-width: 900px) {
-  .mobile-family-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .user-dropdown-section-header {
@@ -720,17 +695,12 @@ onUnmounted(() => {
   transform: translateY(-8px) scale(0.96);
 }
 
-/* Version Mobile (Safe Area iOS & Compact Avatar Seul) */
+/* Version Mobile (Safe Area iOS) */
 @media (max-width: 900px) {
   .top-header-actions {
     position: absolute;
     top: calc(0.75rem + env(safe-area-inset-top, 0px));
     right: calc(0.85rem + env(safe-area-inset-right, 0px));
-  }
-  
-  /* Sur mobile : on masque les 2 boutons isolés pour n'afficher QUE l'avatar cliquable */
-  .desktop-only-action {
-    display: none !important;
   }
 
   .top-icon-btn {
