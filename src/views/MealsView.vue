@@ -133,10 +133,10 @@
                     <div class="dish-author" v-if="getMemberInfo(m.suggestedBy)">
                       <UserAvatar 
                         :avatar="getMemberInfo(m.suggestedBy).avatar" 
-                        :name="getMemberInfo(m.suggestedBy).name" 
+                        :name="getMemberFirstName(m.suggestedBy)" 
                         size="xs" 
                       />
-                      <span class="author-name">{{ getMemberInfo(m.suggestedBy).name }}</span>
+                      <span class="author-name">{{ getMemberFirstName(m.suggestedBy) }}</span>
                     </div>
 
                     <div v-if="m.notes" class="dish-note" :title="m.notes">
@@ -230,10 +230,10 @@
                     <div class="dish-author" v-if="getMemberInfo(m.suggestedBy)">
                       <UserAvatar 
                         :avatar="getMemberInfo(m.suggestedBy).avatar" 
-                        :name="getMemberInfo(m.suggestedBy).name" 
+                        :name="getMemberFirstName(m.suggestedBy)" 
                         size="xs" 
                       />
-                      <span class="author-name">{{ getMemberInfo(m.suggestedBy).name }}</span>
+                      <span class="author-name">{{ getMemberFirstName(m.suggestedBy) }}</span>
                     </div>
 
                     <div v-if="m.notes" class="dish-note" :title="m.notes">
@@ -323,10 +323,10 @@
             <div class="overview-author">
               <UserAvatar 
                 :avatar="getMemberInfo(selectedMeal.suggestedBy).avatar" 
-                :name="getMemberInfo(selectedMeal.suggestedBy).name" 
+                :name="getMemberFirstName(selectedMeal.suggestedBy)" 
                 size="xs" 
               />
-              <span>{{ getMemberInfo(selectedMeal.suggestedBy).name }}</span>
+              <span>{{ getMemberFirstName(selectedMeal.suggestedBy) }}</span>
             </div>
           </div>
 
@@ -573,7 +573,7 @@
               <label class="form-label">Suggéré par</label>
               <select v-model="form.suggestedBy" class="form-select">
                 <option v-for="m in store.members" :key="m.id" :value="m.id">
-                  {{ getAvatarTextFallback(m.avatar) }} {{ m.name }}
+                  {{ getAvatarTextFallback(m.avatar) }} {{ m.firstName || m.name }}
                 </option>
               </select>
             </div>
@@ -1024,6 +1024,18 @@ const formatDetailDate = (dateStr) => {
 const getMemberInfo = (id) => {
   if (!id) return null
   return store.members.find(m => m.id === id) || null
+}
+
+const getMemberFirstName = (id) => {
+  const member = getMemberInfo(id)
+  if (!member) return ''
+  if (member.firstName && member.firstName.trim()) {
+    return member.firstName.trim()
+  }
+  if (member.name && member.name.trim()) {
+    return member.name.trim().split(/\s+/)[0]
+  }
+  return ''
 }
 </script>
 
