@@ -1,5 +1,5 @@
 <template>
-  <div class="meals-view">
+  <div class="meals-view" ref="mealsViewRef">
     <!-- Header -->
     <div class="page-header">
       <div>
@@ -620,6 +620,7 @@ import {
 import UserAvatar from '../components/UserAvatar.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
+import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 
 const store = useFamilyStore()
 const authStore = useAuthStore()
@@ -656,6 +657,14 @@ const nextWeek = () => {
   d.setDate(d.getDate() + 7)
   currentMonday.value = d
 }
+
+// Navigation tactile par swipe (gauche = semaine suivante, droite = semaine précédente)
+const mealsViewRef = ref(null)
+useSwipeNavigation({
+  target: mealsViewRef,
+  onSwipeLeft: nextWeek,
+  onSwipeRight: prevWeek
+})
 
 const goToCurrentWeek = () => {
   currentMonday.value = getMonday(new Date())

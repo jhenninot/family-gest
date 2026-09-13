@@ -1,5 +1,5 @@
 <template>
-  <div class="absences-view">
+  <div class="absences-view" ref="absencesViewRef">
     <!-- Header -->
     <div class="page-header">
       <div>
@@ -1505,6 +1505,7 @@ import HouseUser from '../components/icons/HouseUser.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
+import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
@@ -1599,6 +1600,14 @@ const nextPeriod = () => {
     nextMonth()
   }
 }
+
+// Navigation tactile par swipe (gauche = période suivante, droite = période précédente)
+const absencesViewRef = ref(null)
+useSwipeNavigation({
+  target: absencesViewRef,
+  onSwipeLeft: nextPeriod,
+  onSwipeRight: prevPeriod
+})
 
 const prevMonth = () => {
   if (currentMonth.value === 0) {

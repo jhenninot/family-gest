@@ -1,5 +1,5 @@
 <template>
-  <div class="calendar-view">
+  <div class="calendar-view" ref="calendarViewRef">
     <!-- Header -->
     <div class="page-header">
       <div>
@@ -457,6 +457,7 @@ import {
   CalendarRange
 } from '@lucide/vue'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
+import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 
 const store = useFamilyStore()
 
@@ -513,6 +514,14 @@ const nextPeriod = () => {
     nextMonth()
   }
 }
+
+// Navigation tactile par swipe (gauche = période suivante, droite = période précédente)
+const calendarViewRef = ref(null)
+useSwipeNavigation({
+  target: calendarViewRef,
+  onSwipeLeft: nextPeriod,
+  onSwipeRight: prevPeriod
+})
 
 const prevMonth = () => {
   if (currentMonth.value === 0) {
