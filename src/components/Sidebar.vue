@@ -752,8 +752,27 @@ const handleDeleteShortcut = async () => {
     padding-bottom: 0.25rem;
     gap: 0.5rem;
   }
+  
+  .nav-item {
+    padding: 0.55rem 0.75rem;
+    gap: 0.25rem; /* Espacement réduit et harmonieux entre l'icône et le compteur */
+  }
+
   .nav-item span:not(.badge-count) {
     display: none;
+  }
+
+  .nav-item .badge-count {
+    margin-left: 0; /* Annule le margin-left: auto du desktop */
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    min-width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
   }
 
   /* Shortcuts Mobile */
