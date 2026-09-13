@@ -93,6 +93,9 @@
               <div class="item-tags">
                 <span class="qty-tag">Qté : {{ item.quantity }}</span>
                 <span v-if="item.urgent" class="badge badge-rose">Urgent 🔥</span>
+                <span v-if="getMealName(item.mealId)" class="badge badge-purple" :title="'Ingrédient lié au repas : ' + getMealName(item.mealId)">
+                  🍲 {{ getMealName(item.mealId) }}
+                </span>
               </div>
             </div>
 
@@ -136,7 +139,12 @@
           />
           <div class="item-info">
             <span class="item-name">{{ item.name }}</span>
-            <span class="qty-tag">Qté : {{ item.quantity }}</span>
+            <div class="item-tags">
+              <span class="qty-tag">Qté : {{ item.quantity }}</span>
+              <span v-if="getMealName(item.mealId)" class="badge badge-purple" :title="'Ingrédient lié au repas : ' + getMealName(item.mealId)">
+                🍲 {{ getMealName(item.mealId) }}
+              </span>
+            </div>
           </div>
           <div class="item-actions">
             <button @click="confirmDelete(item)" class="btn-action delete" title="Supprimer">
@@ -158,6 +166,20 @@
           Voulez-vous vraiment supprimer <strong>« {{ itemToDelete.name }} »</strong> ?<br>
           Cette action est irréversible.
         </p>
+
+        <!-- Avertissement si l'article est associé à un repas -->
+        <div v-if="getLinkedMeal(itemToDelete.mealId)" class="linked-meal-warning">
+          <div class="warning-icon">⚠️</div>
+          <div class="warning-content">
+            <span class="warning-title">Attention : Ingrédient associé à un repas</span>
+            <p class="warning-desc">
+              Cet article est prévu pour le plat :<br>
+              <strong>🍲 {{ getLinkedMeal(itemToDelete.mealId).dish }}</strong>
+              <span class="warning-date">{{ formatMealDate(getLinkedMeal(itemToDelete.mealId)) }}</span>
+            </p>
+          </div>
+        </div>
+
         <div class="modal-footer">
           <button @click="itemToDelete = null" class="btn btn-secondary">Annuler</button>
           <button @click="executeDelete" class="btn btn-danger">Supprimer</button>
@@ -258,6 +280,29 @@ const completedItems = computed(() =>
 const urgentCount = computed(() =>
   pendingItems.value.filter(item => item.urgent).length
 )
+
+const getLinkedMeal = (mealId) => {
+  if (!mealId) return null
+  return (store.meals || []).find(meal => meal.id === Number(mealId)) || null
+}
+
+const getMealName = (mealId) => {
+  const m = getLinkedMeal(mealId)
+  return m ? m.dish : null
+}
+
+const formatMealDate = (meal) => {
+  if (!meal || !meal.date) return ''
+  const slotLabel = meal.slot === 'dinner' ? 'Dîner (Soir)' : 'Déjeuner (Midi)'
+  try {
+    const parts = meal.date.split('-')
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+    const dayFormatted = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+    return `${dayFormatted} • ${slotLabel}`
+  } catch {
+    return `${meal.date} • ${slotLabel}`
+  }
+}
 
 /** Articles à acheter groupés par catégorie, ordonnés par le rang de la catégorie */
 const pendingCategoryGroups = computed(() => {
@@ -588,6 +633,53 @@ const handleEditSave = () => {
 }
 
 .btn-danger:hover { opacity: 0.85; }
+
+/* Warning repas lié */
+.linked-meal-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: var(--accent-amber-light);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.warning-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.warning-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.warning-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--accent-amber);
+}
+
+.warning-desc {
+  font-size: 0.825rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.warning-date {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-top: 0.25rem;
+  text-transform: capitalize;
+}
 
 .empty-state {
   padding: 2.5rem;

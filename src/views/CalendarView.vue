@@ -16,107 +16,52 @@
       </button>
     </div>
 
-    <!-- Main Grid: Events List & Calendar View -->
-    <div class="grid-2 calendar-main-grid">
-      <!-- Events List Column -->
-      <div class="glass-card section-card">
-        <div class="section-card-header">
-          <h2>Événements programmés</h2>
-          <span class="badge badge-purple">{{ upcomingEvents.length }} événement{{ upcomingEvents.length > 1 ? 's' : '' }}</span>
+    <!-- Calendar Card (Weekly & Monthly View) -->
+    <div class="glass-card section-card calendar-card">
+      <div class="section-card-header flex-between">
+        <div class="calendar-nav-title">
+          <h2>{{ calendarViewMode === 'week' ? currentWeekLabel : `${currentMonthName} ${currentYear}` }}</h2>
         </div>
 
-        <div class="events-timeline">
-          <div 
-            v-for="event in upcomingEvents" 
-            :key="event.id" 
-            class="timeline-card"
-          >
-            <div class="timeline-date-strip" :style="{ backgroundColor: event.color }"></div>
-
-            <div class="timeline-content">
-              <div class="timeline-header">
-                <span class="event-title-text">{{ event.title }}</span>
-                <div class="timeline-header-actions">
-                  <button @click="openEditModal(event)" class="btn-action-icon btn-edit" title="Modifier l'événement">
-                    <Edit3 :size="15" />
-                  </button>
-                  <button @click="store.deleteEvent(event.id)" class="btn-action-icon btn-delete" title="Supprimer">
-                    <Trash2 :size="15" />
-                  </button>
-                </div>
-              </div>
-
-              <div class="timeline-meta">
-                <span class="badge" :style="{ backgroundColor: event.color + '25', color: event.color }">
-                  {{ event.category }}
-                </span>
-
-                <div class="meta-tag">
-                  <CalendarIcon :size="14" />
-                  <span>{{ formatDate(event.date) }}</span>
-                </div>
-
-                <div class="meta-tag" v-if="event.time">
-                  <Clock :size="14" />
-                  <span>{{ event.time }}</span>
-                </div>
-
-                <div class="meta-tag" v-if="event.location">
-                  <MapPin :size="14" />
-                  <span>{{ event.location }}</span>
-                </div>
-              </div>
-
-              <!-- Actions d'export vers agenda externe -->
-              <div class="timeline-export-bar">
-                <span class="export-hint">Ajouter à mon agenda :</span>
-                <div class="export-btns-row">
-                  <button 
-                    @click="openGoogleCalendar(event)" 
-                    class="btn-cal-action btn-cal-google" 
-                    title="Ajouter directement à Google Agenda"
-                  >
-                    <ExternalLink :size="12" />
-                    <span>Google Agenda</span>
-                  </button>
-                  <button 
-                    @click="downloadIcsFile(event)" 
-                    class="btn-cal-action btn-cal-ics" 
-                    title="Télécharger le fichier .ics pour Apple Calendrier, Outlook..."
-                  >
-                    <Download :size="12" />
-                    <span>Apple / Outlook (.ics)</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+        <div class="calendar-header-actions">
+          <!-- Mode Toggle: Mois / Semaine -->
+          <div class="calendar-view-mode-toggle">
+            <button 
+              class="view-mode-btn" 
+              :class="{ active: calendarViewMode === 'month' }" 
+              @click="calendarViewMode = 'month'"
+              title="Afficher le calendrier mensuel"
+            >
+              <CalendarIcon :size="15" />
+              <span>Mois</span>
+            </button>
+            <button 
+              class="view-mode-btn" 
+              :class="{ active: calendarViewMode === 'week' }" 
+              @click="calendarViewMode = 'week'"
+              title="Afficher le planning hebdomadaire"
+            >
+              <CalendarRange :size="15" />
+              <span>Semaine</span>
+            </button>
           </div>
 
-          <div v-if="upcomingEvents.length === 0" class="empty-state">
-            Aucun événement à venir. Cliquez sur "Nouvel Événement" pour commencer.
-          </div>
-        </div>
-      </div>
-
-      <!-- Interactive Calendar Preview Widget -->
-      <div class="glass-card section-card">
-        <div class="section-card-header flex-between">
-          <div class="calendar-nav-title">
-            <h2>{{ currentMonthName }} {{ currentYear }}</h2>
-          </div>
           <div class="calendar-nav-controls">
-            <button @click="prevMonth" class="btn-cal-nav" title="Mois précédent">
+            <button @click="prevPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? 'Semaine précédente' : 'Mois précédent'">
               <ChevronLeft :size="22" />
             </button>
             <button @click="goToToday" class="btn-today-nav">
               Aujourd'hui
             </button>
-            <button @click="nextMonth" class="btn-cal-nav" title="Mois suivant">
+            <button @click="nextPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? 'Semaine suivante' : 'Mois suivant'">
               <ChevronRight :size="22" />
             </button>
           </div>
         </div>
+      </div>
 
+      <!-- 1. MONTHLY CALENDAR VIEW -->
+      <template v-if="calendarViewMode === 'month'">
         <!-- Days of week -->
         <div class="calendar-grid-header">
           <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
@@ -134,7 +79,7 @@
             v-for="day in daysInCurrentMonth" 
             :key="day"
             class="day-cell cell-interactive"
-            :class="{ today: isDayToday(day), 'has-events': hasEventOnDay(day) }"
+            :class="{ today: isDayToday(day), past: isDayPast(day), 'has-events': hasEventOnDay(day) }"
             @click="handleDayClick(day)"
             :title="`Voir les événements du ${day} ${currentMonthName}`"
           >
@@ -147,6 +92,60 @@
                 :style="{ backgroundColor: e.color }"
                 :title="e.title"
               ></span>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- 2. WEEKLY CALENDAR VIEW -->
+      <div v-else-if="calendarViewMode === 'week'" class="calendar-week-view">
+        <div class="week-days-columns">
+          <div 
+            v-for="day in weekDays" 
+            :key="day.dateStr"
+            class="week-day-column"
+            :class="{ 'is-today': day.isToday, 'is-past': day.isPast }"
+            @click="handleWeekDayClick(day)"
+            :title="`Voir les événements du ${day.name} ${day.dayNum} ${day.monthShort}`"
+          >
+            <!-- Day Header -->
+            <div class="week-col-header">
+              <div class="week-col-title">
+                <span class="day-name-text">{{ day.name }}</span>
+                <span class="day-date-text">{{ day.dayNum }} {{ day.monthShort }}</span>
+              </div>
+              <span v-if="day.isPast" class="past-tag-mini">Passé</span>
+            </div>
+
+            <!-- Day Events List -->
+            <div class="week-day-events-list">
+              <div 
+                v-for="ev in day.events" 
+                :key="ev.id" 
+                class="week-event-card"
+                :style="{ borderLeftColor: ev.color }"
+                @click.stop="handleSelectEvent(ev)"
+                :title="`${ev.title} (${ev.time || 'Toute la journée'})`"
+              >
+                <div class="week-event-top">
+                  <span v-if="ev.time" class="week-event-time">{{ ev.time }}</span>
+                  <span class="week-event-cat" :style="{ color: ev.color }">{{ ev.category }}</span>
+                </div>
+                <span class="week-event-title">{{ ev.title }}</span>
+                <span v-if="ev.location" class="week-event-loc">📍 {{ ev.location }}</span>
+              </div>
+
+              <!-- Empty Day placeholder -->
+              <div v-if="day.events.length === 0" class="week-empty-day">
+                <span class="empty-day-txt">Aucun événement</span>
+              </div>
+            </div>
+
+            <!-- Day Footer -->
+            <div class="week-col-footer">
+              <span class="week-col-hint">
+                {{ day.events.length > 0 ? `${day.events.length} événement${day.events.length > 1 ? 's' : ''}` : (day.isPast ? 'Consulter' : '+ Ajouter') }}
+              </span>
             </div>
           </div>
         </div>
@@ -176,7 +175,7 @@
           <div class="grid-2">
             <div class="form-group">
               <label class="form-label">Date</label>
-              <input v-model="newEvent.date" type="date" required class="form-input" />
+              <input v-model="newEvent.date" type="date" :min="store.todayStr" required class="form-input" />
             </div>
 
             <div class="form-group">
@@ -358,7 +357,7 @@
     <div v-if="showDayEventsModal" class="modal-overlay" @click.self="showDayEventsModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Événements du {{ selectedDayNumber }} {{ currentMonthName }} {{ currentYear }}</h3>
+          <h3>Événements du {{ selectedDayDisplayTitle }}</h3>
           <button @click="showDayEventsModal = false" class="btn-close">&times;</button>
         </div>
 
@@ -419,15 +418,16 @@
           <div v-if="selectedDayEvents.length === 0" class="empty-day-state">
             <CalendarIcon :size="36" class="empty-day-icon text-muted" />
             <p>Aucun événement programmé pour cette journée.</p>
-            <button @click="openAddForSelectedDay" class="btn btn-primary btn-sm">
+            <button v-if="!isCurrentSelectedDayPast" @click="openAddForSelectedDay" class="btn btn-primary btn-sm">
               <Plus :size="15" />
               <span>Ajouter un événement ce jour</span>
             </button>
+            <span v-else class="past-day-badge-note">Journée passée (consultation uniquement)</span>
           </div>
         </div>
 
         <div class="modal-footer flex-between">
-          <button v-if="selectedDayEvents.length > 0" @click="openAddForSelectedDay" class="btn btn-secondary btn-sm">
+          <button v-if="selectedDayEvents.length > 0 && !isCurrentSelectedDayPast" @click="openAddForSelectedDay" class="btn btn-secondary btn-sm">
             <Plus :size="15" />
             <span>Ajouter un événement</span>
           </button>
@@ -453,7 +453,8 @@ import {
   MapPin, 
   ExternalLink, 
   Download, 
-  CalendarPlus 
+  CalendarPlus,
+  CalendarRange
 } from '@lucide/vue'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 
@@ -470,6 +471,48 @@ const monthNames = [
 ]
 
 const currentMonthName = computed(() => monthNames[currentMonth.value])
+
+// Calendar View Mode: 'week' or 'month' (default 'week')
+const calendarViewMode = ref('week')
+
+function getMonday(d) {
+  d = new Date(d)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  d.setDate(diff)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+const currentMonday = ref(getMonday(new Date()))
+
+const prevWeek = () => {
+  const d = new Date(currentMonday.value)
+  d.setDate(d.getDate() - 7)
+  currentMonday.value = d
+}
+
+const nextWeek = () => {
+  const d = new Date(currentMonday.value)
+  d.setDate(d.getDate() + 7)
+  currentMonday.value = d
+}
+
+const prevPeriod = () => {
+  if (calendarViewMode.value === 'week') {
+    prevWeek()
+  } else {
+    prevMonth()
+  }
+}
+
+const nextPeriod = () => {
+  if (calendarViewMode.value === 'week') {
+    nextWeek()
+  } else {
+    nextMonth()
+  }
+}
 
 const prevMonth = () => {
   if (currentMonth.value === 0) {
@@ -492,7 +535,42 @@ const nextMonth = () => {
 const goToToday = () => {
   currentYear.value = todayDate.getFullYear()
   currentMonth.value = todayDate.getMonth()
+  currentMonday.value = getMonday(new Date())
 }
+
+const weekDays = computed(() => {
+  const days = []
+  const dayNames = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+  const monthNamesList = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
+  const base = new Date(currentMonday.value)
+  const todayStr = store.todayStr
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(base)
+    d.setDate(base.getDate() + i)
+    const dateStr = formatDateStr(d.getFullYear(), d.getMonth(), d.getDate())
+    const events = store.events.filter(e => e.date === dateStr).sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+
+    days.push({
+      name: dayNames[i],
+      shortName: dayNames[i].slice(0, 3),
+      dateStr,
+      dayNum: d.getDate(),
+      monthShort: monthNamesList[d.getMonth()],
+      isToday: dateStr === todayStr,
+      isPast: dateStr < todayStr,
+      events
+    })
+  }
+  return days
+})
+
+const currentWeekLabel = computed(() => {
+  if (weekDays.value.length === 0) return ''
+  const first = weekDays.value[0]
+  const last = weekDays.value[6]
+  return `Semaine du ${first.dayNum} ${first.monthShort} au ${last.dayNum} ${last.monthShort} ${currentMonday.value.getFullYear()}`
+})
 
 // Days in current month
 const daysInCurrentMonth = computed(() => {
@@ -516,6 +594,12 @@ const isDayToday = (day) => {
   return check === store.todayStr
 }
 
+const isDayPast = (day) => {
+  if (!day) return false
+  const check = formatDateStr(currentYear.value, currentMonth.value, day)
+  return check < store.todayStr
+}
+
 const showAddModal = ref(false)
 const showEditModal = ref(false)
 const showSuccessExportModal = ref(false)
@@ -535,6 +619,18 @@ const editEventForm = ref({
 const showDayEventsModal = ref(false)
 const selectedDayEvents = ref([])
 const selectedDayNumber = ref(null)
+const selectedDayDateStr = ref(store.todayStr)
+
+const isCurrentSelectedDayPast = computed(() => {
+  return selectedDayDateStr.value < store.todayStr
+})
+
+const selectedDayDisplayTitle = computed(() => {
+  if (!selectedDayDateStr.value) return ''
+  const parts = selectedDayDateStr.value.split('-')
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+})
 
 const colorOptions = ['#8b5cf6', '#ec4899', '#6366f1', '#10b981', '#f59e0b', '#06b6d4']
 
@@ -545,13 +641,6 @@ const newEvent = ref({
   category: 'Famille',
   location: '',
   color: '#8b5cf6'
-})
-
-const upcomingEvents = computed(() => {
-  const today = store.todayStr
-  return store.events
-    .filter(e => e.date >= today)
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
 })
 
 const formatDate = (dateStr) => {
@@ -573,7 +662,16 @@ const openedFromDayModal = ref(false)
 
 const handleDayClick = (dayNum) => {
   selectedDayNumber.value = dayNum
-  selectedDayEvents.value = getEventsOnDay(dayNum)
+  const targetDate = formatDateStr(currentYear.value, currentMonth.value, dayNum)
+  selectedDayDateStr.value = targetDate
+  selectedDayEvents.value = store.events.filter(e => e.date === targetDate)
+  showDayEventsModal.value = true
+}
+
+const handleWeekDayClick = (day) => {
+  selectedDayNumber.value = day.dayNum
+  selectedDayDateStr.value = day.dateStr
+  selectedDayEvents.value = day.events
   showDayEventsModal.value = true
 }
 
@@ -585,16 +683,19 @@ const handleSelectEvent = (event) => {
 
 const cancelEditModal = () => {
   showEditModal.value = false
-  if (openedFromDayModal.value && selectedDayNumber.value) {
-    selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)
+  if (openedFromDayModal.value && selectedDayDateStr.value) {
+    selectedDayEvents.value = store.events.filter(e => e.date === selectedDayDateStr.value)
     showDayEventsModal.value = true
     openedFromDayModal.value = false
   }
 }
 
 const openAddForSelectedDay = () => {
-  if (selectedDayNumber.value) {
-    newEvent.value.date = formatDateStr(currentYear.value, currentMonth.value, selectedDayNumber.value)
+  if (selectedDayDateStr.value) {
+    if (selectedDayDateStr.value < store.todayStr) {
+      return
+    }
+    newEvent.value.date = selectedDayDateStr.value
   }
   showDayEventsModal.value = false
   showAddModal.value = true
@@ -602,6 +703,12 @@ const openAddForSelectedDay = () => {
 
 const handleAddEvent = async () => {
   if (!newEvent.value.title.trim()) return
+
+  if (newEvent.value.date < store.todayStr) {
+    alert("Impossible d'ajouter un événement à une date passée.")
+    return
+  }
+
   const eventPayload = { ...newEvent.value }
   const res = await store.addEvent(eventPayload)
   showAddModal.value = false
@@ -776,6 +883,48 @@ const handleDeleteFromDay = async (id) => {
   gap: 0.25rem;
 }
 
+.calendar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.calendar-view-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-tertiary);
+  padding: 0.2rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  gap: 0.15rem;
+}
+
+.view-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.view-mode-btn:hover {
+  color: var(--text-primary);
+}
+
+.view-mode-btn.active {
+  background: var(--bg-card);
+  color: var(--accent-purple);
+  box-shadow: var(--shadow-sm);
+}
+
 .calendar-nav-controls {
   display: flex;
   align-items: center;
@@ -828,6 +977,194 @@ const handleDeleteFromDay = async (id) => {
   width: 100%;
 }
 
+/* Weekly View for Calendar */
+.calendar-week-view {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.week-days-columns {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(130px, 1fr));
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.week-day-column {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 320px;
+}
+
+.week-day-column:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-purple);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-md);
+}
+
+.week-day-column.is-today {
+  border: 2px solid var(--accent-purple);
+  background: var(--accent-purple-light, rgba(139, 92, 246, 0.08));
+  box-shadow: 0 0 0 1px var(--accent-purple);
+}
+
+.week-day-column.is-past {
+  opacity: 0.6;
+  background: rgba(120, 120, 120, 0.08);
+  border-color: rgba(var(--border-color-rgb, 150, 150, 150), 0.35);
+}
+
+.week-day-column.is-past:hover {
+  opacity: 0.88;
+}
+
+.week-col-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.week-col-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.day-name-text {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.day-date-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.today-tag-mini {
+  background: var(--accent-purple);
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.past-tag-mini {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-full);
+}
+
+.week-day-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1;
+}
+
+.week-event-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.week-event-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.week-event-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  font-size: 0.68rem;
+}
+
+.week-event-time {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.week-event-cat {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.week-event-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.week-event-loc {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.week-empty-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 0.5rem;
+  flex: 1;
+}
+
+.empty-day-txt {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+.week-col-footer {
+  text-align: center;
+  padding-top: 0.3rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.week-col-hint {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-purple);
+  opacity: 0.85;
+}
+
+.week-day-column.is-past .week-col-hint {
+  color: var(--text-muted);
+}
+
 /* Calendar Grid */
 .calendar-grid-header {
   display: grid;
@@ -846,14 +1183,14 @@ const handleDeleteFromDay = async (id) => {
 }
 
 .day-cell {
-  aspect-ratio: 1;
-  border-radius: var(--radius-sm);
+  min-height: 80px;
+  border-radius: var(--radius-md);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
-  padding: 0.25rem;
+  padding: 0.4rem 0.5rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
 }
 
@@ -861,6 +1198,21 @@ const handleDeleteFromDay = async (id) => {
   border-color: var(--accent-primary);
   background: var(--accent-primary-light);
   font-weight: 800;
+}
+
+.day-cell.past {
+  opacity: 0.55;
+  background: rgba(120, 120, 120, 0.08);
+}
+
+.day-cell.past:hover {
+  opacity: 0.85;
+}
+
+.past-day-badge-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .day-cell.has-events {
@@ -885,18 +1237,20 @@ const handleDeleteFromDay = async (id) => {
 }
 
 .day-number {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
 .day-dots {
   display: flex;
-  gap: 0.15rem;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  align-self: flex-start;
 }
 
 .event-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: var(--radius-full);
 }
 
@@ -1133,5 +1487,125 @@ const handleDeleteFromDay = async (id) => {
 
 .empty-day-icon {
   color: var(--text-muted);
+}
+
+/* Responsive mobile styles: 1 single column with 1 row per day */
+@media (max-width: 768px) {
+  .section-card-header.flex-between {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .calendar-nav-title h2 {
+    font-size: 1.15rem;
+    text-align: center;
+  }
+
+  .calendar-header-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .calendar-week-view {
+    overflow-x: visible;
+  }
+
+  .week-days-columns {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .week-day-column {
+    min-height: auto;
+    padding: 0.75rem 0.85rem;
+    gap: 0.45rem;
+  }
+
+  .week-col-header {
+    align-items: center;
+    padding-bottom: 0.4rem;
+  }
+
+  .week-col-title {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.45rem;
+  }
+
+  .day-name-text {
+    font-size: 0.95rem;
+  }
+
+  .day-date-text {
+    font-size: 0.82rem;
+  }
+
+  .week-empty-day {
+    padding: 0.35rem 0;
+    justify-content: flex-start;
+  }
+
+  .empty-day-txt {
+    font-size: 0.78rem;
+  }
+
+  .week-col-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.35rem;
+  }
+
+  .week-col-hint {
+    font-size: 0.75rem;
+  }
+
+  /* Monthly calendar grid adjustments on mobile */
+  .calendar-days-grid {
+    gap: 0.25rem;
+  }
+
+  .day-cell {
+    min-height: 60px;
+    padding: 0.25rem 0.3rem;
+  }
+
+  .day-number {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .page-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .calendar-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .calendar-view-mode-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .view-mode-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .calendar-nav-controls {
+    justify-content: space-between;
+    width: 100%;
+  }
 }
 </style>

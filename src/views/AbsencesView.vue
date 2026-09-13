@@ -11,17 +11,9 @@
       </div>
 
       <div class="header-actions-group">
-        <button @click="openAddGuestModal()" class="btn btn-secondary">
-          <UserPlus :size="18" />
-          <span>+ Invité</span>
-        </button>
-        <button @click="openAddModal(null, 'presence')" class="btn btn-presence-primary" title="Signaler la présence d'un membre habituellement absent">
-          <CheckCircle2 :size="18" />
-          <span>+ Présence</span>
-        </button>
-        <button @click="openAddModal(null, 'absence')" class="btn btn-primary" title="Signaler une absence">
+        <button @click="openDeclarationChoiceModal()" class="btn btn-primary btn-declare-main" title="Déclarer une absence, absence longue, invitation ou présence">
           <Plus :size="18" />
-          <span>+ Absence</span>
+          <span>Déclarer</span>
         </button>
       </div>
     </div>
@@ -34,17 +26,9 @@
           <span>Présences du jour ({{ formatDisplayDate(store.todayStr) }})</span>
         </div>
         <div class="today-header-btns">
-          <button @click="openAddGuestModal(store.todayStr)" class="btn-today-add guest-btn">
-            <UserPlus :size="14" />
-            <span>+ Invité</span>
-          </button>
-          <button @click="openAddModal(store.todayStr, 'presence')" class="btn-today-add presence-btn" title="Signaler la présence d'un membre aujourd'hui">
-            <CheckCircle2 :size="14" />
-            <span>+ Présence</span>
-          </button>
-          <button @click="openAddModal(store.todayStr, 'absence')" class="btn-today-add" title="Signaler une absence aujourd'hui">
+          <button @click="openDeclarationChoiceModal(store.todayStr)" class="btn-today-add" title="Déclarer une absence, absence longue, invitation ou présence aujourd'hui">
             <Plus :size="14" />
-            <span>+ Absence</span>
+            <span>Déclarer</span>
           </button>
         </div>
       </div>
@@ -73,7 +57,7 @@
                   :key="'abs-' + m.id" 
                   class="member-absent-chip"
                   :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Absent'"
-                  @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
+                  @click="handleAbsentMemberClick(m.id, store.todayStr)"
                 >
                   <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
                   <span>{{ m.firstName || m.name }}</span>
@@ -144,7 +128,7 @@
                   :key="'abs-' + m.id" 
                   class="member-absent-chip"
                   :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Absent'"
-                  @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
+                  @click="handleAbsentMemberClick(m.id, store.todayStr)"
                 >
                   <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
                   <span>{{ m.firstName || m.name }}</span>
@@ -215,7 +199,7 @@
                   :key="'abs-' + m.id" 
                   class="member-absent-chip"
                   :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Dort ailleurs'"
-                  @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
+                  @click="handleAbsentMemberClick(m.id, store.todayStr)"
                 >
                   <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
                   <span>{{ m.firstName || m.name }}</span>
@@ -265,263 +249,257 @@
       </div>
     </div>
 
-    <!-- Filter by Member -->
-    <div class="filter-bar">
-      <span class="filter-label">Filtrer par membre :</span>
-      <div class="filter-pills">
-        <button 
-          class="filter-pill" 
-          :class="{ active: selectedMemberFilter === null }"
-          @click="selectedMemberFilter = null"
-        >
-          Tous les membres
-        </button>
-        <button 
-          v-for="member in store.members" 
-          :key="member.id"
-          class="filter-pill"
-          :class="{ active: selectedMemberFilter === member.id }"
-          @click="selectedMemberFilter = member.id"
-        >
-          <UserAvatar :avatar="member.avatar" :name="member.firstName || member.name" size="xs" />
-          <span>{{ member.firstName || member.name.split(' ')[0] }}</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Main Grid: Calendar & Upcoming List -->
-    <div class="grid-2 absences-main-grid">
-      <!-- Calendar View Column -->
-      <div class="glass-card section-card">
-        <div class="section-card-header flex-between">
+    <!-- Calendar View Card (Weekly & Monthly) -->
+    <div class="glass-card section-card calendar-card">
+      <div class="section-card-header flex-between">
           <div class="calendar-nav-title">
-            <h2>{{ currentMonthName }} {{ currentYear }}</h2>
+            <h2>{{ calendarViewMode === 'week' ? currentWeekLabel : `${currentMonthName} ${currentYear}` }}</h2>
           </div>
-          <div class="calendar-nav-controls">
-            <button @click="prevMonth" class="btn-cal-nav" title="Mois précédent">
-              <ChevronLeft :size="22" />
-            </button>
-            <button @click="goToToday" class="btn-today-nav">
-              Aujourd'hui
-            </button>
-            <button @click="nextMonth" class="btn-cal-nav" title="Mois suivant">
-              <ChevronRight :size="22" />
-            </button>
-          </div>
-        </div>
 
-        <!-- Days of week -->
-        <div class="calendar-grid-header">
-          <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
-        </div>
-
-        <!-- Calendar Days Grid -->
-        <div class="calendar-days-grid">
-          <!-- Leading empty/padding days -->
-          <div 
-            v-for="pad in leadingPaddingDays" 
-            :key="'pad-' + pad" 
-            class="day-cell day-empty"
-          ></div>
-
-          <!-- Month Days -->
-          <div 
-            v-for="day in daysInCurrentMonth" 
-            :key="'day-' + day"
-            class="day-cell"
-            :class="{ 
-              today: isDayToday(day)
-            }"
-            @click="openDayDetailModal(formatDateStr(currentYear, currentMonth, day))"
-            :title="'Cliquer pour voir le détail du ' + day + ' ' + currentMonthName"
-          >
-            <div class="day-cell-top">
-              <span class="day-number">{{ day }}</span>
+          <div class="calendar-header-actions">
+            <!-- Mode Toggle: Mois / Semaine -->
+            <div class="calendar-view-mode-toggle">
+              <button 
+                class="view-mode-btn" 
+                :class="{ active: calendarViewMode === 'month' }" 
+                @click="calendarViewMode = 'month'"
+                title="Afficher le calendrier mensuel"
+              >
+                <Calendar :size="15" />
+                <span>Mois</span>
+              </button>
+              <button 
+                class="view-mode-btn" 
+                :class="{ active: calendarViewMode === 'week' }" 
+                @click="calendarViewMode = 'week'"
+                title="Afficher le planning hebdomadaire"
+              >
+                <CalendarRange :size="15" />
+                <span>Semaine</span>
+              </button>
             </div>
 
-            <!-- Nombres de présents par repas et nuit -->
-            <div class="day-headcounts-list">
-              <div class="day-headcount-item lunch" title="Déjeuner (Midi)">
-                <span class="slot-icon-mini">☀️</span>
-                <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'lunch') }}</span>
-              </div>
-              <div class="day-headcount-item dinner" title="Dîner (Soir)">
-                <span class="slot-icon-mini">🌙</span>
-                <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'dinner') }}</span>
-              </div>
-              <div class="day-headcount-item night" title="Nuit (Couchage)">
-                <span class="slot-icon-mini">🛌</span>
-                <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'night') }}</span>
-              </div>
+            <div class="calendar-nav-controls">
+              <button @click="prevPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? 'Semaine précédente' : 'Mois précédent'">
+                <ChevronLeft :size="22" />
+              </button>
+              <button @click="goToToday" class="btn-today-nav">
+                Aujourd'hui
+              </button>
+              <button @click="nextPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? 'Semaine suivante' : 'Mois suivant'">
+                <ChevronRight :size="22" />
+              </button>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Upcoming Absences & Guests Column -->
-      <div class="glass-card section-card">
-        <!-- Segmented Tabs -->
-        <div class="upcoming-tabs-header">
-          <button 
-            class="tab-btn" 
-            :class="{ active: activeUpcomingTab === 'absences' }"
-            @click="activeUpcomingTab = 'absences'"
-          >
-            <Clock :size="16" />
-            <span>Absences & Présences</span>
-            <span class="tab-badge">{{ filteredUpcomingAbsences.length }}</span>
-          </button>
-          <button 
-            class="tab-btn" 
-            :class="{ active: activeUpcomingTab === 'guests' }"
-            @click="activeUpcomingTab = 'guests'"
-          >
-            <Users :size="16" />
-            <span>Invités</span>
-            <span class="tab-badge indigo">{{ upcomingGuestsList.length }}</span>
-          </button>
-        </div>
+        <!-- 1. MONTHLY CALENDAR VIEW -->
+        <template v-if="calendarViewMode === 'month'">
+          <!-- Days of week -->
+          <div class="calendar-grid-header">
+            <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
+          </div>
 
-        <!-- Absences Tab Content -->
-        <div v-if="activeUpcomingTab === 'absences'" class="upcoming-absences-list">
-          <div 
-            v-for="abs in filteredUpcomingAbsences" 
-            :key="abs.id"
-            class="upcoming-absence-card"
-            :class="{ 'presence-card-theme': abs.type === 'presence' }"
-          >
-            <div class="upcoming-avatar-col">
-              <UserAvatar :avatar="getMemberAvatar(abs.memberId)" :name="getMemberFirstName(abs.memberId)" size="md" />
-            </div>
+          <!-- Calendar Days Grid -->
+          <div class="calendar-days-grid">
+            <!-- Leading empty/padding days -->
+            <div 
+              v-for="pad in leadingPaddingDays" 
+              :key="'pad-' + pad" 
+              class="day-cell day-empty"
+            ></div>
 
-            <div class="upcoming-content-col">
-              <div class="upcoming-card-header">
-                <div class="member-name-date">
-                  <strong>{{ getMemberFirstName(abs.memberId) }}</strong>
-                  <span 
-                    class="type-pill-badge" 
-                    :class="abs.type === 'presence' ? 'is-presence' : 'is-absence'"
-                  >
-                    {{ abs.type === 'presence' ? '🟢 Présence' : '🚫 Absence' }}
-                  </span>
-                  <span class="absence-date-badge" :class="{ 'is-today': abs.date === store.todayStr }">
-                    {{ formatRelativeDate(abs.date) }}
-                  </span>
-                  <span v-if="abs.declaredBy && abs.declaredBy !== abs.memberId" class="guest-host-tag" :title="'Signalé par ' + getMemberName(abs.declaredBy)">
-                    Signalé par {{ getMemberFirstName(abs.declaredBy) }}
-                  </span>
+            <!-- Month Days -->
+            <div 
+              v-for="day in daysInCurrentMonth" 
+              :key="'day-' + day"
+              class="day-cell"
+              :class="{ 
+                today: isDayToday(day),
+                past: isDayPast(day)
+              }"
+              @click="openDayDetailModal(formatDateStr(currentYear, currentMonth, day))"
+              :title="'Cliquer pour voir le détail du ' + day + ' ' + currentMonthName"
+            >
+              <div class="day-cell-top">
+                <span class="day-number">{{ day }}</span>
+              </div>
+
+              <!-- Nombres de présents par repas et nuit -->
+              <div class="day-headcounts-list">
+                <div class="day-headcount-item lunch" title="Déjeuner (Midi)">
+                  <span class="slot-icon-mini">☀️</span>
+                  <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'lunch') }}</span>
                 </div>
-
-                <div class="card-action-buttons">
-                  <button 
-                    v-if="canEdit(abs)" 
-                    @click="openEditModal(abs)" 
-                    class="btn-icon-action" 
-                    title="Modifier cette absence"
-                  >
-                    <Edit3 :size="14" />
-                  </button>
-                  <button 
-                    v-if="canEdit(abs)" 
-                    @click="handleDelete(abs.id)" 
-                    class="btn-icon-action text-danger" 
-                    title="Supprimer cette absence"
-                  >
-                    <Trash2 :size="14" />
-                  </button>
+                <div class="day-headcount-item dinner" title="Dîner (Soir)">
+                  <span class="slot-icon-mini">🌙</span>
+                  <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'dinner') }}</span>
+                </div>
+                <div class="day-headcount-item night" title="Nuit (Couchage)">
+                  <span class="slot-icon-mini">🛌</span>
+                  <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'night') }}</span>
                 </div>
               </div>
+            </div>
+          </div>
+        </template>
 
-              <div class="slots-pill-row">
-                <span v-if="abs.lunch" class="slot-tag lunch">
-                  ☀️ Déjeuner
-                </span>
-                <span v-if="abs.dinner" class="slot-tag dinner">
-                  🌙 Dîner
-                </span>
-                <span v-if="abs.night" class="slot-tag night">
-                  🛌 Nuit
-                </span>
+        <!-- 2. WEEKLY CALENDAR VIEW -->
+        <div v-else-if="calendarViewMode === 'week'" class="absences-week-view">
+          <div class="week-days-columns">
+            <div 
+              v-for="day in weekDays" 
+              :key="day.dateStr"
+              class="week-day-column"
+              :class="{ 'is-today': day.isToday, 'is-past': day.isPast }"
+              @click="openDayDetailModal(day.dateStr)"
+              :title="'Cliquer pour voir ou modifier le détail du ' + day.name + ' ' + day.dayNum + ' ' + day.monthShort"
+            >
+              <!-- Day Header -->
+              <div class="week-col-header">
+                <div class="week-col-title">
+                  <span class="day-name-text">{{ day.name }}</span>
+                  <span class="day-date-text">{{ day.dayNum }} {{ day.monthShort }}</span>
+                </div>
+                <span v-if="day.isPast" class="past-tag-mini">Passé</span>
               </div>
 
-              <p v-if="abs.note" class="absence-note-text">
-                💬 <em>{{ abs.note }}</em>
-              </p>
-            </div>
-          </div>
-
-          <div v-if="filteredUpcomingAbsences.length === 0" class="empty-state">
-            🎉 Aucune absence à venir ! Toute la famille est réunie.
-          </div>
-        </div>
-
-        <!-- Guests Tab Content -->
-        <div v-else class="upcoming-absences-list">
-          <div 
-            v-for="g in upcomingGuestsList" 
-            :key="g.id"
-            class="upcoming-absence-card guest-card-theme"
-          >
-            <div class="upcoming-avatar-col">
-              <span class="upcoming-avatar guest-avatar-badge">👥</span>
-            </div>
-
-            <div class="upcoming-content-col">
-              <div class="upcoming-card-header">
-                <div class="member-name-date">
-                  <strong>{{ g.name }}</strong>
-                  <span class="absence-date-badge is-guest-date" :class="{ 'is-today': g.date === store.todayStr }">
-                    {{ formatRelativeDate(g.date) }}
-                  </span>
-                  <span v-if="g.invitedBy" class="guest-host-tag" :title="'Invité par ' + getMemberName(g.invitedBy)">
-                    Invité par {{ getMemberFirstName(g.invitedBy) }}
-                  </span>
+              <!-- Slots breakdown -->
+              <div class="week-col-slots">
+                <!-- Midi (Déjeuner) -->
+                <div class="week-col-slot lunch">
+                  <div class="slot-summary-row">
+                    <span class="slot-name-badge">☀️ Midi</span>
+                    <span class="slot-headcount-tag" :title="`${day.lunchPresence.headcount} à table ce midi`">
+                      {{ day.lunchPresence.headcount }}
+                    </span>
+                  </div>
+                  <div class="slot-chips-wrap">
+                    <span 
+                      v-for="p in day.lunchPresence.exceptionalPresences" 
+                      :key="'wl-p-' + p.id" 
+                      class="mini-chip chip-presence"
+                      :title="`${p.firstName} présent(e)`"
+                    >
+                      +{{ p.firstName }}
+                    </span>
+                    <span 
+                      v-for="a in day.lunchPresence.absentMembers" 
+                      :key="'wl-a-' + a.id" 
+                      class="mini-chip chip-absence"
+                      :title="`${a.firstName} absent(e)`"
+                    >
+                      -{{ a.firstName }}
+                    </span>
+                    <span 
+                      v-for="g in day.lunchPresence.guests" 
+                      :key="'wl-g-' + g.id" 
+                      class="mini-chip chip-guest"
+                      :title="`Invité : ${g.name}`"
+                    >
+                      👥 {{ g.name }}
+                    </span>
+                    <span 
+                      v-if="day.lunchPresence.exceptionalPresences.length === 0 && day.lunchPresence.absentMembers.length === 0 && day.lunchPresence.guests.length === 0" 
+                      class="mini-chip chip-normal"
+                    >
+                      Habituel
+                    </span>
+                  </div>
                 </div>
 
-                <div class="card-action-buttons">
-                  <button 
-                    @click="openEditGuestModal(g)" 
-                    class="btn-icon-action" 
-                    title="Modifier cet invité"
-                  >
-                    <Edit3 :size="14" />
-                  </button>
-                  <button 
-                    @click="handleDeleteGuest(g.id)" 
-                    class="btn-icon-action text-danger" 
-                    title="Supprimer cet invité"
-                  >
-                    <Trash2 :size="14" />
-                  </button>
+                <!-- Soir (Dîner) -->
+                <div class="week-col-slot dinner">
+                  <div class="slot-summary-row">
+                    <span class="slot-name-badge">🌙 Soir</span>
+                    <span class="slot-headcount-tag" :title="`${day.dinnerPresence.headcount} à table ce soir`">
+                      {{ day.dinnerPresence.headcount }}
+                    </span>
+                  </div>
+                  <div class="slot-chips-wrap">
+                    <span 
+                      v-for="p in day.dinnerPresence.exceptionalPresences" 
+                      :key="'wd-p-' + p.id" 
+                      class="mini-chip chip-presence"
+                      :title="`${p.firstName} présent(e)`"
+                    >
+                      +{{ p.firstName }}
+                    </span>
+                    <span 
+                      v-for="a in day.dinnerPresence.absentMembers" 
+                      :key="'wd-a-' + a.id" 
+                      class="mini-chip chip-absence"
+                      :title="`${a.firstName} absent(e)`"
+                    >
+                      -{{ a.firstName }}
+                    </span>
+                    <span 
+                      v-for="g in day.dinnerPresence.guests" 
+                      :key="'wd-g-' + g.id" 
+                      class="mini-chip chip-guest"
+                      :title="`Invité : ${g.name}`"
+                    >
+                      👥 {{ g.name }}
+                    </span>
+                    <span 
+                      v-if="day.dinnerPresence.exceptionalPresences.length === 0 && day.dinnerPresence.absentMembers.length === 0 && day.dinnerPresence.guests.length === 0" 
+                      class="mini-chip chip-normal"
+                    >
+                      Habituel
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Nuit (Couchage) -->
+                <div class="week-col-slot night">
+                  <div class="slot-summary-row">
+                    <span class="slot-name-badge">🛌 Nuit</span>
+                    <span class="slot-headcount-tag" :title="`${day.nightPresence.headcount} au lit`">
+                      {{ day.nightPresence.headcount }}
+                    </span>
+                  </div>
+                  <div class="slot-chips-wrap">
+                    <span 
+                      v-for="p in day.nightPresence.exceptionalPresences" 
+                      :key="'wn-p-' + p.id" 
+                      class="mini-chip chip-presence"
+                      :title="`${p.firstName} dort sur place`"
+                    >
+                      +{{ p.firstName }}
+                    </span>
+                    <span 
+                      v-for="a in day.nightPresence.absentMembers" 
+                      :key="'wn-a-' + a.id" 
+                      class="mini-chip chip-absence"
+                      :title="`${a.firstName} découché`"
+                    >
+                      -{{ a.firstName }}
+                    </span>
+                    <span 
+                      v-for="g in day.nightPresence.guests" 
+                      :key="'wn-g-' + g.id" 
+                      class="mini-chip chip-guest"
+                      :title="`Invité : ${g.name}`"
+                    >
+                      👥 {{ g.name }}
+                    </span>
+                    <span 
+                      v-if="day.nightPresence.exceptionalPresences.length === 0 && day.nightPresence.absentMembers.length === 0 && day.nightPresence.guests.length === 0" 
+                      class="mini-chip chip-normal"
+                    >
+                      Habituel
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div class="slots-pill-row">
-                <span v-if="g.lunch" class="slot-tag lunch">
-                  ☀️ Déjeuner
-                </span>
-                <span v-if="g.dinner" class="slot-tag dinner">
-                  🌙 Dîner
-                </span>
-                <span v-if="g.night" class="slot-tag night">
-                  🛌 Nuit
-                </span>
+              <!-- Footer action hint -->
+              <div class="week-col-footer">
+                <span class="week-col-hint">{{ day.isPast ? 'Consulter' : 'Modifier' }}</span>
               </div>
-
-              <p v-if="g.note" class="absence-note-text">
-                💬 <em>{{ g.note }}</em>
-              </p>
             </div>
           </div>
-
-          <div v-if="upcomingGuestsList.length === 0" class="empty-state">
-            🍽️ Aucun invité prévu prochainement.
-            <button @click="openAddGuestModal()" class="btn btn-sm btn-secondary margin-top-xs">
-              <UserPlus :size="14" /> + Ajouter un invité
-            </button>
-          </div>
         </div>
-      </div>
     </div>
 
     <!-- Modal Signaler / Modifier Absence ou Présence -->
@@ -533,33 +511,10 @@
         </div>
 
         <form @submit.prevent="handleSubmit">
-          <!-- Type de déclaration : Absence vs Présence -->
-          <div class="form-group">
-            <label class="form-label">Type de déclaration</label>
-            <div class="declaration-type-switch">
-              <button 
-                type="button" 
-                class="type-switch-btn" 
-                :class="{ active: form.type === 'absence', 'type-absence': form.type === 'absence' }"
-                @click="form.type = 'absence'"
-              >
-                <span>🚫 Absence</span>
-              </button>
-              <button 
-                type="button" 
-                class="type-switch-btn" 
-                :class="{ active: form.type === 'presence', 'type-presence': form.type === 'presence' }"
-                @click="form.type = 'presence'"
-              >
-                <span>🟢 Présence</span>
-              </button>
-            </div>
-          </div>
-
           <!-- Member selection -->
           <div class="form-group">
             <label class="form-label">Membre concerné</label>
-            <select v-model="form.memberId" @change="onMemberChange" class="form-select" required>
+            <select v-model="form.memberId" class="form-select" required>
               <option v-for="m in store.members" :key="m.id" :value="m.id">
                 {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ m.usualPresence === 'absent' ? '(Habituellement absent)' : '' }} {{ m.id === authStore.user?.id ? '• Moi' : '' }}
               </option>
@@ -575,6 +530,7 @@
             <input 
               v-model="form.date" 
               type="date" 
+              :min="store.todayStr"
               required 
               class="form-input" 
             />
@@ -703,6 +659,7 @@
             <input 
               v-model="guestForm.date" 
               type="date" 
+              :min="store.todayStr"
               required 
               class="form-input" 
             />
@@ -822,27 +779,19 @@
 
         <div class="day-detail-body">
           <!-- Top Big Action Buttons -->
-          <div class="day-detail-actions-bar">
+          <div v-if="selectedDayDate >= store.todayStr" class="day-detail-actions-bar">
             <button 
-              @click="openAddModalFromDay('presence')" 
-              class="btn btn-presence-primary btn-action-card"
-              title="Signaler la présence d'un membre pour cette journée"
-            >
-              <CheckCircle2 :size="18" />
-              <span>+ Présence</span>
-            </button>
-            <button 
-              @click="openAddModalFromDay('absence')" 
+              @click="openDeclarationChoiceModal(selectedDayDate)" 
               class="btn btn-primary btn-action-card"
-              title="Signaler une absence pour cette journée"
+              title="Déclarer une absence, absence longue, invitation ou présence"
             >
               <Plus :size="18" />
-              <span>+ Absence</span>
+              <span>Déclarer pour ce jour</span>
             </button>
-            <button @click="openAddGuestModalFromDay()" class="btn btn-purple btn-action-card">
-              <UserPlus :size="18" />
-              <span>+ Invité</span>
-            </button>
+          </div>
+          <div v-else class="past-day-banner">
+            <span class="past-day-icon">ℹ️</span>
+            <span>Cette journée est passée (consultation uniquement). L'ajout de présences, absences ou invités est désactivé.</span>
           </div>
 
           <!-- Slots Details Grid -->
@@ -892,16 +841,30 @@
                       <UserAvatar :avatar="abs.avatar || getMemberAvatar(abs)" :name="abs.firstName || getMemberFirstName(abs)" size="sm" />
                       <div class="person-info">
                         <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
+                        <span v-if="getLongAbsenceForRecord(abs)" class="person-long-absence-badge" :title="`Absence longue du ${formatDisplayDate(getLongAbsenceForRecord(abs).startDate)} au ${formatDisplayDate(getLongAbsenceForRecord(abs).endDate)}`">
+                          <CalendarRange :size="12" />
+                          <span>Absence longue</span>
+                        </span>
                         <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
-                          <Edit3 :size="15" />
-                        </button>
-                        <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
-                          <Trash2 :size="15" />
-                        </button>
+                        <template v-if="getLongAbsenceForRecord(abs)">
+                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-action text-amber" title="Modifier toute l'absence longue">
+                            <Edit3 :size="15" />
+                          </button>
+                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-action text-danger" title="Supprimer toute l'absence longue">
+                            <Trash2 :size="15" />
+                          </button>
+                        </template>
+                        <template v-else>
+                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
+                            <Edit3 :size="15" />
+                          </button>
+                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
+                            <Trash2 :size="15" />
+                          </button>
+                        </template>
                       </div>
                     </div>
                   </div>
@@ -981,16 +944,30 @@
                       <UserAvatar :avatar="abs.avatar || getMemberAvatar(abs)" :name="abs.firstName || getMemberFirstName(abs)" size="sm" />
                       <div class="person-info">
                         <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
+                        <span v-if="getLongAbsenceForRecord(abs)" class="person-long-absence-badge" :title="`Absence longue du ${formatDisplayDate(getLongAbsenceForRecord(abs).startDate)} au ${formatDisplayDate(getLongAbsenceForRecord(abs).endDate)}`">
+                          <CalendarRange :size="12" />
+                          <span>Absence longue</span>
+                        </span>
                         <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
-                          <Edit3 :size="15" />
-                        </button>
-                        <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
-                          <Trash2 :size="15" />
-                        </button>
+                        <template v-if="getLongAbsenceForRecord(abs)">
+                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-action text-amber" title="Modifier toute l'absence longue">
+                            <Edit3 :size="15" />
+                          </button>
+                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-action text-danger" title="Supprimer toute l'absence longue">
+                            <Trash2 :size="15" />
+                          </button>
+                        </template>
+                        <template v-else>
+                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
+                            <Edit3 :size="15" />
+                          </button>
+                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
+                            <Trash2 :size="15" />
+                          </button>
+                        </template>
                       </div>
                     </div>
                   </div>
@@ -1070,16 +1047,30 @@
                       <UserAvatar :avatar="abs.avatar || getMemberAvatar(abs)" :name="abs.firstName || getMemberFirstName(abs)" size="sm" />
                       <div class="person-info">
                         <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
+                        <span v-if="getLongAbsenceForRecord(abs)" class="person-long-absence-badge" :title="`Absence longue du ${formatDisplayDate(getLongAbsenceForRecord(abs).startDate)} au ${formatDisplayDate(getLongAbsenceForRecord(abs).endDate)}`">
+                          <CalendarRange :size="12" />
+                          <span>Absence longue</span>
+                        </span>
                         <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
-                          <Edit3 :size="15" />
-                        </button>
-                        <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
-                          <Trash2 :size="15" />
-                        </button>
+                        <template v-if="getLongAbsenceForRecord(abs)">
+                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-action text-amber" title="Modifier toute l'absence longue">
+                            <Edit3 :size="15" />
+                          </button>
+                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-action text-danger" title="Supprimer toute l'absence longue">
+                            <Trash2 :size="15" />
+                          </button>
+                        </template>
+                        <template v-else>
+                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
+                            <Edit3 :size="15" />
+                          </button>
+                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
+                            <Trash2 :size="15" />
+                          </button>
+                        </template>
                       </div>
                     </div>
                   </div>
@@ -1124,6 +1115,373 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Gestion des Absences Longues -->
+    <div v-if="showLongAbsenceModal" class="modal-overlay" @click.self="showLongAbsenceModal = false">
+      <div class="modal-content long-absence-modal">
+        <div class="modal-header">
+          <div class="modal-title-with-icon">
+            <CalendarRange :size="22" class="text-amber" />
+            <h3>{{ editingLongAbsenceId ? 'Modifier l\'Absence Longue' : 'Absence Longue' }}</h3>
+          </div>
+          <button @click="showLongAbsenceModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <!-- Mode tabs (Déclarer / Liste) -->
+        <div class="long-absence-tabs" v-if="!editingLongAbsenceId">
+          <button 
+            type="button" 
+            class="tab-btn" 
+            :class="{ active: activeLongAbsenceTab === 'form' }" 
+            @click="activeLongAbsenceTab = 'form'"
+          >
+            <Plus :size="16" />
+            <span>Déclarer une absence</span>
+          </button>
+          <button 
+            type="button" 
+            class="tab-btn" 
+            :class="{ active: activeLongAbsenceTab === 'list' }" 
+            @click="activeLongAbsenceTab = 'list'"
+          >
+            <Calendar :size="16" />
+            <span>Absences déclarées ({{ store.longAbsences.length }})</span>
+          </button>
+        </div>
+
+        <!-- Editing banner -->
+        <div v-if="editingLongAbsenceId" class="editing-banner">
+          <div class="editing-banner-text">
+            <span>✏️ Vous modifiez une absence longue existante.</span>
+          </div>
+          <button type="button" class="btn-cancel-edit" @click="cancelEditLongAbsence">
+            Annuler la modification
+          </button>
+        </div>
+
+        <!-- Tab 1: Formulaire -->
+        <form v-if="activeLongAbsenceTab === 'form' || editingLongAbsenceId" @submit.prevent="handleLongAbsenceSubmit" class="long-absence-form">
+          <!-- Membre concerné -->
+          <div class="form-group">
+            <label class="form-label">Membre concerné</label>
+            <select v-model="longAbsenceForm.memberId" class="form-select" required>
+              <option v-for="m in store.members" :key="m.id" :value="m.id">
+                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ m.id === authStore.user?.id ? '• Moi' : '' }}
+              </option>
+            </select>
+            <span v-if="longAbsenceForm.memberId !== authStore.user?.id" class="help-subtext text-indigo">
+              👋 Vous déclarez cette absence pour <strong>{{ getMemberName(longAbsenceForm.memberId) }}</strong>. Une alerte sera envoyée à la famille.
+            </span>
+          </div>
+
+          <!-- Date & Créneau de Début -->
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label class="form-label">Date de début</label>
+              <input 
+                v-model="longAbsenceForm.startDate" 
+                type="date" 
+                :min="editingLongAbsenceId ? undefined : store.todayStr"
+                @change="onStartDateChange"
+                required 
+                class="form-input" 
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">À partir du créneau</label>
+              <div class="slot-select-pills">
+                <button 
+                  type="button" 
+                  class="slot-pill-btn" 
+                  :class="{ active: longAbsenceForm.startSlot === 'lunch' }"
+                  @click="setStartSlot('lunch')"
+                >
+                  <span>☀️ Midi</span>
+                </button>
+                <button 
+                  type="button" 
+                  class="slot-pill-btn" 
+                  :class="{ active: longAbsenceForm.startSlot === 'dinner' }"
+                  @click="setStartSlot('dinner')"
+                >
+                  <span>🌙 Soir</span>
+                </button>
+                <button 
+                  type="button" 
+                  class="slot-pill-btn" 
+                  :class="{ active: longAbsenceForm.startSlot === 'night' }"
+                  @click="setStartSlot('night')"
+                >
+                  <span>🛌 Nuit</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Date & Créneau de Fin -->
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label class="form-label">Date de fin</label>
+              <input 
+                v-model="longAbsenceForm.endDate" 
+                type="date" 
+                :min="longAbsenceForm.startDate || store.todayStr"
+                @change="onEndDateChange"
+                required 
+                class="form-input" 
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Jusqu'au créneau inclus</label>
+              <div class="slot-select-pills">
+                <button 
+                  type="button" 
+                  class="slot-pill-btn" 
+                  :class="{ active: longAbsenceForm.endSlot === 'lunch' }"
+                  :disabled="isEndSlotDisabled('lunch')"
+                  @click="setEndSlot('lunch')"
+                >
+                  <span>☀️ Midi</span>
+                </button>
+                <button 
+                  type="button" 
+                  class="slot-pill-btn" 
+                  :class="{ active: longAbsenceForm.endSlot === 'dinner' }"
+                  :disabled="isEndSlotDisabled('dinner')"
+                  @click="setEndSlot('dinner')"
+                >
+                  <span>🌙 Soir</span>
+                </button>
+                <button 
+                  type="button" 
+                  class="slot-pill-btn" 
+                  :class="{ active: longAbsenceForm.endSlot === 'night' }"
+                  :disabled="isEndSlotDisabled('night')"
+                  @click="setEndSlot('night')"
+                >
+                  <span>🛌 Nuit</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Motif / Commentaire -->
+          <div class="form-group">
+            <label class="form-label">Motif / Commentaire (optionnel)</label>
+            <input 
+              v-model="longAbsenceForm.note" 
+              type="text" 
+              placeholder="Ex: Vacances, déplacement professionnel, week-end..." 
+              class="form-input" 
+            />
+          </div>
+
+          <!-- Résumé dynamique -->
+          <div class="long-absence-recap-card" v-if="longAbsenceForm.startDate && longAbsenceForm.endDate">
+            <div class="recap-header">
+              <span class="recap-badge">Période d'absence</span>
+              <span class="recap-days">{{ longAbsenceDaysCount }} jour{{ longAbsenceDaysCount > 1 ? 's' : '' }}</span>
+            </div>
+            <div class="recap-body">
+              <div class="recap-line">
+                <span class="recap-label">Début :</span>
+                <strong>{{ formatDisplayDate(longAbsenceForm.startDate) }}</strong>
+                <span class="slot-tag">créneau {{ formatSlotName(longAbsenceForm.startSlot) }}</span>
+              </div>
+              <div class="recap-line">
+                <span class="recap-label">Fin :</span>
+                <strong>{{ formatDisplayDate(longAbsenceForm.endDate) }}</strong>
+                <span class="slot-tag">créneau {{ formatSlotName(longAbsenceForm.endSlot) }}</span>
+              </div>
+            </div>
+            <p class="recap-hint">
+              💡 Les créneaux d'absence quotidiens (midi, soir, nuit) seront automatiquement enregistrés pour chaque jour de la période.
+            </p>
+          </div>
+
+          <div class="modal-footer flex-between">
+            <button 
+              type="button" 
+              @click="editingLongAbsenceId ? cancelEditLongAbsence() : showLongAbsenceModal = false" 
+              class="btn btn-secondary"
+            >
+              Annuler
+            </button>
+            <button 
+              type="submit" 
+              class="btn btn-primary btn-long-absence-submit"
+              :disabled="savingLongAbsence"
+            >
+              <span v-if="savingLongAbsence">Enregistrement...</span>
+              <span v-else>{{ editingLongAbsenceId ? 'Mettre à jour l\'absence longue' : 'Enregistrer l\'absence longue' }}</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Tab 2: Liste des absences longues -->
+        <div v-else class="long-absences-list-tab">
+          <div v-if="store.longAbsences.length === 0" class="empty-long-absences">
+            <div class="empty-icon">🏖️</div>
+            <h4>Aucune absence longue déclarée</h4>
+            <p>Déclarez des absences sur plusieurs jours en quelques clics (vacances, séjours...).</p>
+            <button type="button" @click="activeLongAbsenceTab = 'form'" class="btn btn-primary mt-2">
+              <Plus :size="16" />
+              <span>Déclarer une absence longue</span>
+            </button>
+          </div>
+
+          <div v-else class="long-absences-grid">
+            <div 
+              v-for="la in store.longAbsences" 
+              :key="'la-' + la.id" 
+              class="long-absence-card"
+            >
+              <div class="la-card-header">
+                <div class="la-member">
+                  <UserAvatar :avatar="getMemberAvatar(la.memberId)" :name="getMemberFirstName(la.memberId)" size="sm" />
+                  <div>
+                    <strong>{{ getMemberName(la.memberId) }}</strong>
+                    <span v-if="la.declaredBy && la.declaredBy !== la.memberId" class="la-subtext">
+                      Par {{ getMemberFirstName(la.declaredBy) }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="la-actions" v-if="canEditLongAbsence(la)">
+                  <button @click="editLongAbsence(la)" class="btn-icon-action text-amber" title="Modifier cette absence longue">
+                    <Edit3 :size="15" />
+                  </button>
+                  <button @click="handleDeleteLongAbsence(la)" class="btn-icon-action text-danger" title="Supprimer cette absence longue">
+                    <Trash2 :size="15" />
+                  </button>
+                </div>
+              </div>
+
+              <div class="la-dates-box">
+                <div class="la-dates-row">
+                  <span class="la-date-point">Du <strong>{{ formatDisplayDate(la.startDate) }}</strong> ({{ formatSlotName(la.startSlot) }})</span>
+                  <span class="la-arrow">➔</span>
+                  <span class="la-date-point">Au <strong>{{ formatDisplayDate(la.endDate) }}</strong> ({{ formatSlotName(la.endSlot) }})</span>
+                </div>
+              </div>
+
+              <div v-if="la.note" class="la-note">
+                💬 {{ la.note }}
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer flex-between">
+            <button type="button" @click="showLongAbsenceModal = false" class="btn btn-secondary">
+              Fermer
+            </button>
+            <button type="button" @click="activeLongAbsenceTab = 'form'" class="btn btn-primary">
+              <Plus :size="16" />
+              <span>+ Nouvelle absence longue</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Choix du Type de Déclaration -->
+    <div v-if="showDeclarationChoiceModal" class="modal-overlay" @click.self="showDeclarationChoiceModal = false">
+      <div class="modal-content declaration-choice-modal">
+        <div class="modal-header">
+          <div class="modal-title-with-icon">
+            <Plus :size="22" class="text-indigo" />
+            <h3>Que souhaitez-vous déclarer ?</h3>
+          </div>
+          <button @click="showDeclarationChoiceModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <div class="declaration-options-list">
+          <!-- 1. Absence -->
+          <button 
+            type="button" 
+            class="declaration-option-card option-absence" 
+            @click="handleSelectDeclarationType('absence')"
+          >
+            <div class="declaration-option-icon absence-icon">
+              <span>🚫</span>
+            </div>
+            <div class="declaration-option-content">
+              <div class="declaration-option-title-row">
+                <strong>Absence</strong>
+                <span class="declaration-badge absence-badge">Journée / Repas</span>
+              </div>
+              <p class="declaration-option-desc">Signaler une absence pour un repas (midi, soir) ou pour la nuit.</p>
+            </div>
+            <ChevronRight :size="18" class="declaration-arrow" />
+          </button>
+
+          <!-- 2. Absence longue -->
+          <button 
+            type="button" 
+            class="declaration-option-card option-long-absence" 
+            @click="handleSelectDeclarationType('long-absence')"
+          >
+            <div class="declaration-option-icon long-absence-icon">
+              <span>🗓️</span>
+            </div>
+            <div class="declaration-option-content">
+              <div class="declaration-option-title-row">
+                <strong>Absence longue</strong>
+                <span class="declaration-badge long-absence-badge">Plusieurs jours</span>
+              </div>
+              <p class="declaration-option-desc">Déclarer une absence sur plusieurs jours avec choix des créneaux (vacances, week-ends...).</p>
+            </div>
+            <ChevronRight :size="18" class="declaration-arrow" />
+          </button>
+
+          <!-- 3. Invitation -->
+          <button 
+            type="button" 
+            class="declaration-option-card option-guest" 
+            @click="handleSelectDeclarationType('guest')"
+          >
+            <div class="declaration-option-icon guest-icon">
+              <span>👥</span>
+            </div>
+            <div class="declaration-option-content">
+              <div class="declaration-option-title-row">
+                <strong>Invitation</strong>
+                <span class="declaration-badge guest-badge">Invités</span>
+              </div>
+              <p class="declaration-option-desc">Inviter des personnes pour un repas (déjeuner, dîner) ou pour dormir sur place.</p>
+            </div>
+            <ChevronRight :size="18" class="declaration-arrow" />
+          </button>
+
+          <!-- 4. Présence -->
+          <button 
+            type="button" 
+            class="declaration-option-card option-presence" 
+            @click="handleSelectDeclarationType('presence')"
+          >
+            <div class="declaration-option-icon presence-icon">
+              <span>🟢</span>
+            </div>
+            <div class="declaration-option-content">
+              <div class="declaration-option-title-row">
+                <strong>Présence</strong>
+                <span class="declaration-badge presence-badge">Exceptionnelle</span>
+              </div>
+              <p class="declaration-option-desc">Confirmer la présence d'un membre habituellement absent.</p>
+            </div>
+            <ChevronRight :size="18" class="declaration-arrow" />
+          </button>
+        </div>
+
+        <div class="modal-footer modal-footer-center">
+          <button type="button" @click="showDeclarationChoiceModal = false" class="btn btn-secondary">
+            Annuler
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1133,34 +1491,30 @@ import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
   CalendarCheck, 
-  Clock, 
   Plus, 
   Trash2, 
   Edit3, 
   ChevronLeft, 
   ChevronRight, 
   UserPlus, 
-  Users,
-  CheckCircle2
+  CheckCircle2,
+  Calendar,
+  CalendarRange
 } from '@lucide/vue'
 import HouseUser from '../components/icons/HouseUser.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
+import { useConfirm } from '../composables/useConfirm'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
-
-// Filter State
-const selectedMemberFilter = ref(null)
+const { confirm } = useConfirm()
 
 // Current user usual presence check
 const isCurrentUserUsuallyAbsent = computed(() => {
   const member = store.members.find(m => m.id === authStore.user?.id)
   return member?.usualPresence === 'absent' || authStore.user?.usualPresence === 'absent'
 })
-
-// Tab State for Right Column (Absences vs Invités)
-const activeUpcomingTab = ref('absences')
 
 // Absence Modal State
 const showModal = ref(false)
@@ -1177,12 +1531,7 @@ const form = ref({
   note: ''
 })
 
-const onMemberChange = () => {
-  const mem = store.members.find(m => m.id === form.value.memberId)
-  if (mem) {
-    form.value.type = mem.usualPresence === 'absent' ? 'presence' : 'absence'
-  }
-}
+
 
 // Guest Modal State
 const showGuestModal = ref(false)
@@ -1209,6 +1558,48 @@ const monthNames = [
 
 const currentMonthName = computed(() => monthNames[currentMonth.value])
 
+// Calendar View Mode: 'month' or 'week'
+const calendarViewMode = ref('week')
+
+function getMonday(d) {
+  d = new Date(d)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  d.setDate(diff)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+const currentMonday = ref(getMonday(new Date()))
+
+const prevWeek = () => {
+  const d = new Date(currentMonday.value)
+  d.setDate(d.getDate() - 7)
+  currentMonday.value = d
+}
+
+const nextWeek = () => {
+  const d = new Date(currentMonday.value)
+  d.setDate(d.getDate() + 7)
+  currentMonday.value = d
+}
+
+const prevPeriod = () => {
+  if (calendarViewMode.value === 'week') {
+    prevWeek()
+  } else {
+    prevMonth()
+  }
+}
+
+const nextPeriod = () => {
+  if (calendarViewMode.value === 'week') {
+    nextWeek()
+  } else {
+    nextMonth()
+  }
+}
+
 const prevMonth = () => {
   if (currentMonth.value === 0) {
     currentMonth.value = 11
@@ -1230,7 +1621,47 @@ const nextMonth = () => {
 const goToToday = () => {
   currentYear.value = todayDate.getFullYear()
   currentMonth.value = todayDate.getMonth()
+  currentMonday.value = getMonday(new Date())
 }
+
+const weekDays = computed(() => {
+  const days = []
+  const dayNames = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+  const monthNamesList = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
+  const base = new Date(currentMonday.value)
+  const todayStr = store.todayStr
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(base)
+    d.setDate(base.getDate() + i)
+    const dateStr = formatDateStr(d.getFullYear(), d.getMonth(), d.getDate())
+
+    const lunchPresence = store.getMealSlotPresence(dateStr, 'lunch')
+    const dinnerPresence = store.getMealSlotPresence(dateStr, 'dinner')
+    const nightPresence = store.getMealSlotPresence(dateStr, 'night')
+
+    days.push({
+      name: dayNames[i],
+      shortName: dayNames[i].slice(0, 3),
+      dateStr,
+      dayNum: d.getDate(),
+      monthShort: monthNamesList[d.getMonth()],
+      isToday: dateStr === todayStr,
+      isPast: dateStr < todayStr,
+      lunchPresence,
+      dinnerPresence,
+      nightPresence
+    })
+  }
+  return days
+})
+
+const currentWeekLabel = computed(() => {
+  if (weekDays.value.length === 0) return ''
+  const first = weekDays.value[0]
+  const last = weekDays.value[6]
+  return `Semaine du ${first.dayNum} ${first.monthShort} au ${last.dayNum} ${last.monthShort} ${currentMonday.value.getFullYear()}`
+})
 
 // Days in current month
 const daysInCurrentMonth = computed(() => {
@@ -1252,6 +1683,11 @@ const formatDateStr = (y, m, d) => {
 const isDayToday = (day) => {
   const check = formatDateStr(currentYear.value, currentMonth.value, day)
   return check === store.todayStr
+}
+
+const isDayPast = (day) => {
+  const check = formatDateStr(currentYear.value, currentMonth.value, day)
+  return check < store.todayStr
 }
 
 // Headcounts for each day of current month (lunch, dinner, night)
@@ -1311,48 +1747,19 @@ const canEdit = (abs) => {
 
 const hasUsuallyAbsentMembers = computed(() => store.members.some(m => m.usualPresence === 'absent'))
 
-// Filtered Absences & Guests
-const filteredAbsences = computed(() => {
-  if (!selectedMemberFilter.value) return store.absences
-  return store.absences.filter(a => a.memberId === selectedMemberFilter.value)
-})
-
-const filteredGuests = computed(() => {
-  if (!selectedMemberFilter.value) return store.mealGuests
-  return store.mealGuests.filter(g => g.invitedBy === selectedMemberFilter.value)
-})
-
 const getDayAbsences = (day) => {
   const dateStr = formatDateStr(currentYear.value, currentMonth.value, day)
-  return filteredAbsences.value.filter(a => a.date === dateStr && a.type !== 'presence')
+  return store.absences.filter(a => a.date === dateStr && a.type !== 'presence')
 }
 
 const getDayPresences = (day) => {
   const dateStr = formatDateStr(currentYear.value, currentMonth.value, day)
-  return filteredAbsences.value.filter(a => a.date === dateStr && a.type === 'presence')
+  return store.absences.filter(a => a.date === dateStr && a.type === 'presence')
 }
 
 const getDayGuests = (day) => {
   const dateStr = formatDateStr(currentYear.value, currentMonth.value, day)
-  return filteredGuests.value.filter(g => g.date === dateStr)
-}
-
-const getAbsenceTooltip = (abs) => {
-  const parts = []
-  if (abs.lunch) parts.push('Déjeuner (Midi)')
-  if (abs.dinner) parts.push('Dîner (Soir)')
-  if (abs.night) parts.push('Nuit')
-  const actionNoun = abs.type === 'presence' ? 'Présent(e) exceptionnellement' : 'Absent(e)'
-  return `${getMemberName(abs.memberId)} : ${actionNoun} ${parts.join(', ')}${abs.note ? ` (${abs.note})` : ''}`
-}
-
-const getGuestTooltip = (g) => {
-  const parts = []
-  if (g.lunch) parts.push('Déjeuner')
-  if (g.dinner) parts.push('Dîner')
-  if (g.night) parts.push('Nuit')
-  const host = g.invitedBy ? ` (Invité par ${getMemberFirstName(g.invitedBy)})` : ''
-  return `Invité(e) : ${g.name} - Présent ${parts.join(', ')}${host}${g.note ? ` - Note: ${g.note}` : ''}`
+  return store.mealGuests.filter(g => g.date === dateStr)
 }
 
 // Today Banner Computeds
@@ -1368,8 +1775,9 @@ const todayLunchGuests = computed(() => todayLunchPresence.value.guests)
 const todayDinnerGuests = computed(() => todayDinnerPresence.value.guests)
 const todayNightGuests = computed(() => todayNightPresence.value.guests)
 
-const getSlotHeadcount = (slot) => {
-  const p = slot === 'lunch' ? todayLunchPresence.value : (slot === 'dinner' ? todayDinnerPresence.value : todayNightPresence.value)
+const getSlotHeadcount = (slot, dateStr = null) => {
+  const targetDate = dateStr || store.todayStr
+  const p = store.getMealSlotPresence(targetDate, slot)
   const noun = slot === 'night' ? 'personne(s) qui dorment' : 'à table'
   const details = []
   if (p.presentMembersCount > 0) details.push(`${p.presentMembersCount} membre${p.presentMembersCount > 1 ? 's' : ''}`)
@@ -1377,17 +1785,6 @@ const getSlotHeadcount = (slot) => {
   const detailsStr = details.length > 0 ? ` (${details.join(' + ')})` : ''
   return `${p.headcount} ${noun}${detailsStr}`
 }
-
-// Upcoming Lists
-const filteredUpcomingAbsences = computed(() => {
-  if (!selectedMemberFilter.value) return store.upcomingAbsences
-  return store.upcomingAbsences.filter(a => a.memberId === selectedMemberFilter.value)
-})
-
-const upcomingGuestsList = computed(() => {
-  if (!selectedMemberFilter.value) return store.upcomingMealGuests
-  return store.upcomingMealGuests.filter(g => g.invitedBy === selectedMemberFilter.value)
-})
 
 // Dates formatting
 const formatDisplayDate = (dStr) => {
@@ -1430,10 +1827,15 @@ const openAddModal = (defaultDate = null, defaultType = null, defaultMemberId = 
   const mem = store.members.find(m => m.id === initialMemberId)
   const initialType = defaultType || (mem?.usualPresence === 'absent' ? 'presence' : 'absence')
   
+  let effectiveDate = defaultDate || store.todayStr
+  if (effectiveDate < store.todayStr) {
+    effectiveDate = store.todayStr
+  }
+  
   form.value = {
     type: initialType,
     memberId: initialMemberId,
-    date: defaultDate || store.todayStr,
+    date: effectiveDate,
     lunch: false,
     dinner: false,
     night: false,
@@ -1458,6 +1860,12 @@ const openEditModal = (rec) => {
 
 const handleSubmit = async () => {
   if (!form.value.lunch && !form.value.dinner && !form.value.night) return
+
+  if (!editingId.value && form.value.date < store.todayStr) {
+    alert("Impossible d'enregistrer une présence ou une absence à une date passée.")
+    return
+  }
+
   saving.value = true
 
   if (editingId.value) {
@@ -1473,7 +1881,15 @@ const handleSubmit = async () => {
 const handleDelete = async (idOrObj) => {
   const targetId = typeof idOrObj === 'object' ? (idOrObj.absenceId || idOrObj.record?.id || idOrObj.id) : idOrObj
   const isPres = typeof idOrObj === 'object' ? (idOrObj.record?.type === 'presence' || idOrObj.type === 'presence') : (form.value.type === 'presence')
-  if (confirm(`Voulez-vous vraiment supprimer cette ${isPres ? 'présence' : 'absence'} ?`)) {
+  const term = isPres ? 'cette présence exceptionnelle' : 'cette absence'
+  const ok = await confirm({
+    title: isPres ? 'Supprimer la présence' : 'Supprimer l\'absence',
+    message: `Voulez-vous vraiment supprimer ${term} ?`,
+    description: 'Cette action est irréversible.',
+    confirmText: 'Supprimer',
+    type: 'danger'
+  })
+  if (ok) {
     saving.value = true
     await store.deleteAbsence(targetId)
     saving.value = false
@@ -1484,12 +1900,16 @@ const handleDelete = async (idOrObj) => {
 // Guest Modal actions
 const openAddGuestModal = (defaultDate = null, defaultSlot = null) => {
   editingGuestId.value = null
+  let initialDate = defaultDate || store.todayStr
+  if (initialDate < store.todayStr) {
+    initialDate = store.todayStr
+  }
   guestForm.value = {
     name: '',
-    date: defaultDate || store.todayStr,
-    lunch: false,
-    dinner: false,
-    night: false,
+    date: initialDate,
+    lunch: defaultSlot === 'lunch',
+    dinner: defaultSlot === 'dinner',
+    night: defaultSlot === 'night',
     invitedBy: authStore.user?.id || null,
     note: ''
   }
@@ -1514,6 +1934,11 @@ const handleGuestSubmit = async () => {
   if (!guestForm.value.name.trim()) return
   if (!guestForm.value.lunch && !guestForm.value.dinner && !guestForm.value.night) return
 
+  if (!editingGuestId.value && guestForm.value.date < store.todayStr) {
+    alert("Impossible d'ajouter un invité à une date passée.")
+    return
+  }
+
   saving.value = true
 
   if (editingGuestId.value) {
@@ -1536,11 +1961,13 @@ const openDayDetailModal = (dateStr) => {
 }
 
 const openAddModalFromDay = (defaultType = null, defaultMemberId = null) => {
+  if (selectedDayDate.value < store.todayStr) return
   showDayDetailModal.value = false
   openAddModal(selectedDayDate.value, defaultType, defaultMemberId)
 }
 
 const openAddGuestModalFromDay = () => {
+  if (selectedDayDate.value < store.todayStr) return
   showDayDetailModal.value = false
   openAddGuestModal(selectedDayDate.value)
 }
@@ -1596,11 +2023,268 @@ const formatFullDisplayDate = (dStr) => {
 }
 
 const handleDeleteGuest = async (id) => {
-  if (confirm('Voulez-vous vraiment retirer cet invité ?')) {
+  const ok = await confirm({
+    title: 'Retirer l\'invité',
+    message: 'Voulez-vous vraiment retirer cet invité ?',
+    description: 'Cette action est irréversible.',
+    confirmText: 'Retirer',
+    type: 'danger'
+  })
+  if (ok) {
     saving.value = true
     await store.deleteMealGuest(id)
     saving.value = false
     showGuestModal.value = false
+  }
+}
+
+// --- LONG ABSENCE STATE & METHODS ---
+const showLongAbsenceModal = ref(false)
+const activeLongAbsenceTab = ref('form')
+const editingLongAbsenceId = ref(null)
+const savingLongAbsence = ref(false)
+
+const longAbsenceForm = ref({
+  memberId: authStore.user?.id || 1,
+  startDate: store.todayStr,
+  startSlot: 'lunch',
+  endDate: store.todayStr,
+  endSlot: 'dinner',
+  note: ''
+})
+
+const slotOrder = { lunch: 0, dinner: 1, night: 2 }
+
+const isEndSlotDisabled = (slot) => {
+  if (longAbsenceForm.value.startDate === longAbsenceForm.value.endDate) {
+    return slotOrder[slot] < slotOrder[longAbsenceForm.value.startSlot]
+  }
+  return false
+}
+
+const setStartSlot = (slot) => {
+  longAbsenceForm.value.startSlot = slot
+  if (longAbsenceForm.value.startDate === longAbsenceForm.value.endDate) {
+    if (slotOrder[longAbsenceForm.value.endSlot] < slotOrder[slot]) {
+      longAbsenceForm.value.endSlot = slot
+    }
+  }
+}
+
+const setEndSlot = (slot) => {
+  if (isEndSlotDisabled(slot)) return
+  longAbsenceForm.value.endSlot = slot
+}
+
+const onStartDateChange = () => {
+  if (!longAbsenceForm.value.startDate) return
+  if (longAbsenceForm.value.endDate < longAbsenceForm.value.startDate) {
+    longAbsenceForm.value.endDate = longAbsenceForm.value.startDate
+  }
+  if (longAbsenceForm.value.startDate === longAbsenceForm.value.endDate) {
+    if (slotOrder[longAbsenceForm.value.endSlot] < slotOrder[longAbsenceForm.value.startSlot]) {
+      longAbsenceForm.value.endSlot = longAbsenceForm.value.startSlot
+    }
+  }
+}
+
+const onEndDateChange = () => {
+  if (!longAbsenceForm.value.endDate) return
+  if (longAbsenceForm.value.endDate < longAbsenceForm.value.startDate) {
+    longAbsenceForm.value.startDate = longAbsenceForm.value.endDate
+  }
+  if (longAbsenceForm.value.startDate === longAbsenceForm.value.endDate) {
+    if (slotOrder[longAbsenceForm.value.endSlot] < slotOrder[longAbsenceForm.value.startSlot]) {
+      longAbsenceForm.value.startSlot = longAbsenceForm.value.endSlot
+    }
+  }
+}
+
+const formatSlotName = (slot) => {
+  if (slot === 'lunch') return 'Midi'
+  if (slot === 'dinner') return 'Soir'
+  if (slot === 'night') return 'Nuit'
+  return slot || ''
+}
+
+const longAbsenceDaysCount = computed(() => {
+  if (!longAbsenceForm.value.startDate || !longAbsenceForm.value.endDate) return 0
+  const start = new Date(longAbsenceForm.value.startDate)
+  const end = new Date(longAbsenceForm.value.endDate)
+  const diffTime = end.getTime() - start.getTime()
+  if (diffTime < 0) return 0
+  return Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1
+})
+
+const getLongAbsenceById = (id) => {
+  if (!id) return null
+  return store.longAbsences.find(la => la.id === Number(id))
+}
+
+const getLongAbsenceForRecord = (abs) => {
+  if (!abs) return null
+  const laId = abs.record?.longAbsenceId || abs.longAbsenceId || getRecordForMember(abs.memberId || abs.id, selectedDayDate.value)?.longAbsenceId
+  if (!laId) return null
+  return getLongAbsenceById(laId)
+}
+
+const canEditLongAbsence = (la) => {
+  if (!authStore.user || !la) return false
+  const mId = Number(la.memberId)
+  const dBy = la.declaredBy ? Number(la.declaredBy) : null
+  const currentUserId = Number(authStore.user.id)
+  return store.isFamilyAdmin || mId === currentUserId || (dBy !== null && dBy === currentUserId)
+}
+
+const openLongAbsenceModal = (defaultMemberId = null, defaultStartDate = null) => {
+  editingLongAbsenceId.value = null
+  activeLongAbsenceTab.value = 'form'
+  const startDate = (defaultStartDate && defaultStartDate >= store.todayStr) ? defaultStartDate : store.todayStr
+  longAbsenceForm.value = {
+    memberId: defaultMemberId || authStore.user?.id || (store.members[0]?.id || 1),
+    startDate: startDate,
+    startSlot: 'lunch',
+    endDate: startDate,
+    endSlot: 'dinner',
+    note: ''
+  }
+  showLongAbsenceModal.value = true
+}
+
+const openLongAbsenceModalFromDay = () => {
+  if (selectedDayDate.value < store.todayStr) return
+  showDayDetailModal.value = false
+  openLongAbsenceModal(null, selectedDayDate.value)
+}
+
+const editLongAbsence = (la) => {
+  editingLongAbsenceId.value = la.id
+  activeLongAbsenceTab.value = 'form'
+  longAbsenceForm.value = {
+    memberId: la.memberId,
+    startDate: la.startDate,
+    startSlot: la.startSlot,
+    endDate: la.endDate,
+    endSlot: la.endSlot,
+    note: la.note || ''
+  }
+  showLongAbsenceModal.value = true
+}
+
+const openEditLongAbsenceFromDay = (la) => {
+  showDayDetailModal.value = false
+  editLongAbsence(la)
+}
+
+const cancelEditLongAbsence = () => {
+  editingLongAbsenceId.value = null
+  if (store.longAbsences.length > 0) {
+    activeLongAbsenceTab.value = 'list'
+  } else {
+    showLongAbsenceModal.value = false
+  }
+}
+
+const handleLongAbsenceSubmit = async () => {
+  if (!longAbsenceForm.value.startDate || !longAbsenceForm.value.endDate) {
+    alert("Veuillez sélectionner les dates de début et de fin.")
+    return
+  }
+  if (!editingLongAbsenceId.value && longAbsenceForm.value.startDate < store.todayStr) {
+    alert("La date de début ne peut pas être dans le passé.")
+    return
+  }
+  if (longAbsenceForm.value.endDate < longAbsenceForm.value.startDate) {
+    alert("La date de fin ne peut pas précéder la date de début.")
+    return
+  }
+  if (longAbsenceForm.value.startDate === longAbsenceForm.value.endDate) {
+    if (slotOrder[longAbsenceForm.value.endSlot] < slotOrder[longAbsenceForm.value.startSlot]) {
+      alert("Pour une même journée, le créneau de fin doit être identique ou postérieur au créneau de début.")
+      return
+    }
+  }
+
+  savingLongAbsence.value = true
+  try {
+    let result
+    if (editingLongAbsenceId.value) {
+      result = await store.updateLongAbsence(editingLongAbsenceId.value, longAbsenceForm.value)
+    } else {
+      result = await store.addLongAbsence(longAbsenceForm.value)
+    }
+    if (result && result.success) {
+      showLongAbsenceModal.value = false
+      editingLongAbsenceId.value = null
+    } else {
+      alert(result?.error || "Erreur lors de l'enregistrement de l'absence longue.")
+    }
+  } finally {
+    savingLongAbsence.value = false
+  }
+}
+
+const handleDeleteLongAbsence = async (la) => {
+  const memberName = getMemberFirstName(la.memberId)
+  const ok = await confirm({
+    title: "Supprimer l'absence longue",
+    message: `Voulez-vous vraiment supprimer l'absence longue de ${memberName} du ${formatDisplayDate(la.startDate)} au ${formatDisplayDate(la.endDate)} ?`,
+    description: "Tous les créneaux quotidiens associés à cette absence longue seront automatiquement supprimés.",
+    confirmText: 'Supprimer',
+    type: 'danger'
+  })
+  if (ok) {
+    savingLongAbsence.value = true
+    try {
+      const res = await store.deleteLongAbsence(la.id)
+      if (res && res.success) {
+        if (editingLongAbsenceId.value === la.id) {
+          cancelEditLongAbsence()
+        }
+      } else {
+        alert(res?.error || "Erreur lors de la suppression de l'absence longue.")
+      }
+    } finally {
+      savingLongAbsence.value = false
+    }
+  }
+}
+
+const handleAbsentMemberClick = (memberId, dateStr) => {
+  const rec = getRecordForMember(memberId, dateStr)
+  if (!rec) return
+  if (rec.longAbsenceId) {
+    const la = getLongAbsenceById(rec.longAbsenceId)
+    if (la) {
+      editLongAbsence(la)
+      return
+    }
+  }
+  openEditModal(rec)
+}
+
+// --- DECLARATION CHOICE MODAL STATE & ACTIONS ---
+const showDeclarationChoiceModal = ref(false)
+const declarationChoiceTargetDate = ref(null)
+
+const openDeclarationChoiceModal = (targetDate = null) => {
+  declarationChoiceTargetDate.value = targetDate
+  showDeclarationChoiceModal.value = true
+}
+
+const handleSelectDeclarationType = (type) => {
+  showDeclarationChoiceModal.value = false
+  showDayDetailModal.value = false
+  const targetDate = declarationChoiceTargetDate.value
+
+  if (type === 'absence') {
+    openAddModal(targetDate, 'absence')
+  } else if (type === 'long-absence') {
+    openLongAbsenceModal(null, targetDate)
+  } else if (type === 'guest') {
+    openAddGuestModal(targetDate)
+  } else if (type === 'presence') {
+    openAddModal(targetDate, 'presence')
   }
 }
 </script>
@@ -1935,6 +2619,252 @@ const handleDeleteGuest = async (id) => {
   margin-bottom: 1.25rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* Calendar Header Actions & View Mode Toggle */
+.calendar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.calendar-view-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-tertiary);
+  padding: 0.2rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  gap: 0.15rem;
+}
+
+.view-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.view-mode-btn:hover {
+  color: var(--text-primary);
+}
+
+.view-mode-btn.active {
+  background: var(--bg-card);
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Weekly View for Absences */
+.absences-week-view {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.week-days-columns {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(130px, 1fr));
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.week-day-column {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 320px;
+}
+
+.week-day-column:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-primary);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-md);
+}
+
+.week-day-column.is-today {
+  border: 2px solid var(--accent-primary);
+  background: var(--accent-primary-light);
+  box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
+.week-day-column.is-past {
+  opacity: 0.6;
+  background: rgba(120, 120, 120, 0.08);
+  border-color: rgba(var(--border-color-rgb, 150, 150, 150), 0.35);
+}
+
+.week-day-column.is-past:hover {
+  opacity: 0.88;
+}
+
+.week-col-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.week-col-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.day-name-text {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.day-date-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.today-tag-mini {
+  background: var(--accent-primary);
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.past-tag-mini {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-full);
+}
+
+.week-col-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1;
+}
+
+.week-col-slot {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.week-col-slot.lunch {
+  border-left: 3px solid #f59e0b;
+}
+
+.week-col-slot.dinner {
+  border-left: 3px solid #6366f1;
+}
+
+.week-col-slot.night {
+  border-left: 3px solid #10b981;
+}
+
+.slot-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.slot-name-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.slot-headcount-tag {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 0.08rem 0.38rem;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.slot-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+.mini-chip {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  line-height: 1.2;
+}
+
+.mini-chip.chip-presence {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+.mini-chip.chip-absence {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.mini-chip.chip-guest {
+  background: rgba(139, 92, 246, 0.15);
+  color: #7c3aed;
+}
+
+.mini-chip.chip-normal {
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 500;
+  font-style: italic;
+  padding-left: 0;
+}
+
+.week-col-footer {
+  text-align: center;
+  padding-top: 0.25rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.week-col-hint {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  opacity: 0.85;
+}
+
+.week-day-column.is-past .week-col-hint {
+  color: var(--text-muted);
 }
 
 /* Calendar Grid */
@@ -1986,6 +2916,16 @@ const handleDeleteGuest = async (id) => {
   border-color: var(--accent-primary);
   background: var(--accent-primary-light);
   box-shadow: 0 0 0 1px var(--accent-primary);
+}
+
+.day-cell.past {
+  opacity: 0.55;
+  background: rgba(120, 120, 120, 0.08);
+  border-color: rgba(var(--border-color-rgb, 150, 150, 150), 0.35);
+}
+
+.day-cell.past:hover {
+  opacity: 0.85;
 }
 
 .day-cell-top {
@@ -2409,6 +3349,25 @@ const handleDeleteGuest = async (id) => {
   display: flex;
   gap: 0.75rem;
   margin-bottom: 1.25rem;
+}
+
+.past-day-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 1.25rem;
+}
+
+.past-day-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .btn-action-card {
@@ -2921,6 +3880,93 @@ const handleDeleteGuest = async (id) => {
   }
 }
 
+/* Responsive mobile weekly view: 1 column with 1 line per day */
+@media (max-width: 768px) {
+  .calendar-header-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .absences-week-view {
+    overflow-x: visible;
+  }
+
+  .week-days-columns {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .week-day-column {
+    min-height: auto;
+    padding: 0.75rem 0.85rem;
+    gap: 0.45rem;
+  }
+
+  .week-col-header {
+    align-items: center;
+    padding-bottom: 0.4rem;
+  }
+
+  .week-col-title {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.45rem;
+  }
+
+  .day-name-text {
+    font-size: 0.95rem;
+  }
+
+  .day-date-text {
+    font-size: 0.82rem;
+  }
+
+  .week-col-slots {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .week-col-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.35rem;
+  }
+
+  .week-col-hint {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .calendar-view-mode-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .view-mode-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .calendar-nav-controls {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .week-col-slots {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Modals layout, header close button, and centered actions */
 .modal-header {
   display: flex;
@@ -2983,5 +4029,570 @@ const handleDeleteGuest = async (id) => {
 .modal-actions-buttons.center-actions {
   justify-content: center;
   width: 100%;
+}
+
+/* Long Absence Button in Header */
+.btn-long-absence {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+  transition: all var(--transition-fast);
+}
+
+.btn-long-absence:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+  filter: brightness(1.05);
+}
+
+/* Person Long Absence Badge in Day Detail Modal */
+.person-long-absence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-full);
+  margin-top: 0.15rem;
+  width: fit-content;
+}
+
+[data-theme="dark"] .person-long-absence-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* Long Absence Modal */
+.long-absence-modal {
+  max-width: 540px;
+  width: 95%;
+}
+
+.modal-title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.modal-title-with-icon h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.long-absence-tabs {
+  display: flex;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.25rem;
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.long-absence-tabs .tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.long-absence-tabs .tab-btn.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.editing-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.2rem;
+  font-size: 0.85rem;
+  color: #b45309;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .editing-banner {
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.btn-cancel-edit {
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-cancel-edit:hover {
+  background: rgba(245, 158, 11, 0.2);
+}
+
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 520px) {
+  .form-row-2col {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+.slot-select-pills {
+  display: flex;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.slot-pill-btn {
+  flex: 1;
+  padding: 0.55rem 0.35rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.slot-pill-btn:hover:not(:disabled) {
+  border-color: #f59e0b;
+}
+
+.slot-pill-btn.active {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: white;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+
+.slot-pill-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--border-color);
+}
+
+.long-absence-recap-card {
+  background: rgba(245, 158, 11, 0.07);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  margin: 1.25rem 0 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.recap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.recap-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #d97706;
+  letter-spacing: 0.03em;
+}
+
+[data-theme="dark"] .recap-badge {
+  color: #fbbf24;
+}
+
+.recap-days {
+  font-size: 0.82rem;
+  font-weight: 800;
+  background: #f59e0b;
+  color: white;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-full);
+}
+
+.recap-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.recap-line {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.recap-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  width: 50px;
+}
+
+.slot-tag {
+  font-size: 0.72rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+}
+
+.recap-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0.2rem 0 0 0;
+  line-height: 1.35;
+}
+
+.btn-long-absence-submit {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  border: none !important;
+  color: white !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.btn-long-absence-submit:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+/* Tab 2: Long Absences List */
+.empty-long-absences {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-muted);
+}
+
+.empty-long-absences .empty-icon {
+  font-size: 2.5rem;
+}
+
+.empty-long-absences h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.empty-long-absences p {
+  margin: 0;
+  font-size: 0.85rem;
+  max-width: 320px;
+}
+
+.long-absences-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 440px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.long-absence-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid #f59e0b;
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: all var(--transition-fast);
+}
+
+.long-absence-card:hover {
+  border-color: #f59e0b;
+  box-shadow: var(--shadow-sm);
+}
+
+.la-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.la-member {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.la-subtext {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.la-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.la-dates-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+}
+
+.la-dates-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+}
+
+.la-date-point {
+  color: var(--text-primary);
+}
+
+.la-arrow {
+  color: #f59e0b;
+  font-weight: 800;
+}
+
+.la-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Declaration Choice Modal & Button */
+.btn-declare-main {
+  font-weight: 700;
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius-md);
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  transition: all var(--transition-fast);
+}
+
+.btn-declare-main:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(99, 102, 241, 0.4);
+}
+
+@media (max-width: 600px) {
+  .header-actions-group .btn.btn-declare-main {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.88rem !important;
+    height: 38px !important;
+  }
+}
+
+.declaration-choice-modal {
+  max-width: 500px;
+  width: 95%;
+}
+
+.declaration-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 0.5rem 0 1rem 0;
+}
+
+.declaration-option-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.95rem 1.15rem;
+  background: var(--bg-tertiary);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.declaration-option-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  background: var(--bg-card);
+}
+
+.declaration-option-card.option-absence:hover {
+  border-color: #ef4444;
+}
+
+.declaration-option-card.option-long-absence:hover {
+  border-color: #f59e0b;
+}
+
+.declaration-option-card.option-guest:hover {
+  border-color: var(--accent-purple);
+}
+
+.declaration-option-card.option-presence:hover {
+  border-color: var(--accent-emerald);
+}
+
+.declaration-option-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition-fast);
+}
+
+.declaration-option-card:hover .declaration-option-icon {
+  transform: scale(1.08);
+}
+
+.absence-icon {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.long-absence-icon {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.guest-icon {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.25);
+}
+
+.presence-icon {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.declaration-option-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.declaration-option-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.declaration-option-title-row strong {
+  font-size: 1.02rem;
+  color: var(--text-primary);
+}
+
+.declaration-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.12rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.absence-badge {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.long-absence-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.guest-badge {
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--accent-purple);
+}
+
+.presence-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--accent-emerald);
+}
+
+[data-theme="dark"] .absence-badge {
+  color: #f87171;
+}
+
+[data-theme="dark"] .long-absence-badge {
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .presence-badge {
+  color: #34d399;
+}
+
+.declaration-option-desc {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.declaration-arrow {
+  color: var(--text-muted);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.declaration-option-card:hover .declaration-arrow {
+  transform: translateX(3px);
+  color: var(--text-primary);
 }
 </style>

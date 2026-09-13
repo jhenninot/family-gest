@@ -27,7 +27,9 @@ import ShoppingCategory from './models/ShoppingCategory.js'
 import EmailConfig from './models/EmailConfig.js'
 import Shortcut from './models/Shortcut.js'
 import Absence from './models/Absence.js'
+import LongAbsence from './models/LongAbsence.js'
 import MealGuest from './models/MealGuest.js'
+import Meal from './models/Meal.js'
 import PushConfig from './models/PushConfig.js'
 import PushSubscription from './models/PushSubscription.js'
 import webpush from 'web-push'
@@ -1260,7 +1262,7 @@ app.get('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req,
 app.get('/api/super-admin/check-slug/:slug', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const slug = String(req.params.slug).toLowerCase().trim()
-    const reservedSlugs = ['admin', 'superadmin', 'super-admin', 'api', 'login', 'set-password', 'invitation', 'settings', 'dashboard', 'tasks', 'calendar', 'absences', 'shopping', 'select-family']
+    const reservedSlugs = ['admin', 'superadmin', 'super-admin', 'api', 'login', 'set-password', 'invitation', 'settings', 'dashboard', 'tasks', 'calendar', 'absences', 'shopping', 'meals', 'select-family']
     if (reservedSlugs.includes(slug)) {
       return res.json({ available: false, reason: 'Ce nom est réservé par le système' })
     }
@@ -1526,7 +1528,7 @@ app.put('/api/super-admin/families/:id', requireAuth, requireSuperAdmin, async (
       if (!/^[a-z0-9-]+$/.test(cleanSlug)) {
         return res.status(400).json({ error: 'L\'identifiant ne doit contenir que des lettres minuscules, chiffres et tirets (-)' })
       }
-      const reservedSlugs = ['admin', 'superadmin', 'super-admin', 'api', 'login', 'set-password', 'invitation', 'settings', 'dashboard', 'tasks', 'calendar', 'absences', 'shopping', 'select-family']
+      const reservedSlugs = ['admin', 'superadmin', 'super-admin', 'api', 'login', 'set-password', 'invitation', 'settings', 'dashboard', 'tasks', 'calendar', 'absences', 'shopping', 'meals', 'select-family']
       if (reservedSlugs.includes(cleanSlug)) {
         return res.status(400).json({ error: 'Cet identifiant est réservé par le système' })
       }
@@ -1566,7 +1568,8 @@ app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin,
       absences = [],
       mealGuests = [],
       shortcuts = [],
-      events = []
+      events = [],
+      meals = []
     } = payload
 
     // 1. Traitement des utilisateurs : mapping oldId -> targetUser.id & targetUser._id
@@ -1616,6 +1619,7 @@ app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin,
       ShoppingCategory.deleteMany({ familyId: family._id }),
       Absence.deleteMany({ familyId: family._id }),
       MealGuest.deleteMany({ familyId: family._id }),
+      Meal.deleteMany({ familyId: family._id }),
       Shortcut.deleteMany({ familyId: family._id }),
       Event.deleteMany({ familyId: family._id })
     ])
@@ -1666,7 +1670,8 @@ app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin,
         category: item.category || 'Frais',
         quantity: item.quantity ?? 1,
         urgent: Boolean(item.urgent),
-        checked: Boolean(item.checked)
+        checked: Boolean(item.checked),
+        mealId: item.mealId ? Number(item.mealId) : null
       })
     }
 
@@ -1756,6 +1761,21 @@ app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin,
       })
     }
 
+    // 11. Insérer les repas de la semaine
+    for (const m of meals) {
+      await Meal.create({
+        familyId: family._id,
+        id: m.id || Date.now(),
+        date: m.date,
+        slot: m.slot === 'dinner' ? 'dinner' : 'lunch',
+        dish: m.dish,
+        suggestedBy: m.suggestedBy !== undefined && m.suggestedBy !== null
+          ? (idMap[m.suggestedBy] || m.suggestedBy)
+          : null,
+        notes: m.notes || ''
+      })
+    }
+
     res.json({
       success: true,
       message: `Données importées avec succès pour la famille « ${family.name} »`,
@@ -1769,7 +1789,8 @@ app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin,
         absencesCount: absences.length,
         guestsCount: mealGuests.length,
         shortcutsCount: shortcuts.length,
-        eventsCount: events.length
+        eventsCount: events.length,
+        mealsCount: meals.length
       }
     })
   } catch (err) {
@@ -3208,7 +3229,8 @@ app.post('/api/shopping', requireAuth, attachFamilyContext, async (req, res) => 
       category: req.body.category || 'Frais',
       quantity: Number(req.body.quantity) || 1,
       urgent: Boolean(req.body.urgent),
-      checked: false
+      checked: false,
+      mealId: req.body.mealId ? Number(req.body.mealId) : null
     })
     await newItem.save()
     res.status(201).json(newItem)
@@ -3239,6 +3261,7 @@ app.put('/api/shopping/:id', requireAuth, attachFamilyContext, async (req, res) 
     if (req.body.category !== undefined) item.category = req.body.category
     if (req.body.quantity !== undefined) item.quantity = Number(req.body.quantity)
     if (req.body.urgent !== undefined)   item.urgent   = Boolean(req.body.urgent)
+    if (req.body.mealId !== undefined)   item.mealId   = req.body.mealId ? Number(req.body.mealId) : null
 
     await item.save()
     res.json(item)
@@ -3467,6 +3490,316 @@ app.delete('/api/absences/:id', requireAuth, attachFamilyContext, async (req, re
   }
 })
 
+// === LONG ABSENCES ROUTES (ABSENCES LONGUES SUR PLAGE DE DATES) ===
+const getDatesRange = (startDateStr, endDateStr) => {
+  const dates = []
+  const [sy, sm, sd] = startDateStr.split('-').map(Number)
+  const [ey, em, ed] = endDateStr.split('-').map(Number)
+  const curr = new Date(Date.UTC(sy, sm - 1, sd))
+  const end = new Date(Date.UTC(ey, em - 1, ed))
+  while (curr <= end) {
+    const y = curr.getUTCFullYear()
+    const m = String(curr.getUTCMonth() + 1).padStart(2, '0')
+    const d = String(curr.getUTCDate()).padStart(2, '0')
+    dates.push(`${y}-${m}-${d}`)
+    curr.setUTCDate(curr.getUTCDate() + 1)
+  }
+  return dates
+}
+
+const computeSlotsForDate = (dateStr, startDate, startSlot, endDate, endSlot) => {
+  const slotIndices = { lunch: 0, dinner: 1, night: 2 }
+  const sIdx = slotIndices[startSlot] ?? 0
+  const eIdx = slotIndices[endSlot] ?? 2
+
+  let lunch = false
+  let dinner = false
+  let night = false
+
+  if (startDate === endDate) {
+    lunch = sIdx <= 0 && eIdx >= 0
+    dinner = sIdx <= 1 && eIdx >= 1
+    night = sIdx <= 2 && eIdx >= 2
+  } else if (dateStr === startDate) {
+    lunch = sIdx <= 0
+    dinner = sIdx <= 1
+    night = sIdx <= 2
+  } else if (dateStr === endDate) {
+    lunch = eIdx >= 0
+    dinner = eIdx >= 1
+    night = eIdx >= 2
+  } else {
+    lunch = true
+    dinner = true
+    night = true
+  }
+
+  return { lunch, dinner, night }
+}
+
+const formatSlotLabel = (s) => {
+  if (s === 'lunch') return 'Midi'
+  if (s === 'dinner') return 'Soir'
+  if (s === 'night') return 'Nuit'
+  return s
+}
+
+app.get('/api/long-absences', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const list = await LongAbsence.find({ familyId: req.family._id }).sort({ startDate: 1, createdAt: 1 })
+    res.json(list)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/long-absences', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const { memberId, startDate, startSlot, endDate, endSlot, note } = req.body
+
+    if (!memberId || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Membre, date de début et date de fin requis' })
+    }
+
+    const slotIndices = { lunch: 0, dinner: 1, night: 2 }
+    const validSlot = (s) => ['lunch', 'dinner', 'night'].includes(s)
+    const sSlot = validSlot(startSlot) ? startSlot : 'lunch'
+    const eSlot = validSlot(endSlot) ? endSlot : 'night'
+
+    if (startDate > endDate) {
+      return res.status(400).json({ error: 'La date de fin doit être postérieure ou égale à la date de début' })
+    }
+
+    if (startDate === endDate && slotIndices[sSlot] > slotIndices[eSlot]) {
+      return res.status(400).json({ error: 'Le créneau de fin doit être après ou égal au créneau de début' })
+    }
+
+    const longAbsence = new LongAbsence({
+      familyId: req.family._id,
+      id: Date.now(),
+      memberId: Number(memberId),
+      startDate: startDate.trim(),
+      startSlot: sSlot,
+      endDate: endDate.trim(),
+      endSlot: eSlot,
+      note: (note || '').trim(),
+      declaredBy: req.user ? req.user.id : null
+    })
+
+    await longAbsence.save()
+
+    const dates = getDatesRange(startDate.trim(), endDate.trim())
+    const createdOrUpdatedAbsences = []
+
+    let baseId = Date.now() + 1
+    for (let i = 0; i < dates.length; i++) {
+      const dStr = dates[i]
+      const { lunch, dinner, night } = computeSlotsForDate(dStr, startDate.trim(), sSlot, endDate.trim(), eSlot)
+      if (!lunch && !dinner && !night) continue
+
+      let existing = await Absence.findOne({ memberId: Number(memberId), date: dStr, familyId: req.family._id })
+      if (existing) {
+        existing.type = 'absence'
+        existing.lunch = lunch
+        existing.dinner = dinner
+        existing.night = night
+        existing.longAbsenceId = longAbsence.id
+        if (note !== undefined) existing.note = (note || '').trim()
+        existing.declaredBy = req.user ? req.user.id : null
+        await existing.save()
+        createdOrUpdatedAbsences.push(existing)
+      } else {
+        const newAbs = new Absence({
+          familyId: req.family._id,
+          id: baseId++,
+          memberId: Number(memberId),
+          date: dStr,
+          type: 'absence',
+          lunch,
+          dinner,
+          night,
+          note: (note || '').trim(),
+          declaredBy: req.user ? req.user.id : null,
+          longAbsenceId: longAbsence.id
+        })
+        await newAbs.save()
+        createdOrUpdatedAbsences.push(newAbs)
+      }
+    }
+
+    // Consolidated notification
+    try {
+      const member = await User.findOne({ id: Number(memberId) })
+      const mName = member ? member.firstName : 'Un membre'
+      const authorName = req.user ? req.user.firstName : 'Un membre'
+      const isSelf = req.user && req.user.id === Number(memberId)
+      const periodStr = `du ${startDate.trim()} (${formatSlotLabel(sSlot)}) au ${endDate.trim()} (${formatSlotLabel(eSlot)})`
+      const noteStr = note ? ` • ${note.trim()}` : ''
+
+      const pushTitle = `🚫 Nouvelle absence longue : ${mName}`
+      const pushBody = isSelf
+        ? `${mName} sera absent(e) ${periodStr}${noteStr}`
+        : `${authorName} a signalé une absence longue pour ${mName} ${periodStr}${noteStr}`
+
+      sendPushNotification({
+        title: pushTitle,
+        body: pushBody,
+        url: `/${req.family.slug}/absences`,
+        excludeUserId: req.user ? req.user.id : null,
+        familyId: req.family._id
+      })
+
+      const emailSubject = isSelf 
+        ? `🚫 Absence longue déclarée : ${mName}`
+        : `🚫 Absence longue signalée pour ${mName} par ${authorName}`
+
+      const introHtml = isSelf
+        ? `<strong>${mName}</strong> a déclaré une absence longue :`
+        : `<strong>${authorName}</strong> a signalé une absence longue pour <strong>${mName}</strong> :`
+
+      sendNotificationEmail({
+        subject: emailSubject,
+        title: `Nouvelle absence longue signalée`,
+        badge: '🚫',
+        detailsHtml: `
+          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+            ${introHtml}
+          </p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+            <li><strong>Membre :</strong> ${mName}</li>
+            <li><strong>Période :</strong> ${periodStr}</li>
+            <li><strong>Nombre de jours :</strong> ${dates.length}</li>
+            ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
+            ${note ? `<li><strong>Motif :</strong> ${note.trim()}</li>` : ''}
+          </ul>
+        `,
+        actionUrl: `/${req.family.slug}/absences`,
+        actionText: 'Consulter les présences & repas',
+        excludeUserId: req.user ? req.user.id : null,
+        familyId: req.family._id
+      })
+    } catch (e) {
+      console.error('[WebPush] Erreur notification absence longue:', e.message)
+    }
+
+    res.status(201).json({ longAbsence, absences: createdOrUpdatedAbsences })
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+app.put('/api/long-absences/:id', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const longAbsence = await LongAbsence.findOne({ id: Number(req.params.id), familyId: req.family._id })
+    if (!longAbsence) return res.status(404).json({ error: 'Absence longue non trouvée' })
+
+    const isAuthorized = longAbsence.memberId === req.user.id || longAbsence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
+    if (!isAuthorized) {
+      return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres absences longues' })
+    }
+
+    const { memberId, startDate, startSlot, endDate, endSlot, note } = req.body
+
+    const targetMemberId = memberId !== undefined ? Number(memberId) : longAbsence.memberId
+    const targetStartDate = startDate !== undefined ? startDate.trim() : longAbsence.startDate
+    const targetEndDate = endDate !== undefined ? endDate.trim() : longAbsence.endDate
+    const slotIndices = { lunch: 0, dinner: 1, night: 2 }
+    const validSlot = (s) => ['lunch', 'dinner', 'night'].includes(s)
+    const targetStartSlot = validSlot(startSlot) ? startSlot : longAbsence.startSlot
+    const targetEndSlot = validSlot(endSlot) ? endSlot : longAbsence.endSlot
+
+    if (targetStartDate > targetEndDate) {
+      return res.status(400).json({ error: 'La date de fin doit être postérieure ou égale à la date de début' })
+    }
+
+    if (targetStartDate === targetEndDate && slotIndices[targetStartSlot] > slotIndices[targetEndSlot]) {
+      return res.status(400).json({ error: 'Le créneau de fin doit être après ou égal au créneau de début' })
+    }
+
+    // 1. Delete previous daily absence slots linked to this longAbsence
+    await Absence.deleteMany({ familyId: req.family._id, longAbsenceId: longAbsence.id })
+
+    // 2. Generate new daily absence slots
+    const dates = getDatesRange(targetStartDate, targetEndDate)
+    const createdOrUpdatedAbsences = []
+    let baseId = Date.now() + 1
+
+    for (let i = 0; i < dates.length; i++) {
+      const dStr = dates[i]
+      const { lunch, dinner, night } = computeSlotsForDate(dStr, targetStartDate, targetStartSlot, targetEndDate, targetEndSlot)
+      if (!lunch && !dinner && !night) continue
+
+      let existing = await Absence.findOne({ memberId: targetMemberId, date: dStr, familyId: req.family._id })
+      if (existing) {
+        existing.type = 'absence'
+        existing.lunch = lunch
+        existing.dinner = dinner
+        existing.night = night
+        existing.longAbsenceId = longAbsence.id
+        if (note !== undefined) existing.note = (note || '').trim()
+        existing.declaredBy = req.user ? req.user.id : null
+        await existing.save()
+        createdOrUpdatedAbsences.push(existing)
+      } else {
+        const newAbs = new Absence({
+          familyId: req.family._id,
+          id: baseId++,
+          memberId: targetMemberId,
+          date: dStr,
+          type: 'absence',
+          lunch,
+          dinner,
+          night,
+          note: (note || '').trim(),
+          declaredBy: req.user ? req.user.id : null,
+          longAbsenceId: longAbsence.id
+        })
+        await newAbs.save()
+        createdOrUpdatedAbsences.push(newAbs)
+      }
+    }
+
+    // 3. Update LongAbsence document
+    longAbsence.memberId = targetMemberId
+    longAbsence.startDate = targetStartDate
+    longAbsence.startSlot = targetStartSlot
+    longAbsence.endDate = targetEndDate
+    longAbsence.endSlot = targetEndSlot
+    if (note !== undefined) longAbsence.note = (note || '').trim()
+    longAbsence.declaredBy = req.user ? req.user.id : null
+    await longAbsence.save()
+
+    res.json({ longAbsence, absences: createdOrUpdatedAbsences })
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+app.delete('/api/long-absences/:id', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const longAbsence = await LongAbsence.findOne({ id: Number(req.params.id), familyId: req.family._id })
+    if (!longAbsence) return res.status(404).json({ error: 'Absence longue non trouvée' })
+
+    const isAuthorized = longAbsence.memberId === req.user.id || longAbsence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
+    if (!isAuthorized) {
+      return res.status(403).json({ error: 'Vous ne pouvez supprimer que vos propres absences longues' })
+    }
+
+    // Cascade delete of daily absence slots
+    const deleteResult = await Absence.deleteMany({ familyId: req.family._id, longAbsenceId: longAbsence.id })
+    await LongAbsence.deleteOne({ _id: longAbsence._id })
+
+    res.json({ 
+      success: true, 
+      message: 'Absence longue supprimée avec succès', 
+      deletedId: longAbsence.id,
+      deletedAbsencesCount: deleteResult.deletedCount 
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // === MEAL GUESTS ROUTES (INVITÉS AUX REPAS) ===
 app.get('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) => {
   try {
@@ -3604,6 +3937,167 @@ app.delete('/api/meal-guests/:id', requireAuth, attachFamilyContext, async (req,
   try {
     await MealGuest.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
     res.json({ message: 'Invité supprimé' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// === MEALS OF THE WEEK ROUTES ===
+app.get('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query
+    const filter = { familyId: req.family._id }
+    if (startDate && endDate) {
+      filter.date = { $gte: String(startDate), $lte: String(endDate) }
+    } else if (startDate) {
+      filter.date = { $gte: String(startDate) }
+    }
+    const meals = await Meal.find(filter).sort({ date: 1, slot: 1, createdAt: 1 })
+    res.json(meals)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const { date, slot, dish, notes, suggestedBy } = req.body
+
+    if (!date || !slot || !dish) {
+      return res.status(400).json({ error: 'La date, le créneau (midi/soir) et l\'intitulé du plat sont obligatoires' })
+    }
+
+    const cleanDish = String(dish).trim()
+    if (!cleanDish) {
+      return res.status(400).json({ error: 'L\'intitulé du plat ne peut pas être vide' })
+    }
+
+    const memberId = suggestedBy !== undefined && suggestedBy !== null 
+      ? Number(suggestedBy) 
+      : (req.user ? req.user.id : null)
+
+    const newMeal = new Meal({
+      familyId: req.family._id,
+      id: Date.now(),
+      date: String(date),
+      slot: slot === 'dinner' ? 'dinner' : 'lunch',
+      dish: cleanDish,
+      suggestedBy: memberId,
+      notes: notes ? String(notes).trim() : ''
+    })
+
+    await newMeal.save()
+
+    // Ingrédients associés à ajouter automatiquement dans la liste de courses
+    const createdIngredients = []
+    if (Array.isArray(req.body.ingredients) && req.body.ingredients.length > 0) {
+      for (let i = 0; i < req.body.ingredients.length; i++) {
+        const ing = req.body.ingredients[i]
+        const name = typeof ing === 'string' ? ing.trim() : (ing.name ? String(ing.name).trim() : '')
+        if (!name) continue
+        const category = (typeof ing === 'object' && ing.category) ? ing.category : 'Frais'
+        const quantity = (typeof ing === 'object' && ing.quantity) ? Number(ing.quantity) : 1
+
+        const itemDoc = new ShoppingItem({
+          familyId: req.family._id,
+          id: Date.now() + i + 1,
+          name,
+          category,
+          quantity,
+          urgent: false,
+          checked: false,
+          mealId: newMeal.id
+        })
+        await itemDoc.save()
+        createdIngredients.push(itemDoc)
+      }
+    }
+
+    // Informations pour les notifications
+    const authorName = req.user ? req.user.firstName : 'Un membre'
+    const slotLabel = newMeal.slot === 'lunch' ? 'Déjeuner (Midi)' : 'Dîner (Soir)'
+    
+    // Format friendly date
+    let dateFormatted = newMeal.date
+    try {
+      const dParts = newMeal.date.split('-')
+      if (dParts.length === 3) {
+        const dObj = new Date(Number(dParts[0]), Number(dParts[1]) - 1, Number(dParts[2]))
+        dateFormatted = dObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+      }
+    } catch (e) {}
+
+    sendPushNotification({
+      title: `🍲 Repas suggéré : ${newMeal.dish}`,
+      body: `Pour le ${slotLabel} du ${dateFormatted} • Suggéré par ${authorName}`,
+      url: `/${req.family.slug}/meals`,
+      excludeUserId: req.user ? req.user.id : null,
+      familyId: req.family._id
+    })
+
+    sendNotificationEmail({
+      subject: `🍲 Repas : ${newMeal.dish} (${slotLabel})`,
+      title: `Nouveau plat suggéré`,
+      badge: '🍲',
+      detailsHtml: `
+        <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+          <strong>${authorName}</strong> a proposé un plat pour la famille :
+        </p>
+        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+          <li><strong>Plat :</strong> ${newMeal.dish}</li>
+          <li><strong>Créneau :</strong> ${slotLabel}</li>
+          <li><strong>Date :</strong> ${dateFormatted}</li>
+          ${newMeal.notes ? `<li><strong>Notes :</strong> ${newMeal.notes}</li>` : ''}
+        </ul>
+      `,
+      actionUrl: `/${req.family.slug}/meals`,
+      actionText: 'Voir le menu de la semaine',
+      excludeUserId: req.user ? req.user.id : null,
+      familyId: req.family._id
+    })
+
+    res.status(201).json({
+      ...newMeal.toObject(),
+      createdIngredients
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const meal = await Meal.findOne({ id: Number(req.params.id), familyId: req.family._id })
+    if (!meal) return res.status(404).json({ error: 'Plat non trouvé' })
+
+    const { date, slot, dish, notes, suggestedBy } = req.body
+    if (date !== undefined) meal.date = String(date)
+    if (slot !== undefined) meal.slot = slot === 'dinner' ? 'dinner' : 'lunch'
+    if (dish !== undefined) {
+      const cleanDish = String(dish).trim()
+      if (!cleanDish) return res.status(400).json({ error: 'L\'intitulé du plat ne peut pas être vide' })
+      meal.dish = cleanDish
+    }
+    if (notes !== undefined) meal.notes = String(notes).trim()
+    if (suggestedBy !== undefined) meal.suggestedBy = suggestedBy ? Number(suggestedBy) : null
+
+    await meal.save()
+    res.json(meal)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const meal = await Meal.findOne({ id: Number(req.params.id), familyId: req.family._id })
+    if (!meal) return res.status(404).json({ error: 'Plat non trouvé' })
+
+    // Suppression en cascade des ingrédients associés dans la liste de courses
+    await ShoppingItem.deleteMany({ familyId: req.family._id, mealId: meal.id })
+
+    await Meal.deleteOne({ id: meal.id, familyId: req.family._id })
+    res.json({ message: 'Plat et ingrédients associés supprimés' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -3815,6 +4309,7 @@ app.get('/api/admin/export', requireAuth, requireAdmin, async (req, res) => {
       ShoppingCategory.find().sort({ rank: 1 }).lean(),
       Absence.find().lean(),
       MealGuest.find().lean(),
+      Meal.find().lean(),
       Shortcut.find().sort({ order: 1 }).lean(),
       Event.find().lean()
     ])
@@ -3830,6 +4325,7 @@ app.get('/api/admin/export', requireAuth, requireAdmin, async (req, res) => {
         shoppingCategories,
         absences,
         mealGuests,
+        meals,
         shortcuts,
         events
       }

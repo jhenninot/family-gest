@@ -37,7 +37,20 @@
         </span>
       </router-link>
 
-      <!-- 2. Liste de courses -->
+      <!-- 2. Repas de la semaine -->
+      <router-link :to="getPath('/meals')" class="nav-item" active-class="active">
+        <Utensils :size="20" />
+        <span>Repas</span>
+        <span 
+          v-if="thisWeekMealsCount > 0" 
+          class="badge-count warning"
+          :title="`${thisWeekMealsCount} plat(s) prévu(s) cette semaine`"
+        >
+          {{ thisWeekMealsCount }}
+        </span>
+      </router-link>
+
+      <!-- 3. Liste de courses -->
       <router-link :to="getPath('/shopping')" class="nav-item" active-class="active">
         <ShoppingCart :size="20" />
         <span>Liste de courses</span>
@@ -207,11 +220,13 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
+import { useConfirm } from '../composables/useConfirm'
 import { 
   LayoutDashboard, 
   CheckSquare, 
   Calendar, 
   ShoppingCart, 
+  Utensils,
   Award, 
   Globe, 
   Plus, 
@@ -227,6 +242,7 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const store = useFamilyStore()
+const { confirm } = useConfirm()
 
 const isSuperAdminRoute = computed(() => route.path.startsWith('/super-admin'))
 
@@ -238,6 +254,31 @@ const currentFamilyName = computed(() => {
   return match?.name || store.currentFamily?.name || 'Espace Familial'
 })
 const getPath = (sub) => currentSlug.value ? `/${currentSlug.value}${sub}` : (sub || '/')
+
+// Nombre de plats prévus dans la semaine courante
+const thisWeekMealsCount = computed(() => {
+  if (!store.meals || store.meals.length === 0) return 0
+  const d = new Date()
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  const monday = new Date(d)
+  monday.setDate(diff)
+  monday.setHours(0, 0, 0, 0)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  
+  const y = monday.getFullYear()
+  const m = String(monday.getMonth() + 1).padStart(2, '0')
+  const da = String(monday.getDate()).padStart(2, '0')
+  const monStr = `${y}-${m}-${da}`
+
+  const sy = sunday.getFullYear()
+  const sm = String(sunday.getMonth() + 1).padStart(2, '0')
+  const sda = String(sunday.getDate()).padStart(2, '0')
+  const sunStr = `${sy}-${sm}-${sda}`
+
+  return store.meals.filter(meal => meal.date >= monStr && meal.date <= sunStr).length
+})
 
 // --- SHORTCUTS LOGIC ---
 const showShortcutModal = ref(false)
@@ -288,7 +329,14 @@ const handleSaveShortcut = async () => {
 
 const handleDeleteShortcut = async () => {
   if (!editingShortcutId.value) return
-  if (confirm(`Voulez-vous vraiment supprimer le raccourci "${shortcutForm.value.title}" ?`)) {
+  const ok = await confirm({
+    title: 'Supprimer le raccourci',
+    message: `Voulez-vous vraiment supprimer le raccourci <strong>« ${shortcutForm.value.title} »</strong> ?`,
+    description: 'Cette action est irréversible et retirera le raccourci pour tous les membres de la famille.',
+    confirmText: 'Supprimer',
+    type: 'danger'
+  })
+  if (ok) {
     savingShortcut.value = true
     await store.deleteShortcut(editingShortcutId.value)
     savingShortcut.value = false

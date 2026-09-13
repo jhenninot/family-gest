@@ -866,6 +866,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
+import { useConfirm } from '../composables/useConfirm'
 import UserAvatar from '../components/UserAvatar.vue'
 import { 
   ShieldAlert, 
@@ -893,6 +894,7 @@ import {
 const router = useRouter()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
+const { confirm } = useConfirm()
 
 const activeTab = ref('families')
 const families = ref([])
@@ -1410,9 +1412,15 @@ const toggleUserFamilyAdmin = async (u, f) => {
   const newAdminStatus = !f.isAdmin
   const familyId = f.familyId || f._id || f.id
   const actionText = newAdminStatus 
-    ? `Nommer ${u.firstName} ${u.lastName} administrateur de la famille "${f.name}" ?`
-    : `Retirer les droits d'administrateur de ${u.firstName} ${u.lastName} pour la famille "${f.name}" ?`
-  if (!confirm(actionText)) return
+    ? `Nommer <strong>${u.firstName} ${u.lastName}</strong> administrateur de la famille "${f.name}" ?`
+    : `Retirer les droits d'administrateur de <strong>${u.firstName} ${u.lastName}</strong> pour la famille "${f.name}" ?`
+  const ok = await confirm({
+    title: 'Droits administrateur familial',
+    message: actionText,
+    type: 'warning',
+    confirmText: newAdminStatus ? 'Nommer administrateur' : 'Retirer les droits'
+  })
+  if (!ok) return
 
   try {
     const res = await fetch(`/api/super-admin/users/${u.id}/set-family-admin`, {
@@ -1519,7 +1527,13 @@ const handleUpdateFamilyRole = async (f) => {
 
 const handleRemoveFromFamily = async (f) => {
   if (!selectedUser.value) return
-  if (!confirm(`Retirer ${selectedUser.value.firstName} de la famille "${f.name}" ?`)) return
+  const ok = await confirm({
+    title: 'Retirer de la famille',
+    message: `Êtes-vous sûr de vouloir retirer <strong>${selectedUser.value.firstName} ${selectedUser.value.lastName || ''}</strong> de la famille "${f.name}" ?`,
+    confirmText: 'Retirer',
+    type: 'danger'
+  })
+  if (!ok) return
   userModalError.value = ''
   userModalSuccess.value = ''
   try {
@@ -1591,9 +1605,14 @@ const handleAttachFamily = async () => {
 const handleDeleteUser = async () => {
   if (!selectedUser.value) return
   const fullName = `${selectedUser.value.firstName} ${selectedUser.value.lastName}`
-  if (!confirm(`Êtes-vous ABSOLUMENT certain de vouloir supprimer le compte de ${fullName} ?\nCette action est irréversible et supprimera tous ses accès.`)) {
-    return
-  }
+  const ok = await confirm({
+    title: 'Supprimer définitivement le compte',
+    message: `Êtes-vous ABSOLUMENT certain de vouloir supprimer le compte de <strong>${fullName}</strong> ?`,
+    warning: 'Cette action est irréversible et supprimera définitivement tous ses accès et données associées.',
+    confirmText: 'Supprimer le compte',
+    type: 'danger'
+  })
+  if (!ok) return
   deletingUser.value = true
   userModalError.value = ''
   try {
@@ -1621,7 +1640,14 @@ const handleDeleteUser = async () => {
 
 const toggleFamilyActive = async (fam) => {
   const action = fam.isActive ? 'désactiver' : 'activer'
-  if (!confirm(`Êtes-vous sûr de vouloir ${action} la famille "${fam.name}" ?`)) return
+  const ok = await confirm({
+    title: `${fam.isActive ? 'Désactiver' : 'Activer'} la famille`,
+    message: `Êtes-vous sûr de vouloir ${action} la famille <strong>« ${fam.name} »</strong> ?`,
+    warning: fam.isActive ? 'Les membres de cette famille ne pourront plus y accéder tant qu\'elle est désactivée.' : undefined,
+    confirmText: fam.isActive ? 'Désactiver' : 'Activer',
+    type: fam.isActive ? 'warning' : 'primary'
+  })
+  if (!ok) return
   try {
     const res = await fetch(`/api/super-admin/families/${fam._id}`, {
       method: 'PUT',

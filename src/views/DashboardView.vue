@@ -75,9 +75,15 @@
           <div class="section-card-header">
             <div class="header-title">
               <HouseUser :size="20" class="text-emerald" />
-              <h2>Présence</h2>
+              <h2>Présence & Repas</h2>
             </div>
-            <router-link :to="getPath('/absences')" class="view-all-link">Voir le planning &rarr;</router-link>
+            <div class="header-links-group">
+              <router-link :to="getPath('/meals')" class="view-all-link meals-link" title="Gérer les repas de la semaine">
+                <Utensils :size="13" />
+                <span>Menus</span>
+              </router-link>
+              <router-link :to="getPath('/absences')" class="view-all-link">Planning &rarr;</router-link>
+            </div>
           </div>
 
           <div class="today-slots-list">
@@ -151,6 +157,12 @@
                 <div v-if="todayLunchPresence.absentMembers.length === 0 && todayLunchPresence.exceptionalPresences.length === 0 && todayLunchPresence.guests.length === 0" class="slot-all-present">
                   🎉 Au complet ({{ todayLunchPresence.headcount }} personnes) sans invité
                 </div>
+
+                <!-- Plat(s) prévu(s) ce midi -->
+                <div v-if="todayLunchMeals.length > 0" class="slot-dish-highlight">
+                  <span class="dish-badge-label">🍲 Au menu :</span>
+                  <span class="dish-badge-text">{{ todayLunchMeals.map(m => m.dish).join(' • ') }}</span>
+                </div>
               </div>
             </div>
 
@@ -223,6 +235,12 @@
                 <!-- Au complet sans invité -->
                 <div v-if="todayDinnerPresence.absentMembers.length === 0 && todayDinnerPresence.exceptionalPresences.length === 0 && todayDinnerPresence.guests.length === 0" class="slot-all-present">
                   🎉 Au complet ({{ todayDinnerPresence.headcount }} personnes) sans invité
+                </div>
+
+                <!-- Plat(s) prévu(s) ce soir -->
+                <div v-if="todayDinnerMeals.length > 0" class="slot-dish-highlight">
+                  <span class="dish-badge-label">🍲 Au menu :</span>
+                  <span class="dish-badge-text">{{ todayDinnerMeals.map(m => m.dish).join(' • ') }}</span>
                 </div>
               </div>
             </div>
@@ -842,6 +860,7 @@ import {
   CheckSquare, 
   Calendar, 
   ShoppingCart, 
+  Utensils,
   Plus, 
   UserPlus,
   Trash2,
@@ -863,11 +882,13 @@ import UserAvatar from '../components/UserAvatar.vue'
 import AvatarPicker from '../components/AvatarPicker.vue'
 import { DEFAULT_AVATAR } from '../utils/avatarHelper'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
+import { useConfirm } from '../composables/useConfirm'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const store = useFamilyStore()
+const { confirm } = useConfirm()
 
 const currentSlug = computed(() => route.params.familySlug || store.currentFamily?.slug || localStorage.getItem('familygest_active_slug') || '')
 const getPath = (sub) => currentSlug.value ? `/${currentSlug.value}${sub}` : (sub || '/')
@@ -974,6 +995,10 @@ const nightHeadcount = computed(() => todayNightPresence.value.headcount)
 const todayMealsCardValue = computed(() => {
   return `${lunchHeadcount.value} midi • ${dinnerHeadcount.value} soir`
 })
+
+const todayMeals = computed(() => (store.getMealsForDate ? store.getMealsForDate(store.todayStr) : { lunch: [], dinner: [] }))
+const todayLunchMeals = computed(() => todayMeals.value.lunch || [])
+const todayDinnerMeals = computed(() => todayMeals.value.dinner || [])
 
 const formatTodayAbsencesSubtext = () => {
   const parts = []
@@ -1196,7 +1221,13 @@ const handleToggleAdmin = async (member) => {
     }
   }
   const action = member.isAdmin ? 'retirer les droits d\'administrateur à' : 'nommer administrateur'
-  if (confirm(`Voulez-vous ${action} ${member.name} ?`)) {
+  const ok = await confirm({
+    title: member.isAdmin ? 'Retirer les droits administrateur' : 'Nommer administrateur',
+    message: `Voulez-vous ${action} <strong>${member.name}</strong> ?`,
+    confirmText: 'Confirmer',
+    type: member.isAdmin ? 'warning' : 'primary'
+  })
+  if (ok) {
     await store.toggleAdminStatus(member.id)
   }
 }
@@ -1209,7 +1240,14 @@ const handleDeleteMember = async (member) => {
       return
     }
   }
-  if (confirm(`Voulez-vous vraiment supprimer ${member.name} de la famille ?`)) {
+  const ok = await confirm({
+    title: 'Retirer un membre',
+    message: `Voulez-vous vraiment supprimer <strong>${member.name}</strong> de la famille ?`,
+    description: 'Cette action retirera le membre de cet espace familial ainsi que ses accès.',
+    confirmText: 'Retirer de la famille',
+    type: 'danger'
+  })
+  if (ok) {
     await store.deleteMember(member.id)
   }
 }
@@ -1400,6 +1438,47 @@ const handleDeleteMember = async (member) => {
   text-decoration: none;
 }
 .view-all-link:hover { text-decoration: underline; }
+
+.header-links-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.view-all-link.meals-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--accent-amber);
+  font-weight: 700;
+}
+
+.slot-dish-highlight {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--accent-amber-light);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  margin-top: 0.35rem;
+}
+
+.dish-badge-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--accent-amber);
+  flex-shrink: 0;
+}
+
+.dish-badge-text {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* Today's Meals & Night Widget */
 .today-slots-list {

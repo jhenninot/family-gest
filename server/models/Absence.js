@@ -10,7 +10,8 @@ const absenceSchema = new mongoose.Schema({
   dinner: { type: Boolean, default: false }, // Absent/Présent au dîner
   night: { type: Boolean, default: false }, // Absent/Présent la nuit
   note: { type: String, default: '', trim: true }, // Motif optionnel
-  declaredBy: { type: Number, default: null } // ID de l'utilisateur ayant saisi la déclaration
+  declaredBy: { type: Number, default: null }, // ID de l'utilisateur ayant saisi la déclaration
+  longAbsenceId: { type: Number, default: null, index: true } // ID de l'absence longue parente
 }, { timestamps: true })
 
 absenceSchema.index({ familyId: 1, id: 1 }, { unique: true })

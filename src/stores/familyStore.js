@@ -31,7 +31,9 @@ export const useFamilyStore = defineStore('family', () => {
   const shoppingCategories = ref([])
   const shortcuts = ref([])
   const absences = ref([])
+  const longAbsences = ref([])
   const mealGuests = ref([])
+  const meals = ref([])
   const isLoading = ref(false)
 
   const isFamilyAdmin = computed(() => {
@@ -61,7 +63,9 @@ export const useFamilyStore = defineStore('family', () => {
     shoppingCategories.value = []
     shortcuts.value = []
     absences.value = []
+    longAbsences.value = []
     mealGuests.value = []
+    meals.value = []
   }
 
   // Fetch accessible families for user
@@ -179,7 +183,7 @@ export const useFamilyStore = defineStore('family', () => {
       isLoading.value = true
       const headers = getHeaders()
 
-      const [membersRes, tasksRes, eventsRes, shoppingRes, categoriesRes, shortcutsRes, absencesRes, guestsRes] = await Promise.all([
+      const [membersRes, tasksRes, eventsRes, shoppingRes, categoriesRes, shortcutsRes, absencesRes, guestsRes, mealsRes, longAbsencesRes] = await Promise.all([
         fetch('/api/members', { headers }),
         fetch('/api/tasks', { headers }),
         fetch('/api/events', { headers }),
@@ -187,7 +191,9 @@ export const useFamilyStore = defineStore('family', () => {
         fetch('/api/shopping-categories', { headers }),
         fetch('/api/shortcuts', { headers }),
         fetch('/api/absences', { headers }),
-        fetch('/api/meal-guests', { headers })
+        fetch('/api/meal-guests', { headers }),
+        fetch('/api/meals', { headers }),
+        fetch('/api/long-absences', { headers })
       ])
 
       // Check if session token expired or user is invalid (401)
@@ -221,6 +227,8 @@ export const useFamilyStore = defineStore('family', () => {
       if (shortcutsRes.ok) shortcuts.value = await shortcutsRes.json()
       if (absencesRes.ok) absences.value = await absencesRes.json()
       if (guestsRes && guestsRes.ok) mealGuests.value = await guestsRes.json()
+      if (mealsRes && mealsRes.ok) meals.value = await mealsRes.json()
+      if (longAbsencesRes && longAbsencesRes.ok) longAbsences.value = await longAbsencesRes.json()
     } catch (err) {
       console.error('Erreur lors du chargement des données API', err)
     } finally {
@@ -865,6 +873,88 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  // --- LONG ABSENCES ACTIONS ---
+  const addLongAbsence = async (longAbsenceData) => {
+    try {
+      const res = await fetch('/api/long-absences', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(longAbsenceData)
+      })
+      if (res.ok) {
+        const { longAbsence, absences: createdOrUpdatedAbsences } = await res.json()
+        longAbsences.value.push(longAbsence)
+        createdOrUpdatedAbsences.forEach(saved => {
+          const existingIdx = absences.value.findIndex(a => a.id === saved.id || (a.memberId === saved.memberId && a.date === saved.date))
+          if (existingIdx !== -1) {
+            absences.value[existingIdx] = saved
+          } else {
+            absences.value.push(saved)
+          }
+        })
+        return { success: true, longAbsence, count: createdOrUpdatedAbsences.length }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur addLongAbsence API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  const updateLongAbsence = async (id, longAbsenceData) => {
+    try {
+      const res = await fetch(`/api/long-absences/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(longAbsenceData)
+      })
+      if (res.ok) {
+        const { longAbsence, absences: createdOrUpdatedAbsences } = await res.json()
+        const idx = longAbsences.value.findIndex(la => la.id === id)
+        if (idx !== -1) longAbsences.value[idx] = longAbsence
+
+        // Retirer les anciens créneaux liés à cette absence longue
+        absences.value = absences.value.filter(a => a.longAbsenceId !== id)
+
+        // Injecter les nouveaux créneaux
+        createdOrUpdatedAbsences.forEach(saved => {
+          const existingIdx = absences.value.findIndex(a => a.id === saved.id || (a.memberId === saved.memberId && a.date === saved.date))
+          if (existingIdx !== -1) {
+            absences.value[existingIdx] = saved
+          } else {
+            absences.value.push(saved)
+          }
+        })
+        return { success: true, longAbsence, count: createdOrUpdatedAbsences.length }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur updateLongAbsence API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  const deleteLongAbsence = async (id) => {
+    try {
+      const res = await fetch(`/api/long-absences/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      })
+      if (res.ok) {
+        longAbsences.value = longAbsences.value.filter(la => la.id !== id)
+        absences.value = absences.value.filter(a => a.longAbsenceId !== id)
+        return { success: true }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur deleteLongAbsence API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
   // Meal Guests Actions (Invités aux Repas)
   const addMealGuest = async (guestData) => {
     try {
@@ -932,6 +1022,83 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  // --- MEALS ACTIONS (Repas de la semaine) ---
+  const addMeal = async (mealData) => {
+    try {
+      const res = await fetch('/api/meals', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(mealData)
+      })
+      const data = await res.json()
+      if (res.ok) {
+        meals.value.push(data)
+        if (Array.isArray(data.createdIngredients) && data.createdIngredients.length > 0) {
+          shoppingList.value.unshift(...data.createdIngredients)
+        }
+        return { success: true, meal: data }
+      }
+      return { success: false, error: data.error }
+    } catch (err) {
+      console.error('Erreur addMeal API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  const updateMeal = async (id, mealData) => {
+    try {
+      const res = await fetch(`/api/meals/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(mealData)
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        const idx = meals.value.findIndex(m => m.id === id)
+        if (idx !== -1) meals.value[idx] = updated
+        return { success: true, meal: updated }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur updateMeal API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  const deleteMeal = async (id) => {
+    try {
+      const res = await fetch(`/api/meals/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders()
+      })
+      if (res.ok) {
+        meals.value = meals.value.filter(m => m.id !== id)
+        // Suppression en cascade des ingrédients associés dans la liste de courses
+        shoppingList.value = shoppingList.value.filter(item => item.mealId !== id)
+        return { success: true }
+      }
+      const err = await res.json()
+      return { success: false, error: err.error }
+    } catch (err) {
+      console.error('Erreur deleteMeal API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
+  const getMealsForDate = (dateStr) => {
+    const dayMeals = meals.value.filter(m => m.date === dateStr)
+    return {
+      lunch: dayMeals.filter(m => m.slot === 'lunch'),
+      dinner: dayMeals.filter(m => m.slot === 'dinner')
+    }
+  }
+
+  const getShoppingItemsForMeal = (mealId) => {
+    if (!mealId) return []
+    return shoppingList.value.filter(item => item.mealId === Number(mealId))
+  }
+
   return {
     isDarkMode,
     toggleTheme,
@@ -953,6 +1120,7 @@ export const useFamilyStore = defineStore('family', () => {
     shoppingCategories,
     shortcuts,
     absences,
+    longAbsences,
     mealGuests,
     todayStr,
     todayAbsences,
@@ -994,8 +1162,17 @@ export const useFamilyStore = defineStore('family', () => {
     addAbsence,
     updateAbsence,
     deleteAbsence,
+    addLongAbsence,
+    updateLongAbsence,
+    deleteLongAbsence,
     addMealGuest,
     updateMealGuest,
-    deleteMealGuest
+    deleteMealGuest,
+    meals,
+    addMeal,
+    updateMeal,
+    deleteMeal,
+    getMealsForDate,
+    getShoppingItemsForMeal
   }
 })

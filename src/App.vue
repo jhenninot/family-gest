@@ -168,6 +168,9 @@
 
     <!-- Invite de notifications Web Push par appareil -->
     <DevicePushPrompt />
+
+    <!-- Boîte de confirmation globale personnalisée -->
+    <ConfirmModal />
   </div>
 </template>
 
@@ -182,6 +185,7 @@ import UserAvatar from './components/UserAvatar.vue'
 import UserProfileModal from './components/UserProfileModal.vue'
 import PwaInstallPrompt from './components/PwaInstallPrompt.vue'
 import DevicePushPrompt from './components/DevicePushPrompt.vue'
+import ConfirmModal from './components/ConfirmModal.vue'
 
 const route = useRoute()
 const router = useRouter()

@@ -71,6 +71,12 @@ const routes = [
     meta: { title: 'Présence', requiresAuth: true }
   },
   {
+    path: '/:familySlug/meals',
+    name: 'family-meals',
+    component: () => import('../views/MealsView.vue'),
+    meta: { title: 'Repas de la semaine', requiresAuth: true }
+  },
+  {
     path: '/:familySlug/shopping',
     name: 'family-shopping',
     component: () => import('../views/ShoppingView.vue'),
@@ -104,6 +110,10 @@ const routes = [
   },
   {
     path: '/shopping',
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/meals',
     meta: { requiresAuth: true }
   },
   {
@@ -200,6 +210,7 @@ router.beforeEach(async (to, from, next) => {
     '/tasks': '/tasks',
     '/calendar': '/calendar',
     '/absences': '/absences',
+    '/meals': '/meals',
     '/shopping': '/shopping',
     '/settings/email': '/settings/email',
     '/settings': '/settings/email',
