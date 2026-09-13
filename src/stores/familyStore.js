@@ -326,6 +326,57 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  // Horloge réactive pour recalculer les créneaux repas toutes les minutes
+  const currentTime = ref(new Date())
+  if (typeof window !== 'undefined') {
+    setInterval(() => {
+      currentTime.value = new Date()
+    }, 60000)
+  }
+
+  // Prochain repas : de 00:00 à 14:00 (midi), de 14:00 à 21:00 (dîner), après 21:00 (midi de demain)
+  const nextMealInfo = computed(() => {
+    const current = currentTime.value
+    const hours = current.getHours()
+
+    let targetDate = current
+    let slot = 'lunch'
+    let label = 'ce midi'
+    let isTomorrow = false
+
+    if (hours >= 14 && hours < 21) {
+      slot = 'dinner'
+      label = 'ce soir'
+    } else if (hours >= 21) {
+      const tomorrow = new Date(current)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      targetDate = tomorrow
+      slot = 'lunch'
+      label = 'demain midi'
+      isTomorrow = true
+    } else {
+      slot = 'lunch'
+      label = 'ce midi'
+    }
+
+    const year = targetDate.getFullYear()
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0')
+    const day = String(targetDate.getDate()).padStart(2, '0')
+    const targetDateStr = `${year}-${month}-${day}`
+
+    const presence = getMealSlotPresence(targetDateStr, slot)
+    return {
+      date: targetDateStr,
+      slot,
+      label,
+      isTomorrow,
+      headcount: presence.headcount,
+      presence
+    }
+  })
+
+  const nextMealHeadcount = computed(() => nextMealInfo.value.headcount)
+
   // API Actions
   const addMember = async (memberData) => {
     try {
@@ -914,6 +965,8 @@ export const useFamilyStore = defineStore('family', () => {
     taskCompletionPercentage,
     pendingShoppingCount,
     getMealSlotPresence,
+    nextMealInfo,
+    nextMealHeadcount,
     fetchAllData,
     addMember,
     deleteMember,

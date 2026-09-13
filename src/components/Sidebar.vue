@@ -28,8 +28,12 @@
       <router-link :to="getPath('/absences')" class="nav-item" active-class="active">
         <HouseUser :size="20" />
         <span>Présence</span>
-        <span v-if="store.todayAbsences.length > 0" class="badge-count warning" title="Absence(s) aujourd'hui">
-          {{ store.todayAbsences.length }}
+        <span 
+          v-if="store.members.length > 0" 
+          class="badge-count presence" 
+          :title="`${store.nextMealHeadcount} personne${store.nextMealHeadcount > 1 ? 's' : ''} présente${store.nextMealHeadcount > 1 ? 's' : ''} au prochain repas (${store.nextMealInfo.label})`"
+        >
+          {{ store.nextMealHeadcount }}
         </span>
       </router-link>
 
@@ -407,6 +411,7 @@ const handleDeleteShortcut = async () => {
 
 .badge-count.info { background: var(--accent-primary); }
 .badge-count.warning { background: var(--accent-amber); }
+.badge-count.presence, .badge-count.success { background: var(--accent-secondary); }
 
 /* Family Widget */
 .family-widget {
