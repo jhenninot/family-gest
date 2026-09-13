@@ -13,7 +13,7 @@
       <div class="header-actions-group">
         <button @click="openAddGuestModal()" class="btn btn-secondary">
           <UserPlus :size="18" />
-          <span>+ Invité(s)</span>
+          <span>+ Invité</span>
         </button>
         <button @click="openAddModal(null, 'presence')" class="btn btn-presence-primary" title="Signaler la présence d'un membre habituellement absent">
           <CheckCircle2 :size="18" />
@@ -35,13 +35,16 @@
         </div>
         <div class="today-header-btns">
           <button @click="openAddGuestModal(store.todayStr)" class="btn-today-add guest-btn">
-            <UserPlus :size="14" /> + Invité
+            <UserPlus :size="14" />
+            <span>+ Invité</span>
           </button>
           <button @click="openAddModal(store.todayStr, 'presence')" class="btn-today-add presence-btn" title="Signaler la présence d'un membre aujourd'hui">
-            <CheckCircle2 :size="14" /> + Présence
+            <CheckCircle2 :size="14" />
+            <span>+ Présence</span>
           </button>
           <button @click="openAddModal(store.todayStr, 'absence')" class="btn-today-add" title="Signaler une absence aujourd'hui">
-            <Plus :size="14" /> + Absence
+            <Plus :size="14" />
+            <span>+ Absence</span>
           </button>
         </div>
       </div>
@@ -1660,6 +1663,8 @@ const handleDeleteGuest = async (id) => {
   align-items: center;
   gap: 0.35rem;
   transition: all var(--transition-fast);
+  white-space: nowrap;
+  user-select: none;
 }
 
 .btn-today-add:hover {
@@ -2748,11 +2753,88 @@ const handleDeleteGuest = async (id) => {
 }
 
 @media (max-width: 900px) {
+  .absences-view {
+    gap: 1rem;
+  }
+  .page-header {
+    margin-bottom: 1.15rem;
+    gap: 0.75rem;
+  }
+  .page-title {
+    font-size: 1.5rem;
+    gap: 0.6rem;
+  }
+  .page-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+  .header-actions-group {
+    width: 100%;
+    display: flex;
+    gap: 0.45rem;
+    align-items: stretch;
+  }
+  .header-actions-group .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.42rem 0.45rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    white-space: nowrap;
+    gap: 0.3rem;
+    height: 36px;
+    box-sizing: border-box;
+    justify-content: center;
+  }
+  .header-actions-group .btn svg {
+    width: 15px !important;
+    height: 15px !important;
+    flex-shrink: 0;
+  }
+  .today-banner {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+  .today-banner-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .today-title {
+    font-size: 0.925rem;
+    gap: 0.45rem;
+  }
+  .today-header-btns {
+    width: 100%;
+    display: flex;
+    gap: 0.35rem;
+  }
+  .btn-today-add {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    padding: 0.28rem 0.35rem;
+    font-size: 0.73rem;
+    height: 28px;
+    box-sizing: border-box;
+    white-space: nowrap;
+  }
+  .btn-today-add svg {
+    width: 13px !important;
+    height: 13px !important;
+    flex-shrink: 0;
+  }
   .section-card {
     padding: 1rem;
   }
   .today-slots-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .meal-slot-card {
+    padding: 0.75rem 0.85rem;
+    gap: 0.5rem;
   }
   .absences-main-grid {
     grid-template-columns: 1fr;
@@ -2770,6 +2852,53 @@ const handleDeleteGuest = async (id) => {
 }
 
 @media (max-width: 600px) {
+  .absences-view {
+    gap: 0.85rem;
+  }
+  .page-header {
+    margin-bottom: 0.85rem;
+    gap: 0.55rem;
+  }
+  .page-title {
+    font-size: 1.35rem;
+  }
+  .page-subtitle {
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+  .header-actions-group {
+    gap: 0.35rem;
+  }
+  .header-actions-group .btn {
+    padding: 0.38rem 0.25rem;
+    font-size: 0.76rem;
+    height: 34px;
+    gap: 0.22rem;
+  }
+  .header-actions-group .btn svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+  .today-banner {
+    padding: 0.75rem;
+    gap: 0.6rem;
+  }
+  .today-title {
+    font-size: 0.85rem;
+  }
+  .today-header-btns {
+    gap: 0.25rem;
+  }
+  .btn-today-add {
+    padding: 0.22rem 0.25rem;
+    font-size: 0.69rem;
+    height: 26px;
+    gap: 0.2rem;
+  }
+  .btn-today-add svg {
+    width: 11px !important;
+    height: 11px !important;
+  }
   .section-card {
     padding: 0.75rem 0.5rem;
   }
