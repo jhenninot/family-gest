@@ -54,6 +54,16 @@
       </form>
 
       <div class="login-footer">
+        <button 
+          type="button" 
+          @click="handleForceRefresh" 
+          class="btn-refresh-login" 
+          :disabled="isRefreshing"
+          title="Vider le cache et forcer le rechargement de la dernière version"
+        >
+          <RefreshCw :size="13" :class="{ 'spin-icon': isRefreshing }" />
+          <span>{{ isRefreshing ? 'Mise à jour...' : 'Vider le cache & rafraîchir l\'application' }}</span>
+        </button>
         <span>Portail sécurisé FamilyGest &bull; Tous droits réservés</span>
       </div>
     </div>
@@ -65,7 +75,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
-import { Mail, Lock, AlertCircle } from '@lucide/vue'
+import { Mail, Lock, AlertCircle, RefreshCw } from '@lucide/vue'
+import { forceAppRefresh } from '../utils/cacheHelper'
 import BrandLogo from '../components/BrandLogo.vue'
 
 const router = useRouter()
@@ -75,6 +86,15 @@ const familyStore = useFamilyStore()
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
+const isRefreshing = ref(false)
+
+const handleForceRefresh = async () => {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+  setTimeout(async () => {
+    await forceAppRefresh()
+  }, 250)
+}
 
 const handleLogin = async () => {
   if (!email.value || !password.value) return
@@ -196,5 +216,39 @@ const handleLogin = async () => {
   color: var(--text-muted);
   border-top: 1px solid var(--border-color);
   padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.btn-refresh-login {
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-refresh-login:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

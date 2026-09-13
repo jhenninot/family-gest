@@ -128,6 +128,17 @@
                 </span>
               </button>
 
+              <!-- Rafraîchir l'application / Vider le cache -->
+              <button @click="handleForceRefresh" class="user-dropdown-item refresh-item" :disabled="isRefreshing">
+                <div class="item-icon-wrapper refresh-icon">
+                  <RefreshCw :size="16" :class="{ 'spin-icon': isRefreshing }" />
+                </div>
+                <div class="item-label-group">
+                  <span class="item-title">{{ isRefreshing ? 'Mise à jour en cours...' : 'Rafraîchir l\'application' }}</span>
+                  <span class="item-subtitle">Vider le cache et forcer la mise à jour</span>
+                </div>
+              </button>
+
               <div class="user-dropdown-divider"></div>
 
               <button @click="logoutFromMenu" class="user-dropdown-item logout-item">
@@ -179,7 +190,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 import { useFamilyStore } from './stores/familyStore'
-import { Sun, Moon, LogOut, User, Grid, ShieldAlert, Settings } from '@lucide/vue'
+import { Sun, Moon, LogOut, User, Grid, ShieldAlert, Settings, RefreshCw } from '@lucide/vue'
+import { forceAppRefresh } from './utils/cacheHelper'
 import Sidebar from './components/Sidebar.vue'
 import UserAvatar from './components/UserAvatar.vue'
 import UserProfileModal from './components/UserProfileModal.vue'
@@ -195,6 +207,7 @@ const familyStore = useFamilyStore()
 const showProfileModal = ref(false)
 const isUserMenuOpen = ref(false)
 const userMenuRef = ref(null)
+const isRefreshing = ref(false)
 
 const isAuthPage = computed(() => {
   return route.name === 'login' || route.name === 'set-password' || route.path === '/login' || route.path === '/set-password'
@@ -296,6 +309,16 @@ const handleLogout = () => {
   router.push('/login')
 }
 
+const handleForceRefresh = async () => {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+  closeUserMenu()
+  // Petit délai pour laisser le menu se fermer et afficher le feedback visuel
+  setTimeout(async () => {
+    await forceAppRefresh()
+  }, 300)
+}
+
 const handleClickOutside = (e) => {
   if (userMenuRef.value && !userMenuRef.value.contains(e.target)) {
     closeUserMenu()
@@ -316,6 +339,13 @@ watch(() => route.path, () => {
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
   document.addEventListener('keydown', handleKeyDown)
+
+  // Nettoyage discret du paramètre de cache-busting si présent dans l'URL
+  if (window.location.search.includes('_v=')) {
+    const cleanUrl = new URL(window.location.href)
+    cleanUrl.searchParams.delete('_v')
+    window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash)
+  }
 
   if (authStore.isAuthenticated && !isAuthPage.value) {
     // Prolonger automatiquement la validité de la session de 30 jours à chaque connexion / visite
@@ -725,6 +755,24 @@ onUnmounted(() => {
 .user-dropdown-item.logout-item:hover .item-icon-wrapper {
   background: var(--accent-rose);
   color: white;
+}
+
+.user-dropdown-item.refresh-item .item-icon-wrapper {
+  color: var(--accent-primary);
+}
+
+.user-dropdown-item.refresh-item:hover .item-icon-wrapper {
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Transitions Dropdown */
