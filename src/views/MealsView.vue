@@ -1195,7 +1195,7 @@ const getMemberInfo = (id) => {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   transition: all var(--transition-fast);
-  min-height: 480px;
+  min-height: 220px;
 }
 
 .day-column:hover {
@@ -1324,14 +1324,12 @@ const getMemberInfo = (id) => {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  flex: 1;
 }
 
 .slot-section {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  flex: 1;
 }
 
 .slot-header {
@@ -1407,7 +1405,6 @@ const getMemberInfo = (id) => {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  flex: 1;
 }
 
 .dish-card {
@@ -1559,8 +1556,9 @@ const getMemberInfo = (id) => {
 
 /* Slot Empty Placeholder */
 .slot-empty {
-  flex: 1;
-  min-height: 48px;
+  flex: none;
+  min-height: 38px;
+  height: 38px;
   border: 1px dashed var(--border-color);
   border-radius: var(--radius-md);
   display: flex;
@@ -1573,7 +1571,7 @@ const getMemberInfo = (id) => {
   cursor: pointer;
   transition: all var(--transition-fast);
   background: rgba(0, 0, 0, 0.01);
-  padding: 0.4rem;
+  padding: 0.4rem 0.6rem;
 }
 
 .slot-empty:hover {
@@ -1589,6 +1587,8 @@ const getMemberInfo = (id) => {
   color: var(--text-muted);
   background: transparent;
   opacity: 0.7;
+  min-height: 34px;
+  height: 34px;
 }
 
 .slot-empty.is-past:hover {
