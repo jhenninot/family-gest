@@ -5,26 +5,66 @@ import sharp from 'sharp';
 const svgPath = path.resolve('public/favicon.svg');
 const svgContent = fs.readFileSync(svgPath, 'utf-8');
 
-// SVG for standard icons (squircle)
+// SVG for standard icons (squircle iOS)
 const standardSvg = svgContent;
 
-// SVG for maskable icons (full bleed gradient, centered sparkles inside safe zone)
-const maskableSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+// SVG for maskable and Apple touch icons (full bleed gradient without transparency)
+const fullBleedSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <linearGradient id="fgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1" />
-      <stop offset="60%" stop-color="#8b5cf6" />
-      <stop offset="100%" stop-color="#ec4899" />
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#06b6d4" />
     </linearGradient>
+    <filter id="iconShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0369a1" flood-opacity="0.45" />
+    </filter>
   </defs>
-  <!-- Full bleed background for maskable safe zone -->
-  <rect width="64" height="64" fill="url(#fgGradient)" />
 
-  <!-- Centered sparkles scaled into safe zone (80%) -->
-  <g transform="translate(6.4, 6.4) scale(0.8)">
-    <path d="M32 11 C32.5 21 34 24.5 44 25 C34 25.5 32.5 29 32 39 C31.5 29 30 25.5 20 25 C30 24.5 31.5 21 32 11 Z" fill="#ffffff" />
-    <path d="M47 34 C47.5 39 48.5 41 53.5 41.5 C48.5 42 47.5 44 47 49 C46.5 44 45.5 42 40.5 41.5 C45.5 41 46.5 39 47 34 Z" fill="#ffffff" opacity="0.95" />
-    <path d="M18 38 C18.5 41.5 19.5 43 23 43.5 C19.5 44 18.5 45.5 18 49 C17.5 45.5 16.5 44 13 43.5 C16.5 43 17.5 41.5 18 38 Z" fill="#ffffff" opacity="0.9" />
+  <!-- Full bleed background (no transparency for iOS Safari and PWA maskable) -->
+  <rect width="512" height="512" fill="url(#fgGradient)" />
+
+  <g filter="url(#iconShadow)">
+    <!-- Toit supérieur protecteur -->
+    <path 
+      d="M100 270 L240 148 L390 270" 
+      fill="none" 
+      stroke="#ffffff" 
+      stroke-width="36" 
+      stroke-linecap="round" 
+      stroke-linejoin="round" 
+    />
+    
+    <!-- Cheminée moderne épurée -->
+    <path 
+      d="M336 175 L336 135 L300 135" 
+      fill="none" 
+      stroke="#ffffff" 
+      stroke-width="30" 
+      stroke-linecap="round" 
+      stroke-linejoin="round" 
+    />
+
+    <!-- Corps de la maison -->
+    <path 
+      d="M145 255 L145 375 C145 390 155 400 170 400 L340 400 C355 400 365 390 365 375 L365 300" 
+      fill="none" 
+      stroke="#ffffff" 
+      stroke-width="34" 
+      stroke-linecap="round" 
+      stroke-linejoin="round" 
+      opacity="0.95" 
+    />
+
+    <!-- Coche d'organisation dynamique (Checkmark) -->
+    <path 
+      d="M215 285 L285 355 L425 195" 
+      fill="none" 
+      stroke="#ffffff" 
+      stroke-width="40" 
+      stroke-linecap="round" 
+      stroke-linejoin="round" 
+    />
   </g>
 </svg>`;
 
@@ -44,20 +84,21 @@ async function generateIcons() {
     .toFile(path.resolve('public/pwa-512x512.png'));
   console.log('✓ Created public/pwa-512x512.png');
 
-  await sharp(Buffer.from(standardSvg))
+  // Apple Touch Icon (iOS requires full bleed without transparent corners)
+  await sharp(Buffer.from(fullBleedSvg))
     .resize(180, 180)
     .png()
     .toFile(path.resolve('public/apple-touch-icon.png'));
   console.log('✓ Created public/apple-touch-icon.png');
 
-  // Maskable icons
-  await sharp(Buffer.from(maskableSvg))
+  // Maskable icons (PWA spec requires full bleed)
+  await sharp(Buffer.from(fullBleedSvg))
     .resize(192, 192)
     .png()
     .toFile(path.resolve('public/pwa-maskable-192x192.png'));
   console.log('✓ Created public/pwa-maskable-192x192.png');
 
-  await sharp(Buffer.from(maskableSvg))
+  await sharp(Buffer.from(fullBleedSvg))
     .resize(512, 512)
     .png()
     .toFile(path.resolve('public/pwa-maskable-512x512.png'));

@@ -140,7 +140,7 @@ a {
   }
   .main-content {
     padding: 1rem 0.75rem;
-    padding-bottom: 5.5rem;
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
     max-width: 100vw;
     box-sizing: border-box;
   }

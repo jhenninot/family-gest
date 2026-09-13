@@ -3,7 +3,7 @@
     <div class="invitation-container glass-card">
       <div class="invitation-header">
         <div class="icon-circle">
-          <Sparkles :size="32" class="sparkle" />
+          <BrandLogo :size="32" />
         </div>
         <h2 class="title">Invitation Familiale</h2>
         <p v-if="invitationData" class="subtitle">
@@ -175,7 +175,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
-import { Sparkles, AlertCircle, ShieldCheck } from '@lucide/vue'
+import { AlertCircle, ShieldCheck } from '@lucide/vue'
+import BrandLogo from '../components/BrandLogo.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import AvatarPicker from '../components/AvatarPicker.vue'
 import { DEFAULT_AVATAR } from '../utils/avatarHelper'

@@ -74,23 +74,23 @@
           </thead>
           <tbody>
             <tr v-for="fam in families" :key="fam._id">
-              <td class="cell-primary">
+              <td class="cell-primary" data-label="Famille">
                 <strong>{{ fam.name }}</strong>
               </td>
-              <td class="cell-slug">
+              <td class="cell-slug" data-label="Identifiant">
                 <code>/{{ fam.slug }}</code>
               </td>
-              <td>
+              <td data-label="Membres">
                 <span class="quota-pill">
                   {{ fam.memberCount || 0 }} / {{ fam.maxMembers }} membres
                 </span>
               </td>
-              <td>
+              <td data-label="Statut">
                 <span class="status-pill" :class="{ active: fam.isActive, inactive: !fam.isActive }">
                   {{ fam.isActive ? 'Active' : 'Désactivée' }}
                 </span>
               </td>
-              <td class="cell-actions">
+              <td class="cell-actions" data-label="Actions">
                 <button 
                   @click="openAddAdminModal(fam)" 
                   class="btn-icon text-indigo" 
@@ -154,7 +154,7 @@
           </thead>
           <tbody>
             <tr v-for="u in users" :key="u.id || u._id">
-              <td>
+              <td data-label="Utilisateur">
                 <div class="user-cell">
                   <UserAvatar :avatar="u.avatar" :name="u.firstName" size="sm" />
                   <div>
@@ -162,8 +162,8 @@
                   </div>
                 </div>
               </td>
-              <td>{{ u.email }}</td>
-              <td>
+              <td class="cell-email" data-label="Email">{{ u.email }}</td>
+              <td data-label="Rôle Global">
                 <span v-if="u.isSuperAdmin" class="role-pill super-admin-role">
                   <ShieldAlert :size="14" /> Super Admin
                 </span>
@@ -171,7 +171,7 @@
                   Utilisateur
                 </span>
               </td>
-              <td>
+              <td data-label="Familles">
                 <div class="family-tags">
                   <span 
                     v-for="f in u.families" 
@@ -196,7 +196,7 @@
                   </span>
                 </div>
               </td>
-              <td class="cell-actions">
+              <td class="cell-actions" data-label="Actions">
                 <button 
                   @click="openManageUserModal(u)" 
                   class="btn-icon text-indigo" 
@@ -2413,5 +2413,226 @@ const testGlobalSmtp = async () => {
 .file-input {
   padding: 0.5rem;
   cursor: pointer;
+}
+
+/* ==============================================================================
+   RESPONSIVE DESIGN MOBILE & TABLETTE (SuperAdminView)
+   ============================================================================== */
+@media (max-width: 900px) {
+  .super-admin-view {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .super-admin-view .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-right: 0 !important;
+  }
+
+  .header-content {
+    width: 100%;
+  }
+
+  .super-admin-view .header-badge {
+    align-self: flex-start;
+  }
+
+  .super-admin-view .page-title {
+    font-size: 1.45rem;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  .super-admin-view .page-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .header-actions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.55rem;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.7rem 1rem;
+    font-size: 0.88rem;
+  }
+
+  /* Navigation Tabs sur Mobile (Scrollable horizontalement) */
+  .tabs-nav {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0.35rem;
+    padding: 0.35rem;
+    margin-bottom: 1.25rem;
+    border-radius: var(--radius-md, 12px);
+  }
+
+  .tabs-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.82rem;
+    border-radius: 8px;
+  }
+
+  /* Transformation des tableaux en cartes sur Mobile */
+  .families-list-container,
+  .users-list-container {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .data-table thead {
+    display: none;
+  }
+
+  .data-table,
+  .data-table tbody,
+  .data-table tr,
+  .data-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .data-table tr {
+    background: var(--bg-card, #ffffff);
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+    border-radius: var(--radius-md, 12px);
+    padding: 1rem;
+    margin-bottom: 0.85rem;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.05));
+  }
+
+  [data-theme='dark'] .data-table tr {
+    background: var(--bg-card, #1e293b);
+    border-color: var(--border-color, rgba(255, 255, 255, 0.08));
+  }
+
+  .data-table td {
+    padding: 0.45rem 0;
+    border-bottom: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: right;
+    gap: 0.5rem;
+    min-height: 2.2rem;
+  }
+
+  .data-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted, #64748b);
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  .data-table td.cell-actions {
+    margin-top: 0.6rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color, rgba(226, 232, 240, 0.6));
+    justify-content: space-around;
+    gap: 0.5rem;
+  }
+
+  [data-theme='dark'] .data-table td.cell-actions {
+    border-color: rgba(51, 65, 85, 0.6);
+  }
+
+  .data-table td.cell-actions::before {
+    display: none;
+  }
+
+  .btn-icon {
+    padding: 0.6rem;
+    border-radius: 8px;
+    background: var(--bg-secondary, rgba(0, 0, 0, 0.03));
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.05));
+  }
+
+  .user-cell {
+    justify-content: flex-end;
+  }
+
+  .cell-email {
+    word-break: break-all;
+    font-size: 0.85rem;
+  }
+
+  .family-tags {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    max-width: 70%;
+  }
+
+  .family-tag {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.45rem;
+  }
+
+  /* SMTP Tab sur Mobile */
+  .smtp-container {
+    padding: 1.25rem 1rem;
+  }
+
+  .smtp-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.6rem;
+  }
+
+  .smtp-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Modales sur Mobile */
+  .modal-content {
+    padding: 1.25rem;
+    max-height: 90vh;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .attach-family-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .attach-family-form .btn {
+    width: 100%;
+  }
 }
 </style>

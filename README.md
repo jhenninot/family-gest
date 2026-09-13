@@ -50,21 +50,19 @@ git clone https://github.com/votre-utilisateur/family-gest.git
 cd family-gest
 ```
 
-### 2. Démarrer le serveur API Backend (Express + MongoDB)
+### 2. Démarrage en développement (Commande unique)
+À la racine du projet :
 ```bash
-cd server
+# Installation des dépendances (racine et serveur)
 npm install
-node index.js
-```
-> Le serveur API s'exécute sur `http://localhost:5000` et pré-remplit la base MongoDB automatiquement.
+npm --prefix server install
 
-### 3. Démarrer le serveur Frontend (Vue 3 + Vite)
-Dans une seconde fenêtre de terminal à la racine du projet :
-```bash
-npm install
+# Lancement simultané du Backend et du Frontend
 npm run dev
 ```
-> L'application s'exécute sur `http://localhost:5173`.
+> Le serveur API s'exécute sur `http://localhost:5000` et l'application Frontend sur `http://localhost:5173`.
+
+> 💡 *Note : Vous pouvez également lancer chaque partie séparément si souhaité via `npm run dev:server` ou `npm run dev:client`.*
 
 ---
 

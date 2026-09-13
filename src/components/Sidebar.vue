@@ -3,11 +3,11 @@
     <!-- App Logo / Brand -->
     <div class="brand">
       <div class="logo-icon">
-        <Sparkles :size="24" class="sparkle" />
+        <BrandLogo :size="24" />
       </div>
       <div class="brand-text">
         <span class="brand-name">FamilyGest</span>
-        <span class="brand-tag">Espace Familial</span>
+        <span class="brand-tag" :title="currentFamilyName">{{ currentFamilyName }}</span>
       </div>
     </div>
 
@@ -62,8 +62,8 @@
 
     </nav>
 
-    <!-- Shortcuts / Web Apps Section -->
-    <div class="shortcuts-section">
+    <!-- Shortcuts / Web Apps Section (Masqué sur la console Super Admin) -->
+    <div v-if="!isSuperAdminRoute" class="shortcuts-section">
       <div class="shortcuts-header">
         <div class="shortcuts-header-title">
           <Globe :size="15" class="shortcuts-title-icon" />
@@ -207,7 +207,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
@@ -227,12 +227,22 @@ import {
 } from '@lucide/vue'
 import HouseUser from './icons/HouseUser.vue'
 import FamilySwitcher from './FamilySwitcher.vue'
+import BrandLogo from './BrandLogo.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const store = useFamilyStore()
 
+const isSuperAdminRoute = computed(() => route.path.startsWith('/super-admin'))
+
 const currentSlug = computed(() => store.currentFamily?.slug || localStorage.getItem('familygest_active_slug') || '')
+const currentFamilyName = computed(() => {
+  if (store.currentFamily?.name) return store.currentFamily.name
+  const list = store.userFamilies.length > 0 ? store.userFamilies : (authStore.families || [])
+  const match = list.find(f => f.slug === currentSlug.value)
+  return match?.name || store.currentFamily?.name || 'Espace Familial'
+})
 const getPath = (sub) => currentSlug.value ? `/${currentSlug.value}${sub}` : (sub || '/')
 
 // --- SHORTCUTS LOGIC ---
@@ -353,6 +363,10 @@ const handleDeleteShortcut = async () => {
   font-size: 0.75rem;
   color: var(--text-muted);
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 190px;
 }
 
 .family-switcher-section {
@@ -750,10 +764,13 @@ const handleDeleteShortcut = async () => {
     min-height: auto;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
-    padding: 1rem;
+    padding: calc(0.85rem + env(safe-area-inset-top, 0px)) calc(1rem + env(safe-area-inset-right, 0px)) 1rem calc(1rem + env(safe-area-inset-left, 0px));
     gap: 0.75rem;
   }
   .family-widget {
+    display: none;
+  }
+  .family-switcher-section {
     display: none;
   }
   .nav-menu {

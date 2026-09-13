@@ -3,7 +3,7 @@
     <div class="glass-card login-card">
       <div class="login-header">
         <div class="logo-badge">
-          <Sparkles :size="28" />
+          <BrandLogo :size="28" />
         </div>
         <h1 class="login-title">FamilyGest</h1>
         <p class="login-subtitle">Activation de votre compte familial</p>
@@ -182,7 +182,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
-  Sparkles, 
   Lock, 
   AlertCircle, 
   CheckCircle2, 
@@ -194,6 +193,7 @@ import {
   Check,
   Mail
 } from '@lucide/vue'
+import BrandLogo from '../components/BrandLogo.vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'

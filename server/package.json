@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch-path=index.js --watch-path=config --watch-path=middleware --watch-path=models --watch-path=scripts index.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

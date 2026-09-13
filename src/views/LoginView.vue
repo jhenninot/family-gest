@@ -3,7 +3,7 @@
     <div class="glass-card login-card">
       <div class="login-header">
         <div class="logo-badge">
-          <Sparkles :size="28" />
+          <BrandLogo :size="28" />
         </div>
         <h1 class="login-title">FamilyGest</h1>
         <p class="login-subtitle">Connectez-vous pour accéder à l'espace familial</p>
@@ -65,7 +65,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
-import { Sparkles, Mail, Lock, AlertCircle } from '@lucide/vue'
+import { Mail, Lock, AlertCircle } from '@lucide/vue'
+import BrandLogo from '../components/BrandLogo.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

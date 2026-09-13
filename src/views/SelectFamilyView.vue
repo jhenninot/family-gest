@@ -3,7 +3,7 @@
     <div class="select-family-container">
       <div class="header-brand">
         <div class="logo-icon">
-          <Sparkles :size="28" class="sparkle" />
+          <BrandLogo :size="28" />
         </div>
         <h1 class="brand-title">FamilyGest</h1>
         <p class="brand-subtitle">Choisissez votre espace familial</p>
@@ -86,8 +86,9 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
-import { Sparkles, LogOut, ShieldAlert, ShieldCheck, User, Users, ArrowRight } from '@lucide/vue'
+import { LogOut, ShieldAlert, ShieldCheck, User, Users, ArrowRight } from '@lucide/vue'
 import UserAvatar from '../components/UserAvatar.vue'
+import BrandLogo from '../components/BrandLogo.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
