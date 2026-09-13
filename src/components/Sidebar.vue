@@ -50,11 +50,6 @@
         <span v-if="store.pendingShoppingCount > 0" class="badge-count warning">{{ store.pendingShoppingCount }}</span>
       </router-link>
 
-      <router-link v-if="store.isFamilyAdmin" :to="getPath('/settings/email')" class="nav-item admin-nav" active-class="active">
-        <Settings :size="20" />
-        <span>Administration</span>
-      </router-link>
-
       <router-link v-if="authStore.isSuperAdmin" to="/super-admin" class="nav-item super-admin-nav" active-class="active">
         <ShieldAlert :size="20" />
         <span>Super Admin</span>
@@ -215,10 +210,8 @@ import {
   CheckSquare, 
   Calendar, 
   ShoppingCart, 
-  Sparkles, 
   Award, 
   ShieldAlert,
-  Settings, 
   Globe, 
   Plus, 
   ExternalLink, 

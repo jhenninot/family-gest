@@ -98,6 +98,22 @@
                 </div>
               </button>
 
+              <!-- Administration de la famille (Admin / Super Admin) -->
+              <button 
+                v-if="familyStore.isFamilyAdmin" 
+                @click="goToFamilyAdmin" 
+                class="user-dropdown-item admin-item"
+                :class="{ 'active-route': isFamilyAdminRoute }"
+              >
+                <div class="item-icon-wrapper admin-icon">
+                  <Settings :size="16" />
+                </div>
+                <div class="item-label-group">
+                  <span class="item-title">Administration</span>
+                  <span class="item-subtitle">Membres, rôles & paramètres</span>
+                </div>
+              </button>
+
               <button @click="toggleThemeFromMenu" class="user-dropdown-item">
                 <div class="item-icon-wrapper theme-icon">
                   <Sun v-if="familyStore.isDarkMode" :size="16" />
@@ -160,7 +176,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 import { useFamilyStore } from './stores/familyStore'
-import { Sun, Moon, LogOut, User, Grid, ShieldAlert } from '@lucide/vue'
+import { Sun, Moon, LogOut, User, Grid, ShieldAlert, Settings } from '@lucide/vue'
 import Sidebar from './components/Sidebar.vue'
 import UserAvatar from './components/UserAvatar.vue'
 import UserProfileModal from './components/UserProfileModal.vue'
@@ -233,6 +249,20 @@ const goToSelectFamily = () => {
 const goToSuperAdmin = () => {
   closeUserMenu()
   router.push('/super-admin')
+}
+
+const isFamilyAdminRoute = computed(() => {
+  return route.path.includes('/settings') || route.name === 'family-settings'
+})
+
+const goToFamilyAdmin = () => {
+  closeUserMenu()
+  const slug = currentSlug.value
+  if (slug) {
+    router.push(`/${slug}/settings/email`)
+  } else {
+    router.push('/select-family')
+  }
 }
 
 const toggleUserMenu = () => {
@@ -615,6 +645,16 @@ onUnmounted(() => {
   background: var(--bg-card-hover);
   border-color: var(--border-color);
   transform: translateX(2px);
+}
+
+.user-dropdown-item.active-route {
+  background: var(--accent-primary-light);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.user-dropdown-item.active-route .item-title {
+  color: var(--accent-primary);
+  font-weight: 700;
 }
 
 .item-icon-wrapper {
