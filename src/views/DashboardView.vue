@@ -310,7 +310,7 @@
 
                 <!-- Au complet -->
                 <div v-if="todayNightPresence.absentMembers.length === 0 && todayNightPresence.exceptionalPresences.length === 0 && todayNightPresence.guests.length === 0" class="slot-all-present">
-                  💤 Tout le monde dort à la maison ({{ todayNightPresence.headcount }})
+                  Tout le monde dort à la maison ({{ todayNightPresence.headcount }})
                 </div>
               </div>
             </div>

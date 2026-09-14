@@ -1,21 +1,5 @@
 <template>
   <div class="meals-view" ref="mealsViewRef">
-    <!-- Header -->
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">
-          <Utensils :size="28" class="text-amber" />
-          <span>Repas de la semaine</span>
-        </h1>
-        <p class="page-subtitle">Planifiez les menus de la famille et préparez votre liste de courses.</p>
-      </div>
-
-      <button @click="openAddModal()" class="btn btn-primary">
-        <Plus :size="18" />
-        <span>Suggérer un Plat</span>
-      </button>
-    </div>
-
     <!-- Week Navigator Bar -->
     <div class="glass-card week-nav-bar margin-bottom-lg">
       <div class="week-nav-controls">

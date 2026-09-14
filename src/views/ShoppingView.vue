@@ -1,16 +1,5 @@
 <template>
   <div class="shopping-view">
-    <!-- Header -->
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">
-          <ShoppingCart :size="28" class="text-amber" />
-          <span>Liste de courses</span>
-        </h1>
-        <p class="page-subtitle">Ajoutez les produits manquants et cochez-les en magasin en temps réel.</p>
-      </div>
-    </div>
-
     <!-- Quick Add Bar Card -->
     <div class="glass-card add-bar-card margin-bottom-lg">
       <form @submit.prevent="handleAddItem" class="quick-add-form">

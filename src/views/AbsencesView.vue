@@ -1,23 +1,5 @@
 <template>
   <div class="absences-view" ref="absencesViewRef">
-    <!-- Header -->
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">
-          <HouseUser :size="28" class="text-indigo" />
-          <span>Présence</span>
-        </h1>
-        <p class="page-subtitle">Indiquez vos absences ou vos invités au déjeuner, dîner et pour la nuit pour organiser sereinement les repas de famille.</p>
-      </div>
-
-      <div class="header-actions-group">
-        <button @click="openDeclarationChoiceModal()" class="btn btn-primary btn-declare-main" title="Déclarer une absence, absence longue, invitation ou présence">
-          <Plus :size="18" />
-          <span>Déclarer</span>
-        </button>
-      </div>
-    </div>
-
     <!-- Today's Meal Summary Banner -->
     <div class="today-banner glass-card">
       <div class="today-banner-header">
@@ -242,7 +224,7 @@
             </div>
 
             <div v-if="todayNightPresence.absentMembers.length === 0 && todayNightPresence.exceptionalPresences.length === 0 && todayNightPresence.guests.length === 0" class="all-present-text">
-              💤 Tout le monde dort à la maison ({{ todayNightPresence.headcount }}) sans invité
+              Tout le monde dort à la maison ({{ todayNightPresence.headcount }}) sans invité
             </div>
           </div>
         </div>
@@ -1100,7 +1082,7 @@
                 </div>
 
                 <div v-if="selectedDayNightPresence.exceptionalPresences.length === 0 && selectedDayNightAbsents.length === 0 && selectedDayNightGuests.length === 0" class="slot-empty-note">
-                  💤 Aucun changement par rapport à la présence habituelle ({{ selectedDayNightPresence.headcount }} dorment à la maison).
+                  Aucun changement par rapport à la présence habituelle ({{ selectedDayNightPresence.headcount }} dorment à la maison).
                 </div>
               </div>
             </div>

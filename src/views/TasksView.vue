@@ -1,57 +1,48 @@
 <template>
   <div class="tasks-view">
-    <!-- Header -->
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">
-          <CheckSquare :size="28" class="text-indigo" />
-          <span>Tâches</span>
-        </h1>
-        <p class="page-subtitle">Organisez et répartissez les tâches ménagères.</p>
+    <!-- Filters Bar -->
+    <div class="glass-card filters-bar margin-bottom-lg">
+      <div class="filters-group-wrap">
+        <div class="filter-group">
+          <span class="filter-label">Statut :</span>
+          <button
+            @click="statusFilter = 'all'"
+            class="filter-pill"
+            :class="{ active: statusFilter === 'all' }"
+          >
+            Toutes ({{ store.tasks.length }})
+          </button>
+          <button
+            @click="statusFilter = 'pending'"
+            class="filter-pill"
+            :class="{ active: statusFilter === 'pending' }"
+          >
+            À faire ({{ store.pendingTasksCount }})
+          </button>
+          <button
+            @click="statusFilter = 'completed'"
+            class="filter-pill"
+            :class="{ active: statusFilter === 'completed' }"
+          >
+            Terminées ({{ store.completedTasksCount }})
+          </button>
+        </div>
+
+        <div class="filter-group">
+          <span class="filter-label">Membre :</span>
+          <select v-model="memberFilter" class="form-select select-sm">
+            <option value="all">Tous les membres</option>
+            <option v-for="m in store.members" :key="m.id" :value="m.id">
+              {{ getAvatarTextFallback(m.avatar) }} {{ m.name }}
+            </option>
+          </select>
+        </div>
       </div>
 
       <button @click="showAddModal = true" class="btn btn-primary">
         <Plus :size="18" />
         <span>Ajouter une Tâche</span>
       </button>
-    </div>
-
-    <!-- Filters Bar -->
-    <div class="glass-card filters-bar margin-bottom-lg">
-      <div class="filter-group">
-        <span class="filter-label">Statut :</span>
-        <button 
-          @click="statusFilter = 'all'" 
-          class="filter-pill"
-          :class="{ active: statusFilter === 'all' }"
-        >
-          Toutes ({{ store.tasks.length }})
-        </button>
-        <button 
-          @click="statusFilter = 'pending'" 
-          class="filter-pill"
-          :class="{ active: statusFilter === 'pending' }"
-        >
-          À faire ({{ store.pendingTasksCount }})
-        </button>
-        <button 
-          @click="statusFilter = 'completed'" 
-          class="filter-pill"
-          :class="{ active: statusFilter === 'completed' }"
-        >
-          Terminées ({{ store.completedTasksCount }})
-        </button>
-      </div>
-
-      <div class="filter-group">
-        <span class="filter-label">Membre :</span>
-        <select v-model="memberFilter" class="form-select select-sm">
-          <option value="all">Tous les membres</option>
-          <option v-for="m in store.members" :key="m.id" :value="m.id">
-            {{ getAvatarTextFallback(m.avatar) }} {{ m.name }}
-          </option>
-        </select>
-      </div>
     </div>
 
     <!-- Tasks Grid / Cards -->
@@ -253,6 +244,13 @@ const handleAddTask = () => {
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+.filters-group-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
 }
 
 .filter-group {

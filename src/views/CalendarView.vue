@@ -1,21 +1,5 @@
 <template>
   <div class="calendar-view" ref="calendarViewRef">
-    <!-- Header -->
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">
-          <CalendarIcon :size="28" class="text-purple" />
-          <span>Calendrier familial</span>
-        </h1>
-        <p class="page-subtitle">Gardez un œil sur les rendez-vous, fêtes et activités de toute la famille.</p>
-      </div>
-
-      <button @click="showAddModal = true" class="btn btn-primary">
-        <Plus :size="18" />
-        <span>Nouvel Événement</span>
-      </button>
-    </div>
-
     <!-- Calendar Card (Weekly & Monthly View) -->
     <div class="glass-card section-card calendar-card">
       <div class="section-card-header flex-between">
