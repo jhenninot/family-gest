@@ -50,18 +50,15 @@
         </div>
       </router-link>
 
-      <!-- Card 4: Événements à venir (Calendrier) -->
+      <!-- Card 4: Événements du jour (Calendrier) -->
       <router-link :to="getPath('/calendar')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper purple">
           <Calendar :size="22" />
         </div>
         <div class="metric-details">
-          <span class="metric-label">Événements à venir</span>
-          <div class="metric-value">{{ store.events.length }}</div>
-          <span class="metric-subtext" v-if="nextEvent">
-            Prochain : {{ nextEvent.title }} ({{ formatDate(nextEvent.date) }})
-          </span>
-          <span class="metric-subtext" v-else>Aucun événement planifié</span>
+          <span class="metric-label">Événements du jour</span>
+          <div class="metric-value">{{ todayEvents.length }}</div>
+          <span class="metric-subtext">{{ todayEventsSubtext }}</span>
         </div>
       </router-link>
     </div>
@@ -461,7 +458,7 @@
               </div>
             </div>
             <div v-if="dashboardEvents.length === 0" class="empty-state">
-              📅 Aucun événement à venir pour le moment.
+              📅 Aucun événement dans les 7 prochains jours.
             </div>
           </div>
         </div>
@@ -914,18 +911,32 @@ const dashboardTasks = computed(() => {
 
 const dashboardEvents = computed(() => {
   const today = store.todayStr
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() + 6)
+  const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`
+
   return (store.events || [])
-    .filter(e => e.date >= today)
+    .filter(e => e.date >= today && e.date <= cutoffStr)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5)
 })
 
-const nextEvent = computed(() => {
+const todayEvents = computed(() => {
   const today = store.todayStr
-  const upcoming = (store.events || [])
-    .filter(e => e.date >= today)
-    .sort((a, b) => a.date.localeCompare(b.date))
-  return upcoming.length > 0 ? upcoming[0] : null
+  return (store.events || [])
+    .filter(e => e.date === today)
+    .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+})
+
+const todayEventsSubtext = computed(() => {
+  const events = todayEvents.value
+  if (events.length === 0) return 'Aucun événement aujourd\'hui'
+  const maxShown = 3
+  const titles = events.slice(0, maxShown).map(e => e.title)
+  const remaining = events.length - maxShown
+  return remaining > 0
+    ? `${titles.join(' • ')} • +${remaining} autre${remaining > 1 ? 's' : ''}`
+    : titles.join(' • ')
 })
 
 const getShoppingCategoryIcon = (categoryName) => {
@@ -937,11 +948,6 @@ const getMemberName = (id) => {
   if (!id) return 'Non assigné'
   const m = store.members.find(m => m.id === id || String(m.id) === String(id))
   return m ? (m.firstName || m.name) : 'Non assigné'
-}
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long' })
 }
 
 const getDayNumber = (dateStr) => {
