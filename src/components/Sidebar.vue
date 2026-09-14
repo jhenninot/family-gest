@@ -72,25 +72,17 @@
       </router-link>
     </nav>
 
-    <!-- Shortcuts / Web Apps Section (Masqué sur la console Super Admin) -->
-    <div v-if="!isSuperAdminRoute" class="shortcuts-section">
+    <!-- Shortcuts / Web Apps Section (Masqué sur la console Super Admin et si aucun raccourci) -->
+    <div v-if="!isSuperAdminRoute && store.shortcuts && store.shortcuts.length > 0" class="shortcuts-section">
       <div class="shortcuts-header">
         <div class="shortcuts-header-title">
           <Globe :size="15" class="shortcuts-title-icon" />
           <span>Raccourcis</span>
         </div>
-        <button 
-          v-if="store.isFamilyAdmin" 
-          @click="openAddShortcutModal" 
-          class="add-shortcut-btn-mini" 
-          title="Ajouter un raccourci web (Administrateur)"
-        >
-          <Plus :size="13" />
-        </button>
       </div>
 
       <!-- Shortcuts list -->
-      <div v-if="store.shortcuts && store.shortcuts.length > 0" class="shortcuts-list">
+      <div class="shortcuts-list">
         <div 
           v-for="item in store.shortcuts" 
           :key="item.id" 
@@ -107,120 +99,17 @@
             <span class="shortcut-text">{{ item.title }}</span>
             <ExternalLink :size="12" class="shortcut-ext-icon" />
           </a>
-          <button 
-            v-if="store.isFamilyAdmin" 
-            @click.stop="openEditShortcutModal(item)" 
-            class="shortcut-edit-btn-mini"
-            title="Modifier / Supprimer ce raccourci"
-          >
-            <MoreVertical :size="13" />
-          </button>
         </div>
-      </div>
-
-      <!-- Empty state for Admin -->
-      <div v-else-if="store.isFamilyAdmin" class="shortcuts-empty-admin">
-        <button @click="openAddShortcutModal" class="btn-create-first-shortcut">
-          <Plus :size="13" />
-          <span>Ajouter un raccourci</span>
-        </button>
-      </div>
-    </div>
-
-
-
-
-    <!-- Modal Gestion Raccourci Web / App (Admin) -->
-    <div v-if="showShortcutModal" class="modal-overlay" @click.self="showShortcutModal = false">
-      <div class="modal-content shortcut-modal-content">
-        <div class="modal-header">
-          <h3>{{ editingShortcutId ? 'Modifier le Raccourci' : 'Nouveau Raccourci Web / App' }}</h3>
-          <button @click="showShortcutModal = false" class="btn-close">&times;</button>
-        </div>
-
-        <form @submit.prevent="handleSaveShortcut">
-          <div class="form-group">
-            <label class="form-label">Nom du site ou de l'application</label>
-            <input 
-              v-model="shortcutForm.title" 
-              type="text" 
-              required 
-              placeholder="Ex: Home Assistant, Plex, Pronote, Nextcloud..." 
-              class="form-input" 
-            />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Adresse URL</label>
-            <input 
-              v-model="shortcutForm.url" 
-              type="text" 
-              required 
-              placeholder="Ex: http://192.168.1.50:8123 ou https://..." 
-              class="form-input" 
-            />
-            <span class="help-subtext">Le lien s'ouvrira directement dans un nouvel onglet.</span>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Icône / Emoji rapide</label>
-            <div class="emoji-picker-grid">
-              <button 
-                v-for="ico in shortcutIcons" 
-                :key="ico"
-                type="button"
-                class="emoji-pick-btn"
-                :class="{ selected: shortcutForm.icon === ico }"
-                @click="shortcutForm.icon = ico"
-              >
-                {{ ico }}
-              </button>
-            </div>
-            <div class="custom-emoji-row">
-              <label class="form-label-sub">Ou emoji personnalisé :</label>
-              <input 
-                v-model="shortcutForm.icon" 
-                type="text" 
-                maxlength="5" 
-                class="form-input emoji-text-input" 
-                placeholder="Ex: 🚀" 
-              />
-            </div>
-          </div>
-
-          <div class="modal-footer flex-between">
-            <button 
-              v-if="editingShortcutId" 
-              type="button" 
-              @click="handleDeleteShortcut" 
-              class="btn btn-danger btn-delete-shortcut"
-              :disabled="savingShortcut"
-            >
-              <Trash2 :size="15" />
-              <span>Supprimer</span>
-            </button>
-            <span v-else></span>
-
-            <div class="modal-actions-right">
-              <button type="button" @click="showShortcutModal = false" class="btn btn-secondary">Annuler</button>
-              <button type="submit" class="btn btn-primary" :disabled="savingShortcut">
-                <span v-if="!savingShortcut">{{ editingShortcutId ? 'Enregistrer' : 'Ajouter le raccourci' }}</span>
-                <span v-else>Enregistrement...</span>
-              </button>
-            </div>
-          </div>
-        </form>
       </div>
     </div>
   </aside>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
-import { useConfirm } from '../composables/useConfirm'
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -229,10 +118,7 @@ import {
   Utensils,
   Award, 
   Globe, 
-  Plus, 
-  ExternalLink, 
-  MoreVertical, 
-  Trash2
+  ExternalLink 
 } from '@lucide/vue'
 import HouseUser from './icons/HouseUser.vue'
 import FamilySwitcher from './FamilySwitcher.vue'
@@ -242,7 +128,6 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const store = useFamilyStore()
-const { confirm } = useConfirm()
 
 const isSuperAdminRoute = computed(() => route.path.startsWith('/super-admin'))
 
@@ -279,70 +164,6 @@ const thisWeekMealsCount = computed(() => {
 
   return store.meals.filter(meal => meal.date >= monStr && meal.date <= sunStr).length
 })
-
-// --- SHORTCUTS LOGIC ---
-const showShortcutModal = ref(false)
-const editingShortcutId = ref(null)
-const savingShortcut = ref(false)
-
-const shortcutIcons = ['🏠', '🎬', '🎵', '📚', '💾', '☁️', '🌐', '🔒', '🎮', '⚡', '📊', '🛒', '🛠️', '📧', '📺', '💡', '🤖', '📸']
-
-const shortcutForm = ref({
-  title: '',
-  url: '',
-  icon: '🌐'
-})
-
-const openAddShortcutModal = () => {
-  editingShortcutId.value = null
-  shortcutForm.value = {
-    title: '',
-    url: '',
-    icon: '🏠'
-  }
-  showShortcutModal.value = true
-}
-
-const openEditShortcutModal = (shortcut) => {
-  editingShortcutId.value = shortcut.id
-  shortcutForm.value = {
-    title: shortcut.title,
-    url: shortcut.url,
-    icon: shortcut.icon || '🌐'
-  }
-  showShortcutModal.value = true
-}
-
-const handleSaveShortcut = async () => {
-  if (!shortcutForm.value.title || !shortcutForm.value.url) return
-  savingShortcut.value = true
-
-  if (editingShortcutId.value) {
-    await store.updateShortcut(editingShortcutId.value, shortcutForm.value)
-  } else {
-    await store.addShortcut(shortcutForm.value)
-  }
-
-  savingShortcut.value = false
-  showShortcutModal.value = false
-}
-
-const handleDeleteShortcut = async () => {
-  if (!editingShortcutId.value) return
-  const ok = await confirm({
-    title: 'Supprimer le raccourci',
-    message: `Voulez-vous vraiment supprimer le raccourci <strong>« ${shortcutForm.value.title} »</strong> ?`,
-    description: 'Cette action est irréversible et retirera le raccourci pour tous les membres de la famille.',
-    confirmText: 'Supprimer',
-    type: 'danger'
-  })
-  if (ok) {
-    savingShortcut.value = true
-    await store.deleteShortcut(editingShortcutId.value)
-    savingShortcut.value = false
-    showShortcutModal.value = false
-  }
-}
 
 </script>
 
@@ -554,27 +375,6 @@ const handleDeleteShortcut = async () => {
   color: var(--accent-primary);
 }
 
-.add-shortcut-btn-mini {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  color: var(--text-muted);
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.add-shortcut-btn-mini:hover {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
-  color: white;
-  transform: scale(1.08);
-}
-
 .shortcuts-list {
   display: flex;
   flex-direction: column;
@@ -638,154 +438,6 @@ const handleDeleteShortcut = async () => {
 .shortcut-nav-link:hover .shortcut-ext-icon {
   opacity: 1;
   color: var(--accent-primary);
-}
-
-.shortcut-edit-btn-mini {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  padding: 0.4rem;
-  margin-right: 0.25rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
-}
-
-.shortcut-item-row:hover .shortcut-edit-btn-mini {
-  opacity: 0.7;
-}
-
-.shortcut-edit-btn-mini:hover {
-  opacity: 1 !important;
-  color: var(--accent-primary);
-  background: var(--bg-card);
-}
-
-.shortcuts-empty-admin {
-  padding: 0.25rem 0.5rem;
-}
-
-.btn-create-first-shortcut {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 0.45rem;
-  background: var(--bg-tertiary);
-  border: 1px dashed var(--border-color);
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.btn-create-first-shortcut:hover {
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-  background: var(--accent-primary-light);
-}
-
-/* Shortcut Modal Styles */
-.shortcut-modal-content {
-  max-width: 480px;
-}
-
-.emoji-picker-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.4rem;
-  margin-bottom: 0.75rem;
-}
-
-.emoji-pick-btn {
-  font-size: 1.35rem;
-  height: 40px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-}
-
-.emoji-pick-btn:hover {
-  background: var(--bg-card);
-  transform: scale(1.1);
-  border-color: var(--accent-primary);
-}
-
-.emoji-pick-btn.selected {
-  background: var(--accent-primary-light);
-  border-color: var(--accent-primary);
-  transform: scale(1.12);
-  box-shadow: 0 0 0 2px var(--accent-primary);
-}
-
-.custom-emoji-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.form-label-sub {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.emoji-text-input {
-  width: 70px;
-  text-align: center;
-  font-size: 1.15rem;
-  padding: 0.35rem;
-}
-
-.modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-}
-
-.flex-between {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.modal-actions-right {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.btn-danger {
-  background: var(--accent-rose-light);
-  color: var(--accent-rose);
-  border: 1px solid rgba(244, 63, 94, 0.3);
-  padding: 0.55rem 0.9rem;
-  border-radius: var(--radius-md);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: all var(--transition-fast);
-}
-
-.btn-danger:hover {
-  background: var(--accent-rose);
-  color: white;
 }
 
 @media (max-width: 900px) {
@@ -870,11 +522,6 @@ const handleDeleteShortcut = async () => {
 
   .shortcut-ext-icon {
     display: none;
-  }
-
-  .shortcut-edit-btn-mini {
-    opacity: 0.7;
-    padding: 0.35rem;
   }
 }
 
