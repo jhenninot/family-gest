@@ -86,7 +86,7 @@ const routes = [
     path: '/:familySlug/settings/email',
     name: 'family-settings',
     alias: ['/:familySlug/settings', '/:familySlug/admin'],
-    component: () => import('../views/EmailSettingsView.vue'),
+    component: () => import('../views/FamilySettingsView.vue'),
     meta: { title: 'Administration de la famille', requiresAuth: true, requiresAdmin: true }
   },
 
