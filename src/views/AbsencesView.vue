@@ -100,7 +100,7 @@
             </div>
 
             <div v-if="todayLunchPresence.absentMembers.length === 0 && todayLunchPresence.exceptionalPresences.length === 0 && todayLunchPresence.guests.length === 0" class="all-present-text">
-              🎉 Au complet ({{ todayLunchPresence.headcount }} personnes) sans invité
+              Au complet ({{ todayLunchPresence.headcount }} personnes) sans invité
             </div>
           </div>
         </div>
@@ -171,7 +171,7 @@
             </div>
 
             <div v-if="todayDinnerPresence.absentMembers.length === 0 && todayDinnerPresence.exceptionalPresences.length === 0 && todayDinnerPresence.guests.length === 0" class="all-present-text">
-              🎉 Tout le monde dîne à la maison ({{ todayDinnerPresence.headcount }} personnes) sans invité
+              Tout le monde dîne à la maison ({{ todayDinnerPresence.headcount }} personnes) sans invité
             </div>
           </div>
         </div>

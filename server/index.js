@@ -4657,7 +4657,7 @@ app.post('/api/settings/email/test', requireAuth, attachFamilyContext, requireFa
       subject: `✨ Test de configuration Email - ${req.family.name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 12px; border: 1px solid #e0e7ff; background-color: #f8fafc;">
-          <h2 style="color: #4f46e5; margin-top: 0;">🎉 Connexion Email Réussie pour ${req.family.name} !</h2>
+          <h2 style="color: #4f46e5; margin-top: 0;">👍 Connexion Email Réussie pour ${req.family.name} !</h2>
           <p>Bonjour,</p>
           <p>Ceci est un message de test envoyé depuis votre espace familial <strong>${req.family.name}</strong> sur <strong>FamilyGest</strong>.</p>
           <p>Vos paramètres de serveur d'envoi Email sont opérationnels :</p>

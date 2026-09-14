@@ -152,7 +152,7 @@
 
                 <!-- Au complet sans invité -->
                 <div v-if="todayLunchPresence.absentMembers.length === 0 && todayLunchPresence.exceptionalPresences.length === 0 && todayLunchPresence.guests.length === 0" class="slot-all-present">
-                  🎉 Au complet ({{ todayLunchPresence.headcount }} personnes) sans invité
+                  Au complet ({{ todayLunchPresence.headcount }} personnes) sans invité
                 </div>
 
                 <!-- Plat(s) prévu(s) ce midi -->
@@ -231,7 +231,7 @@
 
                 <!-- Au complet sans invité -->
                 <div v-if="todayDinnerPresence.absentMembers.length === 0 && todayDinnerPresence.exceptionalPresences.length === 0 && todayDinnerPresence.guests.length === 0" class="slot-all-present">
-                  🎉 Au complet ({{ todayDinnerPresence.headcount }} personnes) sans invité
+                  Au complet ({{ todayDinnerPresence.headcount }} personnes) sans invité
                 </div>
 
                 <!-- Plat(s) prévu(s) ce soir -->
@@ -400,7 +400,7 @@
             </div>
 
             <div v-if="dashboardTasks.length === 0" class="empty-state">
-              🎉 Toutes les tâches sont terminées ! Bravo !
+              👍 Toutes les tâches sont terminées ! Bravo !
             </div>
           </div>
         </div>
