@@ -456,13 +456,16 @@
           </div>
 
           <div class="modal-footer flex-between">
-            <button type="button" @click="handleDeleteCurrentEvent" class="btn btn-danger">
-              <Trash2 :size="15" />
-              <span>Supprimer</span>
+            <button type="button" @click="handleDeleteCurrentEvent" class="btn btn-danger btn-icon-only" title="Supprimer" aria-label="Supprimer">
+              <Trash2 :size="18" />
             </button>
             <div class="modal-actions-right">
-              <button type="button" @click="cancelEditModal" class="btn btn-secondary">Annuler</button>
-              <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+              <button type="button" @click="cancelEditModal" class="btn btn-secondary btn-icon-only" title="Annuler" aria-label="Annuler">
+                <X :size="18" />
+              </button>
+              <button type="submit" class="btn btn-primary btn-icon-only" title="Enregistrer les modifications" aria-label="Enregistrer les modifications">
+                <Save :size="18" />
+              </button>
             </div>
           </div>
         </form>
@@ -634,9 +637,11 @@ import {
   Clock, 
   MapPin, 
   ExternalLink, 
-  Download, 
+  Download,
   CalendarPlus,
-  CalendarRange
+  CalendarRange,
+  Save,
+  X
 } from '@lucide/vue'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
@@ -1897,6 +1902,38 @@ const handleDeleteFromDay = async (id) => {
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .btn-close { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
+
+/* Le footer combinant Supprimer (gauche) et Annuler/Enregistrer (droite) doit garder un vrai space-between,
+   même s'il partage aussi la classe .modal-footer (justify-content: flex-end) */
+.modal-footer.flex-between {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.modal-actions-right {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btn-icon-only {
+  padding: 0.65rem;
+}
+
+@media (max-width: 640px) {
+  .modal-footer.flex-between {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-actions-right {
+    justify-content: stretch;
+  }
+
+  .modal-actions-right .btn {
+    flex: 1;
+  }
+}
 
 /* Interactive Calendar Days */
 .day-cell.cell-interactive {
