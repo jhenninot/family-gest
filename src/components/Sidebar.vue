@@ -68,7 +68,7 @@
       <router-link :to="getPath('/calendar')" class="nav-item" active-class="active">
         <Calendar :size="20" />
         <span>Calendrier</span>
-        <span v-if="store.events.length > 0" class="badge-count info">{{ store.events.length }}</span>
+        <span v-if="upcomingEventsCount > 0" class="badge-count info" title="Événements dans les 7 prochains jours">{{ upcomingEventsCount }}</span>
       </router-link>
     </nav>
 
@@ -163,6 +163,17 @@ const thisWeekMealsCount = computed(() => {
   const sunStr = `${sy}-${sm}-${sda}`
 
   return store.meals.filter(meal => meal.date >= monStr && meal.date <= sunStr).length
+})
+
+// Nombre d'événements dans les 7 prochains jours (aujourd'hui inclus)
+const upcomingEventsCount = computed(() => {
+  if (!store.events || store.events.length === 0) return 0
+  const today = store.todayStr
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() + 6)
+  const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`
+
+  return store.events.filter(e => e.date >= today && e.date <= cutoffStr).length
 })
 
 </script>
