@@ -32,6 +32,8 @@ import MealGuest from './models/MealGuest.js'
 import Meal from './models/Meal.js'
 import PushConfig from './models/PushConfig.js'
 import PushSubscription from './models/PushSubscription.js'
+import AlertLog from './models/AlertLog.js'
+import { ALERT_ACTIONS, ALERT_ACTIONS_LIST } from './constants/alertActions.js'
 import webpush from 'web-push'
 
 dotenv.config()
@@ -278,10 +280,10 @@ const sendWelcomeEmail = async (user, token) => {
 
     await transporter.sendMail(mailOptions)
     console.log(`[Email] Email de bienvenue envoyé avec succès à ${user.email}`)
-    return { success: true }
+    return { success: true, recipients: [{ userId: user.id, name: `${user.firstName || ''} ${user.lastName || ''}`.trim(), email: user.email }] }
   } catch (err) {
     console.error(`[Email] Erreur lors de l'envoi de l'email de bienvenue à ${user.email} :`, err.message)
-    return { success: false, error: err.message }
+    return { success: false, error: err.message, recipients: [{ userId: user.id, name: `${user.firstName || ''} ${user.lastName || ''}`.trim(), email: user.email }] }
   }
 }
 
@@ -394,10 +396,10 @@ const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExi
 
     await transporter.sendMail(mailOptions)
     console.log(`[Email] Invitation envoyée avec succès à ${email} pour la famille ${family.name}`)
-    return { success: true }
+    return { success: true, recipients: [{ userId: null, name: email, email }] }
   } catch (err) {
     console.error(`[Email] Erreur lors de l'envoi de l'invitation à ${email} :`, err.message)
-    return { success: false, error: err.message }
+    return { success: false, error: err.message, recipients: [{ userId: null, name: email, email }] }
   }
 }
 
@@ -487,7 +489,7 @@ const sendNotificationEmail = async ({
   try {
     const config = await getSmtpConfig(familyId)
     if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
-      return { success: false, reason: 'SMTP_NOT_CONFIGURED' }
+      return { success: false, reason: 'SMTP_NOT_CONFIGURED', count: 0, recipients: [] }
     }
 
     let recipientUsers = []
@@ -512,16 +514,16 @@ const sendNotificationEmail = async ({
           { emailNotificationsEnabled: true },
           { id: { $in: explicitMemberUserIds } }
         ]
-      }).select('email firstName id')
+      }).select('email firstName lastName id')
     } else {
       const userQuery = { emailNotificationsEnabled: true }
       if (excludeUserId) {
         userQuery.id = { $ne: Number(excludeUserId) }
       }
-      recipientUsers = await User.find(userQuery).select('email firstName id')
+      recipientUsers = await User.find(userQuery).select('email firstName lastName id')
     }
 
-    if (!recipientUsers || recipientUsers.length === 0) return { success: true, count: 0 }
+    if (!recipientUsers || recipientUsers.length === 0) return { success: true, count: 0, recipients: [] }
 
     const baseServerUrl = (config.serverUrl || 'http://localhost:5173').replace(/\/+$/, '')
     const fullActionUrl = actionUrl.startsWith('http') ? actionUrl : `${baseServerUrl}${actionUrl}`
@@ -628,10 +630,14 @@ const sendNotificationEmail = async ({
 
     await Promise.allSettled(emailPromises)
     console.log(`[Email] Notification email envoyée à ${recipientUsers.length} membre(s) : "${title}"`)
-    return { success: true, count: recipientUsers.length }
+    return {
+      success: true,
+      count: recipientUsers.length,
+      recipients: recipientUsers.map(u => ({ userId: u.id, name: `${u.firstName || ''} ${u.lastName || ''}`.trim(), email: u.email }))
+    }
   } catch (err) {
     console.error('[Email] Erreur sendNotificationEmail:', err.message)
-    return { success: false, error: err.message }
+    return { success: false, error: err.message, count: 0, recipients: [] }
   }
 }
 
@@ -701,7 +707,7 @@ const sendPushNotification = async ({
   familyId = null
 }) => {
   try {
-    if (!vapidPublicKey || !vapidPrivateKey) return
+    if (!vapidPublicKey || !vapidPrivateKey) return { success: false, reason: 'PUSH_NOT_CONFIGURED', count: 0, recipients: [] }
 
     let userIds = []
     let familyName = ''
@@ -724,15 +730,15 @@ const sendPushNotification = async ({
       userIds = eligibleUsers.map(u => u.id)
     }
 
-    if (userIds.length === 0) return
+    if (userIds.length === 0) return { success: false, reason: 'NO_ELIGIBLE_MEMBERS', count: 0, recipients: [] }
 
     // S'assurer que l'utilisateur n'a pas désactivé les notifications push globalement sur son compte
-    const activeUsers = await User.find({ id: { $in: userIds }, pushNotificationsEnabled: { $ne: false } }).select('id')
+    const activeUsers = await User.find({ id: { $in: userIds }, pushNotificationsEnabled: { $ne: false } }).select('id firstName lastName')
     const finalUserIds = activeUsers.map(u => u.id)
-    if (finalUserIds.length === 0) return
+    if (finalUserIds.length === 0) return { success: false, reason: 'NO_ELIGIBLE_MEMBERS', count: 0, recipients: [] }
 
     const subscriptions = await PushSubscription.find({ userId: { $in: finalUserIds } })
-    if (subscriptions.length === 0) return
+    if (subscriptions.length === 0) return { success: false, reason: 'NO_SUBSCRIPTIONS', count: 0, recipients: [] }
 
     const finalTitle = familyName ? `[${familyName}] ${title}` : title
 
@@ -747,6 +753,8 @@ const sendPushNotification = async ({
       googleCalendarUrl
     })
 
+    const deliveredUserIds = new Set()
+
     const sendPromises = subscriptions.map(async (sub) => {
       try {
         await webpush.sendNotification({
@@ -756,6 +764,7 @@ const sendPushNotification = async ({
             auth: sub.keys.auth
           }
         }, payload)
+        deliveredUserIds.add(sub.userId)
       } catch (err) {
         if (err.statusCode === 404 || err.statusCode === 410) {
           console.log(`[WebPush] Nettoyage souscription obsolète : ${sub.endpoint.substring(0, 45)}...`)
@@ -767,9 +776,72 @@ const sendPushNotification = async ({
     })
 
     await Promise.allSettled(sendPromises)
+
+    const recipients = activeUsers
+      .filter(u => deliveredUserIds.has(u.id))
+      .map(u => ({ userId: u.id, name: `${u.firstName || ''} ${u.lastName || ''}`.trim(), email: '' }))
+
+    return { success: recipients.length > 0, count: recipients.length, recipients }
   } catch (err) {
     console.error('[WebPush] Erreur sendPushNotification:', err.message)
+    return { success: false, error: err.message, count: 0, recipients: [] }
   }
+}
+
+// === JOURNAL DES ALERTES (push, email) — consulté depuis la console Super Admin ===
+
+// Normalise le résultat d'un helper d'envoi (push ou email) en une entrée de canal journalisée
+const toAlertChannelLog = (type, result) => {
+  if (!result) return null
+  const recipients = Array.isArray(result.recipients) ? result.recipients : []
+  const status = recipients.length > 0 ? 'sent' : (result.reason ? 'skipped' : (result.success === false ? 'error' : 'skipped'))
+  return {
+    type,
+    status,
+    recipientCount: recipients.length,
+    recipients,
+    reason: result.reason || result.error || null
+  }
+}
+
+// Écrit une entrée dans le journal des alertes. Ne doit jamais faire échouer l'appelant.
+const logAlertEntry = async ({ family = null, actor = null, action, actionLabel, title = '', targetType = null, targetId = null, channels = [] }) => {
+  try {
+    await AlertLog.create({
+      familyId: family?._id || null,
+      familyName: family?.name || null,
+      actorUserId: actor?.id ?? null,
+      actorName: actor ? `${actor.firstName || ''} ${actor.lastName || ''}`.trim() || 'Membre' : 'Système',
+      action,
+      actionLabel,
+      title,
+      targetType,
+      targetId: targetId != null ? String(targetId) : null,
+      channels: channels.filter(Boolean)
+    })
+  } catch (err) {
+    console.error('[AlertLog] Erreur journalisation alerte:', err.message)
+  }
+}
+
+// Diffuse une alerte push + email à une famille et journalise le résultat des deux canaux.
+// Appelé en tâche de fond (sans await côté route) pour ne pas retarder la réponse HTTP.
+const dispatchFamilyAlert = async ({ family, actor = null, action, actionLabel, title = '', targetType = null, targetId = null, push = null, email = null }) => {
+  const [pushResult, emailResult] = await Promise.all([
+    push ? sendPushNotification({ ...push, familyId: family._id, excludeUserId: actor?.id ?? null }) : Promise.resolve(null),
+    email ? sendNotificationEmail({ ...email, familyId: family._id, excludeUserId: actor?.id ?? null }) : Promise.resolve(null)
+  ])
+
+  await logAlertEntry({
+    family,
+    actor,
+    action,
+    actionLabel,
+    title,
+    targetType,
+    targetId,
+    channels: [toAlertChannelLog('push', pushResult), toAlertChannelLog('email', emailResult)]
+  })
 }
 
 // GET /api/push/vapid-public-key (Obtenir la clé publique pour le client web)
@@ -1049,6 +1121,17 @@ app.post('/api/auth/register', requireAuth, requireAdmin, async (req, res) => {
 
     // Envoi de l'email de bienvenue en arrière-plan
     sendWelcomeEmail(newUser, welcomeToken)
+      .then(result => logAlertEntry({
+        family: null,
+        actor: req.user,
+        action: ALERT_ACTIONS.MEMBER_WELCOME.code,
+        actionLabel: ALERT_ACTIONS.MEMBER_WELCOME.label,
+        title: `Email de bienvenue : ${newUser.firstName} ${newUser.lastName}`,
+        targetType: 'user',
+        targetId: newUser.id,
+        channels: [toAlertChannelLog('email', result)]
+      }))
+      .catch(err => console.error('[AlertLog] sendWelcomeEmail (register):', err.message))
 
     res.status(201).json({
       id: newUser.id,
@@ -1395,7 +1478,7 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
     await invitation.save()
 
     // Envoi de l'email via SMTP Global
-    await sendFamilyInvitationEmail({
+    const inviteResult = await sendFamilyInvitationEmail({
       email: cleanEmail,
       family,
       invitationToken: token,
@@ -1403,6 +1486,16 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
       invitedByName: `${req.user.firstName} ${req.user.lastName}`,
       isAdmin: true
     })
+    logAlertEntry({
+      family,
+      actor: req.user,
+      action: ALERT_ACTIONS.FAMILY_ADMIN_INVITED.code,
+      actionLabel: ALERT_ACTIONS.FAMILY_ADMIN_INVITED.label,
+      title: `Invitation administrateur : ${cleanEmail}`,
+      targetType: 'invitation',
+      targetId: invitation.token,
+      channels: [toAlertChannelLog('email', inviteResult)]
+    }).catch(err => console.error('[AlertLog] sendFamilyInvitationEmail (create family):', err.message))
 
     res.status(201).json({
       family,
@@ -1492,6 +1585,16 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
       invitedByName: `${req.user.firstName} ${req.user.lastName}`,
       isAdmin: true
     })
+    logAlertEntry({
+      family,
+      actor: req.user,
+      action: ALERT_ACTIONS.FAMILY_ADMIN_INVITED.code,
+      actionLabel: ALERT_ACTIONS.FAMILY_ADMIN_INVITED.label,
+      title: `Invitation administrateur : ${cleanEmail}`,
+      targetType: 'invitation',
+      targetId: invitation.token,
+      channels: [toAlertChannelLog('email', emailResult)]
+    }).catch(err => console.error('[AlertLog] sendFamilyInvitationEmail (invite-admin):', err.message))
 
     res.status(201).json({
       message: `Invitation administrateur envoyée avec succès à ${cleanEmail}`,
@@ -2166,6 +2269,49 @@ app.post('/api/super-admin/smtp/test', requireAuth, requireSuperAdmin, async (re
   }
 })
 
+// === JOURNAL DES ALERTES (console Super Admin) ===
+
+// GET /api/super-admin/alert-logs/meta (catalogue des types d'alertes + familles pour peupler les filtres)
+app.get('/api/super-admin/alert-logs/meta', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const families = await Family.find().select('name slug').sort({ name: 1 })
+    res.json({ actions: ALERT_ACTIONS_LIST, families })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/super-admin/alert-logs (journal paginé et filtrable des alertes envoyées)
+app.get('/api/super-admin/alert-logs', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { familyId, actorUserId, action, from, to } = req.query
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25))
+
+    const filter = {}
+    if (familyId) filter.familyId = familyId
+    if (actorUserId) filter.actorUserId = Number(actorUserId)
+    if (action) filter.action = action
+    if (from || to) {
+      filter.createdAt = {}
+      if (from) filter.createdAt.$gte = new Date(from)
+      if (to) filter.createdAt.$lte = new Date(to)
+    }
+
+    const [total, logs] = await Promise.all([
+      AlertLog.countDocuments(filter),
+      AlertLog.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit)
+    ])
+
+    res.json({
+      logs,
+      pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) }
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // === USER FAMILIES & FAMILY CONTEXT ROUTES ===
 
 // GET /api/user/families (Liste des familles accessibles pour l'utilisateur connecté)
@@ -2298,13 +2444,23 @@ app.post('/api/families/:familySlug/invite', requireAuth, attachFamilyContext, r
     await invitation.save()
 
     // Envoi email invitation
-    await sendFamilyInvitationEmail({
+    const inviteResult = await sendFamilyInvitationEmail({
       email: cleanEmail,
       family: req.family,
       invitationToken: token,
       isExistingUser: Boolean(existingUser),
       invitedByName: `${req.user.firstName} ${req.user.lastName}`
     })
+    logAlertEntry({
+      family: req.family,
+      actor: req.user,
+      action: ALERT_ACTIONS.FAMILY_MEMBER_INVITED.code,
+      actionLabel: ALERT_ACTIONS.FAMILY_MEMBER_INVITED.label,
+      title: `Invitation membre : ${cleanEmail}`,
+      targetType: 'invitation',
+      targetId: invitation.token,
+      channels: [toAlertChannelLog('email', inviteResult)]
+    }).catch(err => console.error('[AlertLog] sendFamilyInvitationEmail (invite member):', err.message))
 
     res.json({
       success: true,
@@ -2617,6 +2773,17 @@ app.post('/api/members', requireAuth, attachFamilyContext, requireFamilyAdmin, a
 
       // Envoi de l'email de bienvenue
       sendWelcomeEmail(user, welcomeToken)
+        .then(result => logAlertEntry({
+          family: req.family,
+          actor: req.user,
+          action: ALERT_ACTIONS.MEMBER_WELCOME.code,
+          actionLabel: ALERT_ACTIONS.MEMBER_WELCOME.label,
+          title: `Email de bienvenue : ${user.firstName} ${user.lastName}`,
+          targetType: 'user',
+          targetId: user.id,
+          channels: [toAlertChannelLog('email', result)]
+        }))
+        .catch(err => console.error('[AlertLog] sendWelcomeEmail (members):', err.message))
     }
 
     const newMembership = new FamilyMember({
@@ -2818,6 +2985,17 @@ app.post('/api/members/:id/resend-welcome', requireAuth, attachFamilyContext, re
     await user.save()
 
     const emailResult = await sendWelcomeEmail(user, welcomeToken)
+    logAlertEntry({
+      family: req.family,
+      actor: req.user,
+      action: ALERT_ACTIONS.MEMBER_WELCOME_RESENT.code,
+      actionLabel: ALERT_ACTIONS.MEMBER_WELCOME_RESENT.label,
+      title: `Email de bienvenue renvoyé : ${user.firstName} ${user.lastName}`,
+      targetType: 'user',
+      targetId: user.id,
+      channels: [toAlertChannelLog('email', emailResult)]
+    }).catch(err => console.error('[AlertLog] sendWelcomeEmail (resend):', err.message))
+
     if (emailResult.success) {
       res.json({ 
         success: true, 
@@ -2863,38 +3041,41 @@ app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
     const assignedUser = await User.findOne({ id: newTask.assignedTo })
     const assignedName = assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'Non assigné'
 
-    // Notification push pour la nouvelle tâche
-    sendPushNotification({
-      title: `📋 Nouvelle tâche : ${newTask.title}`,
-      body: `Assignée à ${assignedName} • +${newTask.points} pts • Ajoutée par ${authorName}`,
-      url: `/${req.family.slug}/tasks`,
-      excludeUserId: req.user ? req.user.id : null,
-      familyId: req.family._id
-    })
-
-    // Notification email pour la nouvelle tâche
-    sendNotificationEmail({
-      subject: `📋 Nouvelle tâche : ${newTask.title}`,
-      title: `Nouvelle tâche ajoutée`,
-      badge: '📋',
-      detailsHtml: `
-        <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-          <strong>${authorName}</strong> a ajouté une nouvelle tâche :
-        </p>
-        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-          <li><strong>Titre :</strong> ${newTask.title}</li>
-          <li><strong>Assignée à :</strong> ${assignedName}</li>
-          <li><strong>Catégorie :</strong> ${newTask.category || 'Maison'}</li>
-          <li><strong>Priorité :</strong> ${newTask.priority || 'Moyenne'}</li>
-          <li><strong>Récompense :</strong> +${newTask.points} pts</li>
-          ${newTask.dueDate ? `<li><strong>Échéance :</strong> ${newTask.dueDate}</li>` : ''}
-        </ul>
-      `,
-      actionUrl: `/${req.family.slug}/tasks`,
-      actionText: 'Voir les tâches',
-      excludeUserId: req.user ? req.user.id : null,
-      familyId: req.family._id
-    })
+    // Alerte push + email pour la nouvelle tâche (journalisée dans le journal des alertes)
+    dispatchFamilyAlert({
+      family: req.family,
+      actor: req.user,
+      action: ALERT_ACTIONS.TASK_CREATED.code,
+      actionLabel: ALERT_ACTIONS.TASK_CREATED.label,
+      title: `Nouvelle tâche : ${newTask.title}`,
+      targetType: 'task',
+      targetId: newTask.id,
+      push: {
+        title: `📋 Nouvelle tâche : ${newTask.title}`,
+        body: `Assignée à ${assignedName} • +${newTask.points} pts • Ajoutée par ${authorName}`,
+        url: `/${req.family.slug}/tasks`
+      },
+      email: {
+        subject: `📋 Nouvelle tâche : ${newTask.title}`,
+        title: `Nouvelle tâche ajoutée`,
+        badge: '📋',
+        detailsHtml: `
+          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+            <strong>${authorName}</strong> a ajouté une nouvelle tâche :
+          </p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+            <li><strong>Titre :</strong> ${newTask.title}</li>
+            <li><strong>Assignée à :</strong> ${assignedName}</li>
+            <li><strong>Catégorie :</strong> ${newTask.category || 'Maison'}</li>
+            <li><strong>Priorité :</strong> ${newTask.priority || 'Moyenne'}</li>
+            <li><strong>Récompense :</strong> +${newTask.points} pts</li>
+            ${newTask.dueDate ? `<li><strong>Échéance :</strong> ${newTask.dueDate}</li>` : ''}
+          </ul>
+        `,
+        actionUrl: `/${req.family.slug}/tasks`,
+        actionText: 'Voir les tâches'
+      }
+    }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (task.created):', err.message))
 
     res.status(201).json(newTask)
   } catch (err) {
@@ -2982,46 +3163,49 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
     const authorName = req.user ? req.user.firstName : 'Un membre'
     const timeStr = newEvent.time ? ` à ${newEvent.time}` : ''
     const locStr = newEvent.location ? ` (${newEvent.location})` : ''
-    sendPushNotification({
-      title: `📅 Nouvel événement : ${newEvent.title}`,
-      body: `${newEvent.date}${timeStr}${locStr} • Ajouté par ${authorName}`,
-      url: `/${req.family.slug}/calendar`,
-      excludeUserId: req.user ? req.user.id : null,
-      familyId: req.family._id,
-      actions: [
-        { action: 'open', title: 'Voir' },
-        { action: 'add-google', title: '📅 Google Agenda' }
-      ],
-      googleCalendarUrl
-    })
-
-    // Notification email pour le nouvel événement agenda avec boutons et invitation .ics
-    sendNotificationEmail({
-      subject: `📅 Nouvel événement agenda : ${newEvent.title}`,
-      title: `Nouvel événement dans l'agenda`,
-      badge: '📅',
-      detailsHtml: `
-        <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-          <strong>${authorName}</strong> a ajouté un événement au calendrier familial :
-        </p>
-        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-          <li><strong>Titre :</strong> ${newEvent.title}</li>
-          <li><strong>Date :</strong> ${newEvent.date}${timeStr}</li>
-          ${newEvent.location ? `<li><strong>Lieu :</strong> ${newEvent.location}</li>` : ''}
-          <li><strong>Catégorie :</strong> ${newEvent.category || 'Famille'}</li>
-        </ul>
-      `,
-      actionUrl: `/${req.family.slug}/calendar`,
-      actionText: 'Voir dans le calendrier',
-      excludeUserId: req.user ? req.user.id : null,
-      familyId: req.family._id,
-      calendarData: {
-        googleUrl: googleCalendarUrl,
-        icsUrl: icsDownloadUrl,
-        icsContent,
-        eventTitle: newEvent.title
+    dispatchFamilyAlert({
+      family: req.family,
+      actor: req.user,
+      action: ALERT_ACTIONS.EVENT_CREATED.code,
+      actionLabel: ALERT_ACTIONS.EVENT_CREATED.label,
+      title: `Nouvel événement : ${newEvent.title}`,
+      targetType: 'event',
+      targetId: newEvent.id,
+      push: {
+        title: `📅 Nouvel événement : ${newEvent.title}`,
+        body: `${newEvent.date}${timeStr}${locStr} • Ajouté par ${authorName}`,
+        url: `/${req.family.slug}/calendar`,
+        actions: [
+          { action: 'open', title: 'Voir' },
+          { action: 'add-google', title: '📅 Google Agenda' }
+        ],
+        googleCalendarUrl
+      },
+      email: {
+        subject: `📅 Nouvel événement agenda : ${newEvent.title}`,
+        title: `Nouvel événement dans l'agenda`,
+        badge: '📅',
+        detailsHtml: `
+          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+            <strong>${authorName}</strong> a ajouté un événement au calendrier familial :
+          </p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+            <li><strong>Titre :</strong> ${newEvent.title}</li>
+            <li><strong>Date :</strong> ${newEvent.date}${timeStr}</li>
+            ${newEvent.location ? `<li><strong>Lieu :</strong> ${newEvent.location}</li>` : ''}
+            <li><strong>Catégorie :</strong> ${newEvent.category || 'Famille'}</li>
+          </ul>
+        `,
+        actionUrl: `/${req.family.slug}/calendar`,
+        actionText: 'Voir dans le calendrier',
+        calendarData: {
+          googleUrl: googleCalendarUrl,
+          icsUrl: icsDownloadUrl,
+          icsContent,
+          eventTitle: newEvent.title
+        }
       }
-    })
+    }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (event.created):', err.message))
 
     res.status(201).json(newEvent)
   } catch (err) {
@@ -3060,46 +3244,49 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
     const locStr = event.location ? ` (${event.location})` : ''
 
     // Notification push pour l'événement modifié
-    sendPushNotification({
-      title: `✏️ Événement modifié : ${event.title}`,
-      body: `${event.date}${timeStr}${locStr} • Modifié par ${authorName}`,
-      url: `/${req.family.slug}/calendar`,
-      excludeUserId: req.user ? req.user.id : null,
-      familyId: req.family._id,
-      actions: [
-        { action: 'open', title: 'Voir l\'agenda' },
-        { action: 'add-google', title: '📅 Mettre à jour' }
-      ],
-      googleCalendarUrl
-    })
-
-    // Notification email pour l'événement modifié
-    sendNotificationEmail({
-      subject: `✏️ Événement modifié : ${event.title}`,
-      title: `Événement modifié dans l'agenda`,
-      badge: '✏️',
-      detailsHtml: `
-        <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-          <strong>${authorName}</strong> a modifié cet événement dans le calendrier familial :
-        </p>
-        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-          <li><strong>Titre :</strong> ${event.title}</li>
-          <li><strong>Nouvelle date :</strong> ${event.date}${timeStr}</li>
-          ${event.location ? `<li><strong>Lieu :</strong> ${event.location}</li>` : ''}
-          <li><strong>Catégorie :</strong> ${event.category || 'Famille'}</li>
-        </ul>
-      `,
-      actionUrl: `/${req.family.slug}/calendar`,
-      actionText: 'Voir dans le calendrier',
-      excludeUserId: req.user ? req.user.id : null,
-      familyId: req.family._id,
-      calendarData: {
-        googleUrl: googleCalendarUrl,
-        icsUrl: icsDownloadUrl,
-        icsContent,
-        eventTitle: event.title
+    dispatchFamilyAlert({
+      family: req.family,
+      actor: req.user,
+      action: ALERT_ACTIONS.EVENT_UPDATED.code,
+      actionLabel: ALERT_ACTIONS.EVENT_UPDATED.label,
+      title: `Événement modifié : ${event.title}`,
+      targetType: 'event',
+      targetId: event.id,
+      push: {
+        title: `✏️ Événement modifié : ${event.title}`,
+        body: `${event.date}${timeStr}${locStr} • Modifié par ${authorName}`,
+        url: `/${req.family.slug}/calendar`,
+        actions: [
+          { action: 'open', title: 'Voir l\'agenda' },
+          { action: 'add-google', title: '📅 Mettre à jour' }
+        ],
+        googleCalendarUrl
+      },
+      email: {
+        subject: `✏️ Événement modifié : ${event.title}`,
+        title: `Événement modifié dans l'agenda`,
+        badge: '✏️',
+        detailsHtml: `
+          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+            <strong>${authorName}</strong> a modifié cet événement dans le calendrier familial :
+          </p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+            <li><strong>Titre :</strong> ${event.title}</li>
+            <li><strong>Nouvelle date :</strong> ${event.date}${timeStr}</li>
+            ${event.location ? `<li><strong>Lieu :</strong> ${event.location}</li>` : ''}
+            <li><strong>Catégorie :</strong> ${event.category || 'Famille'}</li>
+          </ul>
+        `,
+        actionUrl: `/${req.family.slug}/calendar`,
+        actionText: 'Voir dans le calendrier',
+        calendarData: {
+          googleUrl: googleCalendarUrl,
+          icsUrl: icsDownloadUrl,
+          icsContent,
+          eventTitle: event.title
+        }
       }
-    })
+    }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (event.updated):', err.message))
 
     res.json(event)
   } catch (err) {
@@ -3303,7 +3490,7 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
 
     const recordType = type === 'presence' ? 'presence' : 'absence'
 
-    const notifyAbsenceOrPresence = async (recType, mId, dStr, l, din, n, nt) => {
+    const notifyAbsenceOrPresence = async (recType, mId, dStr, l, din, n, nt, absenceId) => {
       try {
         const member = await User.findOne({ id: Number(mId) })
         const mName = member ? member.firstName : 'Un membre'
@@ -3322,15 +3509,7 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
             ? `${mName} sera présent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`
             : `${authorName} a signalé la présence de ${mName} le ${dStr.trim()} (${slotsStr})${noteStr}`
 
-          sendPushNotification({
-            title: pushTitle,
-            body: pushBody,
-            url: `/${req.family.slug}/absences`,
-            excludeUserId: req.user ? req.user.id : null,
-            familyId: req.family._id
-          })
-
-          const emailSubject = isSelf 
+          const emailSubject = isSelf
             ? `🟢 Présence confirmée : ${mName}`
             : `🟢 Présence signalée pour ${mName} par ${authorName}`
 
@@ -3338,26 +3517,34 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
             ? `<strong>${mName}</strong> a confirmé sa présence :`
             : `<strong>${authorName}</strong> a signalé la présence de <strong>${mName}</strong> :`
 
-          sendNotificationEmail({
-            subject: emailSubject,
-            title: `Nouvelle présence signalée`,
-            badge: '🟢',
-            detailsHtml: `
-              <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-                ${introHtml}
-              </p>
-              <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-                <li><strong>Membre :</strong> ${mName}</li>
-                <li><strong>Date :</strong> ${dStr.trim()}</li>
-                <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
-                ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
-                ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
-              </ul>
-            `,
-            actionUrl: `/${req.family.slug}/absences`,
-            actionText: 'Consulter les présences & repas',
-            excludeUserId: req.user ? req.user.id : null,
-            familyId: req.family._id
+          await dispatchFamilyAlert({
+            family: req.family,
+            actor: req.user,
+            action: ALERT_ACTIONS.PRESENCE_CREATED.code,
+            actionLabel: ALERT_ACTIONS.PRESENCE_CREATED.label,
+            title: pushTitle,
+            targetType: 'absence',
+            targetId: absenceId,
+            push: { title: pushTitle, body: pushBody, url: `/${req.family.slug}/absences` },
+            email: {
+              subject: emailSubject,
+              title: `Nouvelle présence signalée`,
+              badge: '🟢',
+              detailsHtml: `
+                <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+                  ${introHtml}
+                </p>
+                <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+                  <li><strong>Membre :</strong> ${mName}</li>
+                  <li><strong>Date :</strong> ${dStr.trim()}</li>
+                  <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
+                  ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
+                  ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
+                </ul>
+              `,
+              actionUrl: `/${req.family.slug}/absences`,
+              actionText: 'Consulter les présences & repas'
+            }
           })
         } else {
           const pushTitle = `🚫 Nouvelle absence : ${mName}`
@@ -3365,15 +3552,7 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
             ? `${mName} sera absent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`
             : `${authorName} a signalé l'absence de ${mName} le ${dStr.trim()} (${slotsStr})${noteStr}`
 
-          sendPushNotification({
-            title: pushTitle,
-            body: pushBody,
-            url: `/${req.family.slug}/absences`,
-            excludeUserId: req.user ? req.user.id : null,
-            familyId: req.family._id
-          })
-
-          const emailSubject = isSelf 
+          const emailSubject = isSelf
             ? `🚫 Nouvelle absence signalée : ${mName}`
             : `🚫 Absence signalée pour ${mName} par ${authorName}`
 
@@ -3381,26 +3560,34 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
             ? `<strong>${mName}</strong> a signalé une absence :`
             : `<strong>${authorName}</strong> a signalé l'absence de <strong>${mName}</strong> :`
 
-          sendNotificationEmail({
-            subject: emailSubject,
-            title: `Nouvelle absence signalée`,
-            badge: '🚫',
-            detailsHtml: `
-              <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-                ${introHtml}
-              </p>
-              <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-                <li><strong>Membre :</strong> ${mName}</li>
-                <li><strong>Date :</strong> ${dStr.trim()}</li>
-                <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
-                ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
-                ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
-              </ul>
-            `,
-            actionUrl: `/${req.family.slug}/absences`,
-            actionText: 'Consulter les absences & repas',
-            excludeUserId: req.user ? req.user.id : null,
-            familyId: req.family._id
+          await dispatchFamilyAlert({
+            family: req.family,
+            actor: req.user,
+            action: ALERT_ACTIONS.ABSENCE_CREATED.code,
+            actionLabel: ALERT_ACTIONS.ABSENCE_CREATED.label,
+            title: pushTitle,
+            targetType: 'absence',
+            targetId: absenceId,
+            push: { title: pushTitle, body: pushBody, url: `/${req.family.slug}/absences` },
+            email: {
+              subject: emailSubject,
+              title: `Nouvelle absence signalée`,
+              badge: '🚫',
+              detailsHtml: `
+                <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+                  ${introHtml}
+                </p>
+                <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+                  <li><strong>Membre :</strong> ${mName}</li>
+                  <li><strong>Date :</strong> ${dStr.trim()}</li>
+                  <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
+                  ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
+                  ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
+                </ul>
+              `,
+              actionUrl: `/${req.family.slug}/absences`,
+              actionText: 'Consulter les absences & repas'
+            }
           })
         }
       } catch (e) {
@@ -3417,7 +3604,7 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
       if (note !== undefined) existing.note = note.trim()
       existing.declaredBy = req.user ? req.user.id : null
       await existing.save()
-      notifyAbsenceOrPresence(existing.type, memberId, date, lunch, dinner, night, note)
+      notifyAbsenceOrPresence(existing.type, memberId, date, lunch, dinner, night, note, existing.id)
       return res.json(existing)
     }
 
@@ -3435,7 +3622,7 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
     })
 
     await newAbsence.save()
-    notifyAbsenceOrPresence(newAbsence.type, memberId, date, lunch, dinner, night, note)
+    notifyAbsenceOrPresence(newAbsence.type, memberId, date, lunch, dinner, night, note, newAbsence.id)
     res.status(201).json(newAbsence)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -3641,15 +3828,7 @@ app.post('/api/long-absences', requireAuth, attachFamilyContext, async (req, res
         ? `${mName} sera absent(e) ${periodStr}${noteStr}`
         : `${authorName} a signalé une absence longue pour ${mName} ${periodStr}${noteStr}`
 
-      sendPushNotification({
-        title: pushTitle,
-        body: pushBody,
-        url: `/${req.family.slug}/absences`,
-        excludeUserId: req.user ? req.user.id : null,
-        familyId: req.family._id
-      })
-
-      const emailSubject = isSelf 
+      const emailSubject = isSelf
         ? `🚫 Absence longue déclarée : ${mName}`
         : `🚫 Absence longue signalée pour ${mName} par ${authorName}`
 
@@ -3657,27 +3836,35 @@ app.post('/api/long-absences', requireAuth, attachFamilyContext, async (req, res
         ? `<strong>${mName}</strong> a déclaré une absence longue :`
         : `<strong>${authorName}</strong> a signalé une absence longue pour <strong>${mName}</strong> :`
 
-      sendNotificationEmail({
-        subject: emailSubject,
-        title: `Nouvelle absence longue signalée`,
-        badge: '🚫',
-        detailsHtml: `
-          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-            ${introHtml}
-          </p>
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-            <li><strong>Membre :</strong> ${mName}</li>
-            <li><strong>Période :</strong> ${periodStr}</li>
-            <li><strong>Nombre de jours :</strong> ${dates.length}</li>
-            ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
-            ${note ? `<li><strong>Motif :</strong> ${note.trim()}</li>` : ''}
-          </ul>
-        `,
-        actionUrl: `/${req.family.slug}/absences`,
-        actionText: 'Consulter les présences & repas',
-        excludeUserId: req.user ? req.user.id : null,
-        familyId: req.family._id
-      })
+      dispatchFamilyAlert({
+        family: req.family,
+        actor: req.user,
+        action: ALERT_ACTIONS.LONG_ABSENCE_CREATED.code,
+        actionLabel: ALERT_ACTIONS.LONG_ABSENCE_CREATED.label,
+        title: pushTitle,
+        targetType: 'long_absence',
+        targetId: longAbsence.id,
+        push: { title: pushTitle, body: pushBody, url: `/${req.family.slug}/absences` },
+        email: {
+          subject: emailSubject,
+          title: `Nouvelle absence longue signalée`,
+          badge: '🚫',
+          detailsHtml: `
+            <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+              ${introHtml}
+            </p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+              <li><strong>Membre :</strong> ${mName}</li>
+              <li><strong>Période :</strong> ${periodStr}</li>
+              <li><strong>Nombre de jours :</strong> ${dates.length}</li>
+              ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
+              ${note ? `<li><strong>Motif :</strong> ${note.trim()}</li>` : ''}
+            </ul>
+          `,
+          actionUrl: `/${req.family.slug}/absences`,
+          actionText: 'Consulter les présences & repas'
+        }
+      }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (absence.long):', err.message))
     } catch (e) {
       console.error('[WebPush] Erreur notification absence longue:', e.message)
     }
@@ -3865,34 +4052,38 @@ app.post('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) 
       const namesStr = guestNames.join(', ')
       const noteStr = note ? ` • ${note.trim()}` : ''
 
-      sendPushNotification({
-        title: `🍽️ Nouvel invité : ${namesStr}`,
-        body: `${namesStr} invité(s) par ${hostName} le ${date.trim()} (${slotsStr})${noteStr}`,
-        url: `/${req.family.slug}/absences`,
-        excludeUserId: req.user ? req.user.id : null,
-        familyId: req.family._id
-      })
-
-      sendNotificationEmail({
-        subject: `🍽️ Nouvel invité aux repas : ${namesStr}`,
-        title: `Nouvel invité aux repas`,
-        badge: '🍽️',
-        detailsHtml: `
-          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-            <strong>${hostName}</strong> a invité à la maison :
-          </p>
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-            <li><strong>Invité(s) :</strong> ${namesStr}</li>
-            <li><strong>Date :</strong> ${date.trim()}</li>
-            <li><strong>Créneau(x) :</strong> ${slotsStr}</li>
-            ${note ? `<li><strong>Remarque :</strong> ${note.trim()}</li>` : ''}
-          </ul>
-        `,
-        actionUrl: `/${req.family.slug}/absences`,
-        actionText: 'Consulter le planning des repas',
-        excludeUserId: req.user ? req.user.id : null,
-        familyId: req.family._id
-      })
+      dispatchFamilyAlert({
+        family: req.family,
+        actor: req.user,
+        action: ALERT_ACTIONS.MEAL_GUEST_CREATED.code,
+        actionLabel: ALERT_ACTIONS.MEAL_GUEST_CREATED.label,
+        title: `Nouvel invité : ${namesStr}`,
+        targetType: 'meal_guest',
+        targetId: createdGuests[0]?.id,
+        push: {
+          title: `🍽️ Nouvel invité : ${namesStr}`,
+          body: `${namesStr} invité(s) par ${hostName} le ${date.trim()} (${slotsStr})${noteStr}`,
+          url: `/${req.family.slug}/absences`
+        },
+        email: {
+          subject: `🍽️ Nouvel invité aux repas : ${namesStr}`,
+          title: `Nouvel invité aux repas`,
+          badge: '🍽️',
+          detailsHtml: `
+            <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+              <strong>${hostName}</strong> a invité à la maison :
+            </p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+              <li><strong>Invité(s) :</strong> ${namesStr}</li>
+              <li><strong>Date :</strong> ${date.trim()}</li>
+              <li><strong>Créneau(x) :</strong> ${slotsStr}</li>
+              ${note ? `<li><strong>Remarque :</strong> ${note.trim()}</li>` : ''}
+            </ul>
+          `,
+          actionUrl: `/${req.family.slug}/absences`,
+          actionText: 'Consulter le planning des repas'
+        }
+      }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (meal_guest.created):', err.message))
     } catch (e) {
       console.error('[WebPush] Erreur notification invité:', e.message)
     }
@@ -4027,34 +4218,38 @@ app.post('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
       }
     } catch (e) {}
 
-    sendPushNotification({
-      title: `🍲 Repas suggéré : ${newMeal.dish}`,
-      body: `Pour le ${slotLabel} du ${dateFormatted} • Suggéré par ${authorName}`,
-      url: `/${req.family.slug}/meals`,
-      excludeUserId: req.user ? req.user.id : null,
-      familyId: req.family._id
-    })
-
-    sendNotificationEmail({
-      subject: `🍲 Repas : ${newMeal.dish} (${slotLabel})`,
-      title: `Nouveau plat suggéré`,
-      badge: '🍲',
-      detailsHtml: `
-        <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-          <strong>${authorName}</strong> a proposé un plat pour la famille :
-        </p>
-        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-          <li><strong>Plat :</strong> ${newMeal.dish}</li>
-          <li><strong>Créneau :</strong> ${slotLabel}</li>
-          <li><strong>Date :</strong> ${dateFormatted}</li>
-          ${newMeal.notes ? `<li><strong>Notes :</strong> ${newMeal.notes}</li>` : ''}
-        </ul>
-      `,
-      actionUrl: `/${req.family.slug}/meals`,
-      actionText: 'Voir le menu de la semaine',
-      excludeUserId: req.user ? req.user.id : null,
-      familyId: req.family._id
-    })
+    dispatchFamilyAlert({
+      family: req.family,
+      actor: req.user,
+      action: ALERT_ACTIONS.MEAL_CREATED.code,
+      actionLabel: ALERT_ACTIONS.MEAL_CREATED.label,
+      title: `Repas suggéré : ${newMeal.dish}`,
+      targetType: 'meal',
+      targetId: newMeal.id,
+      push: {
+        title: `🍲 Repas suggéré : ${newMeal.dish}`,
+        body: `Pour le ${slotLabel} du ${dateFormatted} • Suggéré par ${authorName}`,
+        url: `/${req.family.slug}/meals`
+      },
+      email: {
+        subject: `🍲 Repas : ${newMeal.dish} (${slotLabel})`,
+        title: `Nouveau plat suggéré`,
+        badge: '🍲',
+        detailsHtml: `
+          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+            <strong>${authorName}</strong> a proposé un plat pour la famille :
+          </p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+            <li><strong>Plat :</strong> ${newMeal.dish}</li>
+            <li><strong>Créneau :</strong> ${slotLabel}</li>
+            <li><strong>Date :</strong> ${dateFormatted}</li>
+            ${newMeal.notes ? `<li><strong>Notes :</strong> ${newMeal.notes}</li>` : ''}
+          </ul>
+        `,
+        actionUrl: `/${req.family.slug}/meals`,
+        actionText: 'Voir le menu de la semaine'
+      }
+    }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (meal.created):', err.message))
 
     res.status(201).json({
       ...newMeal.toObject(),

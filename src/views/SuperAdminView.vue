@@ -44,13 +44,21 @@
         <Users :size="18" />
         <span>Utilisateurs ({{ users.length }})</span>
       </button>
-      <button 
-        class="tab-btn" 
-        :class="{ active: activeTab === 'smtp' }" 
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'smtp' }"
         @click="activeTab = 'smtp'"
       >
         <Globe :size="18" />
         <span>Configuration Globale & SMTP</span>
+      </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'alerts' }"
+        @click="activeTab = 'alerts'"
+      >
+        <Bell :size="18" />
+        <span>Journal des alertes</span>
       </button>
     </div>
 
@@ -341,6 +349,159 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- TAB 4: ALERT LOGS -->
+    <div v-if="activeTab === 'alerts'" class="tab-content">
+      <div class="alert-filters glass-card">
+        <div class="grid-4">
+          <div class="form-group">
+            <label class="form-label">Famille</label>
+            <select v-model="alertFilters.familyId" class="form-input">
+              <option value="">Toutes les familles</option>
+              <option v-for="f in alertMeta.families" :key="f._id" :value="f._id">{{ f.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Type d'action</label>
+            <select v-model="alertFilters.action" class="form-input">
+              <option value="">Toutes les actions</option>
+              <option v-for="a in alertMeta.actions" :key="a.code" :value="a.code">{{ a.label }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Depuis le</label>
+            <input v-model="alertFilters.from" type="date" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jusqu'au</label>
+            <input v-model="alertFilters.to" type="date" class="form-input" />
+          </div>
+        </div>
+        <div class="alert-filters-actions">
+          <button type="button" class="btn btn-secondary" @click="resetAlertFilters">
+            <RotateCcw :size="16" />
+            <span>Réinitialiser</span>
+          </button>
+          <button type="button" class="btn btn-primary" @click="fetchAlertLogs(1)">
+            <Filter :size="16" />
+            <span>Filtrer</span>
+          </button>
+        </div>
+      </div>
+
+      <div v-if="loadingAlertLogs" class="loading-state">
+        <div class="spinner"></div>
+        <p>Chargement du journal des alertes...</p>
+      </div>
+
+      <div v-else-if="alertLogs.length === 0" class="empty-state glass-card">
+        <Bell :size="32" />
+        <p>Aucune alerte trouvée pour ces critères.</p>
+      </div>
+
+      <div v-else class="alert-log-list-container glass-card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date / Heure</th>
+              <th>Famille</th>
+              <th>Utilisateur</th>
+              <th>Action</th>
+              <th>Canaux</th>
+              <th>Détails</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="log in alertLogs" :key="log._id">
+              <td data-label="Date / Heure">
+                <div class="alert-datetime">
+                  <strong>{{ formatAlertDate(log.createdAt) }}</strong>
+                  <span class="text-muted">{{ formatAlertTime(log.createdAt) }}</span>
+                </div>
+              </td>
+              <td data-label="Famille">{{ log.familyName || '—' }}</td>
+              <td data-label="Utilisateur">{{ log.actorName || 'Système' }}</td>
+              <td data-label="Action">
+                <span class="role-pill standard-user-role">{{ log.actionLabel }}</span>
+              </td>
+              <td data-label="Canaux">
+                <div class="channel-pills">
+                  <span
+                    v-for="(ch, idx) in log.channels"
+                    :key="idx"
+                    class="channel-pill"
+                    :class="`channel-${ch.status}`"
+                  >
+                    {{ ch.type === 'push' ? '📱' : '✉️' }} {{ ch.recipientCount }}
+                  </span>
+                  <span v-if="!log.channels || log.channels.length === 0" class="text-muted">—</span>
+                </div>
+              </td>
+              <td class="cell-actions" data-label="Détails">
+                <button
+                  @click="selectedAlertLog = log"
+                  class="btn-icon text-indigo"
+                  title="Voir les destinataires"
+                >
+                  <Eye :size="16" />
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="alert-pagination">
+          <span class="text-muted">
+            {{ alertPagination.total }} alerte(s) · page {{ alertPagination.page }} / {{ alertPagination.totalPages }}
+          </span>
+          <div class="alert-pagination-actions">
+            <button
+              class="btn btn-secondary btn-sm"
+              :disabled="alertPagination.page <= 1"
+              @click="fetchAlertLogs(alertPagination.page - 1)"
+            >
+              <ChevronLeft :size="16" />
+            </button>
+            <button
+              class="btn btn-secondary btn-sm"
+              :disabled="alertPagination.page >= alertPagination.totalPages"
+              @click="fetchAlertLogs(alertPagination.page + 1)"
+            >
+              <ChevronRight :size="16" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: ALERT LOG RECIPIENTS -->
+    <div v-if="selectedAlertLog" class="modal-overlay" @click.self="selectedAlertLog = null">
+      <div class="modal-content glass-card">
+        <div class="modal-header">
+          <h3>{{ selectedAlertLog.actionLabel }}</h3>
+          <button @click="selectedAlertLog = null" class="btn-close">&times;</button>
+        </div>
+        <p class="modal-subtitle">{{ selectedAlertLog.title }}</p>
+        <div class="alert-detail-meta">
+          <span><strong>Famille :</strong> {{ selectedAlertLog.familyName || '—' }}</span>
+          <span><strong>Déclenché par :</strong> {{ selectedAlertLog.actorName || 'Système' }}</span>
+          <span><strong>Le :</strong> {{ formatAlertDate(selectedAlertLog.createdAt) }} à {{ formatAlertTime(selectedAlertLog.createdAt) }}</span>
+        </div>
+        <div v-for="(ch, idx) in selectedAlertLog.channels" :key="idx" class="alert-channel-block">
+          <h4>
+            {{ ch.type === 'push' ? '📱 Notification push' : '✉️ Email' }}
+            <span class="channel-pill" :class="`channel-${ch.status}`">{{ alertChannelStatusLabel(ch.status) }}</span>
+          </h4>
+          <p v-if="ch.reason" class="text-muted alert-channel-reason">{{ alertReasonLabel(ch.reason) }}</p>
+          <ul v-if="ch.recipients && ch.recipients.length > 0" class="alert-recipient-list">
+            <li v-for="(r, rIdx) in ch.recipients" :key="rIdx">
+              {{ r.name || r.email || 'Membre' }} <span v-if="r.email" class="text-muted">({{ r.email }})</span>
+            </li>
+          </ul>
+          <p v-else class="text-muted">Aucun destinataire.</p>
+        </div>
       </div>
     </div>
 
@@ -888,7 +1049,13 @@ import {
   UserMinus,
   Upload,
   AlertTriangle,
-  Loader2
+  Loader2,
+  Bell,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  Filter
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -917,6 +1084,14 @@ const testingSmtp = ref(false)
 const smtpMessage = ref('')
 const smtpSuccess = ref(false)
 const testRecipient = ref(authStore.user?.email || '')
+
+// Alert Log Journal State
+const alertLogs = ref([])
+const loadingAlertLogs = ref(false)
+const selectedAlertLog = ref(null)
+const alertMeta = reactive({ actions: [], families: [] })
+const alertFilters = reactive({ familyId: '', action: '', from: '', to: '' })
+const alertPagination = reactive({ page: 1, limit: 25, total: 0, totalPages: 1 })
 
 // Create Family State
 const showCreateModal = ref(false)
@@ -1131,6 +1306,79 @@ const fetchSmtp = async () => {
   }
 }
 
+const fetchAlertMeta = async () => {
+  try {
+    const res = await fetch('/api/super-admin/alert-logs/meta', {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      alertMeta.actions = data.actions || []
+      alertMeta.families = data.families || []
+    }
+  } catch (err) {
+    console.error('Erreur fetchAlertMeta', err)
+  }
+}
+
+const fetchAlertLogs = async (page = 1) => {
+  loadingAlertLogs.value = true
+  try {
+    const params = new URLSearchParams({ page: String(page), limit: String(alertPagination.limit) })
+    if (alertFilters.familyId) params.set('familyId', alertFilters.familyId)
+    if (alertFilters.action) params.set('action', alertFilters.action)
+    if (alertFilters.from) params.set('from', alertFilters.from)
+    if (alertFilters.to) params.set('to', alertFilters.to)
+
+    const res = await fetch(`/api/super-admin/alert-logs?${params.toString()}`, {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      alertLogs.value = data.logs || []
+      Object.assign(alertPagination, data.pagination || {})
+    }
+  } catch (err) {
+    console.error('Erreur fetchAlertLogs', err)
+  } finally {
+    loadingAlertLogs.value = false
+  }
+}
+
+const resetAlertFilters = () => {
+  alertFilters.familyId = ''
+  alertFilters.action = ''
+  alertFilters.from = ''
+  alertFilters.to = ''
+  fetchAlertLogs(1)
+}
+
+const formatAlertDate = (dateStr) => {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+const formatAlertTime = (dateStr) => {
+  if (!dateStr) return ''
+  return new Date(dateStr).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+const alertChannelStatusLabel = (status) => {
+  if (status === 'sent') return 'Envoyée'
+  if (status === 'skipped') return 'Non envoyée'
+  return 'Erreur'
+}
+
+const alertReasonLabel = (reason) => {
+  const labels = {
+    SMTP_NOT_CONFIGURED: 'SMTP non configuré',
+    PUSH_NOT_CONFIGURED: 'Notifications push non configurées',
+    NO_ELIGIBLE_MEMBERS: 'Aucun membre éligible (notifications désactivées)',
+    NO_SUBSCRIPTIONS: 'Aucun appareil inscrit aux notifications push'
+  }
+  return labels[reason] || reason
+}
+
 onMounted(() => {
   if (!authStore.isSuperAdmin) {
     router.push('/')
@@ -1139,6 +1387,8 @@ onMounted(() => {
   fetchFamilies()
   fetchUsers()
   fetchSmtp()
+  fetchAlertMeta()
+  fetchAlertLogs()
 })
 
 const goToDashboard = () => {
@@ -2048,6 +2298,141 @@ const testGlobalSmtp = async () => {
   .grid-2 {
     grid-template-columns: 1fr;
   }
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .grid-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Alert log journal */
+.alert-filters {
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.alert-filters-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.alert-datetime {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.alert-datetime .text-muted {
+  font-size: 0.8rem;
+}
+
+.channel-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.channel-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-muted, #64748b);
+}
+
+.channel-pill.channel-sent {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.channel-pill.channel-skipped {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.channel-pill.channel-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.alert-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+[data-theme='dark'] .alert-pagination {
+  border-color: rgba(51, 65, 85, 0.6);
+}
+
+.alert-pagination-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.empty-state {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: var(--text-muted, #64748b);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alert-detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  margin: 0.75rem 0 1.25rem;
+  padding: 0.75rem 1rem;
+  background: rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
+}
+
+.alert-channel-block {
+  margin-bottom: 1.25rem;
+}
+
+.alert-channel-block h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.alert-channel-reason {
+  font-size: 0.85rem;
+  margin: 0 0 0.5rem;
+}
+
+.alert-recipient-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
 }
 
 .form-group {
