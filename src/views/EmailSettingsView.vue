@@ -104,7 +104,7 @@
             class="btn btn-primary btn-add-category"
           >
             <Plus :size="16" />
-            <span>+ Nouvelle Catégorie</span>
+            <span>Nouvelle Catégorie</span>
           </button>
         </div>
 
@@ -222,7 +222,7 @@
             class="btn btn-primary btn-add-shortcut"
           >
             <Plus :size="16" />
-            <span>+ Nouveau Raccourci</span>
+            <span>Nouveau Raccourci</span>
           </button>
         </div>
 
@@ -1902,24 +1902,36 @@ onMounted(() => {
   to { transform: rotate(360deg); }
 }
 
-/* Shopping Categories Card */
-.shopping-cats-card {
+/* Shopping Categories Card & Shortcuts Card */
+.shopping-cats-card,
+.shortcuts-admin-card {
   padding: 1.5rem;
   margin-top: 1.5rem;
 }
 
-.shopping-cats-header {
+.shopping-cats-header,
+.shortcuts-admin-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
 }
 
+.section-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
 .title-icon-shopping {
   color: var(--accent-amber, #f59e0b);
 }
 
-.btn-add-category {
+.title-icon-shortcuts {
+  color: var(--accent-primary, #6366f1);
+}
+
+.btn-add-category,
+.btn-add-shortcut {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -2180,25 +2192,6 @@ onMounted(() => {
 }
 
 /* Shortcuts Admin Card */
-.shortcuts-admin-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.title-icon-shortcuts {
-  color: var(--accent-primary, #6366f1);
-}
-
-.btn-add-shortcut {
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .empty-shortcuts-notice {
   padding: 1.75rem;
   text-align: center;
