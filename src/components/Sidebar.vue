@@ -466,13 +466,17 @@ const upcomingEventsCount = computed(() => {
   }
   .nav-menu {
     flex-direction: row;
-    overflow-x: auto;
+    flex-wrap: nowrap;
+    overflow-x: hidden; /* Filet de sécurité : le flex:1 ci-dessous garantit déjà que tout tient sans scroll */
     padding-bottom: 0.25rem;
-    gap: 0.5rem;
+    gap: clamp(0.15rem, 1.5vw, 0.5rem);
   }
-  
+
   .nav-item {
-    padding: 0.55rem 0.75rem;
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    padding: 0.55rem clamp(0.35rem, 2vw, 0.75rem);
     gap: 0.25rem; /* Espacement réduit et harmonieux entre l'icône et le compteur */
   }
 
@@ -484,7 +488,7 @@ const upcomingEventsCount = computed(() => {
     margin-left: 0; /* Annule le margin-left: auto du desktop */
     font-size: 0.7rem;
     font-weight: 700;
-    padding: 0.1rem 0.35rem;
+    padding: 0.1rem clamp(0.15rem, 1vw, 0.35rem);
     min-width: 18px;
     height: 18px;
     display: inline-flex;
