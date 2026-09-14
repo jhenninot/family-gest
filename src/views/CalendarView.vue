@@ -125,13 +125,16 @@
                 class="week-event-card"
                 :style="{ borderLeftColor: ev.color }"
                 @click.stop="handleSelectEvent(ev)"
-                :title="`${ev.title} (${ev.time || 'Toute la journée'})`"
+                :title="`${ev.title} (${formatEventTime(ev) || 'Toute la journée'})`"
               >
                 <div class="week-event-top">
-                  <span v-if="ev.time" class="week-event-time">{{ ev.time }}</span>
+                  <span v-if="ev.time" class="week-event-time">{{ formatEventTime(ev) }}</span>
                   <span class="week-event-cat" :style="{ color: ev.color }">{{ ev.category }}</span>
                 </div>
-                <span class="week-event-title">{{ ev.title }}</span>
+                <span class="week-event-title">
+                  <span v-if="ev.recurrenceId" title="Événement récurrent">🔁</span>
+                  {{ ev.title }}
+                </span>
                 <span v-if="ev.location" class="week-event-loc">📍 {{ ev.location }}</span>
               </div>
 
@@ -172,15 +175,20 @@
             />
           </div>
 
-          <div class="grid-2">
+          <div class="grid-3">
             <div class="form-group">
               <label class="form-label">Date</label>
               <input v-model="newEvent.date" type="date" :min="store.todayStr" required class="form-input" />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Heure</label>
+              <label class="form-label">Heure de début</label>
               <input v-model="newEvent.time" type="time" class="form-input" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Heure de fin</label>
+              <input v-model="newEvent.endTime" @input="newEventEndTimeTouched = true" type="time" class="form-input" />
             </div>
           </div>
 
@@ -198,15 +206,25 @@
 
             <div class="form-group">
               <label class="form-label">Lieu</label>
-              <input v-model="newEvent.location" type="text" placeholder="ex: Maison, École..." class="form-input" />
+              <label class="checkbox-label at-home-toggle">
+                <input type="checkbox" v-model="newEvent.atHome" @change="handleAtHomeToggle(newEvent)" />
+                <span>🏠 À la maison</span>
+              </label>
+              <input
+                v-if="!newEvent.atHome"
+                v-model="newEvent.location"
+                type="text"
+                placeholder="ex: Maison, École..."
+                class="form-input"
+              />
             </div>
           </div>
 
           <div class="form-group">
             <label class="form-label">Couleur d'étiquette</label>
             <div class="color-picker-options">
-              <button 
-                v-for="c in colorOptions" 
+              <button
+                v-for="c in colorOptions"
                 :key="c"
                 type="button"
                 class="color-btn"
@@ -214,6 +232,84 @@
                 :class="{ selected: newEvent.color === c }"
                 @click="newEvent.color = c"
               ></button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Membres concernés</label>
+            <div class="member-select-list">
+              <button
+                v-for="m in store.members"
+                :key="m.id"
+                type="button"
+                class="member-select-chip"
+                :class="{ selected: newEvent.memberIds.includes(m.id) }"
+                @click="toggleMember(newEvent, m.id)"
+              >
+                <UserAvatar :avatar="m.avatar" :name="m.name" size="xs" />
+                <span>{{ m.name }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group checkbox-group" v-if="newEvent.memberIds.length > 0">
+            <p v-if="newEventSuggestedSlots.includes('lunch')" class="suggestion-hint">
+              💡 Cet événement chevauche le déjeuner (12h-14h) : une absence du midi est suggérée.
+            </p>
+            <p v-if="newEventSuggestedSlots.includes('dinner')" class="suggestion-hint">
+              💡 Cet événement chevauche le dîner (20h-22h) : une absence du soir est suggérée.
+            </p>
+
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="newEvent.generateAbsence" />
+              <span>Générer une absence pour {{ newEvent.memberIds.length > 1 ? 'ces membres' : 'ce membre' }} à cette date</span>
+            </label>
+
+            <div v-if="newEvent.generateAbsence" class="absence-slots-row">
+              <label class="slot-chip" :class="{ selected: newEvent.absenceSlots.lunch }">
+                <input type="checkbox" v-model="newEvent.absenceSlots.lunch" />
+                <span>☀️ Midi</span>
+              </label>
+              <label class="slot-chip" :class="{ selected: newEvent.absenceSlots.dinner }">
+                <input type="checkbox" v-model="newEvent.absenceSlots.dinner" />
+                <span>🌙 Soir</span>
+              </label>
+              <label class="slot-chip" :class="{ selected: newEvent.absenceSlots.night }">
+                <input type="checkbox" v-model="newEvent.absenceSlots.night" />
+                <span>🛌 Nuit</span>
+              </label>
+            </div>
+            <span v-if="newEvent.generateAbsence && !hasAnySlot(newEvent.absenceSlots)" class="text-error">
+              Veuillez sélectionner au moins un créneau.
+            </span>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="newEvent.isRecurring" />
+              <span>🔁 Événement récurrent</span>
+            </label>
+
+            <div v-if="newEvent.isRecurring" class="recurrence-fields grid-3">
+              <div class="form-group">
+                <label class="form-label">Fréquence</label>
+                <select v-model="newEvent.recurrenceFrequency" class="form-select">
+                  <option value="daily">Quotidien</option>
+                  <option value="weekly">Hebdomadaire</option>
+                  <option value="monthly">Mensuel</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Intervalle</label>
+                <input v-model.number="newEvent.recurrenceInterval" type="number" min="1" class="form-input" />
+                <span class="field-hint">{{ recurrenceIntervalLabel(newEvent) }}</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Se termine le</label>
+                <input v-model="newEvent.recurrenceEndDate" type="date" :min="newEvent.date" required class="form-input" />
+              </div>
             </div>
           </div>
 
@@ -233,27 +329,37 @@
           <button @click="showEditModal = false" class="btn-close">&times;</button>
         </div>
 
+        <p v-if="editEventForm.recurrenceId" class="recurrence-badge-note">
+          🔁 Fait partie d'une série récurrente
+        </p>
+
         <form @submit.prevent="handleUpdateEvent">
           <div class="form-group">
             <label class="form-label">Titre de l'événement</label>
-            <input 
-              v-model="editEventForm.title" 
-              type="text" 
-              required 
+            <input
+              v-model="editEventForm.title"
+              type="text"
+              required
               placeholder="ex: Fête d'anniversaire, Match de foot..."
-              class="form-input" 
+              class="form-input"
             />
           </div>
 
-          <div class="grid-2">
+          <div class="grid-3">
             <div class="form-group">
               <label class="form-label">Date</label>
               <input v-model="editEventForm.date" type="date" required class="form-input" />
+              <span v-if="editEventForm.recurrenceId" class="field-hint">S'applique uniquement à « Cette occurrence »</span>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Heure</label>
+              <label class="form-label">Heure de début</label>
               <input v-model="editEventForm.time" type="time" class="form-input" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Heure de fin</label>
+              <input v-model="editEventForm.endTime" type="time" class="form-input" />
             </div>
           </div>
 
@@ -271,15 +377,25 @@
 
             <div class="form-group">
               <label class="form-label">Lieu</label>
-              <input v-model="editEventForm.location" type="text" placeholder="ex: Maison, École..." class="form-input" />
+              <label class="checkbox-label at-home-toggle">
+                <input type="checkbox" v-model="editEventForm.atHome" @change="handleAtHomeToggle(editEventForm)" />
+                <span>🏠 À la maison</span>
+              </label>
+              <input
+                v-if="!editEventForm.atHome"
+                v-model="editEventForm.location"
+                type="text"
+                placeholder="ex: Maison, École..."
+                class="form-input"
+              />
             </div>
           </div>
 
           <div class="form-group">
             <label class="form-label">Couleur d'étiquette</label>
             <div class="color-picker-options">
-              <button 
-                v-for="c in colorOptions" 
+              <button
+                v-for="c in colorOptions"
                 :key="c"
                 type="button"
                 class="color-btn"
@@ -288,6 +404,55 @@
                 @click="editEventForm.color = c"
               ></button>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Membres concernés</label>
+            <div class="member-select-list">
+              <button
+                v-for="m in store.members"
+                :key="m.id"
+                type="button"
+                class="member-select-chip"
+                :class="{ selected: editEventForm.memberIds.includes(m.id) }"
+                @click="toggleMember(editEventForm, m.id)"
+              >
+                <UserAvatar :avatar="m.avatar" :name="m.name" size="xs" />
+                <span>{{ m.name }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group checkbox-group" v-if="editEventForm.memberIds.length > 0">
+            <p v-if="editEventSuggestedSlots.includes('lunch')" class="suggestion-hint">
+              💡 Cet événement chevauche le déjeuner (12h-14h) : une absence du midi est suggérée.
+            </p>
+            <p v-if="editEventSuggestedSlots.includes('dinner')" class="suggestion-hint">
+              💡 Cet événement chevauche le dîner (20h-22h) : une absence du soir est suggérée.
+            </p>
+
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="editEventForm.generateAbsence" />
+              <span>Générer une absence pour {{ editEventForm.memberIds.length > 1 ? 'ces membres' : 'ce membre' }} à cette date</span>
+            </label>
+
+            <div v-if="editEventForm.generateAbsence" class="absence-slots-row">
+              <label class="slot-chip" :class="{ selected: editEventForm.absenceSlots.lunch }">
+                <input type="checkbox" v-model="editEventForm.absenceSlots.lunch" />
+                <span>☀️ Midi</span>
+              </label>
+              <label class="slot-chip" :class="{ selected: editEventForm.absenceSlots.dinner }">
+                <input type="checkbox" v-model="editEventForm.absenceSlots.dinner" />
+                <span>🌙 Soir</span>
+              </label>
+              <label class="slot-chip" :class="{ selected: editEventForm.absenceSlots.night }">
+                <input type="checkbox" v-model="editEventForm.absenceSlots.night" />
+                <span>🛌 Nuit</span>
+              </label>
+            </div>
+            <span v-if="editEventForm.generateAbsence && !hasAnySlot(editEventForm.absenceSlots)" class="text-error">
+              Veuillez sélectionner au moins un créneau.
+            </span>
           </div>
 
           <div class="modal-footer flex-between">
@@ -323,10 +488,14 @@
                 {{ justAddedEvent.category }}
               </span>
               <span>📅 {{ formatDate(justAddedEvent.date) }}</span>
-              <span v-if="justAddedEvent.time">⏰ {{ justAddedEvent.time }}</span>
+              <span v-if="justAddedEvent.time">⏰ {{ formatEventTime(justAddedEvent) }}</span>
               <span v-if="justAddedEvent.location">📍 {{ justAddedEvent.location }}</span>
             </div>
           </div>
+
+          <p v-if="recurringCreationSummary" class="recurrence-summary-note">
+            🔁 {{ recurringCreationSummary.count }} occurrence{{ recurringCreationSummary.count > 1 ? 's' : '' }} créée{{ recurringCreationSummary.count > 1 ? 's' : '' }}, jusqu'au {{ formatDate(recurringCreationSummary.endDate) }}{{ recurringCreationSummary.truncated ? ' (limite atteinte, série tronquée)' : '' }}.
+          </p>
 
           <p class="export-modal-prompt">
             Souhaitez-vous synchroniser cet événement sur votre agenda personnel dès maintenant ?
@@ -372,7 +541,10 @@
             <div class="timeline-date-strip" :style="{ backgroundColor: ev.color }"></div>
             <div class="timeline-content">
               <div class="timeline-header">
-                <span class="event-title-text">{{ ev.title }}</span>
+                <span class="event-title-text">
+                  <span v-if="ev.recurrenceId" title="Événement récurrent">🔁</span>
+                  {{ ev.title }}
+                </span>
                 <div class="timeline-header-actions" @click.stop>
                   <span class="badge" :style="{ backgroundColor: ev.color + '25', color: ev.color }">
                     {{ ev.category }}
@@ -388,11 +560,20 @@
               <div class="timeline-meta">
                 <div class="meta-tag" v-if="ev.time">
                   <Clock :size="14" />
-                  <span>{{ ev.time }}</span>
+                  <span>{{ formatEventTime(ev) }}</span>
                 </div>
                 <div class="meta-tag" v-if="ev.location">
                   <MapPin :size="14" />
                   <span>{{ ev.location }}</span>
+                </div>
+                <div class="meta-tag event-members-tag" v-if="ev.memberIds && ev.memberIds.length > 0">
+                  <UserAvatar
+                    v-for="mId in ev.memberIds"
+                    :key="mId"
+                    :avatar="getMemberAvatar(mId)"
+                    :name="getMemberName(mId)"
+                    size="xs"
+                  />
                 </div>
               </div>
               <div class="timeline-export-bar" @click.stop>
@@ -440,8 +621,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
+import { useAuthStore } from '../stores/authStore'
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft,
@@ -459,8 +641,10 @@ import {
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 import { useConfirm } from '../composables/useConfirm'
+import UserAvatar from '../components/UserAvatar.vue'
 
 const store = useFamilyStore()
+const authStore = useAuthStore()
 const { confirm } = useConfirm()
 
 // Calendar Month Navigation
@@ -622,9 +806,16 @@ const editEventForm = ref({
   title: '',
   date: store.todayStr,
   time: '14:00',
+  endTime: '',
   category: 'Famille',
   location: '',
-  color: '#8b5cf6'
+  atHome: false,
+  _prevLocation: '',
+  color: '#8b5cf6',
+  memberIds: [],
+  generateAbsence: false,
+  absenceSlots: { lunch: false, dinner: false, night: false },
+  recurrenceId: null
 })
 
 const showDayEventsModal = ref(false)
@@ -645,18 +836,153 @@ const selectedDayDisplayTitle = computed(() => {
 
 const colorOptions = ['#8b5cf6', '#ec4899', '#6366f1', '#10b981', '#f59e0b', '#06b6d4']
 
+const toMinutes = (t) => {
+  if (!t || !t.includes(':')) return null
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
+const addHour = (t) => {
+  const mins = toMinutes(t)
+  if (mins === null) return ''
+  const total = (mins + 60) % (24 * 60)
+  const h = Math.floor(total / 60)
+  const m = total % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+const rangesOverlap = (startA, endA, startB, endB) => startA < endB && endA > startB
+
+// Suggère une génération d'absence si l'événement chevauche le déjeuner (12h-14h) ou le dîner (20h-22h)
+const getSuggestedSlots = (timeStr, endTimeStr) => {
+  const start = toMinutes(timeStr)
+  const end = toMinutes(endTimeStr)
+  if (start === null || end === null) return []
+  const slots = []
+  if (rangesOverlap(start, end, 12 * 60, 14 * 60)) slots.push('lunch')
+  if (rangesOverlap(start, end, 20 * 60, 22 * 60)) slots.push('dinner')
+  return slots
+}
+
+const currentUserMemberId = computed(() => {
+  const uid = authStore.user?.id
+  return store.members.some(m => m.id === uid) ? uid : null
+})
+
 const newEvent = ref({
   title: '',
   date: store.todayStr,
   time: '14:00',
+  endTime: addHour('14:00'),
   category: 'Famille',
   location: '',
-  color: '#8b5cf6'
+  atHome: false,
+  _prevLocation: '',
+  color: '#8b5cf6',
+  memberIds: currentUserMemberId.value ? [currentUserMemberId.value] : [],
+  generateAbsence: false,
+  absenceSlots: { lunch: false, dinner: false, night: false },
+  isRecurring: false,
+  recurrenceFrequency: 'weekly',
+  recurrenceInterval: 1,
+  recurrenceEndDate: ''
 })
+
+const recurrenceIntervalLabel = (form) => {
+  const n = Math.max(1, Number(form.recurrenceInterval) || 1)
+  const unit = form.recurrenceFrequency === 'daily'
+    ? (n > 1 ? 'jours' : 'jour')
+    : form.recurrenceFrequency === 'monthly'
+      ? 'mois'
+      : (n > 1 ? 'semaines' : 'semaine')
+  return `Tous les ${n > 1 ? n + ' ' : ''}${unit}`
+}
+
+const recurringCreationSummary = ref(null)
+
+const handleAtHomeToggle = (formRef) => {
+  if (formRef.atHome) {
+    formRef._prevLocation = formRef.location || ''
+    formRef.location = 'Maison'
+    // Une absence n'a pas de sens pour un événement à la maison : on efface toute suggestion/pré-remplissage existant
+    formRef.generateAbsence = false
+    formRef.absenceSlots.lunch = false
+    formRef.absenceSlots.dinner = false
+    formRef.absenceSlots.night = false
+  } else {
+    formRef.location = formRef._prevLocation || ''
+  }
+}
+
+const newEventEndTimeTouched = ref(false)
+
+// Pré-coche l'utilisateur courant dès que la liste des membres de la famille est disponible
+watch(currentUserMemberId, (id) => {
+  if (id && !showAddModal.value && newEvent.value.memberIds.length === 0) {
+    newEvent.value.memberIds = [id]
+  }
+})
+
+// Pas de suggestion/pré-remplissage d'absence si l'événement a lieu à la maison
+const newEventSuggestedSlots = computed(() => {
+  if (newEvent.value.atHome) return []
+  return getSuggestedSlots(newEvent.value.time, newEvent.value.endTime)
+})
+
+watch(() => newEvent.value.time, (newTime) => {
+  if (!newEventEndTimeTouched.value) newEvent.value.endTime = addHour(newTime)
+})
+
+watch(newEventSuggestedSlots, (slots) => {
+  if (slots.length === 0) return
+  if (slots.includes('lunch')) newEvent.value.absenceSlots.lunch = true
+  if (slots.includes('dinner')) newEvent.value.absenceSlots.dinner = true
+  if (newEvent.value.memberIds.length > 0) newEvent.value.generateAbsence = true
+})
+
+// Pas de suggestion/pré-remplissage d'absence si l'événement a lieu à la maison
+const editEventSuggestedSlots = computed(() => {
+  if (editEventForm.value.atHome) return []
+  return getSuggestedSlots(editEventForm.value.time, editEventForm.value.endTime)
+})
+
+watch(editEventSuggestedSlots, (slots) => {
+  if (slots.length === 0) return
+  if (slots.includes('lunch')) editEventForm.value.absenceSlots.lunch = true
+  if (slots.includes('dinner')) editEventForm.value.absenceSlots.dinner = true
+  if (editEventForm.value.memberIds.length > 0) editEventForm.value.generateAbsence = true
+})
+
+const hasAnySlot = (slots) => Boolean(slots.lunch || slots.dinner || slots.night)
+
+const toggleMember = (formRef, memberId) => {
+  const idx = formRef.memberIds.indexOf(memberId)
+  if (idx === -1) {
+    formRef.memberIds.push(memberId)
+  } else {
+    formRef.memberIds.splice(idx, 1)
+    if (formRef.memberIds.length === 0) formRef.generateAbsence = false
+  }
+}
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long' })
+}
+
+const formatEventTime = (event) => {
+  if (!event || !event.time) return ''
+  return event.endTime ? `${event.time} - ${event.endTime}` : event.time
+}
+
+const getMemberName = (id) => {
+  const m = store.members.find(m => m.id === id)
+  return m ? m.name : 'Inconnu'
+}
+
+const getMemberAvatar = (id) => {
+  const m = store.members.find(m => m.id === id)
+  return m ? m.avatar : '👤'
 }
 
 const hasEventOnDay = (dayNum) => {
@@ -712,6 +1038,34 @@ const openAddForSelectedDay = () => {
   showAddModal.value = true
 }
 
+const generateAbsencesForEvent = async (memberIds, date, title, slots, eventId) => {
+  for (const memberId of memberIds) {
+    await store.addAbsence({
+      memberId,
+      date,
+      type: 'absence',
+      lunch: Boolean(slots.lunch),
+      dinner: Boolean(slots.dinner),
+      night: Boolean(slots.night),
+      note: `Événement : ${title}`,
+      eventId
+    })
+  }
+}
+
+// Demande à l'utilisateur si une action (édition/suppression) doit s'appliquer à toute la série récurrente ou seulement à l'occurrence en cours
+const askRecurrenceScope = async (message) => {
+  const applyToSeries = await confirm({
+    title: 'Événement récurrent',
+    message,
+    description: "Cette action peut s'appliquer uniquement à cette occurrence, ou à toute la série.",
+    confirmText: 'Toute la série',
+    cancelText: 'Cette occurrence',
+    type: 'primary'
+  })
+  return applyToSeries ? 'series' : 'this'
+}
+
 const handleAddEvent = async () => {
   if (!newEvent.value.title.trim()) return
 
@@ -720,23 +1074,81 @@ const handleAddEvent = async () => {
     return
   }
 
-  const eventPayload = { ...newEvent.value }
+  if (newEvent.value.isRecurring) {
+    if (!newEvent.value.recurrenceEndDate) {
+      alert('Veuillez indiquer une date de fin pour la récurrence.')
+      return
+    }
+    if (newEvent.value.recurrenceEndDate < newEvent.value.date) {
+      alert("La date de fin de récurrence doit être postérieure ou égale à la date de l'événement.")
+      return
+    }
+  }
+
+  const {
+    generateAbsence, absenceSlots, atHome, _prevLocation,
+    isRecurring, recurrenceFrequency, recurrenceInterval, recurrenceEndDate,
+    ...eventPayload
+  } = newEvent.value
+
+  if (isRecurring) {
+    eventPayload.recurrence = {
+      frequency: recurrenceFrequency,
+      interval: Math.max(1, Number(recurrenceInterval) || 1),
+      endDate: recurrenceEndDate
+    }
+    eventPayload.generateAbsence = generateAbsence
+    eventPayload.absenceSlots = absenceSlots
+  }
+
   const res = await store.addEvent(eventPayload)
+  if (!res || !res.success) {
+    alert(res?.error || "Erreur lors de la création de l'événement.")
+    return
+  }
   showAddModal.value = false
+
+  let createdEvent
+  if (res && Array.isArray(res.events)) {
+    // Série récurrente : événements + absences déjà créés côté serveur en une seule requête
+    createdEvent = res.events[0]
+    recurringCreationSummary.value = {
+      count: res.events.length,
+      endDate: eventPayload.recurrence.endDate,
+      truncated: Boolean(res.truncated)
+    }
+  } else {
+    createdEvent = (res && res.event) ? res.event : eventPayload
+    recurringCreationSummary.value = null
+    if (generateAbsence && eventPayload.memberIds.length > 0 && hasAnySlot(absenceSlots)) {
+      await generateAbsencesForEvent(eventPayload.memberIds, eventPayload.date, eventPayload.title, absenceSlots, createdEvent.id)
+    }
+  }
 
   // Afficher la boîte de dialogue d'exportation vers l'agenda personnel
   isEditSuccess.value = false
-  justAddedEvent.value = (res && res.event) ? res.event : eventPayload
+  justAddedEvent.value = createdEvent
   showSuccessExportModal.value = true
 
   newEvent.value = {
     title: '',
     date: store.todayStr,
     time: '14:00',
+    endTime: addHour('14:00'),
     category: 'Famille',
     location: '',
-    color: '#8b5cf6'
+    atHome: false,
+    _prevLocation: '',
+    color: '#8b5cf6',
+    memberIds: currentUserMemberId.value ? [currentUserMemberId.value] : [],
+    generateAbsence: false,
+    absenceSlots: { lunch: false, dinner: false, night: false },
+    isRecurring: false,
+    recurrenceFrequency: 'weekly',
+    recurrenceInterval: 1,
+    recurrenceEndDate: ''
   }
+  newEventEndTimeTouched.value = false
 }
 
 const openEditModal = (event) => {
@@ -745,22 +1157,47 @@ const openEditModal = (event) => {
     title: event.title || '',
     date: event.date || '',
     time: event.time || '',
+    endTime: event.endTime || '',
     category: event.category || 'Famille',
     location: event.location || '',
-    color: event.color || '#8b5cf6'
+    atHome: event.location === 'Maison',
+    _prevLocation: '',
+    color: event.color || '#8b5cf6',
+    memberIds: Array.isArray(event.memberIds) ? [...event.memberIds] : [],
+    generateAbsence: false,
+    absenceSlots: { lunch: false, dinner: false, night: false },
+    recurrenceId: event.recurrenceId || null
   }
   showEditModal.value = true
 }
 
 const handleUpdateEvent = async () => {
   if (!editEventForm.value.title.trim()) return
-  const eventPayload = { ...editEventForm.value }
+
+  const scope = editEventForm.value.recurrenceId
+    ? await askRecurrenceScope('Voulez-vous appliquer ces modifications à toute la série récurrente, ou seulement à cette occurrence ?')
+    : 'this'
+
+  const { generateAbsence, absenceSlots, atHome, _prevLocation, recurrenceId, ...eventPayload } = editEventForm.value
+
+  if (scope === 'series') {
+    delete eventPayload.date // la date reste propre à chaque occurrence
+    eventPayload.scope = 'series'
+    eventPayload.generateAbsence = generateAbsence
+    eventPayload.absenceSlots = absenceSlots
+  }
+
   const res = await store.updateEvent(editingEventId.value, eventPayload)
   showEditModal.value = false
 
+  if (scope === 'this' && generateAbsence && eventPayload.memberIds.length > 0 && hasAnySlot(absenceSlots)) {
+    await generateAbsencesForEvent(eventPayload.memberIds, eventPayload.date, eventPayload.title, absenceSlots, editingEventId.value)
+  }
+
   if (res && res.success) {
     isEditSuccess.value = true
-    justAddedEvent.value = (res && res.event) ? res.event : { ...eventPayload, id: editingEventId.value }
+    const updatedEvent = res.event || (Array.isArray(res.events) ? res.events.find(e => e.id === editingEventId.value) : null)
+    justAddedEvent.value = updatedEvent || { ...eventPayload, id: editingEventId.value }
     showSuccessExportModal.value = true
     if (selectedDayNumber.value) {
       selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)
@@ -773,14 +1210,18 @@ const handleDeleteCurrentEvent = async () => {
   if (!editingEventId.value) return
   const ok = await confirm({
     title: 'Supprimer l\'événement',
-    message: `Voulez-vous vraiment supprimer l'événement « ${newEvent.value.title} » ?`,
+    message: `Voulez-vous vraiment supprimer l'événement « ${editEventForm.value.title} » ?`,
     description: 'Cette action est irréversible.',
     confirmText: 'Supprimer',
     type: 'danger'
   })
   if (!ok) return
 
-  await store.deleteEvent(editingEventId.value)
+  const scope = editEventForm.value.recurrenceId
+    ? await askRecurrenceScope('Voulez-vous supprimer toute la série récurrente, ou seulement cette occurrence ?')
+    : 'this'
+
+  await store.deleteEvent(editingEventId.value, scope)
   showEditModal.value = false
   if (selectedDayNumber.value) {
     selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)
@@ -802,7 +1243,11 @@ const handleDeleteFromDay = async (id) => {
   })
   if (!ok) return
 
-  await store.deleteEvent(id)
+  const scope = event?.recurrenceId
+    ? await askRecurrenceScope('Voulez-vous supprimer toute la série récurrente, ou seulement cette occurrence ?')
+    : 'this'
+
+  await store.deleteEvent(id, scope)
   if (selectedDayNumber.value) {
     selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)
   }
@@ -910,6 +1355,10 @@ const handleDeleteFromDay = async (id) => {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.event-members-tag {
+  gap: 0.3rem;
 }
 
 .calendar-header-actions {
@@ -1281,6 +1730,142 @@ const handleDeleteFromDay = async (id) => {
   width: 7px;
   height: 7px;
   border-radius: var(--radius-full);
+}
+
+/* Member selection chips */
+.member-select-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.member-select-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem 0.35rem 0.35rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.member-select-chip:hover {
+  border-color: var(--accent-purple);
+  color: var(--text-primary);
+}
+
+.member-select-chip.selected {
+  background: var(--accent-purple-light, rgba(139, 92, 246, 0.12));
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+}
+
+.checkbox-group {
+  margin-top: -0.25rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.at-home-toggle {
+  margin: 0.35rem 0 0.5rem 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.suggestion-hint {
+  margin: 0 0 0.6rem 0;
+  font-size: 0.8rem;
+  color: var(--accent-purple);
+  background: var(--accent-purple-light, rgba(139, 92, 246, 0.1));
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-sm, 6px);
+  line-height: 1.4;
+}
+
+.recurrence-fields {
+  margin-top: 0.75rem;
+}
+
+.field-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.recurrence-badge-note {
+  margin: -0.75rem 0 1.25rem 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-purple);
+  background: var(--accent-purple-light, rgba(139, 92, 246, 0.1));
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-sm, 6px);
+  display: inline-block;
+}
+
+.recurrence-summary-note {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-sm, 6px);
+}
+
+.absence-slots-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  margin-left: 1.5rem;
+}
+
+.slot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.slot-chip:hover {
+  border-color: var(--accent-purple);
+}
+
+.slot-chip.selected {
+  background: var(--accent-purple-light, rgba(139, 92, 246, 0.12));
+  border-color: var(--accent-purple);
+  color: var(--accent-purple);
+}
+
+.text-error {
+  font-size: 0.75rem;
+  color: var(--accent-rose);
+  margin-top: 0.35rem;
+  margin-left: 1.5rem;
+  display: block;
 }
 
 /* Color picker buttons */

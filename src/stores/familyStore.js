@@ -539,9 +539,14 @@ export const useFamilyStore = defineStore('family', () => {
         body: JSON.stringify(eventData)
       })
       if (res.ok) {
-        const created = await res.json()
-        events.value.push(created)
-        return { success: true, event: created }
+        const data = await res.json()
+        if (Array.isArray(data.events)) {
+          events.value.push(...data.events)
+          if (Array.isArray(data.absences)) absences.value.push(...data.absences)
+          return { success: true, events: data.events, truncated: data.truncated }
+        }
+        events.value.push(data)
+        return { success: true, event: data }
       } else {
         const err = await res.json().catch(() => ({}))
         return { success: false, error: err.error }
@@ -560,12 +565,24 @@ export const useFamilyStore = defineStore('family', () => {
         body: JSON.stringify(eventData)
       })
       if (res.ok) {
-        const updated = await res.json()
+        const data = await res.json()
+        if (Array.isArray(data.events)) {
+          for (const updated of data.events) {
+            const idx = events.value.findIndex(e => e.id === updated.id)
+            if (idx !== -1) events.value[idx] = updated
+          }
+          if (Array.isArray(data.absences)) {
+            const recurrenceId = data.events[0]?.recurrenceId
+            absences.value = absences.value.filter(a => a.recurrenceId !== recurrenceId)
+            absences.value.push(...data.absences)
+          }
+          return { success: true, events: data.events }
+        }
         const index = events.value.findIndex(e => e.id === Number(id))
         if (index !== -1) {
-          events.value[index] = updated
+          events.value[index] = data
         }
-        return { success: true, event: updated }
+        return { success: true, event: data }
       } else {
         const err = await res.json().catch(() => ({}))
         return { success: false, error: err.error }
@@ -576,14 +593,23 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
-  const deleteEvent = async (id) => {
+  const deleteEvent = async (id, scope) => {
     try {
-      const res = await fetch(`/api/events/${id}`, {
+      const url = scope === 'series' ? `/api/events/${id}?scope=series` : `/api/events/${id}`
+      const target = events.value.find(e => e.id === id)
+      const res = await fetch(url, {
         method: 'DELETE',
         headers: getHeaders()
       })
       if (res.ok) {
-        events.value = events.value.filter(e => e.id !== id)
+        if (scope === 'series' && target?.recurrenceId) {
+          const recurrenceId = target.recurrenceId
+          events.value = events.value.filter(e => e.recurrenceId !== recurrenceId)
+          absences.value = absences.value.filter(a => a.recurrenceId !== recurrenceId)
+        } else {
+          events.value = events.value.filter(e => e.id !== id)
+          absences.value = absences.value.filter(a => a.eventId !== id)
+        }
       }
     } catch (err) {
       console.error('Erreur deleteEvent API', err)

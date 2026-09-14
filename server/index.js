@@ -404,7 +404,7 @@ const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExi
 }
 
 // Helpers pour le formatage iCalendar (.ics) et Google Agenda côté serveur
-const formatServerEventDates = (dateStr, timeStr) => {
+const formatServerEventDates = (dateStr, timeStr, endTimeStr) => {
   if (!dateStr) return { start: '', end: '', isAllDay: true }
   const [year, month, day] = dateStr.split('-').map(Number)
   const pad = (n) => String(n).padStart(2, '0')
@@ -412,7 +412,15 @@ const formatServerEventDates = (dateStr, timeStr) => {
   if (timeStr && timeStr.includes(':')) {
     const [hours, minutes] = timeStr.split(':').map(Number)
     const startDate = new Date(year, month - 1, day, hours, minutes, 0)
-    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+
+    let endDate
+    if (endTimeStr && endTimeStr.includes(':')) {
+      const [endHours, endMinutes] = endTimeStr.split(':').map(Number)
+      endDate = new Date(year, month - 1, day, endHours, endMinutes, 0)
+      if (endDate <= startDate) endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+    } else {
+      endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+    }
 
     const formatCompact = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
 
@@ -430,7 +438,7 @@ const formatServerEventDates = (dateStr, timeStr) => {
 }
 
 const generateServerGoogleCalendarUrl = (event) => {
-  const { start, end } = formatServerEventDates(event.date, event.time)
+  const { start, end } = formatServerEventDates(event.date, event.time, event.endTime)
   const title = encodeURIComponent(event.title || 'Événement FamilyGest')
   const location = encodeURIComponent(event.location || '')
   let detailsText = 'Événement FamilyGest'
@@ -441,7 +449,7 @@ const generateServerGoogleCalendarUrl = (event) => {
 }
 
 const generateServerIcsContent = (event) => {
-  const { start, end, isAllDay } = formatServerEventDates(event.date, event.time)
+  const { start, end, isAllDay } = formatServerEventDates(event.date, event.time, event.endTime)
   const now = new Date()
   const pad = (n) => String(n).padStart(2, '0')
   const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
@@ -472,6 +480,46 @@ const generateServerIcsContent = (event) => {
     'END:VEVENT',
     'END:VCALENDAR'
   ].filter(Boolean).join('\r\n')
+}
+
+const RECURRENCE_MAX_OCCURRENCES = 200
+
+// Génère la liste des dates (YYYY-MM-DD) d'une série récurrente, en s'arrêtant à endDateStr inclus
+// ou dès que maxCount occurrences sont atteintes (truncated=true dans ce dernier cas)
+const getRecurrenceDates = (startDateStr, frequency, interval, endDateStr, maxCount = RECURRENCE_MAX_OCCURRENCES) => {
+  const [sy, sm, sd] = startDateStr.split('-').map(Number)
+  const [ey, em, ed] = endDateStr.split('-').map(Number)
+  const end = new Date(Date.UTC(ey, em - 1, ed))
+  const step = Math.max(1, Number(interval) || 1)
+
+  const dates = []
+  let curr = new Date(Date.UTC(sy, sm - 1, sd))
+  let truncated = false
+
+  while (curr <= end) {
+    if (dates.length >= maxCount) {
+      truncated = true
+      break
+    }
+    const y = curr.getUTCFullYear()
+    const m = String(curr.getUTCMonth() + 1).padStart(2, '0')
+    const d = String(curr.getUTCDate()).padStart(2, '0')
+    dates.push(`${y}-${m}-${d}`)
+
+    if (frequency === 'weekly') {
+      curr = new Date(Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth(), curr.getUTCDate() + 7 * step))
+    } else if (frequency === 'monthly') {
+      // Cale sur le même jour du mois de départ, en se calant sur le dernier jour du mois si celui-ci n'existe pas (ex: 31 janvier -> 28/29 février)
+      const targetMonthIndex = curr.getUTCMonth() + step
+      const daysInTargetMonth = new Date(Date.UTC(curr.getUTCFullYear(), targetMonthIndex + 1, 0)).getUTCDate()
+      const targetDay = Math.min(sd, daysInTargetMonth)
+      curr = new Date(Date.UTC(curr.getUTCFullYear(), targetMonthIndex, targetDay))
+    } else {
+      curr = new Date(Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth(), curr.getUTCDate() + step))
+    }
+  }
+
+  return { dates, truncated }
 }
 
 // Helper : Diffusion d'une notification par email aux membres ayant activé cette option
@@ -1857,10 +1905,14 @@ app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin,
         title: evt.title,
         date: evt.date,
         time: evt.time,
+        endTime: evt.endTime,
         category: evt.category || 'Famille',
         location: evt.location,
         color: evt.color || '#8b5cf6',
-        assignedTo
+        assignedTo,
+        memberIds: Array.isArray(evt.memberIds) ? evt.memberIds.map(mId => idMap[mId] || mId) : [],
+        recurrenceId: evt.recurrenceId ?? null,
+        recurrence: evt.recurrence
       })
     }
 
@@ -3139,16 +3191,128 @@ app.get('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
 
 app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
   try {
+    const { recurrence, generateAbsence, absenceSlots } = req.body
+    const memberIdsInput = Array.isArray(req.body.memberIds) ? req.body.memberIds.map(Number) : []
+
+    // === Création d'une série d'événements récurrents ===
+    if (recurrence && recurrence.frequency) {
+      const { frequency, endDate } = recurrence
+      const interval = Math.max(1, Number(recurrence.interval) || 1)
+
+      if (!['daily', 'weekly', 'monthly'].includes(frequency)) {
+        return res.status(400).json({ error: 'Fréquence de récurrence invalide' })
+      }
+      if (!endDate || endDate < req.body.date) {
+        return res.status(400).json({ error: "La date de fin de récurrence doit être postérieure ou égale à la date de l'événement" })
+      }
+
+      const { dates, truncated } = getRecurrenceDates(req.body.date, frequency, interval, endDate)
+      if (dates.length === 0) {
+        return res.status(400).json({ error: 'Aucune occurrence à générer pour cette récurrence' })
+      }
+
+      const recurrenceMeta = { frequency, interval, endDate }
+      const baseId = Date.now()
+      const createdEvents = []
+      for (let i = 0; i < dates.length; i++) {
+        const occurrence = new Event({
+          familyId: req.family._id,
+          id: baseId + i,
+          title: req.body.title,
+          date: dates[i],
+          time: req.body.time,
+          endTime: req.body.endTime,
+          category: req.body.category || 'Famille',
+          location: req.body.location,
+          color: req.body.color || '#8b5cf6',
+          assignedTo: req.body.assignedTo,
+          memberIds: memberIdsInput,
+          recurrenceId: baseId,
+          recurrence: recurrenceMeta
+        })
+        await occurrence.save()
+        createdEvents.push(occurrence)
+      }
+
+      // Génération des absences liées pour toute la série (sans notification individuelle par occurrence)
+      const createdAbsences = []
+      const hasSlot = absenceSlots && (absenceSlots.lunch || absenceSlots.dinner || absenceSlots.night)
+      if (generateAbsence && hasSlot && memberIdsInput.length > 0) {
+        let absId = baseId + dates.length
+        for (const occurrence of createdEvents) {
+          for (const memberId of memberIdsInput) {
+            const abs = new Absence({
+              familyId: req.family._id,
+              id: absId++,
+              memberId: Number(memberId),
+              date: occurrence.date,
+              type: 'absence',
+              lunch: Boolean(absenceSlots.lunch),
+              dinner: Boolean(absenceSlots.dinner),
+              night: Boolean(absenceSlots.night),
+              note: `Événement : ${req.body.title}`,
+              declaredBy: req.user ? req.user.id : null,
+              eventId: occurrence.id,
+              recurrenceId: baseId
+            })
+            await abs.save()
+            createdAbsences.push(abs)
+          }
+        }
+      }
+
+      // Une seule notification pour toute la série (pas une par occurrence)
+      const authorName = req.user ? req.user.firstName : 'Un membre'
+      const freqLabel = frequency === 'daily' ? 'jour(s)' : frequency === 'weekly' ? 'semaine(s)' : 'mois'
+      const recurrenceLabel = `tous les ${interval > 1 ? interval + ' ' : ''}${freqLabel}`
+      dispatchFamilyAlert({
+        family: req.family,
+        actor: req.user,
+        action: ALERT_ACTIONS.EVENT_CREATED.code,
+        actionLabel: ALERT_ACTIONS.EVENT_CREATED.label,
+        title: `Nouvel événement récurrent : ${req.body.title}`,
+        targetType: 'event',
+        targetId: baseId,
+        push: {
+          title: `🔁 Nouvel événement récurrent : ${req.body.title}`,
+          body: `${recurrenceLabel} jusqu'au ${endDate} • ${dates.length} occurrence(s) • Ajouté par ${authorName}`,
+          url: `/${req.family.slug}/calendar`
+        },
+        email: {
+          subject: `🔁 Nouvel événement récurrent : ${req.body.title}`,
+          title: `Nouvel événement récurrent dans l'agenda`,
+          badge: '🔁',
+          detailsHtml: `
+            <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+              <strong>${authorName}</strong> a ajouté un événement récurrent au calendrier familial :
+            </p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+              <li><strong>Titre :</strong> ${req.body.title}</li>
+              <li><strong>Récurrence :</strong> ${recurrenceLabel}, jusqu'au ${endDate}</li>
+              <li><strong>Occurrences créées :</strong> ${dates.length}</li>
+              ${req.body.location ? `<li><strong>Lieu :</strong> ${req.body.location}</li>` : ''}
+            </ul>
+          `,
+          actionUrl: `/${req.family.slug}/calendar`,
+          actionText: 'Voir dans le calendrier'
+        }
+      }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (event.created recurring):', err.message))
+
+      return res.status(201).json({ events: createdEvents, absences: createdAbsences, truncated })
+    }
+
     const newEvent = new Event({
       familyId: req.family._id,
       id: Date.now(),
       title: req.body.title,
       date: req.body.date,
       time: req.body.time,
+      endTime: req.body.endTime,
       category: req.body.category || 'Famille',
       location: req.body.location,
       color: req.body.color || '#8b5cf6',
-      assignedTo: req.body.assignedTo
+      assignedTo: req.body.assignedTo,
+      memberIds: memberIdsInput
     })
     await newEvent.save()
 
@@ -3161,7 +3325,7 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
 
     // Notification push pour le nouvel événement agenda avec bouton Google Agenda
     const authorName = req.user ? req.user.firstName : 'Un membre'
-    const timeStr = newEvent.time ? ` à ${newEvent.time}` : ''
+    const timeStr = newEvent.time ? ` à ${newEvent.time}${newEvent.endTime ? ` - ${newEvent.endTime}` : ''}` : ''
     const locStr = newEvent.location ? ` (${newEvent.location})` : ''
     dispatchFamilyAlert({
       family: req.family,
@@ -3220,15 +3384,100 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
     const event = await Event.findOne({ id: eventId, familyId: req.family._id })
     if (!event) return res.status(404).json({ error: 'Événement non trouvé' })
 
-    const { title, date, time, category, location, color, assignedTo } = req.body
+    const { title, date, time, endTime, category, location, color, assignedTo, memberIds, scope, generateAbsence, absenceSlots } = req.body
+
+    // === Modification de toute la série (la date reste propre à chaque occurrence) ===
+    if (scope === 'series' && event.recurrenceId) {
+      const occurrences = await Event.find({ recurrenceId: event.recurrenceId, familyId: req.family._id })
+      const finalMemberIds = memberIds !== undefined ? (Array.isArray(memberIds) ? memberIds.map(Number) : []) : null
+
+      for (const occ of occurrences) {
+        if (title) occ.title = title.trim()
+        if (time !== undefined) occ.time = time
+        if (endTime !== undefined) occ.endTime = endTime
+        if (category) occ.category = category
+        if (location !== undefined) occ.location = location
+        if (color) occ.color = color
+        if (assignedTo !== undefined) occ.assignedTo = assignedTo
+        if (finalMemberIds !== null) occ.memberIds = finalMemberIds
+        await occ.save()
+      }
+
+      // Régénération complète des absences liées à la série, uniquement si explicitement demandé
+      let seriesAbsences
+      if (generateAbsence !== undefined) {
+        await Absence.deleteMany({ familyId: req.family._id, recurrenceId: event.recurrenceId })
+        seriesAbsences = []
+        const hasSlot = absenceSlots && (absenceSlots.lunch || absenceSlots.dinner || absenceSlots.night)
+        const absenceMemberIds = finalMemberIds !== null ? finalMemberIds : event.memberIds
+        if (generateAbsence && hasSlot && absenceMemberIds.length > 0) {
+          let absId = Date.now()
+          for (const occ of occurrences) {
+            for (const memberId of absenceMemberIds) {
+              const abs = await Absence.create({
+                familyId: req.family._id,
+                id: absId++,
+                memberId: Number(memberId),
+                date: occ.date,
+                type: 'absence',
+                lunch: Boolean(absenceSlots.lunch),
+                dinner: Boolean(absenceSlots.dinner),
+                night: Boolean(absenceSlots.night),
+                note: `Événement : ${occ.title}`,
+                declaredBy: req.user ? req.user.id : null,
+                eventId: occ.id,
+                recurrenceId: event.recurrenceId
+              })
+              seriesAbsences.push(abs)
+            }
+          }
+        }
+      }
+
+      const authorName = req.user ? req.user.firstName : 'Un membre'
+      dispatchFamilyAlert({
+        family: req.family,
+        actor: req.user,
+        action: ALERT_ACTIONS.EVENT_UPDATED.code,
+        actionLabel: ALERT_ACTIONS.EVENT_UPDATED.label,
+        title: `Série d'événements modifiée : ${occurrences[0].title}`,
+        targetType: 'event',
+        targetId: event.recurrenceId,
+        push: {
+          title: `✏️ Série modifiée : ${occurrences[0].title}`,
+          body: `${occurrences.length} occurrence(s) mises à jour • Modifié par ${authorName}`,
+          url: `/${req.family.slug}/calendar`
+        },
+        email: {
+          subject: `✏️ Série d'événements modifiée : ${occurrences[0].title}`,
+          title: `Série d'événements modifiée dans l'agenda`,
+          badge: '✏️',
+          detailsHtml: `
+            <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+              <strong>${authorName}</strong> a modifié une série d'événements récurrents dans le calendrier familial :
+            </p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+              <li><strong>Titre :</strong> ${occurrences[0].title}</li>
+              <li><strong>Occurrences concernées :</strong> ${occurrences.length}</li>
+            </ul>
+          `,
+          actionUrl: `/${req.family.slug}/calendar`,
+          actionText: 'Voir dans le calendrier'
+        }
+      }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (event.updated series):', err.message))
+
+      return res.json({ events: occurrences, ...(seriesAbsences !== undefined ? { absences: seriesAbsences } : {}) })
+    }
 
     if (title) event.title = title.trim()
     if (date) event.date = date
     if (time !== undefined) event.time = time
+    if (endTime !== undefined) event.endTime = endTime
     if (category) event.category = category
     if (location !== undefined) event.location = location
     if (color) event.color = color
     if (assignedTo !== undefined) event.assignedTo = assignedTo
+    if (memberIds !== undefined) event.memberIds = Array.isArray(memberIds) ? memberIds.map(Number) : []
 
     await event.save()
 
@@ -3240,7 +3489,7 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
     const icsDownloadUrl = `${baseServerUrl}/api/events/${event.id}/ics`
 
     const authorName = req.user ? req.user.firstName : 'Un membre'
-    const timeStr = event.time ? ` à ${event.time}` : ''
+    const timeStr = event.time ? ` à ${event.time}${event.endTime ? ` - ${event.endTime}` : ''}` : ''
     const locStr = event.location ? ` (${event.location})` : ''
 
     // Notification push pour l'événement modifié
@@ -3313,7 +3562,20 @@ app.get('/api/events/:id/ics', async (req, res) => {
 
 app.delete('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    await Event.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
+    const eventId = Number(req.params.id)
+    const scope = req.query.scope || req.body?.scope
+
+    if (scope === 'series') {
+      const event = await Event.findOne({ id: eventId, familyId: req.family._id })
+      if (event && event.recurrenceId) {
+        await Event.deleteMany({ recurrenceId: event.recurrenceId, familyId: req.family._id })
+        await Absence.deleteMany({ recurrenceId: event.recurrenceId, familyId: req.family._id })
+        return res.json({ message: "Série d'événements supprimée" })
+      }
+    }
+
+    await Event.deleteOne({ id: eventId, familyId: req.family._id })
+    await Absence.deleteMany({ eventId, familyId: req.family._id })
     res.json({ message: 'Événement supprimé' })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -3478,7 +3740,7 @@ app.get('/api/absences', requireAuth, attachFamilyContext, async (req, res) => {
 
 app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const { memberId, date, type, lunch, dinner, night, note } = req.body
+    const { memberId, date, type, lunch, dinner, night, note, eventId } = req.body
 
     if (!memberId || !date) {
       return res.status(400).json({ error: 'Membre et date requis' })
@@ -3603,6 +3865,7 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
       existing.night = Boolean(night)
       if (note !== undefined) existing.note = note.trim()
       existing.declaredBy = req.user ? req.user.id : null
+      if (eventId !== undefined) existing.eventId = eventId
       await existing.save()
       notifyAbsenceOrPresence(existing.type, memberId, date, lunch, dinner, night, note, existing.id)
       return res.json(existing)
@@ -3618,7 +3881,8 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
       dinner: Boolean(dinner),
       night: Boolean(night),
       note: (note || '').trim(),
-      declaredBy: req.user ? req.user.id : null
+      declaredBy: req.user ? req.user.id : null,
+      eventId: eventId || null
     })
 
     await newAbsence.save()

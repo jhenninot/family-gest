@@ -11,7 +11,9 @@ const absenceSchema = new mongoose.Schema({
   night: { type: Boolean, default: false }, // Absent/Présent la nuit
   note: { type: String, default: '', trim: true }, // Motif optionnel
   declaredBy: { type: Number, default: null }, // ID de l'utilisateur ayant saisi la déclaration
-  longAbsenceId: { type: Number, default: null, index: true } // ID de l'absence longue parente
+  longAbsenceId: { type: Number, default: null, index: true }, // ID de l'absence longue parente
+  eventId: { type: Number, default: null, index: true }, // ID de l'événement d'agenda à l'origine de cette absence
+  recurrenceId: { type: Number, default: null, index: true } // ID de la série d'événements récurrents à l'origine de cette absence
 }, { timestamps: true })
 
 absenceSchema.index({ familyId: 1, id: 1 }, { unique: true })

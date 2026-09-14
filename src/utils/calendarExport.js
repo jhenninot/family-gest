@@ -3,7 +3,7 @@
 /**
  * Formate une date (YYYY-MM-DD) et une heure (HH:mm) en date ISO compacte pour Google Calendar et iCalendar
  */
-function parseEventDates(dateStr, timeStr) {
+function parseEventDates(dateStr, timeStr, endTimeStr) {
   if (!dateStr) return { start: '', end: '', isAllDay: true }
 
   const [year, month, day] = dateStr.split('-').map(Number)
@@ -11,8 +11,16 @@ function parseEventDates(dateStr, timeStr) {
   if (timeStr && timeStr.includes(':')) {
     const [hours, minutes] = timeStr.split(':').map(Number)
     const startDate = new Date(year, month - 1, day, hours, minutes, 0)
-    // Par défaut, durée de 1 heure
-    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+
+    let endDate
+    if (endTimeStr && endTimeStr.includes(':')) {
+      const [endHours, endMinutes] = endTimeStr.split(':').map(Number)
+      endDate = new Date(year, month - 1, day, endHours, endMinutes, 0)
+      if (endDate <= startDate) endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+    } else {
+      // Par défaut, durée de 1 heure
+      endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+    }
 
     const formatCompact = (d) => {
       const pad = (n) => String(n).padStart(2, '0')
@@ -40,7 +48,7 @@ function parseEventDates(dateStr, timeStr) {
  * Génère le lien Web direct vers Google Agenda
  */
 export function getGoogleCalendarUrl(event) {
-  const { start, end } = parseEventDates(event.date, event.time)
+  const { start, end } = parseEventDates(event.date, event.time, event.endTime)
   const title = encodeURIComponent(event.title || 'Événement FamilyGest')
   const location = encodeURIComponent(event.location || '')
   
@@ -63,7 +71,7 @@ export function openGoogleCalendar(event) {
  * Génère le contenu d'un fichier standard .ics (iCalendar)
  */
 export function generateIcsContent(event) {
-  const { start, end, isAllDay } = parseEventDates(event.date, event.time)
+  const { start, end, isAllDay } = parseEventDates(event.date, event.time, event.endTime)
   const now = new Date()
   const pad = (n) => String(n).padStart(2, '0')
   const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
