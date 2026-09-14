@@ -37,7 +37,7 @@
         <!-- Déjeuner -->
         <div class="meal-slot-card" :class="{ 'has-absents': todayLunchPresence.absentMembers.length > 0, 'has-guests': todayLunchPresence.guests.length > 0, 'has-presences': todayLunchPresence.exceptionalPresences.length > 0 }">
           <div class="slot-header">
-            <span class="slot-icon">☀️</span>
+            <Sun :size="18" class="slot-icon slot-icon-lunch" />
             <div class="slot-title-col">
               <span class="slot-name">Déjeuner (Midi)</span>
               <span class="slot-headcount">{{ getSlotHeadcount('lunch') }}</span>
@@ -108,7 +108,7 @@
         <!-- Dîner -->
         <div class="meal-slot-card" :class="{ 'has-absents': todayDinnerPresence.absentMembers.length > 0, 'has-guests': todayDinnerPresence.guests.length > 0, 'has-presences': todayDinnerPresence.exceptionalPresences.length > 0 }">
           <div class="slot-header">
-            <span class="slot-icon">🌙</span>
+            <Sunset :size="18" class="slot-icon slot-icon-dinner" />
             <div class="slot-title-col">
               <span class="slot-name">Dîner (Soir)</span>
               <span class="slot-headcount">{{ getSlotHeadcount('dinner') }}</span>
@@ -179,7 +179,7 @@
         <!-- Nuit -->
         <div class="meal-slot-card" :class="{ 'has-absents': todayNightPresence.absentMembers.length > 0, 'has-guests': todayNightPresence.guests.length > 0, 'has-presences': todayNightPresence.exceptionalPresences.length > 0 }">
           <div class="slot-header">
-            <span class="slot-icon">🛌</span>
+            <BedDouble :size="18" class="slot-icon slot-icon-night" />
             <div class="slot-title-col">
               <span class="slot-name">Nuit (Couchage)</span>
               <span class="slot-headcount">{{ getSlotHeadcount('night') }}</span>
@@ -328,15 +328,15 @@
               <!-- Nombres de présents par repas et nuit -->
               <div class="day-headcounts-list">
                 <div class="day-headcount-item lunch" title="Déjeuner (Midi)">
-                  <span class="slot-icon-mini">☀️</span>
+                  <Sun :size="12" class="slot-icon-mini" />
                   <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'lunch') }}</span>
                 </div>
                 <div class="day-headcount-item dinner" title="Dîner (Soir)">
-                  <span class="slot-icon-mini">🌙</span>
+                  <Sunset :size="12" class="slot-icon-mini" />
                   <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'dinner') }}</span>
                 </div>
                 <div class="day-headcount-item night" title="Nuit (Couchage)">
-                  <span class="slot-icon-mini">🛌</span>
+                  <BedDouble :size="12" class="slot-icon-mini" />
                   <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'night') }}</span>
                 </div>
               </div>
@@ -369,7 +369,7 @@
                 <!-- Midi (Déjeuner) -->
                 <div class="week-col-slot lunch">
                   <div class="slot-summary-row">
-                    <span class="slot-name-badge">☀️ Midi</span>
+                    <span class="slot-name-badge"><Sun :size="12" class="slot-name-icon-lunch" /> Midi</span>
                     <span class="slot-headcount-tag" :title="`${day.lunchPresence.headcount} à table ce midi`">
                       {{ day.lunchPresence.headcount }}
                     </span>
@@ -411,7 +411,7 @@
                 <!-- Soir (Dîner) -->
                 <div class="week-col-slot dinner">
                   <div class="slot-summary-row">
-                    <span class="slot-name-badge">🌙 Soir</span>
+                    <span class="slot-name-badge"><Sunset :size="12" class="slot-name-icon-dinner" /> Soir</span>
                     <span class="slot-headcount-tag" :title="`${day.dinnerPresence.headcount} à table ce soir`">
                       {{ day.dinnerPresence.headcount }}
                     </span>
@@ -453,7 +453,7 @@
                 <!-- Nuit (Couchage) -->
                 <div class="week-col-slot night">
                   <div class="slot-summary-row">
-                    <span class="slot-name-badge">🛌 Nuit</span>
+                    <span class="slot-name-badge"><BedDouble :size="12" class="slot-name-icon-night" /> Nuit</span>
                     <span class="slot-headcount-tag" :title="`${day.nightPresence.headcount} au lit`">
                       {{ day.nightPresence.headcount }}
                     </span>
@@ -551,7 +551,7 @@
                 @click="form.lunch = !form.lunch"
               >
                 <div class="slot-toggle-top">
-                  <span class="slot-toggle-emoji">☀️</span>
+                  <Sun :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="form.lunch" @click.stop class="slot-toggle-check" />
                 </div>
                 <strong>Déjeuner</strong>
@@ -565,7 +565,7 @@
                 @click="form.dinner = !form.dinner"
               >
                 <div class="slot-toggle-top">
-                  <span class="slot-toggle-emoji">🌙</span>
+                  <Sunset :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="form.dinner" @click.stop class="slot-toggle-check" />
                 </div>
                 <strong>Dîner</strong>
@@ -579,7 +579,7 @@
                 @click="form.night = !form.night"
               >
                 <div class="slot-toggle-top">
-                  <span class="slot-toggle-emoji">🛌</span>
+                  <BedDouble :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="form.night" @click.stop class="slot-toggle-check" />
                 </div>
                 <strong>Nuit</strong>
@@ -676,7 +676,7 @@
                 @click="guestForm.lunch = !guestForm.lunch"
               >
                 <div class="slot-toggle-top">
-                  <span class="slot-toggle-emoji">☀️</span>
+                  <Sun :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="guestForm.lunch" @click.stop class="slot-toggle-check" />
                 </div>
                 <strong>Déjeuner</strong>
@@ -690,7 +690,7 @@
                 @click="guestForm.dinner = !guestForm.dinner"
               >
                 <div class="slot-toggle-top">
-                  <span class="slot-toggle-emoji">🌙</span>
+                  <Sunset :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="guestForm.dinner" @click.stop class="slot-toggle-check" />
                 </div>
                 <strong>Dîner</strong>
@@ -704,7 +704,7 @@
                 @click="guestForm.night = !guestForm.night"
               >
                 <div class="slot-toggle-top">
-                  <span class="slot-toggle-emoji">🛌</span>
+                  <BedDouble :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="guestForm.night" @click.stop class="slot-toggle-check" />
                 </div>
                 <strong>Nuit</strong>
@@ -800,7 +800,7 @@
             <div class="day-slot-detail-box">
               <div class="day-slot-detail-header">
                 <div class="slot-name-group">
-                  <span class="slot-icon">☀️</span>
+                  <Sun :size="18" class="slot-icon slot-icon-lunch" />
                   <strong>Déjeuner (Midi)</strong>
                 </div>
                 <span class="day-slot-headcount-badge">
@@ -903,7 +903,7 @@
             <div class="day-slot-detail-box">
               <div class="day-slot-detail-header">
                 <div class="slot-name-group">
-                  <span class="slot-icon">🌙</span>
+                  <Sunset :size="18" class="slot-icon slot-icon-dinner" />
                   <strong>Dîner (Soir)</strong>
                 </div>
                 <span class="day-slot-headcount-badge">
@@ -1006,7 +1006,7 @@
             <div class="day-slot-detail-box">
               <div class="day-slot-detail-header">
                 <div class="slot-name-group">
-                  <span class="slot-icon">🛌</span>
+                  <BedDouble :size="18" class="slot-icon slot-icon-night" />
                   <strong>Nuit (Couchage)</strong>
                 </div>
                 <span class="day-slot-headcount-badge">
@@ -1197,7 +1197,8 @@
                   :class="{ active: longAbsenceForm.startSlot === 'lunch' }"
                   @click="setStartSlot('lunch')"
                 >
-                  <span>☀️ Midi</span>
+                  <Sun :size="14" />
+                  <span>Midi</span>
                 </button>
                 <button 
                   type="button" 
@@ -1205,7 +1206,8 @@
                   :class="{ active: longAbsenceForm.startSlot === 'dinner' }"
                   @click="setStartSlot('dinner')"
                 >
-                  <span>🌙 Soir</span>
+                  <Sunset :size="14" />
+                  <span>Soir</span>
                 </button>
                 <button 
                   type="button" 
@@ -1213,7 +1215,8 @@
                   :class="{ active: longAbsenceForm.startSlot === 'night' }"
                   @click="setStartSlot('night')"
                 >
-                  <span>🛌 Nuit</span>
+                  <BedDouble :size="14" />
+                  <span>Nuit</span>
                 </button>
               </div>
             </div>
@@ -1243,7 +1246,8 @@
                   :disabled="isEndSlotDisabled('lunch')"
                   @click="setEndSlot('lunch')"
                 >
-                  <span>☀️ Midi</span>
+                  <Sun :size="14" />
+                  <span>Midi</span>
                 </button>
                 <button 
                   type="button" 
@@ -1252,7 +1256,8 @@
                   :disabled="isEndSlotDisabled('dinner')"
                   @click="setEndSlot('dinner')"
                 >
-                  <span>🌙 Soir</span>
+                  <Sunset :size="14" />
+                  <span>Soir</span>
                 </button>
                 <button 
                   type="button" 
@@ -1261,7 +1266,8 @@
                   :disabled="isEndSlotDisabled('night')"
                   @click="setEndSlot('night')"
                 >
-                  <span>🛌 Nuit</span>
+                  <BedDouble :size="14" />
+                  <span>Nuit</span>
                 </button>
               </div>
             </div>
@@ -1499,7 +1505,10 @@ import {
   UserPlus, 
   CheckCircle2,
   Calendar,
-  CalendarRange
+  CalendarRange,
+  Sun,
+  Sunset,
+  BedDouble
 } from '@lucide/vue'
 import HouseUser from '../components/icons/HouseUser.vue'
 import UserAvatar from '../components/UserAvatar.vue'
@@ -2807,10 +2816,17 @@ const handleSelectDeclarationType = (type) => {
 }
 
 .slot-name-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-secondary);
 }
+
+.slot-name-icon-lunch { color: #f59e0b; }
+.slot-name-icon-dinner { color: #6366f1; }
+.slot-name-icon-night { color: #10b981; }
 
 .slot-headcount-tag {
   background: var(--bg-tertiary);
@@ -2977,8 +2993,7 @@ const handleSelectDeclarationType = (type) => {
 }
 
 .slot-icon-mini {
-  font-size: 0.78rem;
-  line-height: 1;
+  flex-shrink: 0;
 }
 
 .headcount-num {
@@ -3255,7 +3270,7 @@ const handleSelectDeclarationType = (type) => {
 }
 
 .slot-toggle-emoji {
-  font-size: 1.25rem;
+  color: var(--text-secondary);
 }
 
 .slot-toggle-check {
@@ -3862,9 +3877,6 @@ const handleSelectDeclarationType = (type) => {
     padding: 0.08rem 0.2rem;
     font-size: 0.68rem;
   }
-  .slot-icon-mini {
-    font-size: 0.7rem;
-  }
   .headcount-num {
     font-size: 0.72rem;
   }
@@ -4185,6 +4197,7 @@ const handleSelectDeclarationType = (type) => {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.35rem;
   white-space: nowrap;
 }
 

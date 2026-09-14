@@ -268,15 +268,18 @@
             <div v-if="newEvent.generateAbsence" class="absence-slots-row">
               <label class="slot-chip" :class="{ selected: newEvent.absenceSlots.lunch }">
                 <input type="checkbox" v-model="newEvent.absenceSlots.lunch" />
-                <span>☀️ Midi</span>
+                <Sun :size="14" />
+                <span>Midi</span>
               </label>
               <label class="slot-chip" :class="{ selected: newEvent.absenceSlots.dinner }">
                 <input type="checkbox" v-model="newEvent.absenceSlots.dinner" />
-                <span>🌙 Soir</span>
+                <Sunset :size="14" />
+                <span>Soir</span>
               </label>
               <label class="slot-chip" :class="{ selected: newEvent.absenceSlots.night }">
                 <input type="checkbox" v-model="newEvent.absenceSlots.night" />
-                <span>🛌 Nuit</span>
+                <BedDouble :size="14" />
+                <span>Nuit</span>
               </label>
             </div>
             <span v-if="newEvent.generateAbsence && !hasAnySlot(newEvent.absenceSlots)" class="text-error">
@@ -439,15 +442,18 @@
             <div v-if="editEventForm.generateAbsence" class="absence-slots-row">
               <label class="slot-chip" :class="{ selected: editEventForm.absenceSlots.lunch }">
                 <input type="checkbox" v-model="editEventForm.absenceSlots.lunch" />
-                <span>☀️ Midi</span>
+                <Sun :size="14" />
+                <span>Midi</span>
               </label>
               <label class="slot-chip" :class="{ selected: editEventForm.absenceSlots.dinner }">
                 <input type="checkbox" v-model="editEventForm.absenceSlots.dinner" />
-                <span>🌙 Soir</span>
+                <Sunset :size="14" />
+                <span>Soir</span>
               </label>
               <label class="slot-chip" :class="{ selected: editEventForm.absenceSlots.night }">
                 <input type="checkbox" v-model="editEventForm.absenceSlots.night" />
-                <span>🛌 Nuit</span>
+                <BedDouble :size="14" />
+                <span>Nuit</span>
               </label>
             </div>
             <span v-if="editEventForm.generateAbsence && !hasAnySlot(editEventForm.absenceSlots)" class="text-error">
@@ -641,7 +647,10 @@ import {
   CalendarPlus,
   CalendarRange,
   Save,
-  X
+  X,
+  Sun,
+  Sunset,
+  BedDouble
 } from '@lucide/vue'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'

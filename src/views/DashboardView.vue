@@ -88,7 +88,7 @@
             <div class="today-slot-row">
               <div class="slot-row-top">
                 <div class="slot-header-left">
-                  <span class="slot-row-icon">☀️</span>
+                  <Sun :size="20" class="slot-row-icon slot-row-icon-lunch" />
                   <div class="slot-row-title-col">
                     <span class="slot-row-title">Déjeuner</span>
                     <span class="slot-row-subtitle">Midi</span>
@@ -167,7 +167,7 @@
             <div class="today-slot-row">
               <div class="slot-row-top">
                 <div class="slot-header-left">
-                  <span class="slot-row-icon">🌙</span>
+                  <Sunset :size="20" class="slot-row-icon slot-row-icon-dinner" />
                   <div class="slot-row-title-col">
                     <span class="slot-row-title">Dîner</span>
                     <span class="slot-row-subtitle">Soir</span>
@@ -246,7 +246,7 @@
             <div class="today-slot-row">
               <div class="slot-row-top">
                 <div class="slot-header-left">
-                  <span class="slot-row-icon">🛌</span>
+                  <BedDouble :size="20" class="slot-row-icon slot-row-icon-night" />
                   <div class="slot-row-title-col">
                     <span class="slot-row-title">Nuit</span>
                     <span class="slot-row-subtitle">Couchage</span>
@@ -868,9 +868,12 @@ import {
   ShieldCheck,
   Shield,
   Edit3, 
-  Mail, 
-  Bell, 
-  ExternalLink 
+  Mail,
+  Bell,
+  ExternalLink,
+  Sun,
+  Sunset,
+  BedDouble
 } from '@lucide/vue'
 import HouseUser from '../components/icons/HouseUser.vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
@@ -1528,10 +1531,17 @@ const handleDeleteMember = async (member) => {
 }
 
 .slot-row-icon {
-  font-size: 1.25rem;
-  line-height: 1;
   flex-shrink: 0;
 }
+
+.slot-row-icon-lunch { color: #b45309; }
+[data-theme="dark"] .slot-row-icon-lunch { color: #fbbf24; }
+
+.slot-row-icon-dinner { color: #4338ca; }
+[data-theme="dark"] .slot-row-icon-dinner { color: #a5b4fc; }
+
+.slot-row-icon-night { color: #6d28d9; }
+[data-theme="dark"] .slot-row-icon-night { color: #c4b5fd; }
 
 .slot-row-title-col {
   display: flex;

@@ -89,7 +89,7 @@
           <div class="slot-section lunch-slot">
             <div class="slot-header">
               <div class="slot-title">
-                <span class="slot-icon">☀️</span>
+                <Sun :size="18" class="slot-icon slot-icon-lunch" />
                 <span class="slot-label">Midi</span>
                 <span 
                   class="slot-headcount-circle lunch" 
@@ -186,7 +186,7 @@
           <div class="slot-section dinner-slot">
             <div class="slot-header">
               <div class="slot-title">
-                <span class="slot-icon">🌙</span>
+                <Sunset :size="18" class="slot-icon slot-icon-dinner" />
                 <span class="slot-label">Soir</span>
                 <span 
                   class="slot-headcount-circle dinner" 
@@ -309,7 +309,9 @@
           <div class="overview-item">
             <span class="overview-label">Moment :</span>
             <span class="overview-val badge" :class="selectedMeal.slot === 'lunch' ? 'badge-amber' : 'badge-purple'">
-              {{ selectedMeal.slot === 'lunch' ? '☀️ Midi (Déjeuner)' : '🌙 Soir (Dîner)' }}
+              <Sun v-if="selectedMeal.slot === 'lunch'" :size="14" />
+              <Sunset v-else :size="14" />
+              {{ selectedMeal.slot === 'lunch' ? 'Midi (Déjeuner)' : 'Soir (Dîner)' }}
             </span>
           </div>
 
@@ -461,7 +463,7 @@
                 :class="{ active: form.slot === 'lunch' }"
                 @click="form.slot = 'lunch'"
               >
-                <span class="toggle-icon">☀️</span>
+                <Sun :size="20" class="toggle-icon toggle-icon-lunch" />
                 <div class="toggle-text">
                   <span class="toggle-main">Midi</span>
                   <span class="toggle-sub">Déjeuner</span>
@@ -474,7 +476,7 @@
                 :class="{ active: form.slot === 'dinner' }"
                 @click="form.slot = 'dinner'"
               >
-                <span class="toggle-icon">🌙</span>
+                <Sunset :size="20" class="toggle-icon toggle-icon-dinner" />
                 <div class="toggle-text">
                   <span class="toggle-main">Soir</span>
                   <span class="toggle-sub">Dîner</span>
@@ -615,7 +617,9 @@ import {
   ChefHat, 
   Pencil, 
   Trash2,
-  ShoppingCart 
+  ShoppingCart,
+  Sun,
+  Sunset
 } from '@lucide/vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
@@ -1367,8 +1371,14 @@ const getMemberFirstName = (id) => {
 }
 
 .slot-icon {
-  font-size: 0.9rem;
+  flex-shrink: 0;
 }
+
+.slot-icon-lunch { color: #b45309; }
+[data-theme="dark"] .slot-icon-lunch { color: #fbbf24; }
+
+.slot-icon-dinner { color: #4338ca; }
+[data-theme="dark"] .slot-icon-dinner { color: #a5b4fc; }
 
 .slot-label {
   font-size: 0.82rem;
@@ -1913,8 +1923,14 @@ const getMemberFirstName = (id) => {
 }
 
 .toggle-icon {
-  font-size: 1.5rem;
+  flex-shrink: 0;
 }
+
+.toggle-icon-lunch { color: #b45309; }
+[data-theme="dark"] .toggle-icon-lunch { color: #fbbf24; }
+
+.toggle-icon-dinner { color: #4338ca; }
+[data-theme="dark"] .toggle-icon-dinner { color: #a5b4fc; }
 
 .toggle-text {
   display: flex;
