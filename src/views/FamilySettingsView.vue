@@ -785,12 +785,11 @@ import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValid
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import AvatarPicker from '../components/AvatarPicker.vue'
 import { DEFAULT_AVATAR } from '../utils/avatarHelper'
-import { 
-  Mail, Settings, CheckCircle2, AlertTriangle, ShieldAlert, 
+import {
+  Mail, Settings, CheckCircle2, AlertTriangle, ShieldAlert,
   Eye, EyeOff, Save, Send, HelpCircle, ShieldCheck, Loader2, AlertCircle, Globe,
-  UserPlus, Download
-} from 'lucide-vue-next'
-import { ShoppingCart, Plus, Pencil, Trash2, ExternalLink } from '@lucide/vue'
+  UserPlus, Download, ShoppingCart, Plus, Pencil, Trash2, ExternalLink
+} from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
 
 const authStore = useAuthStore()
@@ -1683,54 +1682,7 @@ onMounted(() => {
   border-top: 1px solid var(--border-color);
 }
 
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent-primary, #6366f1), var(--accent-purple, #8b5cf6));
-  color: #ffffff !important;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-  transition: all 0.2s;
-}
-
-.btn-primary:hover:not(:disabled) {
-  opacity: 0.95;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: var(--radius-md);
-  background: rgba(99, 102, 241, 0.12);
-  color: var(--accent-primary, #6366f1);
-  font-weight: 600;
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.2);
-}
-
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+/* .btn-primary et .btn-secondary viennent du style global (src/style.css) */
 
 /* Right Info Card */
 .info-content {
@@ -1818,14 +1770,9 @@ onMounted(() => {
   padding: 1rem;
 }
 
-.modal-content {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-xl);
-  width: 100%;
-  max-width: 480px;
-  padding: 1.5rem;
-  box-shadow: var(--shadow-xl);
+/* .modal-content (fond, rayon, largeur par defaut, ombre) vient du style global (src/style.css) */
+.modal-content.modal-sm {
+  max-width: 420px;
 }
 
 .modal-header {
@@ -1838,7 +1785,7 @@ onMounted(() => {
 .modal-header h3 {
   margin: 0;
   font-size: 1.2rem;
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 .btn-close {

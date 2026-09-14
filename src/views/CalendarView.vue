@@ -458,8 +458,10 @@ import {
 } from '@lucide/vue'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
+import { useConfirm } from '../composables/useConfirm'
 
 const store = useFamilyStore()
+const { confirm } = useConfirm()
 
 // Calendar Month Navigation
 const todayDate = new Date()
@@ -768,20 +770,38 @@ const handleUpdateEvent = async () => {
 }
 
 const handleDeleteCurrentEvent = async () => {
-  if (editingEventId.value) {
-    await store.deleteEvent(editingEventId.value)
-    showEditModal.value = false
-    if (selectedDayNumber.value) {
-      selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)
-      if (openedFromDayModal.value) {
-        showDayEventsModal.value = true
-      }
+  if (!editingEventId.value) return
+  const ok = await confirm({
+    title: 'Supprimer l\'événement',
+    message: `Voulez-vous vraiment supprimer l'événement « ${newEvent.value.title} » ?`,
+    description: 'Cette action est irréversible.',
+    confirmText: 'Supprimer',
+    type: 'danger'
+  })
+  if (!ok) return
+
+  await store.deleteEvent(editingEventId.value)
+  showEditModal.value = false
+  if (selectedDayNumber.value) {
+    selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)
+    if (openedFromDayModal.value) {
+      showDayEventsModal.value = true
     }
-    openedFromDayModal.value = false
   }
+  openedFromDayModal.value = false
 }
 
 const handleDeleteFromDay = async (id) => {
+  const event = store.events.find(e => e.id === id)
+  const ok = await confirm({
+    title: 'Supprimer l\'événement',
+    message: `Voulez-vous vraiment supprimer l'événement « ${event ? event.title : ''} » ?`,
+    description: 'Cette action est irréversible.',
+    confirmText: 'Supprimer',
+    type: 'danger'
+  })
+  if (!ok) return
+
   await store.deleteEvent(id)
   if (selectedDayNumber.value) {
     selectedDayEvents.value = getEventsOnDay(selectedDayNumber.value)

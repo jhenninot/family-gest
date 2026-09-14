@@ -101,21 +101,21 @@
               <td class="cell-actions" data-label="Actions">
                 <button 
                   @click="openAddAdminModal(fam)" 
-                  class="btn-icon text-indigo" 
+                  class="btn-icon btn-icon-sm text-indigo" 
                   title="Ajouter un administrateur familial"
                 >
                   <UserPlus :size="16" />
                 </button>
                 <button 
                   @click="openEditFamilyModal(fam)" 
-                  class="btn-icon text-indigo" 
+                  class="btn-icon btn-icon-sm text-indigo" 
                   title="Modifier la famille (Nom, Identifiant URL, Quota)"
                 >
                   <Edit2 :size="16" />
                 </button>
                 <button 
                   @click="toggleFamilyActive(fam)" 
-                  class="btn-icon" 
+                  class="btn-icon btn-icon-sm" 
                   :class="{ 'text-danger': fam.isActive, 'text-success': !fam.isActive }"
                   :title="fam.isActive ? 'Désactiver la famille' : 'Activer la famille'"
                 >
@@ -123,14 +123,14 @@
                 </button>
                 <button 
                   @click="openImportFamilyModal(fam)" 
-                  class="btn-icon text-amber" 
+                  class="btn-icon btn-icon-sm text-amber" 
                   title="Importer des données dans cette famille"
                 >
                   <Upload :size="16" />
                 </button>
                 <button 
                   @click="switchAndGo(fam.slug)" 
-                  class="btn-icon text-primary" 
+                  class="btn-icon btn-icon-sm text-primary" 
                   title="Ouvrir cette famille"
                 >
                   <ExternalLink :size="16" />
@@ -207,7 +207,7 @@
               <td class="cell-actions" data-label="Actions">
                 <button 
                   @click="openManageUserModal(u)" 
-                  class="btn-icon text-indigo" 
+                  class="btn-icon btn-icon-sm text-indigo" 
                   title="Gérer l'utilisateur"
                 >
                   <Settings :size="16" />
@@ -442,7 +442,7 @@
               <td class="cell-actions" data-label="Détails">
                 <button
                   @click="selectedAlertLog = log"
-                  class="btn-icon text-indigo"
+                  class="btn-icon btn-icon-sm text-indigo"
                   title="Voir les destinataires"
                 >
                   <Eye :size="16" />
@@ -868,7 +868,7 @@
                   <button 
                     type="button" 
                     @click="handleRemoveFromFamily(f)" 
-                    class="btn btn-sm btn-danger-ghost" 
+                    class="btn btn-sm btn-danger-outline"
                     title="Retirer de cette famille"
                   >
                     <UserMinus :size="14" />
@@ -2122,7 +2122,7 @@ const testGlobalSmtp = async () => {
   font-size: 0.8rem;
   font-weight: 600;
   padding: 0.2rem 0.5rem;
-  border-radius: 6px;
+  border-radius: var(--radius-full);
 }
 
 .status-pill.active {
@@ -2141,31 +2141,14 @@ const testGlobalSmtp = async () => {
   gap: 0.4rem;
 }
 
-.btn-icon {
-  background: transparent;
-  border: none;
-  padding: 0.4rem;
-  border-radius: 6px;
-  cursor: pointer;
-  color: var(--text-muted, #64748b);
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-icon:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: var(--text-color, #1e293b);
-}
-
+/* .btn-icon (forme et taille) vient du style global ; ici uniquement les teintes de survol par contexte */
 .btn-icon.text-indigo {
-  color: #6366f1;
+  color: var(--accent-primary);
 }
 
 .btn-icon.text-indigo:hover {
-  color: #4f46e5;
-  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent-primary-hover);
+  background: var(--accent-primary-light);
 }
 
 .modal-subtitle {
@@ -2175,13 +2158,13 @@ const testGlobalSmtp = async () => {
 }
 
 .btn-icon.text-danger:hover {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-rose);
+  background: var(--accent-rose-light);
 }
 
 .btn-icon.text-success:hover {
-  color: #22c55e;
-  background: rgba(34, 197, 94, 0.1);
+  color: var(--accent-secondary);
+  background: var(--accent-secondary-light);
 }
 
 .user-cell {
@@ -2194,30 +2177,7 @@ const testGlobalSmtp = async () => {
   font-size: 1.4rem;
 }
 
-.role-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.25rem 0.6rem;
-  border-radius: 9999px;
-}
-
-.role-pill.super-admin-role {
-  background: rgba(245, 158, 11, 0.15);
-  color: #d97706;
-}
-
-.role-pill.family-admin-role {
-  background: rgba(99, 102, 241, 0.15);
-  color: #4f46e5;
-}
-
-.role-pill.standard-user-role {
-  background: rgba(148, 163, 184, 0.15);
-  color: var(--text-muted, #64748b);
-}
+/* .role-pill et ses variantes viennent du style global (src/style.css) */
 
 .family-tags {
   display: flex;
@@ -2566,14 +2526,7 @@ const testGlobalSmtp = async () => {
   padding: 1rem;
 }
 
-.modal-content {
-  background: var(--bg-card, #ffffff);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 550px;
-  padding: 1.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-}
+/* .modal-content (fond, rayon, ombre, largeur par defaut) vient du style global (src/style.css) */
 
 .modal-sm {
   max-width: 400px;
@@ -2744,14 +2697,7 @@ const testGlobalSmtp = async () => {
   gap: 0.4rem;
 }
 
-.btn-danger-ghost {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.2);
-}
-.btn-danger-ghost:hover {
-  background: rgba(239, 68, 68, 0.2);
-}
+/* .btn-danger-outline vient du style global (src/style.css) */
 
 .add-to-family-box {
   padding: 0.75rem;
@@ -2977,8 +2923,6 @@ const testGlobalSmtp = async () => {
   }
 
   .btn-icon {
-    padding: 0.6rem;
-    border-radius: 8px;
     background: var(--bg-secondary, rgba(0, 0, 0, 0.03));
     border: 1px solid var(--border-color, rgba(0, 0, 0, 0.05));
   }

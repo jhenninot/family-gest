@@ -342,8 +342,6 @@ const thisWeekMealsCount = computed(() => {
   color: var(--text-muted);
   margin-top: 0.2rem;
 }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-.btn-close { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; }
 /* Shortcuts Section */
 .shortcuts-section {
   display: flex;

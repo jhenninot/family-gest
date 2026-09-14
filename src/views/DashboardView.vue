@@ -524,7 +524,7 @@
                   <button 
                     v-if="store.isFamilyAdmin" 
                     @click.stop="openEditMemberModal(member)" 
-                    class="btn-icon-action"
+                    class="btn-icon-chip"
                     title="Modifier ce membre"
                   >
                     <Edit3 :size="14" />
@@ -534,7 +534,7 @@
                   <button 
                     v-if="store.isFamilyAdmin" 
                     @click.stop="handleToggleAdmin(member)" 
-                    class="btn-icon-action"
+                    class="btn-icon-chip"
                     :class="{ 'is-admin': member.isAdmin }"
                     :title="member.isAdmin ? 'Rétrograder en membre standard' : 'Nommer administrateur'"
                   >
@@ -546,7 +546,7 @@
                   <button 
                     v-if="store.isFamilyAdmin" 
                     @click.stop="handleDeleteMember(member)" 
-                    class="btn-icon-action delete"
+                    class="btn-icon-chip danger"
                     title="Supprimer ce membre (Administrateur)"
                   >
                     <Trash2 :size="14" />
@@ -1992,33 +1992,11 @@ const handleDeleteMember = async (member) => {
 
 
 
-.btn-icon-action {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.3rem;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--transition-fast);
-}
-
-.btn-icon-action.is-admin {
+/* .btn-icon-chip vient du style global (src/style.css) ; .is-admin est un etat permanent propre a cette vue */
+.btn-icon-chip.is-admin {
   background: var(--accent-rose-light);
   color: var(--accent-rose);
   border-color: rgba(244, 63, 94, 0.3);
-}
-
-.btn-icon-action:hover {
-  border-color: var(--accent-primary);
-  color: var(--accent-primary);
-}
-
-.btn-icon-action.delete:hover {
-  border-color: var(--accent-rose);
-  color: var(--accent-rose);
 }
 
 .admin-checkbox-card {

@@ -155,38 +155,6 @@
       </div>
     </div>
 
-    <!-- ===== Modal Confirmation Suppression ===== -->
-    <div v-if="itemToDelete" class="modal-overlay" @click.self="itemToDelete = null">
-      <div class="modal-content modal-sm">
-        <div class="modal-header">
-          <h3>Supprimer l'article</h3>
-          <button @click="itemToDelete = null" class="btn-close">&times;</button>
-        </div>
-        <p class="confirm-text">
-          Voulez-vous vraiment supprimer <strong>« {{ itemToDelete.name }} »</strong> ?<br>
-          Cette action est irréversible.
-        </p>
-
-        <!-- Avertissement si l'article est associé à un repas -->
-        <div v-if="getLinkedMeal(itemToDelete.mealId)" class="linked-meal-warning">
-          <div class="warning-icon">⚠️</div>
-          <div class="warning-content">
-            <span class="warning-title">Attention : Ingrédient associé à un repas</span>
-            <p class="warning-desc">
-              Cet article est prévu pour le plat :<br>
-              <strong>🍲 {{ getLinkedMeal(itemToDelete.mealId).dish }}</strong>
-              <span class="warning-date">{{ formatMealDate(getLinkedMeal(itemToDelete.mealId)) }}</span>
-            </p>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button @click="itemToDelete = null" class="btn btn-secondary">Annuler</button>
-          <button @click="executeDelete" class="btn btn-danger">Supprimer</button>
-        </div>
-      </div>
-    </div>
-
     <!-- ===== Modal Édition ===== -->
     <div v-if="editingItem" class="modal-overlay" @click.self="editingItem = null">
       <div class="modal-content">
@@ -237,8 +205,10 @@
 import { ref, computed, watch } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
 import { ShoppingCart, Plus, Trash2, Pencil } from '@lucide/vue'
+import { useConfirm } from '../composables/useConfirm'
 
 const store = useFamilyStore()
+const { confirm } = useConfirm()
 
 const availableCategories = computed(() => {
   if (store.shoppingCategories && store.shoppingCategories.length > 0) {
@@ -257,7 +227,6 @@ const availableCategories = computed(() => {
 
 // --- États ---
 const newItem = ref({ name: '', category: 'Frais', quantity: 1, urgent: false })
-const itemToDelete = ref(null)
 const editingItem = ref(null)
 const editForm = ref({})
 
@@ -354,14 +323,20 @@ const handleAddItem = () => {
   newItem.value = { name: '', category: defaultCat, quantity: 1, urgent: false }
 }
 
-const confirmDelete = (item) => {
-  itemToDelete.value = item
-}
-
-const executeDelete = () => {
-  if (itemToDelete.value) {
-    store.deleteShoppingItem(itemToDelete.value.id)
-    itemToDelete.value = null
+const confirmDelete = async (item) => {
+  const meal = getLinkedMeal(item.mealId)
+  const ok = await confirm({
+    title: 'Supprimer l\'article',
+    message: `Voulez-vous vraiment supprimer « ${item.name} » ?`,
+    description: 'Cette action est irréversible.',
+    warning: meal
+      ? `Cet article est prévu pour le plat :<br><strong>🍲 ${meal.dish}</strong><br>${formatMealDate(meal)}`
+      : '',
+    confirmText: 'Supprimer',
+    type: 'danger'
+  })
+  if (ok) {
+    store.deleteShoppingItem(item.id)
   }
 }
 
@@ -588,17 +563,7 @@ const handleEditSave = () => {
   background: var(--accent-rose-light);
 }
 
-/* ---- Modal ---- */
-.modal-sm .modal-content {
-  max-width: 420px;
-}
-
-.confirm-text {
-  margin: 1rem 0 1.5rem;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
+/* ---- Modal (edition) ---- */
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -619,66 +584,6 @@ const handleEditSave = () => {
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 1.5rem;
-}
-
-.btn-danger {
-  background: var(--accent-rose);
-  color: white;
-  border: none;
-  padding: 0.55rem 1.25rem;
-  border-radius: var(--radius-md);
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
-}
-
-.btn-danger:hover { opacity: 0.85; }
-
-/* Warning repas lié */
-.linked-meal-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  background: var(--accent-amber-light);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-md);
-  margin-bottom: 1.25rem;
-  text-align: left;
-}
-
-.warning-icon {
-  font-size: 1.25rem;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.warning-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.warning-title {
-  font-size: 0.85rem;
-  font-weight: 800;
-  color: var(--accent-amber);
-}
-
-.warning-desc {
-  font-size: 0.825rem;
-  color: var(--text-primary);
-  line-height: 1.4;
-  margin: 0;
-}
-
-.warning-date {
-  display: block;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  font-weight: 600;
-  margin-top: 0.25rem;
-  text-transform: capitalize;
 }
 
 .empty-state {

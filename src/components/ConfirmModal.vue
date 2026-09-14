@@ -194,33 +194,16 @@ watch(isVisible, (newVal) => {
   gap: 0.75rem;
 }
 
-.btn-danger {
-  background: var(--accent-rose);
-  color: white;
-  border: none;
-  padding: 0.55rem 1.25rem;
-  border-radius: var(--radius-md);
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
-}
-
-.btn-danger:hover {
-  opacity: 0.88;
-}
+/* .btn-danger vient du style global (src/style.css) */
 
 .btn-warning {
   background: var(--accent-amber);
   color: white;
-  border: none;
-  padding: 0.55rem 1.25rem;
-  border-radius: var(--radius-md);
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
+  border-color: transparent;
 }
 
 .btn-warning:hover {
-  opacity: 0.88;
+  opacity: 0.92;
+  transform: translateY(-1px);
 }
 </style>

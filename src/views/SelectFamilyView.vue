@@ -354,22 +354,7 @@ const handleLogout = () => {
   border-color: rgba(51, 65, 85, 0.6);
 }
 
-.role-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.3rem 0.65rem;
-  border-radius: 9999px;
-  background: rgba(148, 163, 184, 0.15);
-  color: var(--text-muted, #64748b);
-}
-
-.role-pill.admin-role {
-  background: rgba(99, 102, 241, 0.15);
-  color: var(--primary, #6366f1);
-}
+/* .role-pill et sa variante .admin-role viennent du style global (src/style.css) */
 
 .btn-access {
   display: inline-flex;

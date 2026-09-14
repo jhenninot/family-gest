@@ -151,23 +151,18 @@ const goToSelectFamily = () => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 0.85rem;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   cursor: pointer;
   text-align: left;
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
   box-sizing: border-box;
 }
 
-[data-theme='dark'] .family-switcher-btn {
-  background: rgba(30, 41, 59, 0.7);
-  border-color: rgba(51, 65, 85, 0.8);
-}
-
 .family-switcher-btn:hover {
-  border-color: var(--primary, #6366f1);
-  background: rgba(99, 102, 241, 0.05);
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-light);
 }
 
 .family-icon {
@@ -187,22 +182,18 @@ const goToSelectFamily = () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--text-color, #1e293b);
-}
-
-[data-theme='dark'] .family-name {
-  color: #f8fafc;
+  color: var(--text-primary);
 }
 
 .family-role-badge {
   font-size: 0.72rem;
-  color: var(--primary, #6366f1);
+  color: var(--accent-primary);
   font-weight: 600;
 }
 
 .arrow-icon {
-  color: var(--text-muted, #64748b);
-  transition: transform 0.2s ease;
+  color: var(--text-muted);
+  transition: transform var(--transition-normal);
 }
 
 .arrow-icon.rotated {
@@ -214,12 +205,12 @@ const goToSelectFamily = () => {
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  background: var(--bg-card, #ffffff);
-  border-radius: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
   padding: 0.5rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xl);
   z-index: 200;
-  border: 1px solid var(--border-color, #cbd5e1);
+  border: 1px solid var(--border-color);
 }
 
 .dropdown-header {
@@ -227,7 +218,7 @@ const goToSelectFamily = () => {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted);
 }
 
 .dropdown-list {
@@ -243,18 +234,18 @@ const goToSelectFamily = () => {
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 0.75rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .dropdown-item:hover {
-  background: rgba(99, 102, 241, 0.08);
+  background: var(--accent-primary-light);
 }
 
 .dropdown-item.active {
-  background: rgba(99, 102, 241, 0.12);
-  color: var(--primary, #6366f1);
+  background: var(--accent-primary-light);
+  color: var(--accent-primary);
 }
 
 .item-left {
@@ -284,18 +275,18 @@ const goToSelectFamily = () => {
 
 .item-slug {
   font-size: 0.72rem;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted);
   font-family: monospace;
 }
 
 .check-mark {
-  color: var(--primary, #6366f1);
+  color: var(--accent-primary);
   font-weight: bold;
 }
 
 .dropdown-divider {
   height: 1px;
-  background: var(--border-color, #e2e8f0);
+  background: var(--border-color);
   margin: 0.4rem 0;
 }
 
@@ -313,40 +304,31 @@ const goToSelectFamily = () => {
   padding: 0.5rem 0.75rem;
   border: none;
   background: transparent;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted);
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   text-align: left;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
 }
 
 .dropdown-action-btn:hover {
-  background: rgba(0, 0, 0, 0.04);
-  color: var(--text-color, #1e293b);
-}
-
-[data-theme='dark'] .dropdown-action-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #f8fafc;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .super-admin-action {
-  color: #d97706;
-}
-
-[data-theme='dark'] .super-admin-action {
-  color: #fbbf24;
+  color: var(--accent-amber);
 }
 
 .super-admin-action:hover {
-  background: rgba(245, 158, 11, 0.15);
+  background: var(--accent-amber-light);
 }
 
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal);
 }
 
 .fade-slide-enter-from,

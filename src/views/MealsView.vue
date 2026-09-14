@@ -1785,7 +1785,7 @@ const getMemberFirstName = (id) => {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   padding: 0.15rem 0.45rem;
 }
 
@@ -1869,25 +1869,7 @@ const getMemberFirstName = (id) => {
   gap: 0.5rem;
 }
 
-.btn-danger-outline {
-  background: transparent;
-  border: 1px solid rgba(244, 63, 94, 0.3);
-  color: var(--accent-rose);
-  padding: 0.5rem 0.85rem;
-  border-radius: var(--radius-md);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: all var(--transition-fast);
-}
-
-.btn-danger-outline:hover {
-  background: var(--accent-rose);
-  color: white;
-}
+/* .btn-danger-outline vient du style global (src/style.css) */
 
 /* Modal Form Styles */
 .meal-modal {

@@ -68,7 +68,7 @@
           </span>
           <span class="badge badge-purple">{{ task.category }}</span>
 
-          <button @click="store.deleteTask(task.id)" class="btn-icon-delete" title="Supprimer">
+          <button @click="handleDeleteTask(task)" class="btn-icon-delete" title="Supprimer">
             <Trash2 :size="16" />
           </button>
         </div>
@@ -169,8 +169,10 @@ import { useFamilyStore } from '../stores/familyStore'
 import { CheckSquare, Plus, Trash2 } from '@lucide/vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
+import { useConfirm } from '../composables/useConfirm'
 
 const store = useFamilyStore()
+const { confirm } = useConfirm()
 
 const statusFilter = ref('all')
 const memberFilter = ref('all')
@@ -211,6 +213,19 @@ const getPriorityClass = (priority) => {
     case 'Haute': return 'badge-rose'
     case 'Moyenne': return 'badge-amber'
     default: return 'badge-emerald'
+  }
+}
+
+const handleDeleteTask = async (task) => {
+  const ok = await confirm({
+    title: 'Supprimer la tâche',
+    message: `Voulez-vous vraiment supprimer la tâche « ${task.title} » ?`,
+    description: 'Cette action est irréversible.',
+    confirmText: 'Supprimer',
+    type: 'danger'
+  })
+  if (ok) {
+    store.deleteTask(task.id)
   }
 }
 

@@ -822,10 +822,10 @@
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-action" title="Modifier">
+                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-ghost" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-ghost danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -850,18 +850,18 @@
                       </div>
                       <div class="person-actions">
                         <template v-if="getLongAbsenceForRecord(abs)">
-                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-action text-amber" title="Modifier toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-ghost text-amber" title="Modifier toute l'absence longue">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-action text-danger" title="Supprimer toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-ghost danger" title="Supprimer toute l'absence longue">
                             <Trash2 :size="15" />
                           </button>
                         </template>
                         <template v-else>
-                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
+                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-ghost" title="Modifier">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
+                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-ghost danger" title="Supprimer">
                             <Trash2 :size="15" />
                           </button>
                         </template>
@@ -882,10 +882,10 @@
                         <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-action" title="Modifier">
+                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-ghost" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-ghost danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -925,10 +925,10 @@
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-action" title="Modifier">
+                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-ghost" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-ghost danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -953,18 +953,18 @@
                       </div>
                       <div class="person-actions">
                         <template v-if="getLongAbsenceForRecord(abs)">
-                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-action text-amber" title="Modifier toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-ghost text-amber" title="Modifier toute l'absence longue">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-action text-danger" title="Supprimer toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-ghost danger" title="Supprimer toute l'absence longue">
                             <Trash2 :size="15" />
                           </button>
                         </template>
                         <template v-else>
-                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
+                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-ghost" title="Modifier">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
+                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-ghost danger" title="Supprimer">
                             <Trash2 :size="15" />
                           </button>
                         </template>
@@ -985,10 +985,10 @@
                         <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-action" title="Modifier">
+                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-ghost" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-ghost danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -1028,10 +1028,10 @@
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-action" title="Modifier">
+                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-ghost" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-ghost danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -1056,18 +1056,18 @@
                       </div>
                       <div class="person-actions">
                         <template v-if="getLongAbsenceForRecord(abs)">
-                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-action text-amber" title="Modifier toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-ghost text-amber" title="Modifier toute l'absence longue">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-action text-danger" title="Supprimer toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-ghost danger" title="Supprimer toute l'absence longue">
                             <Trash2 :size="15" />
                           </button>
                         </template>
                         <template v-else>
-                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-action" title="Modifier">
+                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-ghost" title="Modifier">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-action text-danger" title="Supprimer">
+                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-ghost danger" title="Supprimer">
                             <Trash2 :size="15" />
                           </button>
                         </template>
@@ -1088,10 +1088,10 @@
                         <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-action" title="Modifier">
+                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-ghost" title="Modifier">
                           <Edit3 :size="15" />
                         </button>
-                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-action text-danger" title="Supprimer">
+                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-ghost danger" title="Supprimer">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -1350,10 +1350,10 @@
                 </div>
 
                 <div class="la-actions" v-if="canEditLongAbsence(la)">
-                  <button @click="editLongAbsence(la)" class="btn-icon-action text-amber" title="Modifier cette absence longue">
+                  <button @click="editLongAbsence(la)" class="btn-icon-ghost text-amber" title="Modifier cette absence longue">
                     <Edit3 :size="15" />
                   </button>
-                  <button @click="handleDeleteLongAbsence(la)" class="btn-icon-action text-danger" title="Supprimer cette absence longue">
+                  <button @click="handleDeleteLongAbsence(la)" class="btn-icon-ghost danger" title="Supprimer cette absence longue">
                     <Trash2 :size="15" />
                   </button>
                 </div>
@@ -3161,26 +3161,7 @@ const handleSelectDeclarationType = (type) => {
   gap: 0.25rem;
 }
 
-.btn-icon-action {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color var(--transition-fast);
-}
-
-.btn-icon-action:hover {
-  color: var(--accent-primary);
-}
-
-.btn-icon-action.text-danger:hover {
-  color: var(--accent-rose);
-}
+/* .btn-icon-ghost vient du style global (src/style.css) */
 
 .slots-pill-row {
   display: flex;
