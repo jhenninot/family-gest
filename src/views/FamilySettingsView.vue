@@ -63,8 +63,92 @@
     </div>
 
     <div v-else class="admin-body-wrapper">
+      <!-- Members Management Card: Gestion des membres de la famille -->
+      <div class="card glass-card members-admin-card">
+        <div class="members-admin-header">
+          <div class="section-title-group">
+            <h2 class="section-title">
+              <Users :size="20" class="title-icon-members" /> Gestion des membres
+            </h2>
+            <p class="section-subtitle">
+              Consultez, modifiez ou retirez les membres de votre famille.
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="openAddMemberModal"
+            class="btn btn-primary btn-header-add-member"
+            :disabled="isQuotaReached"
+            :title="isQuotaReached ? 'Quota maximum de membres atteint' : 'Inviter un membre'"
+          >
+            <UserPlus :size="16" />
+            <span>Inviter un membre</span>
+          </button>
+        </div>
+
+        <div class="members-cards-grid margin-top-md">
+          <div
+            v-for="member in store.members"
+            :key="member.id"
+            class="member-card"
+            :class="{ clickable: !member.isPending, 'is-pending-card': member.isPending }"
+            @click="!member.isPending && openEditMemberModal(member)"
+            :title="member.isPending ? 'Invitation en attente d\'activation' : 'Cliquez pour modifier les informations de ce membre'"
+          >
+            <div class="member-card-top">
+              <UserAvatar :avatar="member.avatar" :name="member.name" size="md" :border-color="member.color" />
+              <div class="member-card-name">
+                <strong>{{ member.name }}</strong>
+                <span v-if="member.isAdmin && !member.isPending" class="admin-badge-mini" title="Administrateur">
+                  <ShieldCheck :size="12" /> Admin
+                </span>
+                <span v-if="member.isPending" class="pending-badge-mini" title="Invitation envoyée, en attente d'activation par l'utilisateur">
+                  ⏳ En attente
+                </span>
+              </div>
+            </div>
+            <div class="member-card-bottom">
+              <div class="member-card-sub">
+                <span class="member-role-text">{{ member.role }}</span>
+                <span v-if="member.email" class="member-email-sub">{{ member.email }}</span>
+              </div>
+              <div class="member-actions" v-if="!member.isPending">
+                <button
+                  @click.stop="openEditMemberModal(member)"
+                  class="btn-icon-chip"
+                  title="Modifier ce membre"
+                >
+                  <Pencil :size="14" />
+                </button>
+
+                <button
+                  @click.stop="handleToggleAdmin(member)"
+                  class="btn-icon-chip"
+                  :class="{ 'is-admin': member.isAdmin }"
+                  :title="member.isAdmin ? 'Rétrograder en membre standard' : 'Nommer administrateur'"
+                >
+                  <ShieldCheck v-if="member.isAdmin" :size="14" />
+                  <Shield v-else :size="14" />
+                </button>
+
+                <button
+                  @click.stop="handleDeleteMember(member)"
+                  class="btn-icon-chip danger"
+                  title="Supprimer ce membre (Administrateur)"
+                >
+                  <Trash2 :size="14" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <div v-if="store.members.length === 0" class="empty-state">
+            👥 Aucun membre trouvé dans cette famille.
+          </div>
+        </div>
+      </div>
+
       <!-- Export Data Card: Sauvegarde et Export des données -->
-      <div class="card glass-card export-config-card">
+      <div class="card glass-card export-config-card margin-top-lg">
         <div class="export-config-header">
           <div class="section-title-group">
             <h2 class="section-title">
@@ -629,6 +713,167 @@
       </div>
     </div>
 
+    <!-- Modal Modifier un Membre (Administrateur Uniquement) -->
+    <div v-if="showEditMemberModal" class="modal-overlay" @click.self="showEditMemberModal = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Modifier le Membre : {{ editingMember?.name }}</h3>
+          <button @click="showEditMemberModal = false" class="btn-close">&times;</button>
+        </div>
+
+        <form @submit.prevent="handleSaveEditMember">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Prénom</label>
+              <input
+                v-model="editMemberForm.firstName"
+                type="text"
+                required
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Nom de famille</label>
+              <input
+                v-model="editMemberForm.lastName"
+                type="text"
+                required
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Adresse Email (Login)</label>
+              <input
+                v-model="editMemberForm.email"
+                type="email"
+                required
+                class="form-input"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Nouveau Mot de passe (Optionnel)</label>
+              <input
+                v-model="editMemberForm.password"
+                type="password"
+                placeholder="Laisser vide pour ne pas changer"
+                class="form-input"
+              />
+              <PasswordStrengthIndicator v-if="editMemberForm.password" :password="editMemberForm.password" />
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label">Rôle familial</label>
+              <select v-model="editMemberForm.role" class="form-select">
+                <option value="Papa">Papa</option>
+                <option value="Maman">Maman</option>
+                <option value="Fils">Fils</option>
+                <option value="Fille">Fille</option>
+                <option value="Grand-Parent">Grand-Parent</option>
+                <option value="Oncle / Tante">Oncle / Tante</option>
+                <option value="Baby-Sitter">Baby-Sitter</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Administrateur</label>
+              <label class="admin-checkbox-card">
+                <input type="checkbox" v-model="editMemberForm.isAdmin" class="custom-checkbox" />
+                <span class="checkbox-text">
+                  <ShieldCheck :size="16" class="text-indigo" />
+                  <strong>Admin</strong>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Notifications Web (PWA)</label>
+              <label class="admin-checkbox-card">
+                <input type="checkbox" v-model="editMemberForm.pushNotificationsEnabled" class="custom-checkbox" />
+                <span class="checkbox-text">
+                  <Bell :size="16" class="text-indigo" />
+                  <strong>Alertes Web</strong>
+                </span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Notifications par Email</label>
+              <label class="admin-checkbox-card">
+                <input type="checkbox" v-model="editMemberForm.emailNotificationsEnabled" class="custom-checkbox" />
+                <span class="checkbox-text">
+                  <Mail :size="16" class="text-indigo" />
+                  <strong>Alertes Email</strong>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Présence habituelle à la maison</label>
+            <select v-model="editMemberForm.usualPresence" class="form-select">
+              <option value="present">🟢 Habituellement présent(e) (signale des absences)</option>
+              <option value="absent">⚪ Habituellement absent(e) (signale des présences)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Avatar ou Photo</label>
+            <AvatarPicker
+              v-model="editMemberForm.avatar"
+              :color="editMemberForm.color"
+              :name="`${editMemberForm.firstName} ${editMemberForm.lastName}`"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Couleur de profil</label>
+            <div class="color-picker-options">
+              <button
+                v-for="c in colorOptions"
+                :key="c"
+                type="button"
+                class="color-btn"
+                :style="{ backgroundColor: c }"
+                :class="{ selected: editMemberForm.color === c }"
+                @click="editMemberForm.color = c"
+              ></button>
+            </div>
+          </div>
+
+          <div class="modal-footer flex-between">
+            <button
+              type="button"
+              @click="handleResendWelcomeEmail(editMemberForm.id)"
+              class="btn btn-secondary btn-resend-welcome"
+              :disabled="resendingEmail"
+              title="Envoyer un email avec un nouveau lien d'activation valable 2 heures"
+            >
+              <Mail :size="15" />
+              <span>{{ resendingEmail ? 'Envoi...' : 'Renvoyer l\'email de bienvenue' }}</span>
+            </button>
+
+            <div class="modal-actions-right">
+              <button type="button" @click="showEditMemberModal = false" class="btn btn-secondary">Annuler</button>
+              <button type="submit" class="btn btn-primary" :disabled="savingEdit">
+                <span v-if="!savingEdit">Enregistrer les modifications</span>
+                <span v-else>Enregistrement...</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Modal Ajouter / Modifier une Catégorie de courses -->
     <div v-if="showCatModal" class="modal-overlay" @click.self="showCatModal = false">
       <div class="modal-content modal-cat-content">
@@ -784,11 +1029,13 @@ import { useFamilyStore } from '../stores/familyStore'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import AvatarPicker from '../components/AvatarPicker.vue'
+import UserAvatar from '../components/UserAvatar.vue'
 import { DEFAULT_AVATAR } from '../utils/avatarHelper'
 import {
   Mail, Settings, CheckCircle2, AlertTriangle, ShieldAlert,
   Eye, EyeOff, Save, Send, HelpCircle, ShieldCheck, Loader2, AlertCircle, Globe,
-  UserPlus, Download, ShoppingCart, Plus, Pencil, Trash2, ExternalLink
+  UserPlus, Download, ShoppingCart, Plus, Pencil, Trash2, ExternalLink,
+  Users, Shield, Bell
 } from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
 
@@ -1062,8 +1309,8 @@ const handleAddMember = async () => {
     const result = await store.inviteMember(newMember.value)
     if (result.success) {
       showAddMemberModal.value = false
-      alert(memberCheck.value.exists 
-        ? `✅ L'utilisateur ${newMember.value.firstName || ''} a été invité à rejoindre votre famille !` 
+      alert(memberCheck.value.exists
+        ? `✅ L'utilisateur ${newMember.value.firstName || ''} a été invité à rejoindre votre famille !`
         : `✅ Une invitation a été envoyée par email à ${newMember.value.email} !`
       )
     } else {
@@ -1071,6 +1318,138 @@ const handleAddMember = async () => {
     }
   } finally {
     addingMember.value = false
+  }
+}
+
+const showEditMemberModal = ref(false)
+const editingMember = ref(null)
+const savingEdit = ref(false)
+const resendingEmail = ref(false)
+
+const editMemberForm = ref({
+  id: null,
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  role: 'Membre',
+  points: 0,
+  isAdmin: false,
+  avatar: '👤',
+  color: '#6366f1',
+  pushNotificationsEnabled: true,
+  emailNotificationsEnabled: false,
+  usualPresence: 'present'
+})
+
+const handleResendWelcomeEmail = async (memberId) => {
+  if (!memberId) return
+  resendingEmail.value = true
+  const res = await store.resendWelcomeEmail(memberId)
+  resendingEmail.value = false
+
+  if (res.success) {
+    alert(`✉️ ${res.message || 'Email de bienvenue envoyé avec succès !'}`)
+  } else {
+    alert(`⚠️ ${res.error || 'Erreur lors de l\'envoi de l\'email'}`)
+  }
+}
+
+const openEditMemberModal = (member) => {
+  editingMember.value = member
+  const nameParts = (member.name || '').split(' ')
+  const fName = member.firstName || nameParts[0] || ''
+  const lName = member.lastName || nameParts.slice(1).join(' ') || ''
+
+  editMemberForm.value = {
+    id: member.id,
+    firstName: fName,
+    lastName: lName,
+    email: member.email || '',
+    password: '',
+    role: member.role || 'Membre',
+    points: member.points || 0,
+    isAdmin: Boolean(member.isAdmin),
+    avatar: member.avatar || DEFAULT_AVATAR,
+    color: member.color || '#6366f1',
+    pushNotificationsEnabled: member.pushNotificationsEnabled !== false,
+    emailNotificationsEnabled: Boolean(member.emailNotificationsEnabled),
+    usualPresence: member.usualPresence || 'present'
+  }
+  showEditMemberModal.value = true
+}
+
+const handleSaveEditMember = async () => {
+  if (!editMemberForm.value.firstName.trim() || !editMemberForm.value.email.trim()) return
+
+  if (editMemberForm.value.password && editMemberForm.value.password.trim().length > 0) {
+    if (!isPasswordValid(editMemberForm.value.password.trim())) {
+      alert(getPasswordErrorMessage(editMemberForm.value.password.trim()))
+      return
+    }
+  }
+
+  if (editingMember.value && editingMember.value.isAdmin && !editMemberForm.value.isAdmin) {
+    const adminCount = store.members.filter(m => m.isAdmin).length
+    if (adminCount <= 1) {
+      alert('Impossible de retirer le statut administrateur : il s\'agit du dernier administrateur du système.')
+      return
+    }
+  }
+
+  savingEdit.value = true
+  try {
+    const res = await store.updateMember(editMemberForm.value.id, editMemberForm.value)
+    if (res.success) {
+      showEditMemberModal.value = false
+      await store.fetchAllData()
+    } else {
+      alert(res.error || 'Erreur lors de la modification du membre')
+    }
+  } catch (err) {
+    alert(err.message || 'Erreur lors de l\'enregistrement')
+  } finally {
+    savingEdit.value = false
+  }
+}
+
+const handleToggleAdmin = async (member) => {
+  if (member.isAdmin) {
+    const adminCount = store.members.filter(m => m.isAdmin).length
+    if (adminCount <= 1) {
+      alert('Impossible de retirer le statut administrateur : il s\'agit du dernier administrateur du système.')
+      return
+    }
+  }
+  const action = member.isAdmin ? 'retirer les droits d\'administrateur à' : 'nommer administrateur'
+  const ok = await confirm({
+    title: member.isAdmin ? 'Retirer les droits administrateur' : 'Nommer administrateur',
+    message: `Voulez-vous ${action} <strong>${member.name}</strong> ?`,
+    confirmText: 'Confirmer',
+    type: member.isAdmin ? 'warning' : 'primary'
+  })
+  if (ok) {
+    await store.toggleAdminStatus(member.id)
+  }
+}
+
+const handleDeleteMember = async (member) => {
+  if (member.isAdmin) {
+    const adminCount = store.members.filter(m => m.isAdmin).length
+    if (adminCount <= 1) {
+      alert('Impossible de supprimer cet administrateur : il s\'agit du dernier administrateur du système.')
+      return
+    }
+  }
+  const ok = await confirm({
+    title: 'Retirer un membre',
+    message: `Voulez-vous vraiment supprimer <strong>${member.name}</strong> de la famille ?`,
+    description: 'Cette action retirera le membre de cet espace familial ainsi que ses accès.',
+    confirmText: 'Retirer de la famille',
+    type: 'danger'
+  })
+  if (ok) {
+    await store.deleteMember(member.id)
   }
 }
 
@@ -2111,6 +2490,205 @@ onMounted(() => {
   background: rgba(99, 102, 241, 0.2);
   border-color: var(--accent-primary, #6366f1);
   transform: scale(1.1);
+}
+
+/* Members Admin Card */
+.members-admin-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.title-icon-members {
+  color: var(--accent-rose, #f43f5e);
+}
+
+.btn-header-add-member {
+  white-space: nowrap;
+}
+
+.members-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 850px) {
+  .members-cards-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.member-card {
+  padding: 0.85rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.member-card.clickable {
+  cursor: pointer;
+}
+
+.member-card.clickable:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  background: var(--bg-card-hover);
+}
+
+.member-card-top {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin-bottom: 0.55rem;
+}
+
+.member-card-name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.member-card-name strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.2;
+}
+
+.admin-badge-mini {
+  font-size: 0.625rem;
+  font-weight: 800;
+  background: var(--accent-rose-light);
+  color: var(--accent-rose);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+
+.pending-badge-mini {
+  font-size: 0.625rem;
+  font-weight: 800;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.member-card.is-pending-card {
+  opacity: 0.85;
+  border-style: dashed;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.member-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.member-card-sub {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.member-role-text {
+  font-size: 0.725rem;
+  color: var(--text-muted);
+}
+
+.member-email-sub {
+  font-size: 0.675rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* .btn-icon-chip vient du style global (src/style.css) ; .is-admin est un etat permanent propre a cette vue */
+.btn-icon-chip.is-admin {
+  background: var(--accent-rose-light);
+  color: var(--accent-rose);
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+/* Ce modificateur manquait déjà pour la modale à L853 (justify-content restait flex-end par défaut) */
+.modal-footer.flex-between {
+  justify-content: space-between;
+}
+
+.modal-actions-right {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.btn-resend-welcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--accent-primary);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.btn-resend-welcome:hover {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--accent-primary);
+}
+
+@media (max-width: 640px) {
+  .members-admin-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn-header-add-member {
+    width: 100%;
+    justify-content: center;
+  }
+  .modal-footer.flex-between {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .btn-resend-welcome {
+    width: 100%;
+    justify-content: center;
+  }
+  .modal-actions-right {
+    justify-content: flex-end;
+  }
 }
 
 /* Export Config Card */
