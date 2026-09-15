@@ -421,7 +421,8 @@
               :key="event.id"
               class="event-item-row"
             >
-              <div class="event-date-box" :style="{ borderColor: event.color }">
+              <div class="event-date-box" :style="{ '--event-accent-color': event.color }">
+                <span class="event-weekday">{{ getWeekdayShort(event.date) }}</span>
                 <span class="event-day">{{ getDayNumber(event.date) }}</span>
                 <span class="event-month">{{ getMonthShort(event.date) }}</span>
               </div>
@@ -961,7 +962,12 @@ const getDayNumber = (dateStr) => {
 
 const getMonthShort = (dateStr) => {
   if (!dateStr) return ''
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { month: 'short' })
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { month: 'short' }).replace(/\.$/, '')
+}
+
+const getWeekdayShort = (dateStr) => {
+  if (!dateStr) return ''
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short' }).replace(/\.$/, '')
 }
 
 const loadDashboardData = async () => {
@@ -1783,9 +1789,9 @@ const handleDeleteMember = async (member) => {
 }
 
 .event-date-box {
+  position: relative;
   width: 44px;
-  height: 48px;
-  border-left: 4px solid var(--accent-purple);
+  height: 58px;
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
   display: flex;
@@ -1794,8 +1800,20 @@ const handleDeleteMember = async (member) => {
   justify-content: center;
   flex-shrink: 0;
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
+.event-date-box::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--event-accent-color, var(--accent-purple));
+}
+
+.event-weekday { font-size: 0.6rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; line-height: 1.2; }
 .event-day { font-size: 1.1rem; font-weight: 800; line-height: 1; }
 .event-month { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); }
 .event-details { 
