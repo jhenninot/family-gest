@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useFamilyStore } from './familyStore'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('familygest_token') || '')
@@ -143,6 +144,12 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('familygest_token')
     localStorage.removeItem('familygest_user')
     localStorage.removeItem('familygest_active_slug')
+
+    // Sans ça, les données de la famille précédente (dont la liste userFamilies utilisée par le
+    // menu et le garde de navigation) restent en mémoire et peuvent fuiter vers le prochain
+    // utilisateur qui se connecte dans le même onglet.
+    const familyStore = useFamilyStore()
+    familyStore.resetStore()
   }
 
   return {

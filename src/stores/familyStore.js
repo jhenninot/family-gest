@@ -68,6 +68,18 @@ export const useFamilyStore = defineStore('family', () => {
     meals.value = []
   }
 
+  // Réinitialisation complète à la déconnexion : sans ça, la liste des familles (userFamilies)
+  // et les données de la famille active restent en mémoire d'une session à l'autre dans le même
+  // onglet, et peuvent fuiter vers le prochain utilisateur qui se connecte (voir authStore.logout()).
+  const resetStore = () => {
+    currentFamily.value = null
+    currentFamilyRole.value = ''
+    currentFamilyIsAdmin.value = false
+    currentFamilyQuota.value = { memberCount: 0, maxMembers: 10 }
+    userFamilies.value = []
+    clearFamilyData()
+  }
+
   // Fetch accessible families for user
   const fetchUserFamilies = async () => {
     const authStore = useAuthStore()
@@ -1134,6 +1146,7 @@ export const useFamilyStore = defineStore('family', () => {
     currentFamilyQuota,
     userFamilies,
     isFamilyAdmin,
+    resetStore,
     fetchUserFamilies,
     fetchCurrentFamily,
     switchFamily,
