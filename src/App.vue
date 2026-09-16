@@ -151,6 +151,12 @@
                 </div>
               </button>
             </div>
+
+            <div class="user-dropdown-divider"></div>
+
+            <div class="user-dropdown-version">
+              <span class="item-subtitle">v{{ appVersion }} · {{ buildSha }}</span>
+            </div>
           </div>
         </transition>
       </div>
@@ -203,6 +209,9 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
+
+const appVersion = __APP_VERSION__
+const buildSha = __APP_BUILD_SHA__
 
 const showProfileModal = ref(false)
 const isUserMenuOpen = ref(false)
@@ -651,6 +660,12 @@ onUnmounted(() => {
   height: 1px;
   background: var(--border-color);
   margin: 0.2rem 0;
+}
+
+.user-dropdown-version {
+  display: flex;
+  justify-content: center;
+  padding: 0.3rem 0.65rem 0.1rem;
 }
 
 .user-dropdown-actions {

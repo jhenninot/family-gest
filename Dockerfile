@@ -4,6 +4,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# SHA court du commit buildé (passé par la CI), embarqué dans le bundle pour affichage
+# dans l'app (menu avatar) — 'dev' par défaut hors CI (build local, docker build sans arg).
+ARG GIT_SHA=dev
+ENV GIT_SHA=$GIT_SHA
+
 # Copie des fichiers de dépendances du frontend
 COPY package*.json ./
 RUN npm ci
