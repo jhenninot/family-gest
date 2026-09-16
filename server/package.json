@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "API REST Backend Node.js & MongoDB pour FamilyGest avec authentification JWT & Bcrypt",
   "main": "index.js",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "start": "node index.js",
