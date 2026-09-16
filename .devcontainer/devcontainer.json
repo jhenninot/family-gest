@@ -1,0 +1,19 @@
+{
+  "name": "family-gest",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+
+  "postCreateCommand": "npm install && npm --prefix server install",
+  "postStartCommand": "bash .devcontainer/start-dev.sh",
+
+  "forwardPorts": [5173, 5000],
+  "portsAttributes": {
+    "5173": {
+      "label": "Frontend (Vite)",
+      "onAutoForward": "openPreview"
+    },
+    "5000": {
+      "label": "API backend",
+      "onAutoForward": "notify"
+    }
+  }
+}
