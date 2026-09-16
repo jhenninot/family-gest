@@ -25,7 +25,6 @@ import Task from './models/Task.js'
 import Event from './models/Event.js'
 import ShoppingItem from './models/ShoppingItem.js'
 import ShoppingCategory from './models/ShoppingCategory.js'
-import EmailConfig from './models/EmailConfig.js'
 import Shortcut from './models/Shortcut.js'
 import Absence from './models/Absence.js'
 import LongAbsence from './models/LongAbsence.js'
@@ -63,36 +62,83 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'API FamilyGest, Authentification & MongoDB opérationnelles' })
 })
 
-// Helper : Obtenir la configuration SMTP appropriée (priorité : familial si configuré, sinon global plateforme)
-const getSmtpConfig = async (familyId = null) => {
+// Helper : Détermine si une configuration email est exploitable, selon son mode d'envoi.
+// Le mode 'brevo-api' n'a besoin que d'une clé API + d'une adresse d'expédition (pas d'hôte/login SMTP).
+const isEmailConfigUsable = (config) => {
+  if (!config) return false
+  if (config.providerPreset === 'brevo-api') {
+    return Boolean(config.pass && (config.fromEmail || config.user))
+  }
+  return Boolean(config.host && config.user && config.pass)
+}
+
+// Helper : Envoie un email via la configuration fournie — relais SMTP générique (Nodemailer),
+// ou appel direct à l'API REST Brevo (https://api.brevo.com/v3/smtp/email) si providerPreset === 'brevo-api'.
+const sendEmailWithConfig = async (config, { to, subject, html, attachments = [] }) => {
+  const fromName = config.fromName || 'FamilyGest'
+  const fromEmail = config.fromEmail || config.user
+
+  if (config.providerPreset === 'brevo-api') {
+    const payload = {
+      sender: { name: fromName, email: fromEmail },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html
+    }
+    if (attachments.length > 0) {
+      payload.attachment = attachments.map(a => ({
+        name: a.filename,
+        content: Buffer.isBuffer(a.content) ? a.content.toString('base64') : Buffer.from(a.content).toString('base64')
+      }))
+    }
+
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': config.pass,
+        'content-type': 'application/json',
+        'accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}))
+      throw new Error(errBody.message || `Erreur API Brevo (HTTP ${res.status})`)
+    }
+    return
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: {
+      user: config.user,
+      pass: config.pass
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  })
+
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject,
+    html,
+    attachments
+  })
+}
+
+// Helper : Obtenir la configuration SMTP globale de la plateforme (configuration unique, gérée par le Super Admin)
+const getSmtpConfig = async () => {
   try {
     const globalConfig = await GlobalConfig.findOne()
-    let config = null
-    if (familyId) {
-      const familyConfig = await EmailConfig.findOne({ familyId, isConfigured: true })
-      if (familyConfig && familyConfig.host && familyConfig.user && familyConfig.pass) {
-        config = familyConfig.toObject ? familyConfig.toObject() : { ...familyConfig }
-      }
+    if (globalConfig && globalConfig.isConfigured && isEmailConfigUsable(globalConfig)) {
+      return globalConfig.toObject()
     }
-    if (!config) {
-      if (globalConfig && globalConfig.isConfigured && globalConfig.host && globalConfig.user && globalConfig.pass) {
-        config = globalConfig.toObject ? globalConfig.toObject() : { ...globalConfig }
-      } else {
-        const fallback = await EmailConfig.findOne({ isConfigured: true })
-        if (fallback) {
-          config = fallback.toObject ? fallback.toObject() : { ...fallback }
-        }
-      }
-    }
-
-    if (config) {
-      // L'URL de base configurée au niveau Super Admin s'applique à toute l'application et à toutes les familles
-      if (globalConfig?.serverUrl) {
-        config.serverUrl = globalConfig.serverUrl
-      }
-    }
-
-    return config
+    return null
   } catch (err) {
     console.error('Erreur getSmtpConfig:', err.message)
     return null
@@ -194,7 +240,7 @@ const requireFamilyAdmin = (req, res, next) => {
 const sendWelcomeEmail = async (user, token) => {
   try {
     const config = await getSmtpConfig()
-    if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
+    if (!config || !config.isConfigured || !isEmailConfigUsable(config)) {
       console.log(`[Email] Configuration SMTP non définie ou incomplète. Email de bienvenue non envoyé à ${user.email}`)
       return { success: false, reason: 'SMTP_NOT_CONFIGURED' }
     }
@@ -202,24 +248,7 @@ const sendWelcomeEmail = async (user, token) => {
     const baseServerUrl = (config.serverUrl || 'http://localhost:5173').replace(/\/+$/, '')
     const setPasswordUrl = `${baseServerUrl}/set-password?token=${token}`
 
-    const transporter = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-      auth: {
-        user: config.user,
-        pass: config.pass
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    })
-
-    const mailOptions = {
-      from: `"${config.fromName || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
-      to: user.email,
-      subject: '✨ Bienvenue sur FamilyGest - Définissez votre mot de passe',
-      html: `
+    const emailHtml = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -290,9 +319,12 @@ const sendWelcomeEmail = async (user, token) => {
         </body>
         </html>
       `
-    }
 
-    await transporter.sendMail(mailOptions)
+    await sendEmailWithConfig(config, {
+      to: user.email,
+      subject: '✨ Bienvenue sur FamilyGest - Définissez votre mot de passe',
+      html: emailHtml
+    })
     console.log(`[Email] Email de bienvenue envoyé avec succès à ${user.email}`)
     return { success: true, recipients: [{ userId: user.id, name: `${user.firstName || ''} ${user.lastName || ''}`.trim(), email: user.email }] }
   } catch (err) {
@@ -304,27 +336,14 @@ const sendWelcomeEmail = async (user, token) => {
 // Helper : Envoi d'email d'invitation à une famille
 const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExistingUser, invitedByName, isAdmin = false }) => {
   try {
-    const config = await getSmtpConfig(family._id)
-    if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
+    const config = await getSmtpConfig()
+    if (!config || !config.isConfigured || !isEmailConfigUsable(config)) {
       console.log(`[Email] Configuration SMTP non définie ou incomplète. Invitation non envoyée à ${email}`)
       return { success: false, reason: 'SMTP_NOT_CONFIGURED' }
     }
 
     const baseServerUrl = (config.serverUrl || 'http://localhost:5173').replace(/\/+$/, '')
     const invitationUrl = `${baseServerUrl}/invitation/${invitationToken}`
-
-    const transporter = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-      auth: {
-        user: config.user,
-        pass: config.pass
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    })
 
     const title = isExistingUser
       ? (isAdmin ? `Invitation à devenir administrateur de « ${family.name} »` : `Invitation à rejoindre la famille « ${family.name} »`)
@@ -342,11 +361,7 @@ const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExi
       ? (isAdmin ? `✨ Rejoindre en tant qu'administrateur` : `✨ Rejoindre la famille ${family.name}`)
       : (isAdmin ? `🚀 Définir mon mot de passe & administrer` : `🚀 Créer mon compte & rejoindre la famille`)
 
-    const mailOptions = {
-      from: `"${config.fromName || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
-      to: email,
-      subject: `✨ ${title}`,
-      html: `
+    const invitationHtml = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -406,9 +421,12 @@ const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExi
         </body>
         </html>
       `
-    }
 
-    await transporter.sendMail(mailOptions)
+    await sendEmailWithConfig(config, {
+      to: email,
+      subject: `✨ ${title}`,
+      html: invitationHtml
+    })
     console.log(`[Email] Invitation envoyée avec succès à ${email} pour la famille ${family.name}`)
     return { success: true, recipients: [{ userId: null, name: email, email }] }
   } catch (err) {
@@ -549,8 +567,8 @@ const sendNotificationEmail = async ({
   familyId = null 
 }) => {
   try {
-    const config = await getSmtpConfig(familyId)
-    if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
+    const config = await getSmtpConfig()
+    if (!config || !config.isConfigured || !isEmailConfigUsable(config)) {
       return { success: false, reason: 'SMTP_NOT_CONFIGURED', count: 0, recipients: [] }
     }
 
@@ -590,27 +608,18 @@ const sendNotificationEmail = async ({
     const baseServerUrl = (config.serverUrl || 'http://localhost:5173').replace(/\/+$/, '')
     const fullActionUrl = actionUrl.startsWith('http') ? actionUrl : `${baseServerUrl}${actionUrl}`
 
-    const transporter = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-      auth: {
-        user: config.user,
-        pass: config.pass
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    })
-
     const finalSubject = familyName ? `[${familyName}] ${subject || title}` : (subject || `✨ FamilyGest - ${title}`)
 
+    const notificationAttachments = (calendarData && calendarData.icsContent) ? [
+      {
+        filename: `${(calendarData.eventTitle || 'evenement').replace(/[^a-zA-Z0-9]/g, '_')}.ics`,
+        content: calendarData.icsContent,
+        contentType: 'text/calendar; charset=utf-8; method=REQUEST'
+      }
+    ] : []
+
     const emailPromises = recipientUsers.map(async (recipient) => {
-      const mailOptions = {
-        from: `"${config.fromName || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
-        to: recipient.email,
-        subject: finalSubject,
-        html: `
+      const notificationHtml = `
           <!DOCTYPE html>
           <html>
           <head>
@@ -678,16 +687,14 @@ const sendNotificationEmail = async ({
             </table>
           </body>
           </html>
-        `,
-        attachments: (calendarData && calendarData.icsContent) ? [
-          {
-            filename: `${(calendarData.eventTitle || 'evenement').replace(/[^a-zA-Z0-9]/g, '_')}.ics`,
-            content: calendarData.icsContent,
-            contentType: 'text/calendar; charset=utf-8; method=REQUEST'
-          }
-        ] : []
-      }
-      return transporter.sendMail(mailOptions)
+        `
+
+      return sendEmailWithConfig(config, {
+        to: recipient.email,
+        subject: finalSubject,
+        html: notificationHtml,
+        attachments: notificationAttachments
+      })
     })
 
     await Promise.allSettled(emailPromises)
@@ -2262,7 +2269,7 @@ const handleSaveGlobalSmtp = async (req, res) => {
     if (newFromEmail !== undefined) config.fromEmail = newFromEmail.trim()
     if (fromName !== undefined) config.fromName = fromName.trim()
 
-    config.isConfigured = Boolean(config.host && config.user && config.pass)
+    config.isConfigured = isEmailConfigUsable(config)
     await config.save()
 
     res.json({
@@ -2295,36 +2302,36 @@ app.post('/api/super-admin/smtp/test', authRateLimiter, requireAuth, requireSupe
       return res.status(400).json({ error: 'Veuillez renseigner une adresse email destinataire' })
     }
 
-    const config = await GlobalConfig.findOne()
-    const host = (req.body.host || config?.host || '').trim()
-    const port = Number(req.body.port || config?.port || 587)
-    const secure = req.body.secure !== undefined ? Boolean(req.body.secure) : Boolean(config?.secure)
-    const user = (req.body.user || config?.user || '').trim()
-    const pass = req.body.password || req.body.pass || config?.pass
-    const fromName = req.body.fromName || config?.fromName || 'FamilyGest Platform'
-    const fromEmail = (req.body.from || req.body.fromEmail || config?.fromEmail || user).trim()
-
-    if (!host || !user || !pass) {
-      return res.status(400).json({ error: 'Veuillez renseigner l\'hôte, l\'utilisateur et le mot de passe SMTP' })
+    const stored = await GlobalConfig.findOne()
+    const providerPreset = req.body.providerPreset || stored?.providerPreset || 'gmail'
+    const user = (req.body.user || stored?.user || '').trim()
+    const testConfig = {
+      providerPreset,
+      host: (req.body.host || stored?.host || '').trim(),
+      port: Number(req.body.port || stored?.port || 587),
+      secure: req.body.secure !== undefined ? Boolean(req.body.secure) : Boolean(stored?.secure),
+      user,
+      pass: req.body.password || req.body.pass || stored?.pass,
+      fromName: req.body.fromName || stored?.fromName || 'FamilyGest Platform',
+      fromEmail: (req.body.from || req.body.fromEmail || stored?.fromEmail || user).trim()
     }
 
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: { user, pass },
-      tls: { rejectUnauthorized: false }
-    })
+    if (!isEmailConfigUsable(testConfig)) {
+      return res.status(400).json({
+        error: providerPreset === 'brevo-api'
+          ? 'Veuillez renseigner la clé API Brevo et une adresse d\'expédition'
+          : 'Veuillez renseigner l\'hôte, l\'utilisateur et le mot de passe SMTP'
+      })
+    }
 
-    await transporter.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
+    await sendEmailWithConfig(testConfig, {
       to: recipientEmail.trim(),
       subject: '✨ Test de connexion SMTP Plateforme - FamilyGest',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
           <h2 style="color: #4f46e5;">Connexion SMTP Plateforme Réussie !</h2>
           <p>Le serveur SMTP global de FamilyGest fonctionne correctement.</p>
-          <p style="color: #64748b; font-size: 13px;">Expédié depuis : ${fromEmail}</p>
+          <p style="color: #64748b; font-size: 13px;">Expédié depuis : ${testConfig.fromEmail}</p>
         </div>
       `
     })
@@ -3038,7 +3045,7 @@ app.post('/api/members/:id/resend-welcome', requireAuth, attachFamilyContext, re
     const user = await User.findOne({ id: memberId })
     if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
 
-    const config = await getSmtpConfig(req.family._id)
+    const config = await getSmtpConfig()
     if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
       return res.status(400).json({ 
         error: 'Le serveur email SMTP n\'est pas encore configuré. Rendez-vous dans Administration pour le paramétrer.' 
@@ -3333,7 +3340,7 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
     await newEvent.save()
 
     // Liens et contenu pour ajout à l'agenda personnel
-    const emailConfig = await getSmtpConfig(req.family._id)
+    const emailConfig = await getSmtpConfig()
     const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
     const googleCalendarUrl = generateServerGoogleCalendarUrl(newEvent)
     const icsContent = generateServerIcsContent(newEvent)
@@ -3501,7 +3508,7 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
     await event.save()
 
     // Liens et contenu pour ajout/mise à jour sur l'agenda personnel
-    const emailConfig = await getSmtpConfig(req.family._id)
+    const emailConfig = await getSmtpConfig()
     const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
     const googleCalendarUrl = generateServerGoogleCalendarUrl(event)
     const icsContent = generateServerIcsContent(event)
@@ -4583,122 +4590,6 @@ app.delete('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) 
     res.json({ message: 'Plat et ingrédients associés supprimés' })
   } catch (err) {
     res.status(500).json({ error: err.message })
-  }
-})
-
-// === EMAIL & APP SETTINGS ROUTES (ADMIN FAMILIAL) ===
-app.get('/api/settings/email', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
-  try {
-    let config = await EmailConfig.findOne({ familyId: req.family._id })
-    const globalConfig = await GlobalConfig.findOne()
-
-    res.json({
-      serverUrl: config?.serverUrl || globalConfig?.serverUrl || 'http://localhost:5173',
-      providerPreset: config?.providerPreset || 'gmail',
-      host: config?.host || '',
-      port: config?.port || 587,
-      secure: Boolean(config?.secure),
-      user: config?.user || '',
-      hasPassword: Boolean(config?.pass && config.pass.length > 0),
-      fromEmail: config?.fromEmail || config?.user || '',
-      fromName: config?.fromName || req.family.name || 'FamilyGest',
-      isConfigured: Boolean(config?.isConfigured),
-      isUsingGlobalFallback: Boolean(!config?.isConfigured && globalConfig?.isConfigured)
-    })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-app.post('/api/settings/email', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
-  try {
-    const { serverUrl, providerPreset, host, port, secure, user, pass, fromEmail, fromName } = req.body
-
-    let config = await EmailConfig.findOne({ familyId: req.family._id })
-    if (!config) {
-      config = new EmailConfig({ familyId: req.family._id })
-    }
-
-    if (serverUrl !== undefined) config.serverUrl = serverUrl.trim()
-    if (providerPreset) config.providerPreset = providerPreset
-    if (host !== undefined) config.host = host.trim()
-    if (port !== undefined) config.port = Number(port)
-    if (secure !== undefined) config.secure = Boolean(secure)
-    if (user !== undefined) config.user = user.trim()
-    if (pass !== undefined && pass !== '') config.pass = pass.trim()
-    if (fromEmail !== undefined) config.fromEmail = fromEmail.trim()
-    if (fromName !== undefined) config.fromName = fromName.trim()
-
-    config.isConfigured = Boolean(config.host && config.user && config.pass)
-    await config.save()
-
-    res.json({
-      message: 'Paramètres email de la famille enregistrés avec succès',
-      serverUrl: config.serverUrl,
-      providerPreset: config.providerPreset,
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-      user: config.user,
-      hasPassword: Boolean(config.pass && config.pass.length > 0),
-      fromEmail: config.fromEmail,
-      fromName: config.fromName,
-      isConfigured: config.isConfigured
-    })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-app.post('/api/settings/email/test', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
-  try {
-    const { recipientEmail } = req.body
-    if (!recipientEmail || !recipientEmail.trim()) {
-      return res.status(400).json({ error: 'Veuillez renseigner une adresse email destinataire' })
-    }
-
-    const config = await getSmtpConfig(req.family._id)
-    if (!config || !config.host || !config.user || !config.pass) {
-      return res.status(400).json({ error: 'Aucun serveur email n\'est configuré (ni familial, ni plateforme)' })
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.secure,
-      auth: {
-        user: config.user,
-        pass: config.pass
-      },
-      tls: {
-        rejectUnauthorized: false
-      }
-    })
-
-    const mailOptions = {
-      from: `"${config.fromName || req.family.name || 'FamilyGest'}" <${config.fromEmail || config.user}>`,
-      to: recipientEmail.trim(),
-      subject: `✨ Test de configuration Email - ${req.family.name}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 12px; border: 1px solid #e0e7ff; background-color: #f8fafc;">
-          <h2 style="color: #4f46e5; margin-top: 0;">👍 Connexion Email Réussie pour ${req.family.name} !</h2>
-          <p>Bonjour,</p>
-          <p>Ceci est un message de test envoyé depuis votre espace familial <strong>${req.family.name}</strong> sur <strong>FamilyGest</strong>.</p>
-          <p>Vos paramètres de serveur d'envoi Email sont opérationnels :</p>
-          <ul>
-            <li><strong>Serveur :</strong> ${config.host}:${config.port}</li>
-            <li><strong>Compte :</strong> ${config.user}</li>
-            <li><strong>Expéditeur :</strong> ${config.fromName || req.family.name}</li>
-          </ul>
-        </div>
-      `
-    }
-
-    await transporter.sendMail(mailOptions)
-    res.json({ message: `Email de test envoyé avec succès à ${recipientEmail}` })
-  } catch (err) {
-    console.error('Erreur lors de l\'envoi de l\'email de test:', err)
-    res.status(500).json({ error: `Échec de l'envoi de l'email : ${err.message}` })
   }
 })
 

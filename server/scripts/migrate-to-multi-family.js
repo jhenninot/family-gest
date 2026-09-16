@@ -3,7 +3,6 @@ import Family from '../models/Family.js'
 import FamilyMember from '../models/FamilyMember.js'
 import User from '../models/User.js'
 import GlobalConfig from '../models/GlobalConfig.js'
-import EmailConfig from '../models/EmailConfig.js'
 import Task from '../models/Task.js'
 import Event from '../models/Event.js'
 import ShoppingItem from '../models/ShoppingItem.js'
@@ -108,30 +107,12 @@ export const migrateToMultiFamily = async () => {
       console.log(`🍽️ [Migration] ${guestsUpdated.modifiedCount} invités repas rattachés à "${defaultFamily.name}"`)
     }
 
-    // 5. Migration EmailConfig -> GlobalConfig & EmailConfig familial
-    let existingEmailConfig = await EmailConfig.findOne({ $or: [{ familyId: null }, { familyId: { $exists: false } }] })
-    if (existingEmailConfig) {
-      existingEmailConfig.familyId = familyId
-      await existingEmailConfig.save()
-    }
-
+    // 5. Initialisation de la configuration SMTP globale si absente
     let globalConfig = await GlobalConfig.findOne()
     if (!globalConfig) {
-      const source = existingEmailConfig || await EmailConfig.findOne()
-      globalConfig = new GlobalConfig({
-        serverUrl: source?.serverUrl || 'http://localhost:5173',
-        providerPreset: source?.providerPreset || 'gmail',
-        host: source?.host || 'smtp.gmail.com',
-        port: source?.port || 587,
-        secure: Boolean(source?.secure),
-        user: source?.user || '',
-        pass: source?.pass || '',
-        fromEmail: source?.fromEmail || '',
-        fromName: source?.fromName || 'FamilyGest Platform',
-        isConfigured: Boolean(source?.isConfigured)
-      })
+      globalConfig = new GlobalConfig()
       await globalConfig.save()
-      console.log(`📧 [Migration] GlobalConfig initialisé avec succès depuis les paramètres existants`)
+      console.log(`📧 [Migration] GlobalConfig initialisé avec les valeurs par défaut`)
     }
 
     console.log('✅ [Migration] Migration multi-familles terminée avec succès.')

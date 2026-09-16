@@ -8,7 +8,7 @@ const globalConfigSchema = new mongoose.Schema({
   },
   providerPreset: {
     type: String,
-    enum: ['gmail', 'outlook', 'yahoo', 'custom'],
+    enum: ['gmail', 'outlook', 'yahoo', 'resend', 'brevo-smtp', 'brevo-api', 'custom'],
     default: 'gmail'
   },
   host: {

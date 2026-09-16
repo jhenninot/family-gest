@@ -225,7 +225,7 @@
         <div class="smtp-intro">
           <h3>Paramétrage Global de la Plateforme</h3>
           <p>
-            Configurez l'adresse web publique principale de FamilyGest et le serveur SMTP global utilisé par défaut pour toutes les familles.
+            Configurez l'adresse web publique principale de FamilyGest et l'unique serveur SMTP utilisé pour l'envoi de tous les emails (invitations, notifications) de toutes les familles.
           </p>
         </div>
 
@@ -235,12 +235,12 @@
             <label class="form-label">
               <strong>URL publique de l'application / du serveur (Base URL)</strong>
             </label>
-            <input 
-              v-model="smtpConfig.serverUrl" 
-              type="text" 
-              placeholder="Ex: https://famille.mondomaine.fr ou http://192.168.1.50:5000" 
-              class="form-input" 
-              required 
+            <input
+              v-model="smtpConfig.serverUrl"
+              type="text"
+              placeholder="Ex: https://famille.mondomaine.fr ou http://192.168.1.50:5000"
+              class="form-input"
+              required
             />
             <span class="help-subtext">
               Exemple : <code>https://famille.mondomaine.fr</code> ou <code>http://localhost:5000</code>. Sans barre oblique finale. Cette adresse sera insérée dans tous les emails d'invitation et de notification pour que les membres de chaque famille puissent accéder à l'application.
@@ -248,64 +248,137 @@
           </div>
 
           <div class="separator-divider"></div>
-          <h4 class="sub-section-title margin-top-md">Serveur SMTP Global de secours</h4>
+          <h4 class="sub-section-title margin-top-md">Serveur SMTP de la Plateforme</h4>
 
-          <div class="grid-2">
+          <div class="form-group margin-bottom-lg">
+            <label class="form-label">Fournisseur</label>
+            <div class="smtp-preset-buttons">
+              <button
+                type="button"
+                @click="applyGlobalSmtpPreset('gmail')"
+                class="smtp-preset-btn"
+                :class="{ active: smtpConfig.providerPreset === 'gmail' }"
+              >
+                Gmail
+              </button>
+              <button
+                type="button"
+                @click="applyGlobalSmtpPreset('outlook')"
+                class="smtp-preset-btn"
+                :class="{ active: smtpConfig.providerPreset === 'outlook' }"
+              >
+                Outlook
+              </button>
+              <button
+                type="button"
+                @click="applyGlobalSmtpPreset('brevo-smtp')"
+                class="smtp-preset-btn"
+                :class="{ active: smtpConfig.providerPreset === 'brevo-smtp' }"
+              >
+                Brevo (SMTP)
+              </button>
+              <button
+                type="button"
+                @click="applyGlobalSmtpPreset('brevo-api')"
+                class="smtp-preset-btn"
+                :class="{ active: smtpConfig.providerPreset === 'brevo-api' }"
+              >
+                Brevo (API)
+              </button>
+              <button
+                type="button"
+                @click="applyGlobalSmtpPreset('resend')"
+                class="smtp-preset-btn"
+                :class="{ active: smtpConfig.providerPreset === 'resend' }"
+              >
+                Resend
+              </button>
+              <button
+                type="button"
+                @click="applyGlobalSmtpPreset('custom')"
+                class="smtp-preset-btn"
+                :class="{ active: smtpConfig.providerPreset === 'custom' }"
+              >
+                Custom
+              </button>
+            </div>
+            <span v-if="smtpConfig.providerPreset === 'resend'" class="help-subtext">
+              Resend : créez une clé API sur <code>resend.com</code> après avoir vérifié votre domaine d'envoi (SPF/DKIM). Le nom d'utilisateur SMTP est littéralement <code>resend</code> ; le mot de passe SMTP est cette clé API (<code>re_xxxxxxxxx</code>).
+            </span>
+            <span v-if="smtpConfig.providerPreset === 'brevo-smtp'" class="help-subtext">
+              Brevo (SMTP) : gratuit jusqu'à 300 emails/jour, sans carte bancaire. Vérifiez votre domaine d'envoi (SPF/DKIM) sur <code>brevo.com</code>, puis générez une <strong>clé SMTP</strong> (pas la clé API — ce sont deux identifiants distincts) dans Paramètres SMTP &amp; API. Le nom d'utilisateur SMTP est l'adresse email de votre compte Brevo ; le mot de passe SMTP est la clé SMTP générée.
+            </span>
+            <span v-if="smtpConfig.providerPreset === 'brevo-api'" class="help-subtext">
+              Brevo (API) : utilise directement votre <strong>clé API</strong> Brevo (<code>xkeysib-...</code>, section SMTP &amp; API &gt; Clés API) après vérification de votre domaine d'envoi (SPF/DKIM) — aucun identifiant SMTP séparé n'est nécessaire dans ce mode, les emails sont envoyés via l'API REST de Brevo.
+            </span>
+          </div>
+
+          <div class="grid-2" v-if="smtpConfig.providerPreset !== 'brevo-api'">
             <div class="form-group">
               <label class="form-label">Hôte SMTP (Host)</label>
-              <input 
-                v-model="smtpConfig.host" 
-                type="text" 
-                placeholder="Ex: smtp.sendgrid.net ou mail.mondomaine.com" 
-                class="form-input" 
-                required 
+              <input
+                v-model="smtpConfig.host"
+                type="text"
+                placeholder="Ex: smtp.sendgrid.net ou mail.mondomaine.com"
+                class="form-input"
+                required
               />
             </div>
             <div class="form-group">
               <label class="form-label">Port</label>
-              <input 
-                v-model.number="smtpConfig.port" 
-                type="number" 
-                placeholder="Ex: 587 ou 465" 
-                class="form-input" 
-                required 
+              <input
+                v-model.number="smtpConfig.port"
+                type="number"
+                placeholder="Ex: 587 ou 465"
+                class="form-input"
+                required
               />
             </div>
           </div>
 
-          <div class="grid-2">
+          <div class="grid-2" v-if="smtpConfig.providerPreset !== 'brevo-api'">
             <div class="form-group">
               <label class="form-label">Nom d'utilisateur (Login SMTP)</label>
-              <input 
-                v-model="smtpConfig.user" 
-                type="text" 
-                placeholder="Ex: apikey ou notification@mondomaine.com" 
-                class="form-input" 
+              <input
+                v-model="smtpConfig.user"
+                type="text"
+                placeholder="Ex: apikey ou notification@mondomaine.com"
+                class="form-input"
               />
             </div>
             <div class="form-group">
               <label class="form-label">Mot de passe SMTP</label>
-              <input 
-                v-model="smtpConfig.password" 
-                type="password" 
-                placeholder="Mot de passe ou clé API" 
-                class="form-input" 
+              <input
+                v-model="smtpConfig.password"
+                type="password"
+                placeholder="Mot de passe ou clé API"
+                class="form-input"
               />
             </div>
+          </div>
+          <div class="form-group margin-bottom-lg" v-else>
+            <label class="form-label">Clé API Brevo</label>
+            <input
+              v-model="smtpConfig.password"
+              type="password"
+              placeholder="xkeysib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              class="form-input"
+              required
+            />
           </div>
 
           <div class="grid-2">
             <div class="form-group">
               <label class="form-label">Email Expéditeur ("From")</label>
-              <input 
-                v-model="smtpConfig.from" 
-                type="email" 
-                placeholder="Ex: no-reply@mondomaine.com" 
-                class="form-input" 
-                required 
+              <input
+                v-model="smtpConfig.from"
+                type="email"
+                placeholder="Ex: no-reply@mondomaine.com"
+                class="form-input"
+                required
               />
             </div>
-            <div class="form-group flex-center-y">
+            <div class="form-group flex-center-y" v-if="smtpConfig.providerPreset !== 'brevo-api'">
               <label class="checkbox-container">
                 <input v-model="smtpConfig.secure" type="checkbox" />
                 <span class="checkmark"></span>
@@ -1073,6 +1146,7 @@ const loadingUsers = ref(false)
 // Global Platform & SMTP State
 const smtpConfig = reactive({
   serverUrl: 'http://localhost:5173',
+  providerPreset: 'gmail',
   host: '',
   port: 587,
   secure: false,
@@ -1080,6 +1154,26 @@ const smtpConfig = reactive({
   password: '',
   from: ''
 })
+
+const smtpPresets = {
+  gmail: { host: 'smtp.gmail.com', port: 587, secure: false },
+  outlook: { host: 'smtp.office365.com', port: 587, secure: false },
+  'brevo-smtp': { host: 'smtp-relay.brevo.com', port: 587, secure: false },
+  'brevo-api': { host: '', port: '', secure: false, user: '' },
+  resend: { host: 'smtp.resend.com', port: 465, secure: true, user: 'resend' },
+  custom: {}
+}
+
+const applyGlobalSmtpPreset = (presetName) => {
+  smtpConfig.providerPreset = presetName
+  const preset = smtpPresets[presetName]
+  if (preset) {
+    if (preset.host !== undefined) smtpConfig.host = preset.host
+    if (preset.port !== undefined) smtpConfig.port = preset.port
+    if (preset.secure !== undefined) smtpConfig.secure = preset.secure
+    if (preset.user !== undefined) smtpConfig.user = preset.user
+  }
+}
 const savingSmtp = ref(false)
 const testingSmtp = ref(false)
 const smtpMessage = ref('')
@@ -1296,6 +1390,7 @@ const fetchSmtp = async () => {
     if (res.ok) {
       const data = await res.json()
       smtpConfig.serverUrl = data.serverUrl || 'http://localhost:5173'
+      smtpConfig.providerPreset = data.providerPreset || 'gmail'
       smtpConfig.host = data.host || ''
       smtpConfig.port = data.port || 587
       smtpConfig.secure = Boolean(data.secure)
@@ -1922,6 +2017,7 @@ const saveGlobalSmtp = async () => {
   try {
     const payload = {
       serverUrl: (smtpConfig.serverUrl || '').trim(),
+      providerPreset: smtpConfig.providerPreset,
       host: smtpConfig.host,
       port: smtpConfig.port,
       secure: smtpConfig.secure,
@@ -2246,6 +2342,48 @@ const testGlobalSmtp = async () => {
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 1.5rem;
+}
+
+.smtp-preset-buttons {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .smtp-preset-buttons {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .smtp-preset-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.smtp-preset-btn {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  color: var(--text-color);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.smtp-preset-btn:hover {
+  border-color: var(--accent-indigo, #6366f1);
+  transform: translateY(-1px);
+}
+
+.smtp-preset-btn.active {
+  border-color: var(--accent-indigo, #6366f1);
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--accent-indigo, #6366f1);
 }
 
 /* Form inputs & grid */

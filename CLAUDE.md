@@ -50,9 +50,9 @@ Two-level identity, per `Migration.md`:
 - `Family` — a tenant, identified by a unique URL `slug`, with a member quota (`maxMembers`).
 - `FamilyMember` — the join model per (family, user): family-scoped role, `isAdmin` (family admin, distinct from `isSuperAdmin`), points, presence, and per-family notification preferences. A user can belong to multiple families with different roles/admin status in each.
 
-All business data (tasks, events, shopping items/categories, absences, long absences, meal guests, meals, shortcuts, email settings) is scoped by `familyId` and reached only through routes guarded by `requireAuth` + `attachFamilyContext` (and `requireFamilyAdmin` where family-admin-only). The active family is selected client-side and sent to the API via the `X-Family-Slug` header (or `:familySlug` route param); there's no server-side "current family" session state.
+All business data (tasks, events, shopping items/categories, absences, long absences, meal guests, meals, shortcuts) is scoped by `familyId` and reached only through routes guarded by `requireAuth` + `attachFamilyContext` (and `requireFamilyAdmin` where family-admin-only). The active family is selected client-side and sent to the API via the `X-Family-Slug` header (or `:familySlug` route param); there's no server-side "current family" session state.
 
-Email delivery has two tiers (see `Migration.md` §4): a family can configure its own SMTP (`EmailConfig`, per family) which takes priority; otherwise the platform-wide SMTP (`GlobalConfig`, managed by the super admin) is used as fallback. The `getSmtpConfig(familyId)` helper in `index.js` implements this precedence.
+Email delivery is a single global configuration (see `Migration.md` §4): the platform-wide SMTP (`GlobalConfig`, managed by the super admin only) is used for every family's invitations and notifications — there is no per-family SMTP override. The `getSmtpConfig()` helper in `index.js` reads this singleton config.
 
 ### Frontend structure
 

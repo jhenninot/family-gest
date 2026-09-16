@@ -61,17 +61,15 @@ Chaque famille dispose de son étanchéité complète pour :
 
 ---
 
-## 4. Architecture Email & Double Niveau SMTP
+## 4. Architecture Email : Configuration SMTP Unique
 
-Pour garantir que les emails partent **toujours**, même avant qu'une famille n'ait configuré son SMTP :
+> **Mise à jour** : le double niveau SMTP décrit initialement ci-dessous (un SMTP par famille en plus du SMTP global) a été abandonné au profit d'une **configuration SMTP unique, globale à la plateforme**, gérée exclusivement par le Super Administrateur. Raison : simplicité de gestion (un seul formulaire, aucune logique de précédence à maintenir) — le bénéfice d'un compte expéditeur propre par famille ne justifiait pas la complexité additionnelle.
 
-1. **SMTP Global (Plateforme) - Géré par le Super Administrateur** :
-   * Utilisé pour les invitations initiales lors de la création d'une famille.
-   * Utilisé pour la réinitialisation de mot de passe (oubli de mot de passe global).
-   * Sert de relais de secours si une famille n'a pas encore configuré son propre SMTP.
-2. **SMTP Familial - Géré par l'Administrateur Familial** :
-   * Permet à la famille d'utiliser son propre compte expéditeur (ex: `famille.dupont@gmail.com`).
-   * Utilisé pour les notifications internes : rappels d'événements, tâches quotidiennes, alertes courses, invitations de nouveaux membres dans cette famille.
+**SMTP Global (Plateforme) - Géré par le Super Administrateur** :
+* Utilisé pour toutes les invitations (création de famille, ajout de membre).
+* Utilisé pour la réinitialisation de mot de passe.
+* Utilisé pour toutes les notifications internes de toutes les familles : rappels d'événements, tâches quotidiennes, alertes courses, absences, repas.
+* Aucune configuration SMTP côté famille n'existe plus (le modèle `EmailConfig` par famille a été retiré).
 
 ---
 
@@ -133,7 +131,7 @@ Afin de ne perdre **aucune donnée actuelle** :
   2. Il rattache tous les utilisateurs actuels à cette famille.
   3. Il promeut le compte administrateur actuel en **Super Administrateur** ET **Administrateur de cette première famille**.
   4. Il assigne le `familyId` de cette famille à l'intégralité des tâches, événements, présences, raccourcis et catégories existants.
-  5. Il conserve la configuration email actuelle en tant que configuration SMTP de cette première famille (et la duplique comme SMTP global de secours).
+  5. *(Historique)* Il conservait initialement la configuration email en tant que SMTP de cette première famille en plus du SMTP global — cette étape a été retirée depuis le passage à une configuration SMTP unique (voir §4) ; le SMTP global est simplement initialisé avec ses valeurs par défaut s'il n'existe pas encore, à reconfigurer une fois dans la console Super Admin après mise à niveau.
 
 ---
 
