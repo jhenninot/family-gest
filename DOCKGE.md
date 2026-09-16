@@ -131,6 +131,36 @@ docker compose up -d
 
 ---
 
+## 🤖 Mise à jour 100% automatique après un `git push` sur `main`
+
+Depuis l'ajout du service `watchtower` dans [`compose.yaml`](compose.yaml), vous n'avez **plus besoin de cliquer sur "Update"** : la chaîne complète est automatisée.
+
+### Comment ça fonctionne
+1. Vous poussez du code sur la branche `main` de votre dépôt GitHub.
+2. Le workflow [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml) construit l'image et la publie sur `ghcr.io/jhenninot/family-gest:latest` (déjà en place, rien à faire côté GitHub).
+3. Sur votre serveur, le conteneur `familygest-watchtower` interroge le registre `ghcr.io` toutes les **5 minutes** (`WATCHTOWER_POLL_INTERVAL=300`).
+4. Dès qu'une nouvelle version de l'image est détectée, Watchtower recrée **uniquement** `familygest-app` (grâce au label `com.centurylinklabs.watchtower.enable=true` posé sur ce service) et supprime l'ancienne image locale devenue inutile (`WATCHTOWER_CLEANUP=true`).
+5. `familygest-mongo` n'est **jamais** touché par Watchtower : la persistance de vos données reste inchangée.
+
+### Activer cette automatisation sur une stack déjà déployée
+Si votre stack `familygest` existe déjà dans Dockge, elle ne connaît pas encore ce nouveau service tant que vous n'avez pas redéployé la définition à jour :
+1. Récupérez la dernière version de `compose.yaml` (via `git pull`, ou en recollant son contenu dans l'éditeur Dockge).
+2. Cliquez sur **Deploy** (ou **Update**) une dernière fois manuellement — cela démarre `familygest-watchtower` en plus de `app`/`mongo`.
+3. À partir de là, tous les prochains push sur `main` se déploient tout seuls, sans plus jamais rouvrir Dockge.
+
+### Vérifier que ça fonctionne
+```bash
+docker logs -f familygest-watchtower
+```
+Vous devez voir un message de vérification toutes les 5 minutes, puis un message de mise à jour (`Found new ... image`, `Stopping /familygest-app`, `Creating /familygest-app`) après un push sur `main` suivi du temps de build GitHub Actions (quelques minutes).
+
+### ⚠️ À savoir avant d'activer
+Watchtower a besoin d'un accès au socket Docker (`/var/run/docker.sock`) pour pouvoir recréer des conteneurs : c'est un accès équivalent à un contrôle total du démon Docker de la machine (pas seulement de la stack `familygest`). C'est un projet open source largement utilisé et maintenu (`containrrr/watchtower`), mais gardez cela en tête sur un serveur partagé avec d'autres services sensibles. Aucun port entrant n'est ouvert : Watchtower ne fait que des requêtes sortantes vers `ghcr.io`, il n'y a donc pas d'exposition supplémentaire de votre serveur sur Internet.
+
+Si vous préférez repasser en mise à jour manuelle, supprimez simplement le service `watchtower` de `compose.yaml` et redéployez la stack.
+
+---
+
 ## 💾 Sauvegarde & Restauration des données (Backups)
 
 Même si le volume Docker protège vos données lors des mises à jour de routine, il est toujours recommandé d'effectuer des sauvegardes régulières.

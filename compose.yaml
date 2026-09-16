@@ -15,6 +15,10 @@ services:
     container_name: familygest-app
     image: ghcr.io/jhenninot/family-gest:latest
     restart: unless-stopped
+    # Label consommé par Watchtower (voir service ci-dessous) : seule cette image est
+    # surveillée pour une mise à jour automatique, jamais mongo.
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
       # Port d'accès hôte (modifiable dans votre fichier .env)
       - "${APP_PORT:-5000}:5000"
@@ -42,6 +46,22 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  # --- Mise à jour automatique de familygest-app (voir DOCKGE.md) ---
+  # Surveille ghcr.io/jhenninot/family-gest:latest et recrée uniquement le conteneur
+  # 'app' (grâce au label ci-dessus) dès qu'une nouvelle image y est publiée, sans
+  # jamais toucher à mongo. Fonctionne en polling sortant : aucun port entrant requis.
+  watchtower:
+    container_name: familygest-watchtower
+    image: containrrr/watchtower:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_ROLLING_RESTART=true
 
 # Déclaration explicite du volume persistant
 # 'name: familygest_mongo_data' empêche Docker de le renommer ou de le détruire
