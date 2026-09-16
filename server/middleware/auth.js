@@ -1,6 +1,11 @@
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
 
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.error('❌ JWT_SECRET manquant en production : définissez cette variable d\'environnement avant de démarrer le serveur.')
+  process.exit(1)
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'familygest_jwt_secret_key_2026'
 
 export const requireAuth = async (req, res, next) => {
@@ -37,7 +42,7 @@ export const requireAuth = async (req, res, next) => {
 }
 
 export const requireAdmin = (req, res, next) => {
-  if (req.user && (req.user.isAdmin || req.user.isSuperAdmin || req.user.role === 'admin' || req.user.role === 'Administrateur')) {
+  if (req.user && (req.user.isAdmin || req.user.isSuperAdmin)) {
     return next()
   } else {
     return res.status(403).json({ error: 'Action réservée aux utilisateurs administrateurs' })

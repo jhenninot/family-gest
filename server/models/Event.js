@@ -17,7 +17,8 @@ const eventSchema = new mongoose.Schema({
     frequency: { type: String, enum: ['daily', 'weekly', 'monthly'] },
     interval: { type: Number, default: 1 },
     endDate: { type: String } // YYYY-MM-DD, dernière date possible de la série
-  }
+  },
+  icsToken: { type: String, index: true } // jeton opaque permettant le téléchargement du .ics sans authentification
 }, { timestamps: true })
 
 eventSchema.index({ familyId: 1, id: 1 }, { unique: true })

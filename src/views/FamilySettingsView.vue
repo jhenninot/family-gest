@@ -1038,6 +1038,7 @@ import {
   Users, Shield, Bell
 } from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
+import { escapeHtml } from '../utils/escapeHtml'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
@@ -1227,7 +1228,7 @@ const handleSaveShortcut = async () => {
 const confirmDeleteShortcut = async (shortcut) => {
   const ok = await confirm({
     title: 'Supprimer le raccourci',
-    message: `Voulez-vous vraiment supprimer le raccourci <strong>« ${shortcut.title} »</strong> ?`,
+    message: `Voulez-vous vraiment supprimer le raccourci <strong>« ${escapeHtml(shortcut.title)} »</strong> ?`,
     description: 'Cette action est irréversible et retirera le raccourci pour tous les membres de la famille.',
     confirmText: 'Supprimer',
     type: 'danger'
@@ -1424,7 +1425,7 @@ const handleToggleAdmin = async (member) => {
   const action = member.isAdmin ? 'retirer les droits d\'administrateur à' : 'nommer administrateur'
   const ok = await confirm({
     title: member.isAdmin ? 'Retirer les droits administrateur' : 'Nommer administrateur',
-    message: `Voulez-vous ${action} <strong>${member.name}</strong> ?`,
+    message: `Voulez-vous ${action} <strong>${escapeHtml(member.name)}</strong> ?`,
     confirmText: 'Confirmer',
     type: member.isAdmin ? 'warning' : 'primary'
   })
@@ -1443,7 +1444,7 @@ const handleDeleteMember = async (member) => {
   }
   const ok = await confirm({
     title: 'Retirer un membre',
-    message: `Voulez-vous vraiment supprimer <strong>${member.name}</strong> de la famille ?`,
+    message: `Voulez-vous vraiment supprimer <strong>${escapeHtml(member.name)}</strong> de la famille ?`,
     description: 'Cette action retirera le membre de cet espace familial ainsi que ses accès.',
     confirmText: 'Retirer de la famille',
     type: 'danger'
@@ -1597,9 +1598,7 @@ const handleExportData = async () => {
   exporting.value = true
   try {
     const res = await fetch('/api/admin/export', {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
+      headers: getSettingsHeaders()
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))

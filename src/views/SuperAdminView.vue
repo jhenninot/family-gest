@@ -1028,6 +1028,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { useConfirm } from '../composables/useConfirm'
+import { escapeHtml } from '../utils/escapeHtml'
 import UserAvatar from '../components/UserAvatar.vue'
 import { 
   ShieldAlert, 
@@ -1661,9 +1662,9 @@ const handleAddAdminToFamily = async () => {
 const toggleUserFamilyAdmin = async (u, f) => {
   const newAdminStatus = !f.isAdmin
   const familyId = f.familyId || f._id || f.id
-  const actionText = newAdminStatus 
-    ? `Nommer <strong>${u.firstName} ${u.lastName}</strong> administrateur de la famille "${f.name}" ?`
-    : `Retirer les droits d'administrateur de <strong>${u.firstName} ${u.lastName}</strong> pour la famille "${f.name}" ?`
+  const actionText = newAdminStatus
+    ? `Nommer <strong>${escapeHtml(u.firstName)} ${escapeHtml(u.lastName)}</strong> administrateur de la famille "${escapeHtml(f.name)}" ?`
+    : `Retirer les droits d'administrateur de <strong>${escapeHtml(u.firstName)} ${escapeHtml(u.lastName)}</strong> pour la famille "${escapeHtml(f.name)}" ?`
   const ok = await confirm({
     title: 'Droits administrateur familial',
     message: actionText,
@@ -1779,7 +1780,7 @@ const handleRemoveFromFamily = async (f) => {
   if (!selectedUser.value) return
   const ok = await confirm({
     title: 'Retirer de la famille',
-    message: `Êtes-vous sûr de vouloir retirer <strong>${selectedUser.value.firstName} ${selectedUser.value.lastName || ''}</strong> de la famille "${f.name}" ?`,
+    message: `Êtes-vous sûr de vouloir retirer <strong>${escapeHtml(selectedUser.value.firstName)} ${escapeHtml(selectedUser.value.lastName || '')}</strong> de la famille "${escapeHtml(f.name)}" ?`,
     confirmText: 'Retirer',
     type: 'danger'
   })
@@ -1857,7 +1858,7 @@ const handleDeleteUser = async () => {
   const fullName = `${selectedUser.value.firstName} ${selectedUser.value.lastName}`
   const ok = await confirm({
     title: 'Supprimer définitivement le compte',
-    message: `Êtes-vous ABSOLUMENT certain de vouloir supprimer le compte de <strong>${fullName}</strong> ?`,
+    message: `Êtes-vous ABSOLUMENT certain de vouloir supprimer le compte de <strong>${escapeHtml(fullName)}</strong> ?`,
     warning: 'Cette action est irréversible et supprimera définitivement tous ses accès et données associées.',
     confirmText: 'Supprimer le compte',
     type: 'danger'
@@ -1892,7 +1893,7 @@ const toggleFamilyActive = async (fam) => {
   const action = fam.isActive ? 'désactiver' : 'activer'
   const ok = await confirm({
     title: `${fam.isActive ? 'Désactiver' : 'Activer'} la famille`,
-    message: `Êtes-vous sûr de vouloir ${action} la famille <strong>« ${fam.name} »</strong> ?`,
+    message: `Êtes-vous sûr de vouloir ${action} la famille <strong>« ${escapeHtml(fam.name)} »</strong> ?`,
     warning: fam.isActive ? 'Les membres de cette famille ne pourront plus y accéder tant qu\'elle est désactivée.' : undefined,
     confirmText: fam.isActive ? 'Désactiver' : 'Activer',
     type: fam.isActive ? 'warning' : 'primary'

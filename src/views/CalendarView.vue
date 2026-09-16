@@ -639,6 +639,7 @@ import {
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 import { useConfirm } from '../composables/useConfirm'
+import { escapeHtml } from '../utils/escapeHtml'
 import UserAvatar from '../components/UserAvatar.vue'
 
 const store = useFamilyStore()
@@ -1208,7 +1209,7 @@ const handleDeleteCurrentEvent = async () => {
   if (!editingEventId.value) return
   const ok = await confirm({
     title: 'Supprimer l\'événement',
-    message: `Voulez-vous vraiment supprimer l'événement « ${editEventForm.value.title} » ?`,
+    message: `Voulez-vous vraiment supprimer l'événement « ${escapeHtml(editEventForm.value.title)} » ?`,
     description: 'Cette action est irréversible.',
     confirmText: 'Supprimer',
     type: 'danger'
@@ -1234,7 +1235,7 @@ const handleDeleteFromDay = async (id) => {
   const event = store.events.find(e => e.id === id)
   const ok = await confirm({
     title: 'Supprimer l\'événement',
-    message: `Voulez-vous vraiment supprimer l'événement « ${event ? event.title : ''} » ?`,
+    message: `Voulez-vous vraiment supprimer l'événement « ${escapeHtml(event ? event.title : '')} » ?`,
     description: 'Cette action est irréversible.',
     confirmText: 'Supprimer',
     type: 'danger'

@@ -195,6 +195,7 @@ import { ref, computed, watch } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
 import { ShoppingCart, Plus, Trash2, Pencil } from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
+import { escapeHtml } from '../utils/escapeHtml'
 
 const store = useFamilyStore()
 const { confirm } = useConfirm()
@@ -316,10 +317,10 @@ const confirmDelete = async (item) => {
   const meal = getLinkedMeal(item.mealId)
   const ok = await confirm({
     title: 'Supprimer l\'article',
-    message: `Voulez-vous vraiment supprimer « ${item.name} » ?`,
+    message: `Voulez-vous vraiment supprimer « ${escapeHtml(item.name)} » ?`,
     description: 'Cette action est irréversible.',
     warning: meal
-      ? `Cet article est prévu pour le plat :<br><strong>🍲 ${meal.dish}</strong><br>${formatMealDate(meal)}`
+      ? `Cet article est prévu pour le plat :<br><strong>🍲 ${escapeHtml(meal.dish)}</strong><br>${escapeHtml(formatMealDate(meal))}`
       : '',
     confirmText: 'Supprimer',
     type: 'danger'

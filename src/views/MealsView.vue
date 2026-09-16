@@ -608,6 +608,7 @@ import {
 import UserAvatar from '../components/UserAvatar.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
+import { escapeHtml } from '../utils/escapeHtml'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 
 const store = useFamilyStore()
@@ -908,7 +909,7 @@ const handleDeleteMeal = async (id) => {
   const dishName = meal ? meal.dish : 'ce plat'
   const ok = await confirm({
     title: 'Supprimer le plat',
-    message: `Voulez-vous vraiment retirer <strong>« ${dishName} »</strong> du menu ?`,
+    message: `Voulez-vous vraiment retirer <strong>« ${escapeHtml(dishName)} »</strong> du menu ?`,
     description: 'Cette action est irréversible.',
     warning: 'Tous les ingrédients associés dans la liste de courses seront également supprimés.',
     confirmText: 'Supprimer',
@@ -995,7 +996,7 @@ const handleDeleteFromDetail = async () => {
   if (!meal) return
   const ok = await confirm({
     title: 'Supprimer le plat',
-    message: `Voulez-vous vraiment retirer <strong>« ${meal.dish} »</strong> du menu ?`,
+    message: `Voulez-vous vraiment retirer <strong>« ${escapeHtml(meal.dish)} »</strong> du menu ?`,
     description: 'Cette action est irréversible.',
     warning: 'Tous les ingrédients associés dans la liste de courses seront également supprimés.',
     confirmText: 'Supprimer',

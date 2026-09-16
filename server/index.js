@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 import path from 'path'
 import fs from 'fs'
@@ -41,8 +42,21 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 5000
 
-app.use(cors())
+// CORS : par défaut ouvert (le frontend est servi par ce même serveur en production, donc
+// aucune requête cross-origin n'est nécessaire). Si des origines sont explicitement listées
+// via CORS_ORIGIN (ex: déploiement frontend/backend séparés), on restreint à cette liste.
+const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim()).filter(Boolean)
+app.use(cors(corsOrigins.length > 0 ? { origin: corsOrigins } : undefined))
 app.use(express.json())
+
+// Limitation de débit sur les endpoints d'authentification / jetons sensibles (anti brute-force)
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de tentatives, veuillez réessayer plus tard.' }
+})
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -941,7 +955,7 @@ app.post('/api/push/unsubscribe', requireAuth, async (req, res) => {
     const userId = req.user.id
 
     if (endpoint) {
-      await PushSubscription.deleteOne({ endpoint })
+      await PushSubscription.deleteOne({ endpoint, userId })
       // Vérifier s'il reste d'autres appareils abonnés pour cet utilisateur
       const remaining = await PushSubscription.countDocuments({ userId })
       if (remaining === 0) {
@@ -961,7 +975,7 @@ app.post('/api/push/unsubscribe', requireAuth, async (req, res) => {
 // === AUTHENTICATION ROUTES ===
 
 // POST /api/auth/login (Connexion par email & mot de passe)
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body
 
@@ -1128,8 +1142,8 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
   }
 })
 
-// POST /api/auth/register (Création d'un membre/utilisateur - Réservé aux Administrateurs)
-app.post('/api/auth/register', requireAuth, requireAdmin, async (req, res) => {
+// POST /api/auth/register (Création d'un membre/utilisateur - Réservé au Super Administrateur)
+app.post('/api/auth/register', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const { firstName, lastName, email, password, role, avatar, color, isAdmin } = req.body
 
@@ -1234,7 +1248,7 @@ app.get('/api/auth/verify-token', async (req, res) => {
 })
 
 // POST /api/auth/set-password (Définition du mot de passe avec token d'activation)
-app.post('/api/auth/set-password', async (req, res) => {
+app.post('/api/auth/set-password', authRateLimiter, async (req, res) => {
   try {
     const { token, password, pushNotificationsEnabled, emailNotificationsEnabled } = req.body
     if (!token || !password) {
@@ -2274,7 +2288,7 @@ app.post('/api/super-admin/smtp', requireAuth, requireSuperAdmin, handleSaveGlob
 app.put('/api/super-admin/smtp', requireAuth, requireSuperAdmin, handleSaveGlobalSmtp)
 
 // POST /api/super-admin/smtp/test (Test d'envoi SMTP plateforme)
-app.post('/api/super-admin/smtp/test', requireAuth, requireSuperAdmin, async (req, res) => {
+app.post('/api/super-admin/smtp/test', authRateLimiter, requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const recipientEmail = req.body.recipientEmail || req.user?.email
     if (!recipientEmail || !recipientEmail.trim()) {
@@ -2341,9 +2355,9 @@ app.get('/api/super-admin/alert-logs', requireAuth, requireSuperAdmin, async (re
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25))
 
     const filter = {}
-    if (familyId) filter.familyId = familyId
+    if (familyId) filter.familyId = String(familyId)
     if (actorUserId) filter.actorUserId = Number(actorUserId)
-    if (action) filter.action = action
+    if (action) filter.action = String(action)
     if (from || to) {
       filter.createdAt = {}
       if (from) filter.createdAt.$gte = new Date(from)
@@ -2575,7 +2589,7 @@ app.get('/api/invitations/:token', async (req, res) => {
 })
 
 // POST /api/invitations/:token/accept (Finalisation d'inscription ou acceptation de rejoindre)
-app.post('/api/invitations/:token/accept', async (req, res) => {
+app.post('/api/invitations/:token/accept', authRateLimiter, async (req, res) => {
   try {
     const invitation = await FamilyInvitation.findOne({ token: req.params.token })
     if (!invitation) return res.status(404).json({ error: 'Invitation introuvable' })
@@ -3228,7 +3242,8 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
           assignedTo: req.body.assignedTo,
           memberIds: memberIdsInput,
           recurrenceId: baseId,
-          recurrence: recurrenceMeta
+          recurrence: recurrenceMeta,
+          icsToken: crypto.randomBytes(24).toString('hex')
         })
         await occurrence.save()
         createdEvents.push(occurrence)
@@ -3312,7 +3327,8 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
       location: req.body.location,
       color: req.body.color || '#8b5cf6',
       assignedTo: req.body.assignedTo,
-      memberIds: memberIdsInput
+      memberIds: memberIdsInput,
+      icsToken: crypto.randomBytes(24).toString('hex')
     })
     await newEvent.save()
 
@@ -3321,7 +3337,7 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
     const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
     const googleCalendarUrl = generateServerGoogleCalendarUrl(newEvent)
     const icsContent = generateServerIcsContent(newEvent)
-    const icsDownloadUrl = `${baseServerUrl}/api/events/${newEvent.id}/ics`
+    const icsDownloadUrl = `${baseServerUrl}/api/events/${newEvent.id}/ics?token=${newEvent.icsToken}`
 
     // Notification push pour le nouvel événement agenda avec bouton Google Agenda
     const authorName = req.user ? req.user.firstName : 'Un membre'
@@ -3479,6 +3495,9 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
     if (assignedTo !== undefined) event.assignedTo = assignedTo
     if (memberIds !== undefined) event.memberIds = Array.isArray(memberIds) ? memberIds.map(Number) : []
 
+    if (!event.icsToken) {
+      event.icsToken = crypto.randomBytes(24).toString('hex')
+    }
     await event.save()
 
     // Liens et contenu pour ajout/mise à jour sur l'agenda personnel
@@ -3486,7 +3505,7 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
     const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
     const googleCalendarUrl = generateServerGoogleCalendarUrl(event)
     const icsContent = generateServerIcsContent(event)
-    const icsDownloadUrl = `${baseServerUrl}/api/events/${event.id}/ics`
+    const icsDownloadUrl = `${baseServerUrl}/api/events/${event.id}/ics?token=${event.icsToken}`
 
     const authorName = req.user ? req.user.firstName : 'Un membre'
     const timeStr = event.time ? ` à ${event.time}${event.endTime ? ` - ${event.endTime}` : ''}` : ''
@@ -3544,9 +3563,14 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
 })
 
 // GET /api/events/:id/ics (Téléchargement direct du fichier iCalendar pour ajout à Apple / Outlook)
+// Accès via jeton opaque (?token=) plutôt que par session : ce lien est destiné à être ouvert
+// directement par une application calendrier externe, incapable d'envoyer un header Authorization.
 app.get('/api/events/:id/ics', async (req, res) => {
   try {
-    const event = await Event.findOne({ id: Number(req.params.id) })
+    const token = req.query.token
+    if (!token) return res.status(404).send('Événement introuvable')
+
+    const event = await Event.findOne({ id: Number(req.params.id), icsToken: token })
     if (!event) return res.status(404).send('Événement introuvable')
 
     const icsContent = generateServerIcsContent(event)
@@ -4750,8 +4774,13 @@ app.delete('/api/shortcuts/:id', requireAuth, attachFamilyContext, requireFamily
 })
 
 // === EXPORT DES DONNÉES DE LA FAMILLE (ADMINISTRATION) ===
-app.get('/api/admin/export', requireAuth, requireAdmin, async (req, res) => {
+app.get('/api/admin/export', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
+    const familyId = req.family._id
+
+    const memberships = await FamilyMember.find({ familyId }).lean()
+    const memberUserIds = memberships.map(m => m.userId)
+
     const [
       users,
       tasks,
@@ -4759,18 +4788,19 @@ app.get('/api/admin/export', requireAuth, requireAdmin, async (req, res) => {
       shoppingCategories,
       absences,
       mealGuests,
+      meals,
       shortcuts,
       events
     ] = await Promise.all([
-      User.find().lean(),
-      Task.find().lean(),
-      ShoppingItem.find().lean(),
-      ShoppingCategory.find().sort({ rank: 1 }).lean(),
-      Absence.find().lean(),
-      MealGuest.find().lean(),
-      Meal.find().lean(),
-      Shortcut.find().sort({ order: 1 }).lean(),
-      Event.find().lean()
+      User.find({ id: { $in: memberUserIds } }).select('-password').lean(),
+      Task.find({ familyId }).lean(),
+      ShoppingItem.find({ familyId }).lean(),
+      ShoppingCategory.find({ familyId }).sort({ rank: 1 }).lean(),
+      Absence.find({ familyId }).lean(),
+      MealGuest.find({ familyId }).lean(),
+      Meal.find({ familyId }).lean(),
+      Shortcut.find({ familyId }).sort({ order: 1 }).lean(),
+      Event.find({ familyId }).lean()
     ])
 
     const exportPayload = {

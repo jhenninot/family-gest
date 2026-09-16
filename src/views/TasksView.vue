@@ -161,6 +161,7 @@ import { CheckSquare, Plus, Trash2 } from '@lucide/vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
+import { escapeHtml } from '../utils/escapeHtml'
 
 const store = useFamilyStore()
 const { confirm } = useConfirm()
@@ -210,7 +211,7 @@ const getPriorityClass = (priority) => {
 const handleDeleteTask = async (task) => {
   const ok = await confirm({
     title: 'Supprimer la tâche',
-    message: `Voulez-vous vraiment supprimer la tâche « ${task.title} » ?`,
+    message: `Voulez-vous vraiment supprimer la tâche « ${escapeHtml(task.title)} » ?`,
     description: 'Cette action est irréversible.',
     confirmText: 'Supprimer',
     type: 'danger'

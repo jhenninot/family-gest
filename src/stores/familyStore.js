@@ -24,6 +24,11 @@ export const useFamilyStore = defineStore('family', () => {
   const currentFamilyQuota = ref({ memberCount: 0, maxMembers: 10 })
   const userFamilies = ref([])
 
+  // Compteur de génération : incrémenté à chaque nouvelle requête de chargement de famille,
+  // permet à un fetchCurrentFamily/fetchAllData obsolète (réponse arrivée après un changement
+  // de famille plus récent) de détecter qu'il est périmé et de ne pas écraser l'état courant.
+  let fetchGeneration = 0
+
   const members = ref([])
   const tasks = ref([])
   const events = ref([])
@@ -99,7 +104,7 @@ export const useFamilyStore = defineStore('family', () => {
   }
 
   // Fetch current family info & quota
-  const fetchCurrentFamily = async (slug) => {
+  const fetchCurrentFamily = async (slug, generation = ++fetchGeneration) => {
     const authStore = useAuthStore()
     if (!authStore.isAuthenticated) return false
 
@@ -113,8 +118,12 @@ export const useFamilyStore = defineStore('family', () => {
           'X-Family-Slug': targetSlug
         }
       })
+      // Une famille plus récente a été demandée entre-temps : cette réponse est obsolète, on l'ignore.
+      if (generation !== fetchGeneration) return false
+
       if (res.ok) {
         const data = await res.json()
+        if (generation !== fetchGeneration) return false
         currentFamily.value = data.family
         currentFamilyRole.value = data.role || data.membership?.role || 'Membre'
         currentFamilyIsAdmin.value = Boolean(data.isAdmin ?? data.membership?.isAdmin ?? authStore.isSuperAdmin)
@@ -139,11 +148,12 @@ export const useFamilyStore = defineStore('family', () => {
 
   // Switch active family
   const switchFamily = async (slug) => {
+    const generation = ++fetchGeneration
     localStorage.setItem('familygest_active_slug', slug)
     clearFamilyData()
-    const ok = await fetchCurrentFamily(slug)
-    if (ok) {
-      await fetchAllData()
+    const ok = await fetchCurrentFamily(slug, generation)
+    if (ok && generation === fetchGeneration) {
+      await fetchAllData(generation)
     }
     return ok
   }
@@ -187,7 +197,7 @@ export const useFamilyStore = defineStore('family', () => {
   }
 
   // Fetch all data from Express + MongoDB API
-  const fetchAllData = async () => {
+  const fetchAllData = async (generation = ++fetchGeneration) => {
     const authStore = useAuthStore()
     if (!authStore.isAuthenticated) return
 
@@ -207,6 +217,10 @@ export const useFamilyStore = defineStore('family', () => {
         fetch('/api/meals', { headers }),
         fetch('/api/long-absences', { headers })
       ])
+
+      // Une famille plus récente a été demandée entre-temps : cette réponse est obsolète, on l'ignore
+      // pour ne pas écraser l'état déjà chargé pour la nouvelle famille.
+      if (generation !== fetchGeneration) return
 
       // Check if session token expired or user is invalid (401)
       if (membersRes.status === 401 || tasksRes.status === 401) {

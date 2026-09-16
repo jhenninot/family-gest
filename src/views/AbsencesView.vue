@@ -1496,6 +1496,7 @@ import HouseUser from '../components/icons/HouseUser.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
+import { escapeHtml } from '../utils/escapeHtml'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 
 const authStore = useAuthStore()
@@ -2228,7 +2229,7 @@ const handleDeleteLongAbsence = async (la) => {
   const memberName = getMemberFirstName(la.memberId)
   const ok = await confirm({
     title: "Supprimer l'absence longue",
-    message: `Voulez-vous vraiment supprimer l'absence longue de ${memberName} du ${formatDisplayDate(la.startDate)} au ${formatDisplayDate(la.endDate)} ?`,
+    message: `Voulez-vous vraiment supprimer l'absence longue de ${escapeHtml(memberName)} du ${formatDisplayDate(la.startDate)} au ${formatDisplayDate(la.endDate)} ?`,
     description: "Tous les créneaux quotidiens associés à cette absence longue seront automatiquement supprimés.",
     confirmText: 'Supprimer',
     type: 'danger'
