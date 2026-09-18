@@ -140,7 +140,7 @@ const getSmtpConfig = async () => {
   try {
     const globalConfig = await GlobalConfig.findOne()
     if (globalConfig && globalConfig.isConfigured && isEmailConfigUsable(globalConfig)) {
-      return globalConfig.toObject()
+      return globalConfig.toObject({ getters: true })
     }
     return null
   } catch (err) {
@@ -1401,6 +1401,73 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
   }
 })
 
+// GET /api/auth/export (Export RGPD des données personnelles du compte connecté — droit à la portabilité)
+app.get('/api/auth/export', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ id: req.user.id }).select('-password').lean()
+    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
+
+    const memberships = await FamilyMember.find({ userId: user.id }).lean()
+    const families = await Family.find({ _id: { $in: memberships.map(m => m.familyId) } }).lean()
+    const familyById = Object.fromEntries(families.map(f => [String(f._id), f]))
+
+    const [tasks, events, absences, mealGuests] = await Promise.all([
+      Task.find({ assignedTo: user.id }).lean(),
+      Event.find({ $or: [{ assignedTo: user.id }, { memberIds: user.id }] }).lean(),
+      Absence.find({ $or: [{ memberId: user.id }, { declaredBy: user.id }] }).lean(),
+      MealGuest.find({ invitedBy: user.id }).lean()
+    ])
+
+    res.json({
+      version: '1.0',
+      exportDate: new Date().toISOString(),
+      source: 'familygest-mono',
+      profile: user,
+      memberships: memberships.map(m => ({
+        familyName: familyById[String(m.familyId)]?.name || null,
+        familySlug: familyById[String(m.familyId)]?.slug || null,
+        role: m.role,
+        isAdmin: m.isAdmin,
+        usualPresence: m.usualPresence,
+        points: m.points,
+        createdAt: m.createdAt
+      })),
+      tasks,
+      events,
+      absences,
+      mealGuests
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/auth/account (Suppression définitive du compte connecté — droit à l'effacement)
+app.delete('/api/auth/account', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findOne({ id: req.user.id })
+    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
+
+    if (user.isSuperAdmin) {
+      return res.status(400).json({ error: 'Le compte Super Administrateur ne peut pas être auto-supprimé. Contactez un autre Super Administrateur.' })
+    }
+
+    const { password } = req.body
+    if (!password || !(await user.matchPassword(password))) {
+      return res.status(401).json({ error: 'Mot de passe incorrect' })
+    }
+
+    await FamilyMember.deleteMany({ userId: user.id })
+    await FamilyInvitation.deleteMany({ email: user.email })
+    await PushSubscription.deleteMany({ userId: user.id })
+    await User.deleteOne({ id: user.id })
+
+    res.json({ message: 'Votre compte a été supprimé définitivement' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // === SUPER ADMIN ROUTES ===
 
 // GET /api/super-admin/families (Liste de toutes les familles et quotas)
@@ -2217,9 +2284,10 @@ app.delete('/api/super-admin/users/:userId', requireAuth, requireSuperAdmin, asy
       }
     }
 
-    // Suppression en cascade : memberships et invitations
+    // Suppression en cascade : memberships, invitations et abonnements push
     await FamilyMember.deleteMany({ userId: user.id })
     await FamilyInvitation.deleteMany({ email: user.email })
+    await PushSubscription.deleteMany({ userId: user.id })
     await User.deleteOne({ id: user.id })
 
     res.json({ message: `Le compte de ${user.firstName} ${user.lastName} (${user.email}) a été supprimé avec succès` })
