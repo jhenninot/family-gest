@@ -1509,6 +1509,19 @@ app.get('/api/legal', async (req, res) => {
 
 // === SUPER ADMIN ROUTES ===
 
+// GET /api/super-admin/diagnostics/ip (Vérification de la config TRUST_PROXY derrière un reverse
+// proxy : compare l'IP résolue par Express à l'en-tête X-Forwarded-For brut reçu du proxy)
+app.get('/api/super-admin/diagnostics/ip', requireAuth, requireSuperAdmin, (req, res) => {
+  res.json({
+    trustProxySetting: app.get('trust proxy'),
+    resolvedIp: req.ip,
+    resolvedIpChain: req.ips,
+    rawXForwardedFor: req.headers['x-forwarded-for'] || null,
+    rawXForwardedProto: req.headers['x-forwarded-proto'] || null,
+    socketRemoteAddress: req.socket.remoteAddress
+  })
+})
+
 // GET /api/super-admin/families (Liste de toutes les familles et quotas)
 app.get('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
