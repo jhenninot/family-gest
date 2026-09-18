@@ -138,6 +138,41 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // RGPD — droit à la portabilité : récupère l'intégralité des données personnelles du compte
+  // connecté (profil, appartenances aux familles, tâches/événements/absences liés).
+  const exportMyData = async () => {
+    try {
+      const res = await fetch('/api/auth/export', {
+        headers: { 'Authorization': `Bearer ${token.value}` }
+      })
+      const data = await res.json()
+      if (!res.ok) return { success: false, error: data.error || 'Erreur lors de l\'export des données' }
+      return { success: true, data }
+    } catch (err) {
+      return { success: false, error: 'Impossible de contacter le serveur' }
+    }
+  }
+
+  // RGPD — droit à l'effacement : suppression définitive et irréversible du compte connecté.
+  const deleteMyAccount = async (password) => {
+    try {
+      const res = await fetch('/api/auth/account', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.value}`
+        },
+        body: JSON.stringify({ password })
+      })
+      const data = await res.json()
+      if (!res.ok) return { success: false, error: data.error || 'Erreur lors de la suppression du compte' }
+      logout()
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: 'Impossible de contacter le serveur' }
+    }
+  }
+
   const logout = () => {
     token.value = ''
     user.value = null
@@ -165,6 +200,8 @@ export const useAuthStore = defineStore('auth', () => {
     setToken,
     refreshSession,
     updateProfile,
+    exportMyData,
+    deleteMyAccount,
     logout
   }
 })

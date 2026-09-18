@@ -194,15 +194,55 @@
           </button>
         </div>
       </form>
+
+      <!-- Confidentialité & RGPD : accès/portabilité et droit à l'effacement, en self-service -->
+      <div class="gdpr-section">
+        <span class="notif-grid-label">Confidentialité &amp; données personnelles</span>
+
+        <button type="button" class="btn-gdpr-action" :disabled="exporting" @click="handleExportData">
+          <Download :size="16" />
+          <span>{{ exporting ? 'Export en cours...' : 'Exporter mes données (JSON)' }}</span>
+        </button>
+
+        <div v-if="!showDeleteConfirm" class="gdpr-danger-zone">
+          <button type="button" class="btn-gdpr-danger" @click="showDeleteConfirm = true">
+            <Trash2 :size="16" />
+            <span>Supprimer définitivement mon compte</span>
+          </button>
+        </div>
+
+        <div v-else class="gdpr-delete-confirm">
+          <p class="gdpr-warning-text">
+            <AlertTriangle :size="15" />
+            Cette action est <strong>définitive et irréversible</strong> : votre compte et vos
+            appartenances aux familles seront supprimés. Confirmez avec votre mot de passe.
+          </p>
+          <input
+            v-model="deletePassword"
+            type="password"
+            placeholder="Votre mot de passe"
+            class="form-input"
+            @keyup.enter="handleDeleteAccount"
+          />
+          <span v-if="deleteError" class="gdpr-error-text">{{ deleteError }}</span>
+          <div class="gdpr-confirm-actions">
+            <button type="button" class="btn btn-secondary" @click="cancelDelete">Annuler</button>
+            <button type="button" class="btn-gdpr-danger" :disabled="deleting" @click="handleDeleteAccount">
+              {{ deleting ? 'Suppression...' : 'Confirmer la suppression' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
-import { ShieldCheck, Shield, Mail, Bell, BellOff } from '@lucide/vue'
+import { ShieldCheck, Shield, Mail, Bell, BellOff, Download, Trash2, AlertTriangle } from '@lucide/vue'
 import AvatarPicker from './AvatarPicker.vue'
 import PasswordStrengthIndicator from './PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
@@ -226,8 +266,14 @@ const emit = defineEmits(['update:modelValue'])
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
+const router = useRouter()
 
 const saving = ref(false)
+const exporting = ref(false)
+const showDeleteConfirm = ref(false)
+const deletePassword = ref('')
+const deleteError = ref('')
+const deleting = ref(false)
 const devicePushStatus = ref('default') // 'active', 'inactive', 'denied', 'unsupported'
 const initialDeviceSubscribed = ref(false)
 
@@ -264,7 +310,53 @@ const editProfile = ref({
 })
 
 const close = () => {
+  cancelDelete()
   emit('update:modelValue', false)
+}
+
+const cancelDelete = () => {
+  showDeleteConfirm.value = false
+  deletePassword.value = ''
+  deleteError.value = ''
+}
+
+const handleExportData = async () => {
+  exporting.value = true
+  const res = await authStore.exportMyData()
+  exporting.value = false
+
+  if (!res.success) {
+    alert(res.error || 'Erreur lors de l\'export de vos données')
+    return
+  }
+
+  const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `familygest-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+const handleDeleteAccount = async () => {
+  if (!deletePassword.value) {
+    deleteError.value = 'Veuillez saisir votre mot de passe'
+    return
+  }
+
+  deleting.value = true
+  deleteError.value = ''
+  const res = await authStore.deleteMyAccount(deletePassword.value)
+  deleting.value = false
+
+  if (!res.success) {
+    deleteError.value = res.error || 'Erreur lors de la suppression du compte'
+    return
+  }
+
+  close()
+  router.push({ name: 'login' })
 }
 
 const loadUserData = async () => {
@@ -591,5 +683,99 @@ const handleSaveProfile = async () => {
   height: 18px;
   accent-color: var(--accent-primary, #6366f1);
   cursor: inherit;
+}
+
+/* Confidentialité & RGPD */
+.gdpr-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.btn-gdpr-action,
+.btn-gdpr-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  width: fit-content;
+}
+
+.btn-gdpr-action {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.btn-gdpr-action:hover:not(:disabled) {
+  border-color: var(--accent-primary, #6366f1);
+  color: var(--text-primary);
+}
+
+.btn-gdpr-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-gdpr-danger {
+  background: var(--accent-rose-light, rgba(244, 63, 94, 0.1));
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: var(--accent-rose, #f43f5e);
+}
+
+.btn-gdpr-danger:hover:not(:disabled) {
+  background: var(--accent-rose, #f43f5e);
+  color: #ffffff;
+}
+
+.btn-gdpr-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gdpr-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  background: var(--accent-rose-light, rgba(244, 63, 94, 0.06));
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: var(--radius-md);
+}
+
+.gdpr-warning-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.gdpr-warning-text svg {
+  flex-shrink: 0;
+  color: var(--accent-rose, #f43f5e);
+  margin-top: 0.1rem;
+}
+
+.gdpr-error-text {
+  font-size: 0.78rem;
+  color: var(--accent-rose, #f43f5e);
+  font-weight: 600;
+}
+
+.gdpr-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 </style>
