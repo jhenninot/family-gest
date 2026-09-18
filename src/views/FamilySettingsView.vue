@@ -608,30 +608,6 @@
             </div>
           </div>
 
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label">Notifications Web (PWA)</label>
-              <label class="admin-checkbox-card">
-                <input type="checkbox" v-model="editMemberForm.pushNotificationsEnabled" class="custom-checkbox" />
-                <span class="checkbox-text">
-                  <Bell :size="16" class="text-indigo" />
-                  <strong>Alertes Web</strong>
-                </span>
-              </label>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Notifications par Email</label>
-              <label class="admin-checkbox-card">
-                <input type="checkbox" v-model="editMemberForm.emailNotificationsEnabled" class="custom-checkbox" />
-                <span class="checkbox-text">
-                  <Mail :size="16" class="text-indigo" />
-                  <strong>Alertes Email</strong>
-                </span>
-              </label>
-            </div>
-          </div>
-
           <div class="form-group">
             <label class="form-label">Présence habituelle à la maison</label>
             <select v-model="editMemberForm.usualPresence" class="form-select">
@@ -849,7 +825,7 @@ import {
   Mail, Settings, ShieldAlert,
   ShieldCheck, Loader2, Globe,
   UserPlus, Download, ShoppingCart, Plus, Pencil, Trash2, ExternalLink,
-  Users, Shield, Bell,
+  Users, Shield,
   Bot, RefreshCw, Copy, KeyRound
 } from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
@@ -1153,8 +1129,6 @@ const editMemberForm = ref({
   isAdmin: false,
   avatar: '👤',
   color: '#6366f1',
-  pushNotificationsEnabled: true,
-  emailNotificationsEnabled: false,
   usualPresence: 'present'
 })
 
@@ -1188,8 +1162,6 @@ const openEditMemberModal = (member) => {
     isAdmin: Boolean(member.isAdmin),
     avatar: member.avatar || DEFAULT_AVATAR,
     color: member.color || '#6366f1',
-    pushNotificationsEnabled: member.pushNotificationsEnabled !== false,
-    emailNotificationsEnabled: Boolean(member.emailNotificationsEnabled),
     usualPresence: member.usualPresence || 'present'
   }
   showEditMemberModal.value = true

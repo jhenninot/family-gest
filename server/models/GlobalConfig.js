@@ -42,6 +42,26 @@ const globalConfigSchema = new mongoose.Schema({
   isConfigured: {
     type: Boolean,
     default: false
+  },
+  // Planification du récapitulatif quotidien (heure locale, fuseau applicatif fixe — voir
+  // server/digest/). Modifiable par le Super Administrateur sans redémarrage du serveur.
+  digestHour: {
+    type: Number,
+    min: 0,
+    max: 23,
+    default: 8
+  },
+  digestMinute: {
+    type: Number,
+    min: 0,
+    max: 59,
+    default: 0
+  },
+  // Garde-fou anti-double-envoi (persisté pour survivre à un redémarrage) : date (YYYY-MM-DD)
+  // du dernier récapitulatif déjà envoyé.
+  lastDigestRunDate: {
+    type: String,
+    default: null
   }
 }, { timestamps: true })
 

@@ -34,9 +34,11 @@ import PushConfig from './models/PushConfig.js'
 import PushSubscription from './models/PushSubscription.js'
 import AlertLog from './models/AlertLog.js'
 import McpConnector from './models/McpConnector.js'
-import { ALERT_ACTIONS, ALERT_ACTIONS_LIST } from './constants/alertActions.js'
+import { ALERT_ACTIONS, ALERT_ACTIONS_LIST, ACTION_CATEGORY_BY_CODE } from './constants/alertActions.js'
 import webpush from 'web-push'
 import { mountMcpServer } from './mcp/index.js'
+import { migrateNotificationPreferences } from './scripts/migrate-notification-preferences.js'
+import { startDigestScheduler, mountDigestAdminRoutes } from './digest/index.js'
 
 dotenv.config()
 
@@ -199,9 +201,7 @@ const attachFamilyContext = async (req, res, next) => {
           userRef: req.user._id,
           role: pendingInv.role || 'Administrateur',
           isAdmin: Boolean(pendingInv.isAdmin),
-          usualPresence: req.user.usualPresence || 'present',
-          pushNotificationsEnabled: true,
-          emailNotificationsEnabled: false
+          usualPresence: req.user.usualPresence || 'present'
         })
         await membership.save()
         pendingInv.status = 'accepted'
@@ -557,22 +557,51 @@ const getRecurrenceDates = (startDateStr, frequency, interval, endDateStr, maxCo
 }
 
 // Helper : Diffusion d'une notification par email aux membres ayant activé cette option
-const sendNotificationEmail = async ({ 
-  subject, 
-  title, 
-  badge = '🔔', 
-  detailsHtml, 
-  actionUrl = '/', 
-  actionText = 'Accéder à FamilyGest', 
+// Les 4 catégories d'alerte pilotées par un simple choix "notifications on/off" à l'onboarding
+// (le récapitulatif quotidien n'en fait pas partie : il garde son propre défaut de schéma).
+const ONBOARDING_NOTIFICATION_CATEGORIES = ['presence', 'meals', 'tasks', 'events']
+
+// Applique uniformément une paire push/email aux 4 catégories d'alerte (utilisé à l'onboarding,
+// où l'on ne propose que 2 cases à cocher simples plutôt que la grille complète du profil).
+const applyUniformNotificationPreference = (user, push, email) => {
+  for (const category of ONBOARDING_NOTIFICATION_CATEGORIES) {
+    user.notificationPreferences[category] = { push: Boolean(push), email: Boolean(email) }
+  }
+}
+
+// Libellés lisibles des catégories d'abonnement, utilisés dans le rappel de gestion des
+// préférences ajouté au pied de chaque email de notification.
+const CATEGORY_LABELS = {
+  presence: 'Présences, absences & invités aux repas',
+  meals: 'Repas',
+  tasks: 'Tâches',
+  events: 'Événements',
+  digest: 'Récapitulatif quotidien'
+}
+
+const sendNotificationEmail = async ({
+  subject,
+  title,
+  badge = '🔔',
+  detailsHtml,
+  actionUrl = '/',
+  actionText = 'Accéder à FamilyGest',
   excludeUserId = null,
   calendarData = null,
-  familyId = null 
+  familyId = null,
+  action = null
 }) => {
   try {
     const config = await getSmtpConfig()
     if (!config || !config.isConfigured || !isEmailConfigUsable(config)) {
       return { success: false, reason: 'SMTP_NOT_CONFIGURED', count: 0, recipients: [] }
     }
+
+    // Catégorie d'abonnement gouvernant cette alerte (présences/repas/tâches/événements) —
+    // résolue depuis le code d'action. `null` pour les envois hors catégorie (ne devrait pas
+    // arriver via dispatchFamilyAlert, mais on tombe alors dans un envoi "à tous" par sécurité).
+    const category = ACTION_CATEGORY_BY_CODE[action] || null
+    const emailPrefField = category ? `notificationPreferences.${category}.email` : 'emailNotificationsEnabled'
 
     let recipientUsers = []
     let familyName = ''
@@ -587,18 +616,14 @@ const sendNotificationEmail = async ({
       const members = await FamilyMember.find(memberQuery)
       const memberUserIds = members.map(m => m.userId)
 
-      // Membres éligibles : soit le compte User a emailNotificationsEnabled: true,
-      // soit la fiche FamilyMember a emailNotificationsEnabled: true
-      const explicitMemberUserIds = members.filter(m => m.emailNotificationsEnabled === true).map(m => m.userId)
+      // La préférence de notification est désormais uniquement au niveau du compte (User) —
+      // FamilyMember ne sert plus qu'à résoudre l'appartenance à la famille.
       recipientUsers = await User.find({
         id: { $in: memberUserIds },
-        $or: [
-          { emailNotificationsEnabled: true },
-          { id: { $in: explicitMemberUserIds } }
-        ]
+        [emailPrefField]: true
       }).select('email firstName lastName id')
     } else {
-      const userQuery = { emailNotificationsEnabled: true }
+      const userQuery = { [emailPrefField]: true }
       if (excludeUserId) {
         userQuery.id = { $ne: Number(excludeUserId) }
       }
@@ -681,8 +706,8 @@ const sendNotificationEmail = async ({
 
                   <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
                   <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0; line-height: 1.4;">
-                    Vous recevez cet email car vous avez activé les notifications par email sur votre compte FamilyGest.<br/>
-                    Vous pouvez modifier vos préférences à tout moment depuis votre profil.
+                    Vous recevez cet email car vous avez activé les notifications « ${CATEGORY_LABELS[category] || 'FamilyGest'} » par email sur votre compte.<br/>
+                    Vous pouvez gérer vos préférences de notification à tout moment depuis votre profil, dans l'application.
                   </p>
                 </td>
               </tr>
@@ -768,17 +793,21 @@ const initVapid = async () => {
 }
 
 // Helper pour diffuser une notification push aux membres éligibles
-const sendPushNotification = async ({ 
-  title, 
-  body, 
-  url = '/', 
+const sendPushNotification = async ({
+  title,
+  body,
+  url = '/',
   excludeUserId = null,
   actions = [],
   googleCalendarUrl = null,
-  familyId = null
+  familyId = null,
+  action = null
 }) => {
   try {
     if (!vapidPublicKey || !vapidPrivateKey) return { success: false, reason: 'PUSH_NOT_CONFIGURED', count: 0, recipients: [] }
+
+    const category = ACTION_CATEGORY_BY_CODE[action] || null
+    const pushPrefField = category ? `notificationPreferences.${category}.push` : 'pushNotificationsEnabled'
 
     let userIds = []
     let familyName = ''
@@ -786,14 +815,16 @@ const sendPushNotification = async ({
       const familyDoc = await Family.findById(familyId).select('name slug')
       if (familyDoc) familyName = familyDoc.name
 
-      const memberQuery = { familyId, pushNotificationsEnabled: { $ne: false } }
+      // FamilyMember ne sert plus qu'à résoudre l'appartenance à la famille — la préférence de
+      // notification est désormais uniquement au niveau du compte (User), vérifiée ci-dessous.
+      const memberQuery = { familyId }
       if (excludeUserId) {
         memberQuery.userId = { $ne: Number(excludeUserId) }
       }
       const eligibleMembers = await FamilyMember.find(memberQuery).select('userId')
       userIds = eligibleMembers.map(m => m.userId)
     } else {
-      const userQuery = { pushNotificationsEnabled: { $ne: false } }
+      const userQuery = {}
       if (excludeUserId) {
         userQuery.id = { $ne: Number(excludeUserId) }
       }
@@ -803,8 +834,7 @@ const sendPushNotification = async ({
 
     if (userIds.length === 0) return { success: false, reason: 'NO_ELIGIBLE_MEMBERS', count: 0, recipients: [] }
 
-    // S'assurer que l'utilisateur n'a pas désactivé les notifications push globalement sur son compte
-    const activeUsers = await User.find({ id: { $in: userIds }, pushNotificationsEnabled: { $ne: false } }).select('id firstName lastName')
+    const activeUsers = await User.find({ id: { $in: userIds }, [pushPrefField]: true }).select('id firstName lastName')
     const finalUserIds = activeUsers.map(u => u.id)
     if (finalUserIds.length === 0) return { success: false, reason: 'NO_ELIGIBLE_MEMBERS', count: 0, recipients: [] }
 
@@ -899,8 +929,8 @@ const logAlertEntry = async ({ family = null, actor = null, action, actionLabel,
 // Appelé en tâche de fond (sans await côté route) pour ne pas retarder la réponse HTTP.
 const dispatchFamilyAlert = async ({ family, actor = null, action, actionLabel, title = '', targetType = null, targetId = null, push = null, email = null }) => {
   const [pushResult, emailResult] = await Promise.all([
-    push ? sendPushNotification({ ...push, familyId: family._id, excludeUserId: actor?.id ?? null }) : Promise.resolve(null),
-    email ? sendNotificationEmail({ ...email, familyId: family._id, excludeUserId: actor?.id ?? null }) : Promise.resolve(null)
+    push ? sendPushNotification({ ...push, action, familyId: family._id, excludeUserId: actor?.id ?? null }) : Promise.resolve(null),
+    email ? sendNotificationEmail({ ...email, action, familyId: family._id, excludeUserId: actor?.id ?? null }) : Promise.resolve(null)
   ])
 
   await logAlertEntry({
@@ -948,8 +978,6 @@ app.post('/api/push/subscribe', requireAuth, async (req, res) => {
       { upsert: true, new: true }
     )
 
-    await User.updateOne({ id: userId }, { pushNotificationsEnabled: true })
-
     res.json({ success: true, message: 'Souscription push enregistrée avec succès' })
   } catch (err) {
     console.error('[WebPush] Erreur enregistrement souscription:', err.message)
@@ -965,14 +993,8 @@ app.post('/api/push/unsubscribe', requireAuth, async (req, res) => {
 
     if (endpoint) {
       await PushSubscription.deleteOne({ endpoint, userId })
-      // Vérifier s'il reste d'autres appareils abonnés pour cet utilisateur
-      const remaining = await PushSubscription.countDocuments({ userId })
-      if (remaining === 0) {
-        await User.updateOne({ id: userId }, { pushNotificationsEnabled: false })
-      }
     } else {
       await PushSubscription.deleteMany({ userId })
-      await User.updateOne({ id: userId }, { pushNotificationsEnabled: false })
     }
 
     res.json({ success: true, message: 'Désabonnement push effectué' })
@@ -1016,9 +1038,7 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
           userRef: user._id,
           role: inv.role || 'Membre',
           isAdmin: Boolean(inv.isAdmin),
-          usualPresence: user.usualPresence || 'present',
-          pushNotificationsEnabled: true,
-          emailNotificationsEnabled: false
+          usualPresence: user.usualPresence || 'present'
         })
         await m.save()
       }
@@ -1074,8 +1094,7 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
         avatar: user.avatar,
         color: user.color,
         points: user.points,
-        pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
-        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
+        notificationPreferences: user.notificationPreferences,
         usualPresence: user.usualPresence || 'present',
         families: familiesData
       }
@@ -1140,8 +1159,7 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
         avatar: user.avatar,
         color: user.color,
         points: user.points,
-        pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
-        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
+        notificationPreferences: user.notificationPreferences,
         usualPresence: user.usualPresence || 'present',
         families: familiesData
       }
@@ -1259,7 +1277,7 @@ app.get('/api/auth/verify-token', async (req, res) => {
 // POST /api/auth/set-password (Définition du mot de passe avec token d'activation)
 app.post('/api/auth/set-password', authRateLimiter, async (req, res) => {
   try {
-    const { token, password, pushNotificationsEnabled, emailNotificationsEnabled } = req.body
+    const { token, password, notificationPreferences } = req.body
     if (!token || !password) {
       return res.status(400).json({ error: 'Token et mot de passe requis' })
     }
@@ -1284,11 +1302,10 @@ app.post('/api/auth/set-password', authRateLimiter, async (req, res) => {
     user.password = password
     user.welcomeToken = null
     user.welcomeTokenExpires = null
-    if (pushNotificationsEnabled !== undefined) {
-      user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
-    }
-    if (emailNotificationsEnabled !== undefined) {
-      user.emailNotificationsEnabled = Boolean(emailNotificationsEnabled)
+    // Choix d'onboarding simplifié (2 cases à cocher) appliqué uniformément aux 4 catégories
+    // d'alerte ; le récapitulatif quotidien garde son propre défaut de schéma.
+    if (notificationPreferences && typeof notificationPreferences === 'object') {
+      applyUniformNotificationPreference(user, notificationPreferences.push, notificationPreferences.email)
     }
     await user.save()
 
@@ -1309,8 +1326,7 @@ app.post('/api/auth/set-password', authRateLimiter, async (req, res) => {
         avatar: user.avatar,
         color: user.color,
         points: user.points,
-        pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
-        emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
+        notificationPreferences: user.notificationPreferences,
         usualPresence: user.usualPresence || 'present'
       }
     })
@@ -1325,7 +1341,7 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     const user = await User.findOne({ id: req.user.id })
     if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
 
-    const { firstName, lastName, email, password, role, avatar, color, pushNotificationsEnabled, emailNotificationsEnabled, usualPresence } = req.body
+    const { firstName, lastName, email, password, role, avatar, color, notificationPreferences, usualPresence } = req.body
 
     if (firstName) user.firstName = firstName.trim()
     if (lastName) user.lastName = lastName.trim()
@@ -1336,18 +1352,16 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
       user.usualPresence = usualPresence
     }
 
-    if (pushNotificationsEnabled !== undefined) {
-      const activeSubs = await PushSubscription.countDocuments({ userId: user.id })
-      if (!pushNotificationsEnabled && activeSubs > 0) {
-        user.pushNotificationsEnabled = true
-      } else {
-        user.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
+    // Préférences de notification granulaires (5 catégories × push/email), gérées uniquement
+    // par l'utilisateur pour son propre compte — valables sur toutes ses familles.
+    if (notificationPreferences && typeof notificationPreferences === 'object') {
+      for (const category of Object.keys(CATEGORY_LABELS)) {
+        const incoming = notificationPreferences[category]
+        if (incoming && typeof incoming === 'object') {
+          if (incoming.push !== undefined) user.notificationPreferences[category].push = Boolean(incoming.push)
+          if (incoming.email !== undefined) user.notificationPreferences[category].email = Boolean(incoming.email)
+        }
       }
-      await FamilyMember.updateMany({ userId: user.id }, { $set: { pushNotificationsEnabled: user.pushNotificationsEnabled } })
-    }
-    if (emailNotificationsEnabled !== undefined) {
-      user.emailNotificationsEnabled = Boolean(emailNotificationsEnabled)
-      await FamilyMember.updateMany({ userId: user.id }, { $set: { emailNotificationsEnabled: Boolean(emailNotificationsEnabled) } })
     }
 
     if (email && email.toLowerCase().trim() !== user.email) {
@@ -1379,8 +1393,7 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
       avatar: user.avatar,
       color: user.color,
       points: user.points,
-      pushNotificationsEnabled: user.pushNotificationsEnabled !== false,
-      emailNotificationsEnabled: Boolean(user.emailNotificationsEnabled),
+      notificationPreferences: user.notificationPreferences,
       usualPresence: user.usualPresence || 'present'
     })
   } catch (err) {
@@ -1492,9 +1505,7 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
         userRef: existingUser._id,
         role: 'Administrateur',
         isAdmin: true,
-        usualPresence: existingUser.usualPresence || 'present',
-        pushNotificationsEnabled: true,
-        emailNotificationsEnabled: false
+        usualPresence: existingUser.usualPresence || 'present'
       })
       await newMember.save()
     }
@@ -1611,9 +1622,7 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
           userRef: existingUser._id,
           role: 'Administrateur',
           isAdmin: true,
-          usualPresence: existingUser.usualPresence || 'present',
-          pushNotificationsEnabled: true,
-          emailNotificationsEnabled: false
+          usualPresence: existingUser.usualPresence || 'present'
         })
         await existingMember.save()
       } else {
@@ -1773,8 +1782,7 @@ app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin,
           color: u.color || '#6366f1',
           points: u.points || 0,
           usualPresence: u.usualPresence || 'present',
-          pushNotificationsEnabled: u.pushNotificationsEnabled !== false,
-          emailNotificationsEnabled: Boolean(u.emailNotificationsEnabled)
+          ...(u.notificationPreferences ? { notificationPreferences: u.notificationPreferences } : {})
         })
         await user.save()
       }
@@ -1815,9 +1823,7 @@ app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin,
           role: u.role || 'Membre',
           isAdmin: Boolean(u.isAdmin),
           usualPresence: u.usualPresence || 'present',
-          points: u.points || 0,
-          pushNotificationsEnabled: u.pushNotificationsEnabled !== false,
-          emailNotificationsEnabled: Boolean(u.emailNotificationsEnabled)
+          points: u.points || 0
         })
         await fm.save()
         createdMembers.push(fm)
@@ -2120,9 +2126,7 @@ app.post('/api/super-admin/users/:userId/families', requireAuth, requireSuperAdm
       userRef: user._id,
       role: assignedRole,
       isAdmin: isMemberAdmin,
-      usualPresence: 'present',
-      pushNotificationsEnabled: true,
-      emailNotificationsEnabled: false
+      usualPresence: 'present'
     })
     await newMember.save()
 
@@ -2295,6 +2299,50 @@ const handleSaveGlobalSmtp = async (req, res) => {
 
 app.post('/api/super-admin/smtp', requireAuth, requireSuperAdmin, handleSaveGlobalSmtp)
 app.put('/api/super-admin/smtp', requireAuth, requireSuperAdmin, handleSaveGlobalSmtp)
+
+// GET /api/super-admin/digest-schedule (Heure d'envoi du récapitulatif quotidien)
+app.get('/api/super-admin/digest-schedule', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    let config = await GlobalConfig.findOne()
+    if (!config) {
+      config = new GlobalConfig()
+      await config.save()
+    }
+    res.json({
+      digestHour: config.digestHour ?? 8,
+      digestMinute: config.digestMinute ?? 0
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PUT /api/super-admin/digest-schedule (Modification de l'heure d'envoi du récapitulatif quotidien)
+app.put('/api/super-admin/digest-schedule', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { digestHour, digestMinute } = req.body
+    const hour = Number(digestHour)
+    const minute = Number(digestMinute)
+
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
+      return res.status(400).json({ error: 'L\'heure doit être un nombre entier entre 0 et 23' })
+    }
+    if (!Number.isInteger(minute) || minute < 0 || minute > 59) {
+      return res.status(400).json({ error: 'Les minutes doivent être un nombre entier entre 0 et 59' })
+    }
+
+    let config = await GlobalConfig.findOne()
+    if (!config) config = new GlobalConfig()
+
+    config.digestHour = hour
+    config.digestMinute = minute
+    await config.save()
+
+    res.json({ message: 'Heure du récapitulatif quotidien mise à jour', digestHour: config.digestHour, digestMinute: config.digestMinute })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 // POST /api/super-admin/smtp/test (Test d'envoi SMTP plateforme)
 app.post('/api/super-admin/smtp/test', authRateLimiter, requireAuth, requireSuperAdmin, async (req, res) => {
@@ -2642,9 +2690,7 @@ app.post('/api/invitations/:token/accept', authRateLimiter, async (req, res) => 
           userRef: user._id,
           role: assignedRole,
           isAdmin: isInvitedAdmin,
-          usualPresence: req.body.usualPresence || 'present',
-          pushNotificationsEnabled: true,
-          emailNotificationsEnabled: false
+          usualPresence: req.body.usualPresence || 'present'
         })
         await newMember.save()
       }
@@ -2687,9 +2733,7 @@ app.post('/api/invitations/:token/accept', authRateLimiter, async (req, res) => 
         userRef: user._id,
         role: assignedRole,
         isAdmin: isInvitedAdmin, // Le rôle d'administrateur familial réside ici
-        usualPresence: usualPresence || 'present',
-        pushNotificationsEnabled: true,
-        emailNotificationsEnabled: false
+        usualPresence: usualPresence || 'present'
       })
       await newMember.save()
     }
@@ -2742,8 +2786,6 @@ app.get('/api/members', requireAuth, attachFamilyContext, async (req, res) => {
         avatar: u.avatar,
         color: u.color,
         points: mem.points || 0,
-        pushNotificationsEnabled: mem.pushNotificationsEnabled !== false,
-        emailNotificationsEnabled: Boolean(mem.emailNotificationsEnabled),
         usualPresence: mem.usualPresence || 'present',
         isSuperAdmin: Boolean(u.isSuperAdmin)
       }
@@ -2868,9 +2910,7 @@ app.post('/api/members', requireAuth, attachFamilyContext, requireFamilyAdmin, a
       role: role || (isAdmin ? 'Administrateur' : 'Membre'),
       isAdmin: Boolean(isAdmin),
       usualPresence: usualPresence || 'present',
-      points: Number(points) || 0,
-      pushNotificationsEnabled: true,
-      emailNotificationsEnabled: false
+      points: Number(points) || 0
     })
     await newMembership.save()
 
@@ -2902,7 +2942,7 @@ app.put('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAdmin
     const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: memberId })
     if (!membership) return res.status(404).json({ error: 'Membre non trouvé dans cette famille' })
 
-    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, pushNotificationsEnabled, emailNotificationsEnabled, usualPresence } = req.body
+    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, usualPresence } = req.body
 
     if (firstName) user.firstName = firstName.trim()
     if (lastName) user.lastName = lastName.trim()
@@ -2916,8 +2956,8 @@ app.put('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAdmin
 
     if (role) membership.role = role
     if (points !== undefined && points !== null) membership.points = Number(points)
-    if (pushNotificationsEnabled !== undefined) membership.pushNotificationsEnabled = Boolean(pushNotificationsEnabled)
-    if (emailNotificationsEnabled !== undefined) membership.emailNotificationsEnabled = Boolean(emailNotificationsEnabled)
+    // Les préférences de notification ne sont plus pilotables par un admin de famille pour un
+    // autre membre — elles sont désormais gérées par chacun dans son propre profil.
     if (usualPresence && ['present', 'absent'].includes(usualPresence)) {
       membership.usualPresence = usualPresence
     }
@@ -2966,8 +3006,6 @@ app.put('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAdmin
       avatar: user.avatar,
       color: user.color,
       points: membership.points,
-      pushNotificationsEnabled: membership.pushNotificationsEnabled !== false,
-      emailNotificationsEnabled: Boolean(membership.emailNotificationsEnabled),
       usualPresence: membership.usualPresence || 'present'
     })
   } catch (err) {
@@ -4966,7 +5004,20 @@ const startServer = async () => {
   await connectDB()
   await seedDatabaseIfEmpty()
   await migrateToMultiFamily()
+  await migrateNotificationPreferences()
   await initVapid()
+
+  const digestCtx = {
+    User, FamilyMember, Family, Task, Event, Absence, MealGuest, Meal, ShoppingItem,
+    PushSubscription, GlobalConfig,
+    getSmtpConfig, sendEmailWithConfig,
+    webpush,
+    getVapidKeys: () => ({ publicKey: vapidPublicKey, privateKey: vapidPrivateKey }),
+    logAlertEntry, toAlertChannelLog,
+    ALERT_ACTIONS
+  }
+  startDigestScheduler(digestCtx)
+  mountDigestAdminRoutes(app, digestCtx, { requireAuth, requireSuperAdmin })
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Serveur API Express Sécurisé démarré sur http://localhost:${PORT}`)

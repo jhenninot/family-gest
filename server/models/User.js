@@ -16,8 +16,40 @@ const userSchema = new mongoose.Schema({
   lastLogin: { type: Date, default: Date.now },
   welcomeToken: { type: String, default: null },
   welcomeTokenExpires: { type: Date, default: null },
+  // Champs historiques (dépréciés) — remplacés par notificationPreferences ci-dessous.
+  // Conservés uniquement pour permettre à migrate-notification-preferences.js de lire leur
+  // dernière valeur au démarrage ; plus jamais écrits par aucune route. À supprimer dans un
+  // futur nettoyage une fois la migration considérée stabilisée en production.
   pushNotificationsEnabled: { type: Boolean, default: true },
   emailNotificationsEnabled: { type: Boolean, default: false },
+  // Préférences de notification granulaires, au niveau du compte (valables sur toutes les
+  // familles de l'utilisateur) — remplace le double modèle User+FamilyMember précédent.
+  // Chemin imbriqué "classique" (pas de wrapper `type`) : les défauts de chaque booléen
+  // suffisent, Mongoose les applique en cascade à la création d'un nouveau document.
+  notificationPreferences: {
+    presence: {
+      push: { type: Boolean, default: true },
+      email: { type: Boolean, default: false }
+    },
+    meals: {
+      push: { type: Boolean, default: true },
+      email: { type: Boolean, default: false }
+    },
+    tasks: {
+      push: { type: Boolean, default: true },
+      email: { type: Boolean, default: false }
+    },
+    events: {
+      push: { type: Boolean, default: true },
+      email: { type: Boolean, default: false }
+    },
+    // Le récapitulatif quotidien est un contenu multi-sections, plus adapté à l'email :
+    // désactivé par push par défaut pour ne pas surprendre les comptes existants.
+    digest: {
+      push: { type: Boolean, default: false },
+      email: { type: Boolean, default: true }
+    }
+  },
   usualPresence: { type: String, enum: ['present', 'absent'], default: 'present' }
 }, { timestamps: true })
 

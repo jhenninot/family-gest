@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch-path=index.js --watch-path=config --watch-path=middleware --watch-path=models --watch-path=scripts index.js"
+    "dev": "node --watch-path=index.js --watch-path=config --watch-path=middleware --watch-path=models --watch-path=scripts --watch-path=constants --watch-path=mcp --watch-path=digest index.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
@@ -19,6 +19,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongodb-memory-server": "^9.4.0",
     "mongoose": "^8.6.1",
+    "node-cron": "^3.0.3",
     "nodemailer": "^10.0.1",
     "web-push": "^3.6.7",
     "zod": "^3.24.1"

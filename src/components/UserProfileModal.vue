@@ -114,23 +114,25 @@
           </div>
         </div>
 
-        <!-- Notifications Web Push sur cet appareil -->
+        <!-- Notifications Web Push sur cet appareil (abonnement du navigateur, indépendant des
+             préférences par catégorie ci-dessous : sans abonnement actif, aucune des alertes
+             "Push" ne peut être délivrée à cet appareil) -->
         <div class="form-group notif-profile-group">
-          <label 
-            class="notif-toggle-card" 
-            :class="{ 
-              'is-active': editProfile.pushNotificationsEnabled && devicePushStatus !== 'denied' && devicePushStatus !== 'unsupported',
-              'is-disabled': devicePushStatus === 'denied' || devicePushStatus === 'unsupported' 
+          <label
+            class="notif-toggle-card"
+            :class="{
+              'is-active': editProfile.deviceSubscribed && devicePushStatus !== 'denied' && devicePushStatus !== 'unsupported',
+              'is-disabled': devicePushStatus === 'denied' || devicePushStatus === 'unsupported'
             }"
           >
-            <input 
-              type="checkbox" 
-              v-model="editProfile.pushNotificationsEnabled" 
+            <input
+              type="checkbox"
+              v-model="editProfile.deviceSubscribed"
               :disabled="devicePushStatus === 'denied' || devicePushStatus === 'unsupported'"
               class="notif-hidden-input"
             />
             <div class="notif-toggle-icon">
-              <Bell v-if="editProfile.pushNotificationsEnabled && devicePushStatus !== 'denied' && devicePushStatus !== 'unsupported'" :size="18" />
+              <Bell v-if="editProfile.deviceSubscribed && devicePushStatus !== 'denied' && devicePushStatus !== 'unsupported'" :size="18" />
               <BellOff v-else :size="18" />
             </div>
             <div class="notif-toggle-details">
@@ -142,7 +144,7 @@
                 <template v-else-if="devicePushStatus === 'unsupported'">
                   Non disponibles sur ce navigateur
                 </template>
-                <template v-else-if="editProfile.pushNotificationsEnabled">
+                <template v-else-if="editProfile.deviceSubscribed">
                   Actives sur ce navigateur (alertes directes)
                 </template>
                 <template v-else>
@@ -150,33 +152,38 @@
                 </template>
               </span>
             </div>
-            <div class="toggle-switch" :class="{ active: editProfile.pushNotificationsEnabled && devicePushStatus !== 'denied' && devicePushStatus !== 'unsupported' }">
+            <div class="toggle-switch" :class="{ active: editProfile.deviceSubscribed && devicePushStatus !== 'denied' && devicePushStatus !== 'unsupported' }">
               <span class="toggle-circle"></span>
             </div>
           </label>
         </div>
 
-        <!-- Notifications par Email -->
+        <!-- Préférences de notification granulaires : 5 catégories x 2 canaux -->
         <div class="form-group notif-profile-group">
-          <label class="notif-toggle-card" :class="{ 'is-active': editProfile.emailNotificationsEnabled }">
-            <input 
-              type="checkbox" 
-              v-model="editProfile.emailNotificationsEnabled" 
-              class="notif-hidden-input"
-            />
-            <div class="notif-toggle-icon notif-email-icon">
-              <Mail :size="18" />
+          <span class="notif-grid-label">Que voulez-vous recevoir, et par quel canal ?</span>
+          <p v-if="devicePushStatus === 'denied' || devicePushStatus === 'unsupported'" class="notif-push-hint">
+            Les notifications push nécessitent que les notifications soient activées sur cet appareil (ci-dessus).
+          </p>
+          <div class="notif-prefs-grid">
+            <div class="notif-prefs-header">
+              <span></span>
+              <span class="notif-prefs-col-label"><Bell :size="14" /> Push</span>
+              <span class="notif-prefs-col-label"><Mail :size="14" /> Email</span>
             </div>
-            <div class="notif-toggle-details">
-              <span class="notif-toggle-title">Notifications par Email</span>
-              <span class="notif-toggle-subtitle">
-                Recevoir un récapitulatif par email pour chaque nouveauté
-              </span>
+            <div v-for="cat in NOTIFICATION_CATEGORIES" :key="cat.key" class="notif-prefs-row">
+              <span class="notif-prefs-row-label">{{ cat.label }}</span>
+              <label class="notif-prefs-checkbox" :class="{ 'is-disabled': devicePushStatus === 'denied' || devicePushStatus === 'unsupported' }">
+                <input
+                  type="checkbox"
+                  v-model="editProfile.notificationPreferences[cat.key].push"
+                  :disabled="devicePushStatus === 'denied' || devicePushStatus === 'unsupported'"
+                />
+              </label>
+              <label class="notif-prefs-checkbox">
+                <input type="checkbox" v-model="editProfile.notificationPreferences[cat.key].email" />
+              </label>
             </div>
-            <div class="toggle-switch" :class="{ active: editProfile.emailNotificationsEnabled }">
-              <span class="toggle-circle"></span>
-            </div>
-          </label>
+          </div>
         </div>
 
         <div class="modal-footer">
@@ -226,6 +233,22 @@ const initialDeviceSubscribed = ref(false)
 
 const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
 
+const NOTIFICATION_CATEGORIES = [
+  { key: 'presence', label: 'Présences, absences & invités aux repas' },
+  { key: 'meals', label: 'Repas' },
+  { key: 'tasks', label: 'Tâches' },
+  { key: 'events', label: 'Événements' },
+  { key: 'digest', label: 'Récapitulatif quotidien' }
+]
+
+const defaultNotificationPreferences = () => ({
+  presence: { push: true, email: false },
+  meals: { push: true, email: false },
+  tasks: { push: true, email: false },
+  events: { push: true, email: false },
+  digest: { push: false, email: true }
+})
+
 const editProfile = ref({
   firstName: '',
   lastName: '',
@@ -234,8 +257,9 @@ const editProfile = ref({
   role: 'Membre',
   avatar: DEFAULT_AVATAR,
   color: '#6366f1',
-  pushNotificationsEnabled: true,
-  emailNotificationsEnabled: false,
+  // État local uniquement (abonnement du navigateur) : jamais envoyé à PUT /api/auth/profile.
+  deviceSubscribed: false,
+  notificationPreferences: defaultNotificationPreferences(),
   usualPresence: 'present'
 })
 
@@ -258,6 +282,19 @@ const loadUserData = async () => {
     devicePushStatus.value = isSub ? 'active' : 'inactive'
   }
 
+  const storedPrefs = authStore.user.notificationPreferences
+  const notificationPreferences = defaultNotificationPreferences()
+  if (storedPrefs && typeof storedPrefs === 'object') {
+    for (const cat of NOTIFICATION_CATEGORIES) {
+      if (storedPrefs[cat.key]) {
+        notificationPreferences[cat.key] = {
+          push: Boolean(storedPrefs[cat.key].push),
+          email: Boolean(storedPrefs[cat.key].email)
+        }
+      }
+    }
+  }
+
   editProfile.value = {
     firstName: authStore.user.firstName || '',
     lastName: authStore.user.lastName || '',
@@ -266,8 +303,8 @@ const loadUserData = async () => {
     role: authStore.user.role || 'Membre',
     avatar: authStore.user.avatar || DEFAULT_AVATAR,
     color: authStore.user.color || '#6366f1',
-    pushNotificationsEnabled: initialDeviceSubscribed.value,
-    emailNotificationsEnabled: Boolean(authStore.user.emailNotificationsEnabled),
+    deviceSubscribed: initialDeviceSubscribed.value,
+    notificationPreferences,
     usualPresence: authStore.user.usualPresence || 'present'
   }
 }
@@ -289,18 +326,20 @@ const handleSaveProfile = async () => {
   saving.value = true
 
   if (isPushSupported() && devicePushStatus.value !== 'denied' && devicePushStatus.value !== 'unsupported') {
-    if (editProfile.value.pushNotificationsEnabled && !initialDeviceSubscribed.value) {
+    if (editProfile.value.deviceSubscribed && !initialDeviceSubscribed.value) {
       await subscribeUserToPush().catch(err => {
         console.warn('[WebPush] Erreur inscription push appareil:', err)
       })
-    } else if (!editProfile.value.pushNotificationsEnabled && initialDeviceSubscribed.value) {
+    } else if (!editProfile.value.deviceSubscribed && initialDeviceSubscribed.value) {
       await unsubscribeUserFromPush().catch(err => {
         console.warn('[WebPush] Erreur désabonnement push appareil:', err)
       })
     }
   }
 
-  const res = await authStore.updateProfile(editProfile.value)
+  // deviceSubscribed est un état local (abonnement du navigateur), jamais transmis au serveur.
+  const { deviceSubscribed, ...profilePayload } = editProfile.value
+  const res = await authStore.updateProfile(profilePayload)
   saving.value = false
 
   if (res.success) {
@@ -472,5 +511,85 @@ const handleSaveProfile = async () => {
 
 .toggle-switch.active .toggle-circle {
   transform: translateX(20px);
+}
+
+/* Notification Preferences Grid */
+.notif-grid-label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.4rem;
+}
+
+.notif-push-hint {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.6rem 0;
+}
+
+.notif-prefs-grid {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+}
+
+.notif-prefs-header,
+.notif-prefs-row {
+  display: grid;
+  grid-template-columns: 1fr 56px 56px;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.notif-prefs-header {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.2rem;
+}
+
+.notif-prefs-col-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.notif-prefs-row {
+  padding: 0.5rem 0;
+}
+
+.notif-prefs-row:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.notif-prefs-row-label {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.notif-prefs-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.notif-prefs-checkbox.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.notif-prefs-checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-primary, #6366f1);
+  cursor: inherit;
 }
 </style>

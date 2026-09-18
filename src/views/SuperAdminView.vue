@@ -412,13 +412,68 @@
               <Send :size="16" />
               <span>{{ testingSmtp ? 'Test en cours...' : 'Tester la connexion SMTP' }}</span>
             </button>
-            <button 
-              type="submit" 
-              class="btn btn-primary" 
+            <button
+              type="submit"
+              class="btn btn-primary"
               :disabled="savingSmtp || testingSmtp"
             >
               <Check :size="16" />
               <span>{{ savingSmtp ? 'Enregistrement...' : 'Enregistrer la configuration' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="smtp-container glass-card margin-top-lg">
+        <div class="smtp-intro">
+          <h3 class="section-title"><Clock :size="20" /> Récapitulatif quotidien</h3>
+          <p class="section-subtitle">
+            Heure d'envoi du récapitulatif quotidien (repas & présences, tâches en attente, événements du jour, liste de courses) reçu par chaque utilisateur ayant activé cette option dans son profil.
+          </p>
+        </div>
+
+        <form @submit.prevent="saveDigestSchedule" class="smtp-form">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Heure (0-23)</label>
+              <input
+                type="number"
+                v-model.number="digestSchedule.digestHour"
+                min="0"
+                max="23"
+                class="form-input"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Minute (0-59)</label>
+              <input
+                type="number"
+                v-model.number="digestSchedule.digestMinute"
+                min="0"
+                max="59"
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div v-if="digestScheduleMessage" class="alert-box" :class="digestScheduleSuccess ? 'alert-success' : 'alert-error'">
+            {{ digestScheduleMessage }}
+          </div>
+
+          <div class="smtp-actions">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              :disabled="sendingDigestNow"
+              @click="sendDigestNow"
+              title="Envoie immédiatement le récapitulatif quotidien aux utilisateurs y ayant souscrit, sans attendre l'heure planifiée"
+            >
+              <Send :size="16" />
+              <span>{{ sendingDigestNow ? 'Envoi en cours...' : 'Envoyer maintenant' }}</span>
+            </button>
+            <button type="submit" class="btn btn-primary" :disabled="savingDigestSchedule">
+              <Check :size="16" />
+              <span>{{ savingDigestSchedule ? 'Enregistrement...' : 'Enregistrer l\'heure d\'envoi' }}</span>
             </button>
           </div>
         </form>
@@ -1129,7 +1184,8 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
-  Filter
+  Filter,
+  Clock
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -1179,6 +1235,13 @@ const testingSmtp = ref(false)
 const smtpMessage = ref('')
 const smtpSuccess = ref(false)
 const testRecipient = ref(authStore.user?.email || '')
+
+// Heure d'envoi du récapitulatif quotidien (GlobalConfig.digestHour/digestMinute)
+const digestSchedule = reactive({ digestHour: 8, digestMinute: 0 })
+const savingDigestSchedule = ref(false)
+const digestScheduleMessage = ref('')
+const digestScheduleSuccess = ref(false)
+const sendingDigestNow = ref(false)
 
 // Alert Log Journal State
 const alertLogs = ref([])
@@ -1402,6 +1465,81 @@ const fetchSmtp = async () => {
   }
 }
 
+const fetchDigestSchedule = async () => {
+  try {
+    const res = await fetch('/api/super-admin/digest-schedule', {
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      digestSchedule.digestHour = data.digestHour ?? 8
+      digestSchedule.digestMinute = data.digestMinute ?? 0
+    }
+  } catch (err) {
+    console.error('Erreur fetchDigestSchedule', err)
+  }
+}
+
+const saveDigestSchedule = async () => {
+  savingDigestSchedule.value = true
+  digestScheduleMessage.value = ''
+  try {
+    const res = await fetch('/api/super-admin/digest-schedule', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({ digestHour: digestSchedule.digestHour, digestMinute: digestSchedule.digestMinute })
+    })
+    const data = await res.json()
+    if (res.ok) {
+      digestScheduleSuccess.value = true
+      digestScheduleMessage.value = '✓ Heure du récapitulatif quotidien enregistrée avec succès !'
+    } else {
+      digestScheduleSuccess.value = false
+      digestScheduleMessage.value = data.error || 'Erreur lors de l\'enregistrement'
+    }
+  } catch (err) {
+    digestScheduleSuccess.value = false
+    digestScheduleMessage.value = err.message
+  } finally {
+    savingDigestSchedule.value = false
+  }
+}
+
+const sendDigestNow = async () => {
+  const ok = await confirm({
+    title: 'Envoyer le récapitulatif quotidien maintenant ?',
+    message: 'Un email/push sera envoyé immédiatement à tous les utilisateurs ayant activé le récapitulatif quotidien, quelle que soit l\'heure planifiée.',
+    confirmText: 'Envoyer maintenant',
+    type: 'primary'
+  })
+  if (!ok) return
+
+  sendingDigestNow.value = true
+  digestScheduleMessage.value = ''
+  try {
+    const res = await fetch('/api/super-admin/digest/send-now', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    const data = await res.json()
+    if (res.ok) {
+      digestScheduleSuccess.value = true
+      digestScheduleMessage.value = data.message || '✓ Envoi déclenché.'
+    } else {
+      digestScheduleSuccess.value = false
+      digestScheduleMessage.value = data.error || 'Erreur lors du déclenchement de l\'envoi'
+    }
+  } catch (err) {
+    digestScheduleSuccess.value = false
+    digestScheduleMessage.value = err.message
+  } finally {
+    sendingDigestNow.value = false
+  }
+}
+
 const fetchAlertMeta = async () => {
   try {
     const res = await fetch('/api/super-admin/alert-logs/meta', {
@@ -1483,6 +1621,7 @@ onMounted(() => {
   fetchFamilies()
   fetchUsers()
   fetchSmtp()
+  fetchDigestSchedule()
   fetchAlertMeta()
   fetchAlertLogs()
 })

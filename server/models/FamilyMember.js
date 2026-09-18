@@ -33,15 +33,10 @@ const familyMemberSchema = new mongoose.Schema({
   points: {
     type: Number,
     default: 0
-  },
-  pushNotificationsEnabled: {
-    type: Boolean,
-    default: true
-  },
-  emailNotificationsEnabled: {
-    type: Boolean,
-    default: false
   }
+  // Les préférences de notification (push/email) ont été retirées d'ici : elles sont désormais
+  // gérées au niveau du compte utilisateur (User.notificationPreferences), valables sur toutes
+  // les familles — un administrateur de famille ne peut plus les forcer pour un autre membre.
 }, { timestamps: true })
 
 familyMemberSchema.index({ familyId: 1, userId: 1 }, { unique: true })

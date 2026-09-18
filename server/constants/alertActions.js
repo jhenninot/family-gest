@@ -1,14 +1,20 @@
 // Catalogue des types d'alertes journalisées (utilisé pour la journalisation serveur
 // et pour peupler les filtres de la console Super Admin).
+// La clé `category`, quand présente, relie une action à une des 4 catégories d'abonnement
+// granulaire (User.notificationPreferences) : elle détermine quel réglage de préférence
+// (push/email) est vérifié par sendPushNotification/sendNotificationEmail avant l'envoi.
+// Les actions sans `category` sont transactionnelles (invitations, bienvenue, création de
+// compte) et restent toujours envoyées, hors du système d'opt-in.
 export const ALERT_ACTIONS = {
-  TASK_CREATED: { code: 'task.created', label: 'Nouvelle tâche' },
-  EVENT_CREATED: { code: 'event.created', label: 'Nouvel événement' },
-  EVENT_UPDATED: { code: 'event.updated', label: 'Événement modifié' },
-  PRESENCE_CREATED: { code: 'absence.presence', label: 'Présence signalée' },
-  ABSENCE_CREATED: { code: 'absence.absence', label: 'Absence signalée' },
-  LONG_ABSENCE_CREATED: { code: 'absence.long', label: 'Absence longue signalée' },
-  MEAL_GUEST_CREATED: { code: 'meal_guest.created', label: 'Invité aux repas ajouté' },
-  MEAL_CREATED: { code: 'meal.created', label: 'Repas suggéré' },
+  TASK_CREATED: { code: 'task.created', label: 'Nouvelle tâche', category: 'tasks' },
+  EVENT_CREATED: { code: 'event.created', label: 'Nouvel événement', category: 'events' },
+  EVENT_UPDATED: { code: 'event.updated', label: 'Événement modifié', category: 'events' },
+  PRESENCE_CREATED: { code: 'absence.presence', label: 'Présence signalée', category: 'presence' },
+  ABSENCE_CREATED: { code: 'absence.absence', label: 'Absence signalée', category: 'presence' },
+  LONG_ABSENCE_CREATED: { code: 'absence.long', label: 'Absence longue signalée', category: 'presence' },
+  MEAL_GUEST_CREATED: { code: 'meal_guest.created', label: 'Invité aux repas ajouté', category: 'presence' },
+  MEAL_CREATED: { code: 'meal.created', label: 'Repas suggéré', category: 'meals' },
+  DIGEST_SENT: { code: 'digest.sent', label: 'Récapitulatif quotidien envoyé' },
   FAMILY_ADMIN_INVITED: { code: 'family.admin_invited', label: 'Invitation administrateur de famille' },
   FAMILY_MEMBER_INVITED: { code: 'family.member_invited', label: 'Invitation membre de famille' },
   MEMBER_WELCOME: { code: 'member.welcome', label: 'Email de bienvenue (nouveau membre)' },
@@ -17,3 +23,8 @@ export const ALERT_ACTIONS = {
 }
 
 export const ALERT_ACTIONS_LIST = Object.values(ALERT_ACTIONS)
+
+// Résolution rapide code d'action → catégorie d'abonnement (voir commentaire ci-dessus).
+export const ACTION_CATEGORY_BY_CODE = Object.fromEntries(
+  ALERT_ACTIONS_LIST.filter(a => a.category).map(a => [a.code, a.category])
+)

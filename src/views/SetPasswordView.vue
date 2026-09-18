@@ -271,8 +271,10 @@ const handleSetPassword = async () => {
       body: JSON.stringify({
         token: token.value,
         password: password.value,
-        pushNotificationsEnabled: enableNotifications.value,
-        emailNotificationsEnabled: enableEmailNotifications.value
+        notificationPreferences: {
+          push: enableNotifications.value,
+          email: enableEmailNotifications.value
+        }
       })
     })
 
