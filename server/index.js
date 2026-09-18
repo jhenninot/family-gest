@@ -1468,6 +1468,21 @@ app.delete('/api/auth/account', requireAuth, async (req, res) => {
   }
 })
 
+// === CONTENU LÉGAL (mentions légales, politique de confidentialité) ===
+
+// GET /api/legal (Public, sans authentification : affiché sur /mentions-legales et /confidentialite)
+app.get('/api/legal', async (req, res) => {
+  try {
+    const config = await GlobalConfig.findOne()
+    res.json({
+      legalNotice: config?.legalNotice || GlobalConfig.schema.path('legalNotice').defaultValue,
+      privacyPolicy: config?.privacyPolicy || GlobalConfig.schema.path('privacyPolicy').defaultValue
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // === SUPER ADMIN ROUTES ===
 
 // GET /api/super-admin/families (Liste de toutes les familles et quotas)
@@ -2407,6 +2422,24 @@ app.put('/api/super-admin/digest-schedule', requireAuth, requireSuperAdmin, asyn
     await config.save()
 
     res.json({ message: 'Heure du récapitulatif quotidien mise à jour', digestHour: config.digestHour, digestMinute: config.digestMinute })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PUT /api/super-admin/legal (Modification des mentions légales & de la politique de confidentialité)
+app.put('/api/super-admin/legal', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { legalNotice, privacyPolicy } = req.body
+
+    let config = await GlobalConfig.findOne()
+    if (!config) config = new GlobalConfig()
+
+    if (legalNotice !== undefined) config.legalNotice = legalNotice
+    if (privacyPolicy !== undefined) config.privacyPolicy = privacyPolicy
+    await config.save()
+
+    res.json({ message: 'Contenu légal mis à jour', legalNotice: config.legalNotice, privacyPolicy: config.privacyPolicy })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

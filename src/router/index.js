@@ -24,6 +24,18 @@ const routes = [
     component: () => import('../views/InvitationView.vue'),
     meta: { title: 'Invitation Familiale', public: true }
   },
+  {
+    path: '/mentions-legales',
+    name: 'legal-notice',
+    component: () => import('../views/LegalDocView.vue'),
+    meta: { title: 'Mentions légales', public: true, field: 'legalNotice' }
+  },
+  {
+    path: '/confidentialite',
+    name: 'privacy-policy',
+    component: () => import('../views/LegalDocView.vue'),
+    meta: { title: 'Politique de confidentialité', public: true, field: 'privacyPolicy' }
+  },
 
   // Special workspace selection & Super Admin
   {

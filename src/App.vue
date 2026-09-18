@@ -219,7 +219,8 @@ const userMenuRef = ref(null)
 const isRefreshing = ref(false)
 
 const isAuthPage = computed(() => {
-  return route.name === 'login' || route.name === 'set-password' || route.path === '/login' || route.path === '/set-password'
+  return route.name === 'login' || route.name === 'set-password' || route.path === '/login' || route.path === '/set-password' ||
+    route.name === 'legal-notice' || route.name === 'privacy-policy'
 })
 
 const displayName = computed(() => {

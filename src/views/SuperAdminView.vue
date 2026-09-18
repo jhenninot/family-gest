@@ -478,6 +478,46 @@
           </div>
         </form>
       </div>
+
+      <div class="smtp-container glass-card margin-top-lg">
+        <div class="smtp-intro">
+          <h3 class="section-title"><ShieldCheck :size="20" /> Mentions légales & politique de confidentialité</h3>
+          <p class="section-subtitle">
+            Contenu affiché publiquement sur <code>/mentions-legales</code> et <code>/confidentialite</code> (accessible sans connexion, lié depuis l'écran de connexion et le profil utilisateur). Complétez les champs entre crochets avant d'ouvrir la plateforme à d'autres foyers.
+          </p>
+        </div>
+
+        <form @submit.prevent="saveLegal" class="smtp-form">
+          <div class="form-group">
+            <label class="form-label">Mentions légales</label>
+            <textarea
+              v-model="legalContent.legalNotice"
+              class="form-input legal-textarea"
+              rows="10"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Politique de confidentialité</label>
+            <textarea
+              v-model="legalContent.privacyPolicy"
+              class="form-input legal-textarea"
+              rows="16"
+            ></textarea>
+          </div>
+
+          <div v-if="legalMessage" class="alert-box" :class="legalSuccess ? 'alert-success' : 'alert-error'">
+            {{ legalMessage }}
+          </div>
+
+          <div class="smtp-actions">
+            <button type="submit" class="btn btn-primary" :disabled="savingLegal">
+              <Check :size="16" />
+              <span>{{ savingLegal ? 'Enregistrement...' : 'Enregistrer le contenu légal' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- TAB 4: ALERT LOGS -->
@@ -1243,6 +1283,13 @@ const digestScheduleMessage = ref('')
 const digestScheduleSuccess = ref(false)
 const sendingDigestNow = ref(false)
 
+// Contenu légal RGPD (GlobalConfig.legalNotice/privacyPolicy), affiché publiquement sur
+// /mentions-legales et /confidentialite
+const legalContent = reactive({ legalNotice: '', privacyPolicy: '' })
+const savingLegal = ref(false)
+const legalMessage = ref('')
+const legalSuccess = ref(false)
+
 // Alert Log Journal State
 const alertLogs = ref([])
 const loadingAlertLogs = ref(false)
@@ -1508,6 +1555,47 @@ const saveDigestSchedule = async () => {
   }
 }
 
+const fetchLegal = async () => {
+  try {
+    const res = await fetch('/api/legal')
+    if (res.ok) {
+      const data = await res.json()
+      legalContent.legalNotice = data.legalNotice || ''
+      legalContent.privacyPolicy = data.privacyPolicy || ''
+    }
+  } catch (err) {
+    console.error('Erreur fetchLegal', err)
+  }
+}
+
+const saveLegal = async () => {
+  savingLegal.value = true
+  legalMessage.value = ''
+  try {
+    const res = await fetch('/api/super-admin/legal', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: JSON.stringify({ legalNotice: legalContent.legalNotice, privacyPolicy: legalContent.privacyPolicy })
+    })
+    const data = await res.json()
+    if (res.ok) {
+      legalSuccess.value = true
+      legalMessage.value = '✓ Contenu légal enregistré avec succès !'
+    } else {
+      legalSuccess.value = false
+      legalMessage.value = data.error || 'Erreur lors de l\'enregistrement'
+    }
+  } catch (err) {
+    legalSuccess.value = false
+    legalMessage.value = err.message
+  } finally {
+    savingLegal.value = false
+  }
+}
+
 const sendDigestNow = async () => {
   const ok = await confirm({
     title: 'Envoyer le récapitulatif quotidien maintenant ?',
@@ -1622,6 +1710,7 @@ onMounted(() => {
   fetchUsers()
   fetchSmtp()
   fetchDigestSchedule()
+  fetchLegal()
   fetchAlertMeta()
   fetchAlertLogs()
 })
@@ -2481,6 +2570,12 @@ const testGlobalSmtp = async () => {
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 1.5rem;
+}
+
+.legal-textarea {
+  font-family: inherit;
+  resize: vertical;
+  line-height: 1.5;
 }
 
 .smtp-preset-buttons {

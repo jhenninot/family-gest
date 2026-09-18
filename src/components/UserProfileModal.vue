@@ -199,6 +199,12 @@
       <div class="gdpr-section">
         <span class="notif-grid-label">Confidentialité &amp; données personnelles</span>
 
+        <div class="gdpr-legal-links">
+          <a href="/mentions-legales" target="_blank" rel="noopener">Mentions légales</a>
+          <span aria-hidden="true">&bull;</span>
+          <a href="/confidentialite" target="_blank" rel="noopener">Politique de confidentialité</a>
+        </div>
+
         <button type="button" class="btn-gdpr-action" :disabled="exporting" @click="handleExportData">
           <Download :size="16" />
           <span>{{ exporting ? 'Export en cours...' : 'Exporter mes données (JSON)' }}</span>
@@ -777,5 +783,26 @@ const handleSaveProfile = async () => {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.gdpr-legal-links {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+}
+
+.gdpr-legal-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.gdpr-legal-links a:hover {
+  color: var(--accent-primary);
+  text-decoration: underline;
+}
+
+.gdpr-legal-links span {
+  color: var(--text-muted);
 }
 </style>

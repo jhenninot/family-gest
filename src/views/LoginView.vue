@@ -65,6 +65,11 @@
           <span>{{ isRefreshing ? 'Mise à jour...' : 'Vider le cache & rafraîchir l\'application' }}</span>
         </button>
         <span>Portail sécurisé FamilyGest &bull; Tous droits réservés</span>
+        <div class="legal-links">
+          <router-link to="/mentions-legales">Mentions légales</router-link>
+          <span aria-hidden="true">&bull;</span>
+          <router-link to="/confidentialite">Politique de confidentialité</router-link>
+        </div>
       </div>
     </div>
   </div>
@@ -245,6 +250,22 @@ const handleLogin = async () => {
 
 .spin-icon {
   animation: spin 1s linear infinite;
+}
+
+.legal-links {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legal-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.legal-links a:hover {
+  color: var(--accent-primary);
+  text-decoration: underline;
 }
 
 @keyframes spin {
