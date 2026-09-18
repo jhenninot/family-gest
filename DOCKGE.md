@@ -201,6 +201,20 @@ APP_PORT=8085
 Puis cliquez sur **Deploy**. L'application sera accessible sur `http://ip-de-votre-serveur:8085`.
 
 ### 3. Connexion initiale
-Lors du tout premier démarrage sur une base vierge, le compte administrateur est automatiquement créé :
+Lors du tout premier démarrage sur une base vierge, le compte **Super Administrateur** ainsi qu'une famille par défaut (« Famille Principale ») sont automatiquement créés :
 - **Email** : `admin@family-gest.org`
 - **Mot de passe** : `Admin1234!`
+
+D'autres familles peuvent ensuite être créées depuis la console Super Administrateur (`/super-admin`), et des membres ajoutés par invitation depuis les réglages de chaque famille.
+
+### 4. Exposer FamilyGest publiquement pour le connecteur MCP (Claude)
+Chaque famille peut générer, depuis ses réglages, une URL de connecteur [MCP](https://modelcontextprotocol.io) permettant de piloter FamilyGest depuis Claude. Les serveurs de Claude étant sur Internet, cette URL doit être joignable en **HTTPS** depuis l'extérieur (une adresse LAN ou `http://` ne fonctionnera pas) : il faut donc un reverse proxy (NGINX Proxy Manager, Traefik, Caddy...) devant le conteneur `familygest-app`, avec un certificat TLS valide (Let's Encrypt).
+
+Le endpoint du connecteur (`/api/mcp/...`) passe par le même hôte que le reste de l'application — aucune règle de routage supplémentaire n'est nécessaire si FamilyGest est déjà exposé publiquement pour l'accès normal des membres. Pensez toutefois à autoriser les réponses en streaming (SSE) sur ce chemin en désactivant la mise en tampon du proxy, par exemple avec NGINX :
+```nginx
+proxy_buffering off;
+proxy_read_timeout 3600s;
+proxy_send_timeout 3600s;
+```
+
+Si FamilyGest n'est aujourd'hui accessible qu'en local, il faudra créer un nouvel hôte/sous-domaine dédié dans votre reverse proxy avant de pouvoir utiliser le connecteur MCP.
