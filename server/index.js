@@ -33,8 +33,10 @@ import Meal from './models/Meal.js'
 import PushConfig from './models/PushConfig.js'
 import PushSubscription from './models/PushSubscription.js'
 import AlertLog from './models/AlertLog.js'
+import McpConnector from './models/McpConnector.js'
 import { ALERT_ACTIONS, ALERT_ACTIONS_LIST } from './constants/alertActions.js'
 import webpush from 'web-push'
+import { mountMcpServer } from './mcp/index.js'
 
 dotenv.config()
 
@@ -3085,6 +3087,52 @@ app.post('/api/members/:id/resend-welcome', requireAuth, attachFamilyContext, re
 })
 
 // === TASKS ROUTES ===
+
+// Bascule l'état "terminé" d'une tâche et répercute les points sur le membre (famille + compte global).
+// Partagée par la route HTTP et l'outil MCP toggle_task pour éviter toute divergence de comptabilité.
+const toggleTaskCompletion = async ({ familyId, taskId }) => {
+  const task = await Task.findOne({ id: Number(taskId), familyId })
+  if (!task) return null
+
+  task.completed = !task.completed
+  await task.save()
+
+  const membership = await FamilyMember.findOne({ familyId, userId: task.assignedTo })
+  if (membership) {
+    membership.points = task.completed
+      ? (membership.points || 0) + task.points
+      : Math.max(0, (membership.points || 0) - task.points)
+    await membership.save()
+  }
+
+  const user = await User.findOne({ id: task.assignedTo })
+  if (user) {
+    user.points = task.completed
+      ? (user.points || 0) + task.points
+      : Math.max(0, (user.points || 0) - task.points)
+    await user.save()
+  }
+
+  return task
+}
+
+// Met à jour partiellement une tâche (pas de route HTTP équivalente avant l'ajout du connecteur MCP).
+const updateTask = async ({ familyId, taskId, fields }) => {
+  const task = await Task.findOne({ id: Number(taskId), familyId })
+  if (!task) return null
+
+  const { title, category, assignedTo, priority, points, dueDate } = fields
+  if (title !== undefined) task.title = String(title).trim()
+  if (category !== undefined) task.category = category
+  if (assignedTo !== undefined) task.assignedTo = Number(assignedTo)
+  if (priority !== undefined) task.priority = priority
+  if (points !== undefined) task.points = Number(points) || task.points
+  if (dueDate !== undefined) task.dueDate = dueDate
+
+  await task.save()
+  return task
+}
+
 app.get('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const tasks = await Task.find({ familyId: req.family._id }).sort({ createdAt: -1 })
@@ -3158,36 +3206,21 @@ app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
 
 app.put('/api/tasks/:id/toggle', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const task = await Task.findOne({ id: Number(req.params.id), familyId: req.family._id })
+    const task = await toggleTaskCompletion({ familyId: req.family._id, taskId: req.params.id })
     if (!task) return res.status(404).json({ error: 'Tâche non trouvée' })
-
-    task.completed = !task.completed
-    await task.save()
-
-    // Mise à jour des points du membre dans la famille
-    const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: task.assignedTo })
-    if (membership) {
-      if (task.completed) {
-        membership.points = (membership.points || 0) + task.points
-      } else {
-        membership.points = Math.max(0, (membership.points || 0) - task.points)
-      }
-      await membership.save()
-    }
-
-    const user = await User.findOne({ id: task.assignedTo })
-    if (user) {
-      if (task.completed) {
-        user.points = (user.points || 0) + task.points
-      } else {
-        user.points = Math.max(0, (user.points || 0) - task.points)
-      }
-      await user.save()
-    }
-
     res.json(task)
   } catch (err) {
     res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/tasks/:id', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const task = await updateTask({ familyId: req.family._id, taskId: req.params.id, fields: req.body })
+    if (!task) return res.status(404).json({ error: 'Tâche non trouvée' })
+    res.json(task)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
   }
 })
 
@@ -3210,78 +3243,123 @@ app.get('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
   }
 })
 
-app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
-  try {
-    const { recurrence, generateAbsence, absenceSlots } = req.body
-    const memberIdsInput = Array.isArray(req.body.memberIds) ? req.body.memberIds.map(Number) : []
+// Crée un événement simple, ou une série récurrente (fan-out via getRecurrenceDates) avec génération
+// optionnelle d'absences liées. Ne construit aucune notification — le contenu push/email diffère selon
+// le contexte (route HTTP vs outil MCP) et reste à la charge de l'appelant. Partagée par la route HTTP
+// et l'outil MCP create_event.
+const createEventOrSeries = async ({ familyId, body, declaredBy }) => {
+  const { title, date, time, endTime, category, location, color, assignedTo, recurrence, generateAbsence, absenceSlots } = body
+  const memberIdsInput = Array.isArray(body.memberIds) ? body.memberIds.map(Number) : []
 
-    // === Création d'une série d'événements récurrents ===
-    if (recurrence && recurrence.frequency) {
-      const { frequency, endDate } = recurrence
-      const interval = Math.max(1, Number(recurrence.interval) || 1)
+  if (recurrence && recurrence.frequency) {
+    const { frequency, endDate } = recurrence
+    const interval = Math.max(1, Number(recurrence.interval) || 1)
 
-      if (!['daily', 'weekly', 'monthly'].includes(frequency)) {
-        return res.status(400).json({ error: 'Fréquence de récurrence invalide' })
-      }
-      if (!endDate || endDate < req.body.date) {
-        return res.status(400).json({ error: "La date de fin de récurrence doit être postérieure ou égale à la date de l'événement" })
-      }
+    if (!['daily', 'weekly', 'monthly'].includes(frequency)) {
+      throw new Error('Fréquence de récurrence invalide')
+    }
+    if (!endDate || endDate < date) {
+      throw new Error("La date de fin de récurrence doit être postérieure ou égale à la date de l'événement")
+    }
 
-      const { dates, truncated } = getRecurrenceDates(req.body.date, frequency, interval, endDate)
-      if (dates.length === 0) {
-        return res.status(400).json({ error: 'Aucune occurrence à générer pour cette récurrence' })
-      }
+    const { dates, truncated } = getRecurrenceDates(date, frequency, interval, endDate)
+    if (dates.length === 0) {
+      throw new Error('Aucune occurrence à générer pour cette récurrence')
+    }
 
-      const recurrenceMeta = { frequency, interval, endDate }
-      const baseId = Date.now()
-      const createdEvents = []
-      for (let i = 0; i < dates.length; i++) {
-        const occurrence = new Event({
-          familyId: req.family._id,
-          id: baseId + i,
-          title: req.body.title,
-          date: dates[i],
-          time: req.body.time,
-          endTime: req.body.endTime,
-          category: req.body.category || 'Famille',
-          location: req.body.location,
-          color: req.body.color || '#8b5cf6',
-          assignedTo: req.body.assignedTo,
-          memberIds: memberIdsInput,
-          recurrenceId: baseId,
-          recurrence: recurrenceMeta,
-          icsToken: crypto.randomBytes(24).toString('hex')
-        })
-        await occurrence.save()
-        createdEvents.push(occurrence)
-      }
+    const recurrenceMeta = { frequency, interval, endDate }
+    const baseId = Date.now()
+    const createdEvents = []
+    for (let i = 0; i < dates.length; i++) {
+      const occurrence = new Event({
+        familyId,
+        id: baseId + i,
+        title,
+        date: dates[i],
+        time,
+        endTime,
+        category: category || 'Famille',
+        location,
+        color: color || '#8b5cf6',
+        assignedTo,
+        memberIds: memberIdsInput,
+        recurrenceId: baseId,
+        recurrence: recurrenceMeta,
+        icsToken: crypto.randomBytes(24).toString('hex')
+      })
+      await occurrence.save()
+      createdEvents.push(occurrence)
+    }
 
-      // Génération des absences liées pour toute la série (sans notification individuelle par occurrence)
-      const createdAbsences = []
-      const hasSlot = absenceSlots && (absenceSlots.lunch || absenceSlots.dinner || absenceSlots.night)
-      if (generateAbsence && hasSlot && memberIdsInput.length > 0) {
-        let absId = baseId + dates.length
-        for (const occurrence of createdEvents) {
-          for (const memberId of memberIdsInput) {
-            const abs = new Absence({
-              familyId: req.family._id,
-              id: absId++,
-              memberId: Number(memberId),
-              date: occurrence.date,
-              type: 'absence',
-              lunch: Boolean(absenceSlots.lunch),
-              dinner: Boolean(absenceSlots.dinner),
-              night: Boolean(absenceSlots.night),
-              note: `Événement : ${req.body.title}`,
-              declaredBy: req.user ? req.user.id : null,
-              eventId: occurrence.id,
-              recurrenceId: baseId
-            })
-            await abs.save()
-            createdAbsences.push(abs)
-          }
+    const createdAbsences = []
+    const hasSlot = absenceSlots && (absenceSlots.lunch || absenceSlots.dinner || absenceSlots.night)
+    if (generateAbsence && hasSlot && memberIdsInput.length > 0) {
+      let absId = baseId + dates.length
+      for (const occurrence of createdEvents) {
+        for (const memberId of memberIdsInput) {
+          const abs = new Absence({
+            familyId,
+            id: absId++,
+            memberId: Number(memberId),
+            date: occurrence.date,
+            type: 'absence',
+            lunch: Boolean(absenceSlots.lunch),
+            dinner: Boolean(absenceSlots.dinner),
+            night: Boolean(absenceSlots.night),
+            note: `Événement : ${title}`,
+            declaredBy: declaredBy ?? null,
+            eventId: occurrence.id,
+            recurrenceId: baseId
+          })
+          await abs.save()
+          createdAbsences.push(abs)
         }
       }
+    }
+
+    return {
+      isRecurring: true,
+      events: createdEvents,
+      absences: createdAbsences,
+      truncated,
+      recurrenceId: baseId,
+      frequency,
+      interval,
+      endDate,
+      occurrenceCount: dates.length
+    }
+  }
+
+  const newEvent = new Event({
+    familyId,
+    id: Date.now(),
+    title,
+    date,
+    time,
+    endTime,
+    category: category || 'Famille',
+    location,
+    color: color || '#8b5cf6',
+    assignedTo,
+    memberIds: memberIdsInput,
+    icsToken: crypto.randomBytes(24).toString('hex')
+  })
+  await newEvent.save()
+
+  return { isRecurring: false, event: newEvent }
+}
+
+app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    let result
+    try {
+      result = await createEventOrSeries({ familyId: req.family._id, body: req.body, declaredBy: req.user ? req.user.id : null })
+    } catch (e) {
+      return res.status(400).json({ error: e.message })
+    }
+
+    if (result.isRecurring) {
+      const { events: createdEvents, absences: createdAbsences, truncated, recurrenceId, frequency, interval, endDate, occurrenceCount } = result
 
       // Une seule notification pour toute la série (pas une par occurrence)
       const authorName = req.user ? req.user.firstName : 'Un membre'
@@ -3294,10 +3372,10 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
         actionLabel: ALERT_ACTIONS.EVENT_CREATED.label,
         title: `Nouvel événement récurrent : ${req.body.title}`,
         targetType: 'event',
-        targetId: baseId,
+        targetId: recurrenceId,
         push: {
           title: `🔁 Nouvel événement récurrent : ${req.body.title}`,
-          body: `${recurrenceLabel} jusqu'au ${endDate} • ${dates.length} occurrence(s) • Ajouté par ${authorName}`,
+          body: `${recurrenceLabel} jusqu'au ${endDate} • ${occurrenceCount} occurrence(s) • Ajouté par ${authorName}`,
           url: `/${req.family.slug}/calendar`
         },
         email: {
@@ -3311,7 +3389,7 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
             <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
               <li><strong>Titre :</strong> ${req.body.title}</li>
               <li><strong>Récurrence :</strong> ${recurrenceLabel}, jusqu'au ${endDate}</li>
-              <li><strong>Occurrences créées :</strong> ${dates.length}</li>
+              <li><strong>Occurrences créées :</strong> ${occurrenceCount}</li>
               ${req.body.location ? `<li><strong>Lieu :</strong> ${req.body.location}</li>` : ''}
             </ul>
           `,
@@ -3323,21 +3401,7 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
       return res.status(201).json({ events: createdEvents, absences: createdAbsences, truncated })
     }
 
-    const newEvent = new Event({
-      familyId: req.family._id,
-      id: Date.now(),
-      title: req.body.title,
-      date: req.body.date,
-      time: req.body.time,
-      endTime: req.body.endTime,
-      category: req.body.category || 'Famille',
-      location: req.body.location,
-      color: req.body.color || '#8b5cf6',
-      assignedTo: req.body.assignedTo,
-      memberIds: memberIdsInput,
-      icsToken: crypto.randomBytes(24).toString('hex')
-    })
-    await newEvent.save()
+    const newEvent = result.event
 
     // Liens et contenu pour ajout à l'agenda personnel
     const emailConfig = await getSmtpConfig()
@@ -3400,63 +3464,108 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
   }
 })
 
+// Modifie un événement simple, ou toute une série récurrente (scope: 'series') ; régénère les
+// absences liées à la série si generateAbsence est explicitement fourni. Aucune notification ici
+// (contenu push/email à charge de l'appelant). Partagée par la route HTTP et l'outil MCP update_event.
+const updateEventOrSeries = async ({ familyId, eventId, body, declaredBy }) => {
+  const event = await Event.findOne({ id: Number(eventId), familyId })
+  if (!event) return null
+
+  const { title, date, time, endTime, category, location, color, assignedTo, memberIds, scope, generateAbsence, absenceSlots } = body
+
+  if (scope === 'series' && event.recurrenceId) {
+    const occurrences = await Event.find({ recurrenceId: event.recurrenceId, familyId })
+    const finalMemberIds = memberIds !== undefined ? (Array.isArray(memberIds) ? memberIds.map(Number) : []) : null
+
+    for (const occ of occurrences) {
+      if (title) occ.title = title.trim()
+      if (time !== undefined) occ.time = time
+      if (endTime !== undefined) occ.endTime = endTime
+      if (category) occ.category = category
+      if (location !== undefined) occ.location = location
+      if (color) occ.color = color
+      if (assignedTo !== undefined) occ.assignedTo = assignedTo
+      if (finalMemberIds !== null) occ.memberIds = finalMemberIds
+      await occ.save()
+    }
+
+    let seriesAbsences
+    if (generateAbsence !== undefined) {
+      await Absence.deleteMany({ familyId, recurrenceId: event.recurrenceId })
+      seriesAbsences = []
+      const hasSlot = absenceSlots && (absenceSlots.lunch || absenceSlots.dinner || absenceSlots.night)
+      const absenceMemberIds = finalMemberIds !== null ? finalMemberIds : event.memberIds
+      if (generateAbsence && hasSlot && absenceMemberIds.length > 0) {
+        let absId = Date.now()
+        for (const occ of occurrences) {
+          for (const memberId of absenceMemberIds) {
+            const abs = await Absence.create({
+              familyId,
+              id: absId++,
+              memberId: Number(memberId),
+              date: occ.date,
+              type: 'absence',
+              lunch: Boolean(absenceSlots.lunch),
+              dinner: Boolean(absenceSlots.dinner),
+              night: Boolean(absenceSlots.night),
+              note: `Événement : ${occ.title}`,
+              declaredBy: declaredBy ?? null,
+              eventId: occ.id,
+              recurrenceId: event.recurrenceId
+            })
+            seriesAbsences.push(abs)
+          }
+        }
+      }
+    }
+
+    return { isSeries: true, recurrenceId: event.recurrenceId, events: occurrences, absences: seriesAbsences }
+  }
+
+  if (title) event.title = title.trim()
+  if (date) event.date = date
+  if (time !== undefined) event.time = time
+  if (endTime !== undefined) event.endTime = endTime
+  if (category) event.category = category
+  if (location !== undefined) event.location = location
+  if (color) event.color = color
+  if (assignedTo !== undefined) event.assignedTo = assignedTo
+  if (memberIds !== undefined) event.memberIds = Array.isArray(memberIds) ? memberIds.map(Number) : []
+
+  if (!event.icsToken) {
+    event.icsToken = crypto.randomBytes(24).toString('hex')
+  }
+  await event.save()
+
+  return { isSeries: false, event }
+}
+
+// Supprime un événement simple, ou toute une série récurrente (scope: 'series'), avec suppression
+// en cascade des absences liées. Partagée par la route HTTP et l'outil MCP delete_event.
+const deleteEventOrSeries = async ({ familyId, eventId, scope }) => {
+  if (scope === 'series') {
+    const event = await Event.findOne({ id: Number(eventId), familyId })
+    if (event && event.recurrenceId) {
+      const deleted = await Event.deleteMany({ recurrenceId: event.recurrenceId, familyId })
+      await Absence.deleteMany({ recurrenceId: event.recurrenceId, familyId })
+      return { deletedSeries: true, deletedCount: deleted.deletedCount }
+    }
+  }
+
+  const deleted = await Event.deleteOne({ id: Number(eventId), familyId })
+  await Absence.deleteMany({ eventId: Number(eventId), familyId })
+  return { deletedSeries: false, deletedCount: deleted.deletedCount }
+}
+
 // PUT /api/events/:id (Modification d'un événement avec alertes push & email)
 app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const eventId = Number(req.params.id)
-    const event = await Event.findOne({ id: eventId, familyId: req.family._id })
-    if (!event) return res.status(404).json({ error: 'Événement non trouvé' })
+    const result = await updateEventOrSeries({ familyId: req.family._id, eventId, body: req.body, declaredBy: req.user ? req.user.id : null })
+    if (!result) return res.status(404).json({ error: 'Événement non trouvé' })
 
-    const { title, date, time, endTime, category, location, color, assignedTo, memberIds, scope, generateAbsence, absenceSlots } = req.body
-
-    // === Modification de toute la série (la date reste propre à chaque occurrence) ===
-    if (scope === 'series' && event.recurrenceId) {
-      const occurrences = await Event.find({ recurrenceId: event.recurrenceId, familyId: req.family._id })
-      const finalMemberIds = memberIds !== undefined ? (Array.isArray(memberIds) ? memberIds.map(Number) : []) : null
-
-      for (const occ of occurrences) {
-        if (title) occ.title = title.trim()
-        if (time !== undefined) occ.time = time
-        if (endTime !== undefined) occ.endTime = endTime
-        if (category) occ.category = category
-        if (location !== undefined) occ.location = location
-        if (color) occ.color = color
-        if (assignedTo !== undefined) occ.assignedTo = assignedTo
-        if (finalMemberIds !== null) occ.memberIds = finalMemberIds
-        await occ.save()
-      }
-
-      // Régénération complète des absences liées à la série, uniquement si explicitement demandé
-      let seriesAbsences
-      if (generateAbsence !== undefined) {
-        await Absence.deleteMany({ familyId: req.family._id, recurrenceId: event.recurrenceId })
-        seriesAbsences = []
-        const hasSlot = absenceSlots && (absenceSlots.lunch || absenceSlots.dinner || absenceSlots.night)
-        const absenceMemberIds = finalMemberIds !== null ? finalMemberIds : event.memberIds
-        if (generateAbsence && hasSlot && absenceMemberIds.length > 0) {
-          let absId = Date.now()
-          for (const occ of occurrences) {
-            for (const memberId of absenceMemberIds) {
-              const abs = await Absence.create({
-                familyId: req.family._id,
-                id: absId++,
-                memberId: Number(memberId),
-                date: occ.date,
-                type: 'absence',
-                lunch: Boolean(absenceSlots.lunch),
-                dinner: Boolean(absenceSlots.dinner),
-                night: Boolean(absenceSlots.night),
-                note: `Événement : ${occ.title}`,
-                declaredBy: req.user ? req.user.id : null,
-                eventId: occ.id,
-                recurrenceId: event.recurrenceId
-              })
-              seriesAbsences.push(abs)
-            }
-          }
-        }
-      }
-
+    if (result.isSeries) {
+      const { events: occurrences, absences: seriesAbsences, recurrenceId } = result
       const authorName = req.user ? req.user.firstName : 'Un membre'
       dispatchFamilyAlert({
         family: req.family,
@@ -3465,7 +3574,7 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
         actionLabel: ALERT_ACTIONS.EVENT_UPDATED.label,
         title: `Série d'événements modifiée : ${occurrences[0].title}`,
         targetType: 'event',
-        targetId: event.recurrenceId,
+        targetId: recurrenceId,
         push: {
           title: `✏️ Série modifiée : ${occurrences[0].title}`,
           body: `${occurrences.length} occurrence(s) mises à jour • Modifié par ${authorName}`,
@@ -3492,20 +3601,7 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
       return res.json({ events: occurrences, ...(seriesAbsences !== undefined ? { absences: seriesAbsences } : {}) })
     }
 
-    if (title) event.title = title.trim()
-    if (date) event.date = date
-    if (time !== undefined) event.time = time
-    if (endTime !== undefined) event.endTime = endTime
-    if (category) event.category = category
-    if (location !== undefined) event.location = location
-    if (color) event.color = color
-    if (assignedTo !== undefined) event.assignedTo = assignedTo
-    if (memberIds !== undefined) event.memberIds = Array.isArray(memberIds) ? memberIds.map(Number) : []
-
-    if (!event.icsToken) {
-      event.icsToken = crypto.randomBytes(24).toString('hex')
-    }
-    await event.save()
+    const event = result.event
 
     // Liens et contenu pour ajout/mise à jour sur l'agenda personnel
     const emailConfig = await getSmtpConfig()
@@ -3596,18 +3692,8 @@ app.delete('/api/events/:id', requireAuth, attachFamilyContext, async (req, res)
     const eventId = Number(req.params.id)
     const scope = req.query.scope || req.body?.scope
 
-    if (scope === 'series') {
-      const event = await Event.findOne({ id: eventId, familyId: req.family._id })
-      if (event && event.recurrenceId) {
-        await Event.deleteMany({ recurrenceId: event.recurrenceId, familyId: req.family._id })
-        await Absence.deleteMany({ recurrenceId: event.recurrenceId, familyId: req.family._id })
-        return res.json({ message: "Série d'événements supprimée" })
-      }
-    }
-
-    await Event.deleteOne({ id: eventId, familyId: req.family._id })
-    await Absence.deleteMany({ eventId, familyId: req.family._id })
-    res.json({ message: 'Événement supprimé' })
+    const result = await deleteEventOrSeries({ familyId: req.family._id, eventId, scope })
+    res.json({ message: result.deletedSeries ? "Série d'événements supprimée" : 'Événement supprimé' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -3624,13 +3710,19 @@ const DEFAULT_CATEGORIES = [
   { name: 'Autre',           icon: '🛒', rank: 7 },
 ]
 
+// Retourne les catégories de courses de la famille, en semant les 7 catégories par défaut au premier accès.
+const getOrSeedShoppingCategories = async (familyId) => {
+  let cats = await ShoppingCategory.find({ familyId }).sort({ rank: 1 })
+  if (cats.length === 0) {
+    const docs = DEFAULT_CATEGORIES.map((c, i) => ({ ...c, familyId, id: Date.now() + i }))
+    cats = await ShoppingCategory.insertMany(docs)
+  }
+  return cats
+}
+
 app.get('/api/shopping-categories', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    let cats = await ShoppingCategory.find({ familyId: req.family._id }).sort({ rank: 1 })
-    if (cats.length === 0) {
-      const docs = DEFAULT_CATEGORIES.map((c, i) => ({ ...c, familyId: req.family._id, id: Date.now() + i }))
-      cats = await ShoppingCategory.insertMany(docs)
-    }
+    const cats = await getOrSeedShoppingCategories(req.family._id)
     res.json(cats)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -3760,6 +3852,53 @@ app.delete('/api/shopping/:id', requireAuth, attachFamilyContext, async (req, re
 })
 
 // === ABSENCES & MEALS ROUTES ===
+
+// Crée ou met à jour (upsert par memberId+date) une déclaration de présence/absence.
+// Partagée par la route HTTP et l'outil MCP set_presence_or_absence pour garantir la même
+// sémantique d'upsert (re-déclarer le même jour met à jour la ligne existante, jamais de doublon).
+const upsertAbsenceRecord = async ({ familyId, memberId, date, type, lunch, dinner, night, note, declaredBy, eventId }) => {
+  const recordType = type === 'presence' ? 'presence' : 'absence'
+  const trimmedDate = date.trim()
+
+  let record = await Absence.findOne({ memberId: Number(memberId), date: trimmedDate, familyId })
+  if (record) {
+    record.type = recordType
+    record.lunch = Boolean(lunch)
+    record.dinner = Boolean(dinner)
+    record.night = Boolean(night)
+    if (note !== undefined) record.note = (note || '').trim()
+    record.declaredBy = declaredBy ?? null
+    if (eventId !== undefined) record.eventId = eventId
+    await record.save()
+    return { absence: record, isNew: false }
+  }
+
+  record = new Absence({
+    familyId,
+    id: Date.now(),
+    memberId: Number(memberId),
+    date: trimmedDate,
+    type: recordType,
+    lunch: Boolean(lunch),
+    dinner: Boolean(dinner),
+    night: Boolean(night),
+    note: (note || '').trim(),
+    declaredBy: declaredBy ?? null,
+    eventId: eventId || null
+  })
+  await record.save()
+  return { absence: record, isNew: true }
+}
+
+// Supprime une absence/présence si les 3 créneaux sont désactivés (une ligne "vide" n'a pas de sens).
+const deleteAbsenceIfEmptySlots = async (absence, familyId) => {
+  if (!absence.lunch && !absence.dinner && !absence.night) {
+    await Absence.deleteOne({ id: absence.id, familyId })
+    return true
+  }
+  return false
+}
+
 app.get('/api/absences', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const absences = await Absence.find({ familyId: req.family._id }).sort({ date: 1 })
@@ -3888,37 +4027,21 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
       }
     }
 
-    let existing = await Absence.findOne({ memberId: Number(memberId), date: date.trim(), familyId: req.family._id })
-    if (existing) {
-      existing.type = recordType
-      existing.lunch = Boolean(lunch)
-      existing.dinner = Boolean(dinner)
-      existing.night = Boolean(night)
-      if (note !== undefined) existing.note = note.trim()
-      existing.declaredBy = req.user ? req.user.id : null
-      if (eventId !== undefined) existing.eventId = eventId
-      await existing.save()
-      notifyAbsenceOrPresence(existing.type, memberId, date, lunch, dinner, night, note, existing.id)
-      return res.json(existing)
-    }
-
-    const newAbsence = new Absence({
+    const { absence, isNew } = await upsertAbsenceRecord({
       familyId: req.family._id,
-      id: Date.now(),
-      memberId: Number(memberId),
-      date: date.trim(),
-      type: recordType,
-      lunch: Boolean(lunch),
-      dinner: Boolean(dinner),
-      night: Boolean(night),
-      note: (note || '').trim(),
-      declaredBy: req.user ? req.user.id : null,
-      eventId: eventId || null
+      memberId,
+      date,
+      type,
+      lunch,
+      dinner,
+      night,
+      note,
+      eventId,
+      declaredBy: req.user ? req.user.id : null
     })
 
-    await newAbsence.save()
-    notifyAbsenceOrPresence(newAbsence.type, memberId, date, lunch, dinner, night, note, newAbsence.id)
-    res.status(201).json(newAbsence)
+    notifyAbsenceOrPresence(absence.type, memberId, date, lunch, dinner, night, note, absence.id)
+    res.status(isNew ? 201 : 200).json(absence)
   } catch (err) {
     res.status(400).json({ error: err.message })
   }
@@ -3944,7 +4067,7 @@ app.put('/api/absences/:id', requireAuth, attachFamilyContext, async (req, res) 
     if (note !== undefined) absence.note = note.trim()
 
     if (!absence.lunch && !absence.dinner && !absence.night) {
-      await Absence.deleteOne({ id: absence.id, familyId: req.family._id })
+      await deleteAbsenceIfEmptySlots(absence, req.family._id)
       return res.json({ message: 'Absence supprimée car aucun créneau n\'est sélectionné' })
     }
 
@@ -4026,6 +4149,53 @@ const formatSlotLabel = (s) => {
   return s
 }
 
+// (Re)génère les lignes Absence journalières couvrant une absence longue. Supprime d'abord toute
+// ligne déjà taguée avec ce longAbsenceId (no-op à la création, purge+régénération à la modification),
+// ce qui rend la fonction idempotente et réutilisable telle quelle par create/update_long_absence (MCP).
+const regenerateLongAbsenceDailyRows = async ({ familyId, longAbsenceId, memberId, startDate, startSlot, endDate, endSlot, note, declaredBy }) => {
+  await Absence.deleteMany({ familyId, longAbsenceId })
+
+  const dates = getDatesRange(startDate, endDate)
+  const rows = []
+  let baseId = Date.now() + 1
+
+  for (const dStr of dates) {
+    const { lunch, dinner, night } = computeSlotsForDate(dStr, startDate, startSlot, endDate, endSlot)
+    if (!lunch && !dinner && !night) continue
+
+    let existing = await Absence.findOne({ memberId: Number(memberId), date: dStr, familyId })
+    if (existing) {
+      existing.type = 'absence'
+      existing.lunch = lunch
+      existing.dinner = dinner
+      existing.night = night
+      existing.longAbsenceId = longAbsenceId
+      if (note !== undefined) existing.note = (note || '').trim()
+      existing.declaredBy = declaredBy ?? null
+      await existing.save()
+      rows.push(existing)
+    } else {
+      const newAbs = new Absence({
+        familyId,
+        id: baseId++,
+        memberId: Number(memberId),
+        date: dStr,
+        type: 'absence',
+        lunch,
+        dinner,
+        night,
+        note: (note || '').trim(),
+        declaredBy: declaredBy ?? null,
+        longAbsenceId
+      })
+      await newAbs.save()
+      rows.push(newAbs)
+    }
+  }
+
+  return rows
+}
+
 app.get('/api/long-absences', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const list = await LongAbsence.find({ familyId: req.family._id }).sort({ startDate: 1, createdAt: 1 })
@@ -4071,43 +4241,17 @@ app.post('/api/long-absences', requireAuth, attachFamilyContext, async (req, res
     await longAbsence.save()
 
     const dates = getDatesRange(startDate.trim(), endDate.trim())
-    const createdOrUpdatedAbsences = []
-
-    let baseId = Date.now() + 1
-    for (let i = 0; i < dates.length; i++) {
-      const dStr = dates[i]
-      const { lunch, dinner, night } = computeSlotsForDate(dStr, startDate.trim(), sSlot, endDate.trim(), eSlot)
-      if (!lunch && !dinner && !night) continue
-
-      let existing = await Absence.findOne({ memberId: Number(memberId), date: dStr, familyId: req.family._id })
-      if (existing) {
-        existing.type = 'absence'
-        existing.lunch = lunch
-        existing.dinner = dinner
-        existing.night = night
-        existing.longAbsenceId = longAbsence.id
-        if (note !== undefined) existing.note = (note || '').trim()
-        existing.declaredBy = req.user ? req.user.id : null
-        await existing.save()
-        createdOrUpdatedAbsences.push(existing)
-      } else {
-        const newAbs = new Absence({
-          familyId: req.family._id,
-          id: baseId++,
-          memberId: Number(memberId),
-          date: dStr,
-          type: 'absence',
-          lunch,
-          dinner,
-          night,
-          note: (note || '').trim(),
-          declaredBy: req.user ? req.user.id : null,
-          longAbsenceId: longAbsence.id
-        })
-        await newAbs.save()
-        createdOrUpdatedAbsences.push(newAbs)
-      }
-    }
+    const createdOrUpdatedAbsences = await regenerateLongAbsenceDailyRows({
+      familyId: req.family._id,
+      longAbsenceId: longAbsence.id,
+      memberId,
+      startDate: startDate.trim(),
+      startSlot: sSlot,
+      endDate: endDate.trim(),
+      endSlot: eSlot,
+      note,
+      declaredBy: req.user ? req.user.id : null
+    })
 
     // Consolidated notification
     try {
@@ -4198,50 +4342,20 @@ app.put('/api/long-absences/:id', requireAuth, attachFamilyContext, async (req, 
       return res.status(400).json({ error: 'Le créneau de fin doit être après ou égal au créneau de début' })
     }
 
-    // 1. Delete previous daily absence slots linked to this longAbsence
-    await Absence.deleteMany({ familyId: req.family._id, longAbsenceId: longAbsence.id })
+    // Supprime puis régénère les lignes Absence journalières liées à cette absence longue
+    const createdOrUpdatedAbsences = await regenerateLongAbsenceDailyRows({
+      familyId: req.family._id,
+      longAbsenceId: longAbsence.id,
+      memberId: targetMemberId,
+      startDate: targetStartDate,
+      startSlot: targetStartSlot,
+      endDate: targetEndDate,
+      endSlot: targetEndSlot,
+      note,
+      declaredBy: req.user ? req.user.id : null
+    })
 
-    // 2. Generate new daily absence slots
-    const dates = getDatesRange(targetStartDate, targetEndDate)
-    const createdOrUpdatedAbsences = []
-    let baseId = Date.now() + 1
-
-    for (let i = 0; i < dates.length; i++) {
-      const dStr = dates[i]
-      const { lunch, dinner, night } = computeSlotsForDate(dStr, targetStartDate, targetStartSlot, targetEndDate, targetEndSlot)
-      if (!lunch && !dinner && !night) continue
-
-      let existing = await Absence.findOne({ memberId: targetMemberId, date: dStr, familyId: req.family._id })
-      if (existing) {
-        existing.type = 'absence'
-        existing.lunch = lunch
-        existing.dinner = dinner
-        existing.night = night
-        existing.longAbsenceId = longAbsence.id
-        if (note !== undefined) existing.note = (note || '').trim()
-        existing.declaredBy = req.user ? req.user.id : null
-        await existing.save()
-        createdOrUpdatedAbsences.push(existing)
-      } else {
-        const newAbs = new Absence({
-          familyId: req.family._id,
-          id: baseId++,
-          memberId: targetMemberId,
-          date: dStr,
-          type: 'absence',
-          lunch,
-          dinner,
-          night,
-          note: (note || '').trim(),
-          declaredBy: req.user ? req.user.id : null,
-          longAbsenceId: longAbsence.id
-        })
-        await newAbs.save()
-        createdOrUpdatedAbsences.push(newAbs)
-      }
-    }
-
-    // 3. Update LongAbsence document
+    // Update LongAbsence document
     longAbsence.memberId = targetMemberId
     longAbsence.startDate = targetStartDate
     longAbsence.startSlot = targetStartSlot
@@ -4283,6 +4397,43 @@ app.delete('/api/long-absences/:id', requireAuth, attachFamilyContext, async (re
 })
 
 // === MEAL GUESTS ROUTES (INVITÉS AUX REPAS) ===
+
+// Crée un ou plusieurs invités (batch depuis `name` comma-separated ou `names[]`) pour un repas.
+// Partagée par la route HTTP et l'outil MCP add_meal_guests.
+const createMealGuestsBatch = async ({ familyId, name, names, date, lunch, dinner, night, invitedBy, note, fallbackHostId }) => {
+  let guestNames = []
+  if (Array.isArray(names) && names.length > 0) {
+    guestNames = names.map(n => String(n).trim()).filter(Boolean)
+  } else if (name && typeof name === 'string') {
+    guestNames = name.split(',').map(n => n.trim()).filter(Boolean)
+  }
+
+  if (guestNames.length === 0) {
+    throw new Error('Veuillez renseigner le nom de l\'invité')
+  }
+
+  const hostId = invitedBy ? Number(invitedBy) : fallbackHostId
+
+  const createdGuests = []
+  for (let i = 0; i < guestNames.length; i++) {
+    const newGuest = new MealGuest({
+      familyId,
+      id: Date.now() + i + Math.floor(Math.random() * 100),
+      name: guestNames[i],
+      date: date.trim(),
+      lunch: Boolean(lunch),
+      dinner: Boolean(dinner),
+      night: Boolean(night),
+      invitedBy: hostId,
+      note: (note || '').trim()
+    })
+    await newGuest.save()
+    createdGuests.push(newGuest)
+  }
+
+  return createdGuests
+}
+
 app.get('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const guests = await MealGuest.find({ familyId: req.family._id }).sort({ date: 1, createdAt: 1 })
@@ -4304,36 +4455,18 @@ app.post('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) 
       return res.status(400).json({ error: 'Veuillez sélectionner au moins un créneau (Déjeuner, Dîner ou Nuit)' })
     }
 
-    let guestNames = []
-    if (Array.isArray(names) && names.length > 0) {
-      guestNames = names.map(n => String(n).trim()).filter(Boolean)
-    } else if (name && typeof name === 'string') {
-      guestNames = name.split(',').map(n => n.trim()).filter(Boolean)
-    }
-
-    if (guestNames.length === 0) {
-      return res.status(400).json({ error: 'Veuillez renseigner le nom de l\'invité' })
-    }
-
-    const createdGuests = []
-    const hostId = invitedBy ? Number(invitedBy) : req.user.id
-
-    for (let i = 0; i < guestNames.length; i++) {
-      const gName = guestNames[i]
-      const newGuest = new MealGuest({
-        familyId: req.family._id,
-        id: Date.now() + i + Math.floor(Math.random() * 100),
-        name: gName,
-        date: date.trim(),
-        lunch: Boolean(lunch),
-        dinner: Boolean(dinner),
-        night: Boolean(night),
-        invitedBy: hostId,
-        note: (note || '').trim()
+    let createdGuests
+    try {
+      createdGuests = await createMealGuestsBatch({
+        familyId: req.family._id, name, names, date, lunch, dinner, night, invitedBy, note,
+        fallbackHostId: req.user.id
       })
-      await newGuest.save()
-      createdGuests.push(newGuest)
+    } catch (e) {
+      return res.status(400).json({ error: e.message })
     }
+
+    const guestNames = createdGuests.map(g => g.name)
+    const hostId = createdGuests[0]?.invitedBy
 
     // Déclenchement notification push pour nouvel invité
     try {
@@ -4429,6 +4562,44 @@ app.delete('/api/meal-guests/:id', requireAuth, attachFamilyContext, async (req,
 })
 
 // === MEALS OF THE WEEK ROUTES ===
+
+// Crée des articles de courses à partir d'une liste d'ingrédients liés à un repas (string ou
+// {name, category, quantity}). Partagée par la route HTTP et l'outil MCP create_meal.
+const createShoppingItemsForIngredients = async ({ familyId, mealId, ingredients }) => {
+  const createdIngredients = []
+  if (!Array.isArray(ingredients) || ingredients.length === 0) return createdIngredients
+
+  for (let i = 0; i < ingredients.length; i++) {
+    const ing = ingredients[i]
+    const name = typeof ing === 'string' ? ing.trim() : (ing.name ? String(ing.name).trim() : '')
+    if (!name) continue
+    const category = (typeof ing === 'object' && ing.category) ? ing.category : 'Frais'
+    const quantity = (typeof ing === 'object' && ing.quantity) ? Number(ing.quantity) : 1
+
+    const itemDoc = new ShoppingItem({
+      familyId,
+      id: Date.now() + i + 1,
+      name,
+      category,
+      quantity,
+      urgent: false,
+      checked: false,
+      mealId
+    })
+    await itemDoc.save()
+    createdIngredients.push(itemDoc)
+  }
+  return createdIngredients
+}
+
+// Supprime un repas et les articles de courses liés (cascade). Partagée par la route HTTP et
+// l'outil MCP delete_meal.
+const deleteMealCascade = async ({ familyId, mealId }) => {
+  const deleteResult = await ShoppingItem.deleteMany({ familyId, mealId })
+  await Meal.deleteOne({ id: mealId, familyId })
+  return { deletedIngredientsCount: deleteResult.deletedCount }
+}
+
 app.get('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const { startDate, endDate } = req.query
@@ -4475,29 +4646,11 @@ app.post('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
     await newMeal.save()
 
     // Ingrédients associés à ajouter automatiquement dans la liste de courses
-    const createdIngredients = []
-    if (Array.isArray(req.body.ingredients) && req.body.ingredients.length > 0) {
-      for (let i = 0; i < req.body.ingredients.length; i++) {
-        const ing = req.body.ingredients[i]
-        const name = typeof ing === 'string' ? ing.trim() : (ing.name ? String(ing.name).trim() : '')
-        if (!name) continue
-        const category = (typeof ing === 'object' && ing.category) ? ing.category : 'Frais'
-        const quantity = (typeof ing === 'object' && ing.quantity) ? Number(ing.quantity) : 1
-
-        const itemDoc = new ShoppingItem({
-          familyId: req.family._id,
-          id: Date.now() + i + 1,
-          name,
-          category,
-          quantity,
-          urgent: false,
-          checked: false,
-          mealId: newMeal.id
-        })
-        await itemDoc.save()
-        createdIngredients.push(itemDoc)
-      }
-    }
+    const createdIngredients = await createShoppingItemsForIngredients({
+      familyId: req.family._id,
+      mealId: newMeal.id,
+      ingredients: req.body.ingredients
+    })
 
     // Informations pour les notifications
     const authorName = req.user ? req.user.firstName : 'Un membre'
@@ -4583,10 +4736,7 @@ app.delete('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) 
     const meal = await Meal.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!meal) return res.status(404).json({ error: 'Plat non trouvé' })
 
-    // Suppression en cascade des ingrédients associés dans la liste de courses
-    await ShoppingItem.deleteMany({ familyId: req.family._id, mealId: meal.id })
-
-    await Meal.deleteOne({ id: meal.id, familyId: req.family._id })
+    await deleteMealCascade({ familyId: req.family._id, mealId: meal.id })
     res.json({ message: 'Plat et ingrédients associés supprimés' })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -4718,6 +4868,83 @@ app.get('/api/admin/export', requireAuth, attachFamilyContext, requireFamilyAdmi
   }
 })
 
+// === CONNECTEUR MCP (PILOTAGE DE L'APPLICATION DEPUIS CLAUDE) ===
+// Réglages authentifiés (gestion du connecteur par un admin de famille) : distincts du trafic MCP
+// lui-même (non authentifié par session, voir server/mcp/auth.js), qui est monté juste après.
+app.get('/api/family-settings/mcp-connector', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const connector = await McpConnector.findOne({ familyId: req.family._id, revokedAt: null })
+    if (!connector) return res.json({ exists: false })
+
+    res.json({
+      exists: true,
+      tokenPreview: connector.tokenPreview,
+      createdAt: connector.createdAt,
+      lastUsedAt: connector.lastUsedAt,
+      requestCount: connector.requestCount
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/family-settings/mcp-connector', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const rawToken = crypto.randomBytes(32).toString('hex')
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
+    const tokenPreview = rawToken.slice(-4)
+
+    const connector = await McpConnector.findOneAndUpdate(
+      { familyId: req.family._id },
+      {
+        familyId: req.family._id,
+        tokenHash,
+        tokenPreview,
+        createdByUserId: req.user.id,
+        revokedAt: null,
+        lastUsedAt: null,
+        requestCount: 0
+      },
+      { upsert: true, new: true }
+    )
+
+    const baseServerUrl = `${req.protocol}://${req.get('host')}`.replace(/\/+$/, '')
+    res.json({
+      url: `${baseServerUrl}/api/mcp/${req.family.slug}/${rawToken}`,
+      tokenPreview: connector.tokenPreview,
+      createdAt: connector.createdAt
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/family-settings/mcp-connector', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    await McpConnector.updateOne({ familyId: req.family._id }, { revokedAt: new Date() })
+    res.json({ message: 'Connecteur MCP révoqué' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Trafic MCP non authentifié par session : voir server/mcp/auth.js pour la résolution par jeton.
+mountMcpServer(app, {
+  dispatchFamilyAlert,
+  ALERT_ACTIONS,
+  toggleTaskCompletion,
+  updateTask,
+  upsertAbsenceRecord,
+  deleteAbsenceIfEmptySlots,
+  regenerateLongAbsenceDailyRows,
+  createEventOrSeries,
+  updateEventOrSeries,
+  deleteEventOrSeries,
+  createMealGuestsBatch,
+  createShoppingItemsForIngredients,
+  deleteMealCascade,
+  getOrSeedShoppingCategories
+})
 
 // === STATIC FILES & SPA FALLBACK (Production / Docker) ===
 const distPath = path.resolve(__dirname, '../dist')

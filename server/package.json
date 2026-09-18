@@ -10,6 +10,7 @@
     "dev": "node --watch-path=index.js --watch-path=config --watch-path=middleware --watch-path=models --watch-path=scripts index.js"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -19,6 +20,7 @@
     "mongodb-memory-server": "^9.4.0",
     "mongoose": "^8.6.1",
     "nodemailer": "^10.0.1",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "zod": "^3.24.1"
   }
 }

@@ -156,6 +156,69 @@
         </div>
       </div>
 
+      <!-- MCP Connector Card: pilotage de FamilyGest depuis Claude -->
+      <div class="card glass-card mcp-connector-card margin-top-lg">
+        <div class="mcp-connector-header">
+          <div class="section-title-group">
+            <h2 class="section-title">
+              <Bot :size="20" class="title-icon-mcp" /> Connecteur MCP (Claude)
+            </h2>
+            <p class="section-subtitle">
+              Générez une URL privée permettant de piloter les événements, présences, invités, courses,
+              tâches et repas de cette famille directement depuis Claude, sans mot de passe. Cette URL
+              donne un accès complet aux données de la famille : ne la partagez qu'avec des personnes
+              de confiance et révoquez-la si elle a pu fuiter.
+            </p>
+          </div>
+        </div>
+
+        <div class="mcp-connector-body margin-top-md">
+          <div v-if="mcpLoading" class="mcp-status-line">
+            <Loader2 :size="16" class="spin" /> Chargement du statut du connecteur...
+          </div>
+
+          <template v-else>
+            <div v-if="mcpConnectorUrl" class="mcp-url-reveal">
+              <p class="mcp-url-warning">
+                <KeyRound :size="14" /> Copiez cette URL maintenant : elle ne sera plus jamais affichée en clair.
+              </p>
+              <div class="mcp-url-row">
+                <input type="text" readonly :value="mcpConnectorUrl" class="mcp-url-input" @click="$event.target.select()" />
+                <button type="button" class="btn btn-secondary" @click="copyMcpUrl">
+                  <Copy :size="15" /> Copier
+                </button>
+              </div>
+            </div>
+
+            <div v-else-if="mcpStatus.exists" class="mcp-status-line">
+              ✅ Connecteur actif · se termine par <code>...{{ mcpStatus.tokenPreview }}</code>
+              · créé le {{ formatMcpDate(mcpStatus.createdAt) }}
+              · dernière utilisation : {{ mcpStatus.lastUsedAt ? formatMcpDate(mcpStatus.lastUsedAt) : 'jamais' }}
+            </div>
+
+            <div v-else class="mcp-status-line">
+              Aucun connecteur MCP actif pour cette famille.
+            </div>
+
+            <div class="mcp-connector-actions">
+              <button type="button" class="btn btn-primary" :disabled="mcpActionLoading" @click="generateMcpConnector">
+                <RefreshCw :size="15" />
+                <span>{{ mcpStatus.exists ? 'Régénérer' : 'Générer' }} l'URL du connecteur</span>
+              </button>
+              <button
+                v-if="mcpStatus.exists"
+                type="button"
+                class="btn btn-danger"
+                :disabled="mcpActionLoading"
+                @click="revokeMcpConnector"
+              >
+                <Trash2 :size="15" /> Révoquer
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+
       <!-- Shopping Categories Card: Catégories de courses -->
       <div class="card glass-card shopping-cats-card margin-top-lg">
         <div class="shopping-cats-header">
@@ -774,7 +837,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
@@ -786,7 +849,8 @@ import {
   Mail, Settings, ShieldAlert,
   ShieldCheck, Loader2, Globe,
   UserPlus, Download, ShoppingCart, Plus, Pencil, Trash2, ExternalLink,
-  Users, Shield, Bell
+  Users, Shield, Bell,
+  Bot, RefreshCw, Copy, KeyRound
 } from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -1246,6 +1310,94 @@ const handleExportData = async () => {
     exporting.value = false
   }
 }
+
+// --- Connecteur MCP (pilotage depuis Claude) ---
+const mcpLoading = ref(true)
+const mcpActionLoading = ref(false)
+const mcpStatus = ref({ exists: false })
+const mcpConnectorUrl = ref('')
+
+const formatMcpDate = (isoDate) => {
+  if (!isoDate) return ''
+  return new Date(isoDate).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+const fetchMcpConnectorStatus = async () => {
+  mcpLoading.value = true
+  try {
+    const res = await fetch('/api/family-settings/mcp-connector', { headers: getSettingsHeaders() })
+    if (!res.ok) throw new Error('Erreur lors de la récupération du statut du connecteur')
+    mcpStatus.value = await res.json()
+  } catch (err) {
+    console.error(err)
+  } finally {
+    mcpLoading.value = false
+  }
+}
+
+const generateMcpConnector = async () => {
+  if (mcpStatus.value.exists) {
+    const ok = await confirm({
+      title: 'Régénérer le connecteur MCP ?',
+      message: 'L\'URL actuelle cessera immédiatement de fonctionner. Toute intégration Claude déjà configurée avec l\'ancienne URL devra être mise à jour.',
+      confirmText: 'Régénérer',
+      type: 'danger'
+    })
+    if (!ok) return
+  }
+
+  mcpActionLoading.value = true
+  try {
+    const res = await fetch('/api/family-settings/mcp-connector', { method: 'POST', headers: getSettingsHeaders() })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || 'Erreur lors de la génération du connecteur')
+    }
+    const data = await res.json()
+    mcpConnectorUrl.value = data.url
+    mcpStatus.value = { exists: true, tokenPreview: data.tokenPreview, createdAt: data.createdAt, lastUsedAt: null, requestCount: 0 }
+  } catch (err) {
+    alert(`Erreur : ${err.message}`)
+  } finally {
+    mcpActionLoading.value = false
+  }
+}
+
+const revokeMcpConnector = async () => {
+  const ok = await confirm({
+    title: 'Révoquer le connecteur MCP ?',
+    message: 'L\'URL du connecteur cessera immédiatement de fonctionner pour toute intégration Claude configurée.',
+    confirmText: 'Révoquer',
+    type: 'danger'
+  })
+  if (!ok) return
+
+  mcpActionLoading.value = true
+  try {
+    const res = await fetch('/api/family-settings/mcp-connector', { method: 'DELETE', headers: getSettingsHeaders() })
+    if (!res.ok) throw new Error('Erreur lors de la révocation du connecteur')
+    mcpConnectorUrl.value = ''
+    mcpStatus.value = { exists: false }
+  } catch (err) {
+    alert(`Erreur : ${err.message}`)
+  } finally {
+    mcpActionLoading.value = false
+  }
+}
+
+const copyMcpUrl = async () => {
+  try {
+    await navigator.clipboard.writeText(mcpConnectorUrl.value)
+  } catch (err) {
+    console.error('Copie dans le presse-papiers impossible :', err)
+  }
+}
+
+onMounted(() => {
+  if (store.isFamilyAdmin) {
+    fetchMcpConnectorStatus()
+  }
+})
 
 </script>
 
@@ -1995,6 +2147,75 @@ const handleExportData = async () => {
   border-radius: var(--radius-md);
   box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
   cursor: pointer;
+}
+
+/* MCP Connector Card */
+.mcp-connector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.title-icon-mcp {
+  color: var(--accent-indigo, #6366f1);
+}
+
+.mcp-status-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.mcp-status-line code {
+  background: var(--bg-tertiary);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm, 4px);
+}
+
+.mcp-url-reveal {
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--accent-indigo, #6366f1);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mcp-url-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-warning, #d97706);
+}
+
+.mcp-url-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mcp-url-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.mcp-connector-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
 }
 
 /* Shortcuts Admin Card */
