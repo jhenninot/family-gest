@@ -218,3 +218,5 @@ proxy_send_timeout 3600s;
 ```
 
 Si FamilyGest n'est aujourd'hui accessible qu'en local, il faudra créer un nouvel hôte/sous-domaine dédié dans votre reverse proxy avant de pouvoir utiliser le connecteur MCP.
+
+⚠️ **Dès qu'un reverse proxy est placé devant `familygest-app`**, ajoutez la variable d'environnement `TRUST_PROXY=1` au service `app` (voir `compose.yaml`). Sans elle, l'application voit l'IP du reverse proxy plutôt que celle de chaque visiteur, ce qui fait que la limitation de débit anti brute-force (page de connexion, invitations...) s'applique globalement à tous les visiteurs au lieu de chacun individuellement. Ne définissez cette variable **que** si un reverse proxy est effectivement en place : sinon, un client pourrait falsifier son IP via l'en-tête `X-Forwarded-For` et contourner cette même protection.

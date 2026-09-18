@@ -36,6 +36,11 @@ COPY server/ ./
 # Copie des fichiers frontend compilés depuis l'étape 1
 COPY --from=builder /app/dist /app/dist
 
+# Exécution en utilisateur non-root (image node:*-alpine fournit déjà l'utilisateur "node") :
+# réduit l'impact d'une éventuelle exécution de code arbitraire dans le processus Node.
+RUN chown -R node:node /app
+USER node
+
 # Port par défaut exposé par le conteneur
 EXPOSE 5000
 

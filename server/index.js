@@ -1,5 +1,7 @@
 import express from 'express'
 import cors from 'cors'
+import helmet from 'helmet'
+import mongoSanitize from 'express-mongo-sanitize'
 import rateLimit from 'express-rate-limit'
 import dotenv from 'dotenv'
 import path from 'path'
@@ -45,12 +47,34 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 5000
 
+// Nombre de reverse proxies de confiance placés devant ce serveur (Traefik/Nginx/Caddy — voir
+// DOCKGE.md). Désactivé par défaut (0) : sans proxy devant l'app, faire confiance à un
+// X-Forwarded-For arbitraire permettrait à un client de falsifier son IP et de contourner les
+// limiteurs de débit ci-dessous. À définir via TRUST_PROXY=1 (un seul saut) uniquement quand un
+// reverse proxy est effectivement en place.
+const trustProxyHops = Number(process.env.TRUST_PROXY || 0)
+if (trustProxyHops > 0) app.set('trust proxy', trustProxyHops)
+
+// En-têtes de sécurité HTTP standards (X-Content-Type-Options, X-Frame-Options, HSTS...).
+// CSP et Cross-Origin-Embedder-Policy désactivés : leurs valeurs par défaut sont trop strictes
+// pour cette SPA (PWA/service worker, polices Google Fonts en cache Workbox — voir
+// vite.config.js) et casseraient l'app sans un audit dédié de chaque ressource chargée.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}))
+
 // CORS : par défaut ouvert (le frontend est servi par ce même serveur en production, donc
 // aucune requête cross-origin n'est nécessaire). Si des origines sont explicitement listées
 // via CORS_ORIGIN (ex: déploiement frontend/backend séparés), on restreint à cette liste.
 const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim()).filter(Boolean)
 app.use(cors(corsOrigins.length > 0 ? { origin: corsOrigins } : undefined))
 app.use(express.json())
+
+// Neutralise l'injection d'opérateurs Mongo ($ne, $gt...) glissés dans le corps, la query ou les
+// paramètres d'URL d'une requête — défense en profondeur en complément du casting explicite déjà
+// fait par chaque route (String(...), .trim(), Number(...)).
+app.use(mongoSanitize())
 
 // Limitation de débit sur les endpoints d'authentification / jetons sensibles (anti brute-force)
 const authRateLimiter = rateLimit({
