@@ -14,7 +14,7 @@ const ingredientSchema = z.union([
 ])
 
 export const registerMealTools = (server, req, ctx) => {
-  const { createShoppingItemsForIngredients, deleteMealCascade, sanitizeRecipeUrl, ALERT_ACTIONS } = ctx
+  const { createShoppingItemsForIngredients, deleteMealCascade, sanitizeRecipeUrl, applyMealRecipeChanges, ALERT_ACTIONS } = ctx
   const familyId = req.family._id
 
   server.registerTool('list_meals', {
@@ -100,7 +100,7 @@ export const registerMealTools = (server, req, ctx) => {
       meal.dish = cleanDish
     }
     if (notes !== undefined) meal.notes = String(notes).trim()
-    if (recipeUrl !== undefined) meal.recipeUrl = sanitizeRecipeUrl(recipeUrl)
+    applyMealRecipeChanges(meal, { recipeUrl })
     if (suggestedBy !== undefined) meal.suggestedBy = suggestedBy ? (await resolveMember(familyId, suggestedBy)).id : null
 
     await meal.save()

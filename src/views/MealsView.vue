@@ -330,6 +330,18 @@
           </div>
         </div>
 
+        <!-- Image de la recette liée (masquée si elle ne se charge pas) -->
+        <a
+          v-if="selectedMeal.recipeImageUrl && !recipeImageFailed"
+          :href="selectedMeal.recipeUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="detail-recipe-image"
+          title="Voir la recette"
+        >
+          <img :src="selectedMeal.recipeImageUrl" :alt="selectedMeal.dish" @error="recipeImageFailed = true" />
+        </a>
+
         <!-- Détails du repas -->
         <div class="detail-overview-card">
           <div class="overview-item">
@@ -698,7 +710,7 @@
             <div v-if="form.recipeUrl" class="linked-recipe">
               <BookOpen :size="14" />
               <a :href="form.recipeUrl" target="_blank" rel="noopener noreferrer">Recette liée</a>
-              <button type="button" class="btn-remove-pill" title="Retirer le lien vers la recette" @click="form.recipeUrl = ''">&times;</button>
+              <button type="button" class="btn-remove-pill" title="Retirer le lien vers la recette" @click="unlinkRecipe">&times;</button>
             </div>
 
             <!-- Quick inspiration chips -->
@@ -722,6 +734,37 @@
               <ShoppingCart :size="15" class="text-amber" />
               <span>Ingrédients à ajouter à la liste de courses (optionnel)</span>
             </label>
+
+            <!-- Ingrédients de la recette Mealie : seuls ceux cochés seront ajoutés -->
+            <div v-if="recipeIngredients.length > 0" class="recipe-ing-picker">
+              <div class="recipe-ing-header">
+                <span>Ingrédients de la recette ({{ selectedRecipeIngredientsCount }}/{{ recipeIngredients.length }} cochés)</span>
+                <button type="button" class="recipe-ing-toggle-all" @click="toggleAllRecipeIngredients">
+                  {{ allRecipeIngredientsSelected ? 'Tout décocher' : 'Tout cocher' }}
+                </button>
+              </div>
+              <div class="recipe-ing-scale">
+                <template v-if="recipeBaseServings && slotHeadcount > 0">
+                  Quantités pour {{ slotHeadcount }} personne{{ slotHeadcount > 1 ? 's' : '' }}
+                  (recette prévue pour {{ recipeBaseServings }})
+                </template>
+                <template v-else-if="!recipeBaseServings">
+                  Quantités de la recette (nombre de portions inconnu)
+                </template>
+                <template v-else>
+                  Quantités de la recette (personne à table sur ce créneau)
+                </template>
+              </div>
+              <label
+                v-for="(ing, idx) in recipeIngredients"
+                :key="idx"
+                class="recipe-ing-item"
+                :class="{ selected: ing.selected }"
+              >
+                <input v-model="ing.selected" type="checkbox" />
+                <span>{{ formatRecipeIngredient(ing) }}</span>
+              </label>
+            </div>
 
             <!-- Liste des ingrédients saisis pour ce plat -->
             <div v-if="modalIngredientsList.length > 0" class="modal-ing-tags">
@@ -1059,7 +1102,8 @@ const form = ref({
   dish: '',
   suggestedBy: null,
   notes: '',
-  recipeUrl: ''
+  recipeUrl: '',
+  recipeImageUrl: ''
 })
 
 const modalIngredientsList = ref([])
@@ -1080,19 +1124,86 @@ const removeModalIngredient = (idx) => {
   modalIngredientsList.value.splice(idx, 1)
 }
 
+// Ingrédients de la recette Mealie choisie, proposés décochés : l'utilisateur coche ceux
+// qu'il veut ajouter à la liste de courses.
+const recipeIngredients = ref([])
+// Nombre de portions prévu par la recette (null si Mealie ne le renseigne pas).
+const recipeBaseServings = ref(null)
+
+const selectedRecipeIngredientsCount = computed(() => recipeIngredients.value.filter(ing => ing.selected).length)
+const allRecipeIngredientsSelected = computed(() =>
+  recipeIngredients.value.length > 0 && selectedRecipeIngredientsCount.value === recipeIngredients.value.length
+)
+
+const toggleAllRecipeIngredients = () => {
+  const selected = !allRecipeIngredientsSelected.value
+  recipeIngredients.value.forEach(ing => { ing.selected = selected })
+}
+
+// Couverts du créneau choisi dans le formulaire : suit les changements de jour / créneau.
+const slotHeadcount = computed(() =>
+  form.value.date ? store.getMealSlotPresence(form.value.date, form.value.slot).headcount : 0
+)
+
+// Coefficient appliqué aux quantités de la recette ; 1 si l'une des deux valeurs est inconnue.
+const recipeScaleFactor = computed(() =>
+  recipeBaseServings.value > 0 && slotHeadcount.value > 0
+    ? slotHeadcount.value / recipeBaseServings.value
+    : 1
+)
+
+// Arrondi lisible : à l'entier supérieur pour ce qui se compte (œufs...), une décimale au plus
+// pour les quantités avec unité (aucune au-delà de 10).
+const formatScaledQuantity = (quantity, unit) => {
+  if (!unit) return String(Math.ceil(quantity - 1e-9))
+  return quantity.toLocaleString('fr-FR', { maximumFractionDigits: quantity >= 10 ? 0 : 1 })
+}
+
+// Libellé d'article de courses : « Farine (250 g) » avec la quantité ajustée aux couverts, ou le
+// texte libre de Mealie (non ajustable) pour les ingrédients non structurés.
+const formatRecipeIngredient = (ing) => {
+  if (!ing.food) return ing.text
+  if (!ing.quantity) return ing.food
+  const amount = [formatScaledQuantity(ing.quantity * recipeScaleFactor.value, ing.unit), ing.unit]
+    .filter(Boolean)
+    .join(' ')
+  return `${ing.food} (${amount})`
+}
+
+const unlinkRecipe = () => {
+  form.value.recipeUrl = ''
+  form.value.recipeImageUrl = ''
+}
+
+const recipeIngredientKey = (ing) => (ing.food || ing.text).toLowerCase()
+
 // Recette choisie dans Mealie : reprend son nom et son lien, et, à la création, propose ses
-// ingrédients pour la liste de courses (retirables un à un avant validation).
+// ingrédients à cocher (une nouvelle recette remplace la sélection de la précédente).
 const applyMealieRecipe = (recipe) => {
   form.value.dish = recipe.name
   form.value.recipeUrl = recipe.recipeUrl || ''
+  form.value.recipeImageUrl = recipe.imageUrl || ''
   if (isEditing.value) return
 
-  const known = new Set(modalIngredientsList.value.map(ing => ing.name.toLowerCase()))
-  for (const name of recipe.ingredients || []) {
-    if (known.has(name.toLowerCase())) continue
-    known.add(name.toLowerCase())
-    modalIngredientsList.value.push({ name, category: 'Frais', quantity: 1 })
+  const known = new Set()
+  recipeIngredients.value = []
+  recipeBaseServings.value = recipe.baseServings || null
+  for (const ing of recipe.ingredients || []) {
+    const key = recipeIngredientKey(ing)
+    if (known.has(key)) continue
+    known.add(key)
+    recipeIngredients.value.push({ ...ing, selected: false })
   }
+}
+
+// Ingrédients envoyés à la création du repas : saisis à la main + cochés dans la recette
+// (quantités ajustées aux couverts), sans doublon.
+const buildIngredientsToAdd = () => {
+  const known = new Set(modalIngredientsList.value.map(ing => ing.name.toLowerCase()))
+  const fromRecipe = recipeIngredients.value
+    .filter(ing => ing.selected && !known.has(recipeIngredientKey(ing)))
+    .map(ing => ({ name: formatRecipeIngredient(ing), category: 'Frais', quantity: 1 }))
+  return [...modalIngredientsList.value, ...fromRecipe]
 }
 
 const defaultMemberId = computed(() => {
@@ -1126,9 +1237,12 @@ const openAddModal = (dateStr = null, slot = 'lunch') => {
     dish: '',
     suggestedBy: defaultMemberId.value,
     notes: '',
-    recipeUrl: ''
+    recipeUrl: '',
+    recipeImageUrl: ''
   }
   modalIngredientsList.value = []
+  recipeIngredients.value = []
+  recipeBaseServings.value = null
   tempIngredientName.value = ''
   showModal.value = true
 }
@@ -1142,9 +1256,12 @@ const openEditModal = (meal) => {
     dish: meal.dish,
     suggestedBy: meal.suggestedBy || defaultMemberId.value,
     notes: meal.notes || '',
-    recipeUrl: meal.recipeUrl || ''
+    recipeUrl: meal.recipeUrl || '',
+    recipeImageUrl: meal.recipeImageUrl || ''
   }
   modalIngredientsList.value = []
+  recipeIngredients.value = []
+  recipeBaseServings.value = null
   tempIngredientName.value = ''
   showModal.value = true
 }
@@ -1154,6 +1271,8 @@ const closeModal = () => {
   isEditing.value = false
   editingMealId.value = null
   modalIngredientsList.value = []
+  recipeIngredients.value = []
+  recipeBaseServings.value = null
 }
 
 const handleSubmitMeal = async () => {
@@ -1173,10 +1292,12 @@ const handleSubmitMeal = async () => {
         dish: form.value.dish.trim(),
         suggestedBy: form.value.suggestedBy,
         notes: form.value.notes.trim(),
-        recipeUrl: form.value.recipeUrl
+        recipeUrl: form.value.recipeUrl,
+        recipeImageUrl: form.value.recipeImageUrl
       })
       closeModal()
     } else {
+      const ingredients = buildIngredientsToAdd()
       const res = await store.addMeal({
         date: form.value.date,
         slot: form.value.slot,
@@ -1184,7 +1305,8 @@ const handleSubmitMeal = async () => {
         suggestedBy: form.value.suggestedBy,
         notes: form.value.notes.trim(),
         recipeUrl: form.value.recipeUrl,
-        ingredients: modalIngredientsList.value
+        recipeImageUrl: form.value.recipeImageUrl,
+        ingredients
       })
 
       closeModal()
@@ -1192,7 +1314,7 @@ const handleSubmitMeal = async () => {
       // Si l'utilisateur n'a pas encore ajouté d'ingrédients, lui proposer automatiquement
       // d'en ajouter via la modale de détail !
       if (res && res.success && res.meal) {
-        if (modalIngredientsList.value.length === 0) {
+        if (ingredients.length === 0) {
           openDetailModal(res.meal, true)
         }
       }
@@ -1239,8 +1361,12 @@ const currentMealIngredients = computed(() => {
   return getMealIngredients(selectedMeal.value.id)
 })
 
+// Image de recette injoignable (serveur Mealie hors ligne, recette supprimée...) : on la masque.
+const recipeImageFailed = ref(false)
+
 const openDetailModal = (meal, isPrompt = false) => {
   selectedMeal.value = meal
+  recipeImageFailed.value = false
   isPostValidationPrompt.value = isPrompt
   newIngredient.value = {
     name: '',
@@ -2240,6 +2366,21 @@ button.slot-headcount-circle:hover {
   margin: 0.2rem 0 0 0;
 }
 
+.detail-recipe-image {
+  display: block;
+  margin-bottom: 1rem;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-tertiary);
+}
+
+.detail-recipe-image img {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+}
+
 .detail-overview-card {
   display: flex;
   flex-wrap: wrap;
@@ -2583,6 +2724,73 @@ button.slot-headcount-circle:hover {
   gap: 0.3rem;
   color: var(--accent-amber);
   font-weight: 600;
+}
+
+/* Ingrédients de la recette Mealie à cocher */
+.recipe-ing-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+}
+
+.recipe-ing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.25rem 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.recipe-ing-toggle-all {
+  background: transparent;
+  border: none;
+  color: var(--accent-amber);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.recipe-ing-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.25rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.recipe-ing-item:hover {
+  background: var(--bg-secondary);
+}
+
+.recipe-ing-item.selected {
+  color: var(--text-primary);
+}
+
+.recipe-ing-item input {
+  accent-color: var(--accent-amber);
+  flex-shrink: 0;
+}
+
+.recipe-ing-scale {
+  padding: 0 0.25rem 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 /* Modal Ingredients Tags */

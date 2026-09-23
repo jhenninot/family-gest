@@ -4898,6 +4898,18 @@ const sanitizeRecipeUrl = (raw) => {
   }
 }
 
+// Applique à un repas une modification du lien de recette et/ou de son image. L'image suit le
+// lien : elle est effacée quand le lien change sans nouvelle image, ou quand il est retiré.
+const applyMealRecipeChanges = (meal, { recipeUrl, recipeImageUrl }) => {
+  if (recipeUrl !== undefined) {
+    const cleanUrl = sanitizeRecipeUrl(recipeUrl)
+    if (cleanUrl !== meal.recipeUrl && recipeImageUrl === undefined) meal.recipeImageUrl = ''
+    meal.recipeUrl = cleanUrl
+  }
+  if (recipeImageUrl !== undefined) meal.recipeImageUrl = sanitizeRecipeUrl(recipeImageUrl)
+  if (!meal.recipeUrl) meal.recipeImageUrl = ''
+}
+
 // Supprime un repas et les articles de courses liés (cascade). Partagée par la route HTTP et
 // l'outil MCP delete_meal.
 const deleteMealCascade = async ({ familyId, mealId }) => {
@@ -4924,7 +4936,7 @@ app.get('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
 
 app.post('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const { date, slot, dish, notes, suggestedBy, recipeUrl } = req.body
+    const { date, slot, dish, notes, suggestedBy, recipeUrl, recipeImageUrl } = req.body
 
     if (!date || !slot || !dish) {
       return res.status(400).json({ error: 'La date, le créneau (midi/soir) et l\'intitulé du plat sont obligatoires' })
@@ -4946,9 +4958,9 @@ app.post('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
       slot: slot === 'dinner' ? 'dinner' : 'lunch',
       dish: cleanDish,
       suggestedBy: memberId,
-      notes: notes ? String(notes).trim() : '',
-      recipeUrl: sanitizeRecipeUrl(recipeUrl)
+      notes: notes ? String(notes).trim() : ''
     })
+    applyMealRecipeChanges(newMeal, { recipeUrl, recipeImageUrl })
 
     await newMeal.save()
 
@@ -5020,7 +5032,7 @@ app.put('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) => 
     const meal = await Meal.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!meal) return res.status(404).json({ error: 'Plat non trouvé' })
 
-    const { date, slot, dish, notes, suggestedBy, recipeUrl } = req.body
+    const { date, slot, dish, notes, suggestedBy, recipeUrl, recipeImageUrl } = req.body
     if (date !== undefined) meal.date = String(date)
     if (slot !== undefined) meal.slot = slot === 'dinner' ? 'dinner' : 'lunch'
     if (dish !== undefined) {
@@ -5030,7 +5042,7 @@ app.put('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) => 
     }
     if (notes !== undefined) meal.notes = String(notes).trim()
     if (suggestedBy !== undefined) meal.suggestedBy = suggestedBy ? Number(suggestedBy) : null
-    if (recipeUrl !== undefined) meal.recipeUrl = sanitizeRecipeUrl(recipeUrl)
+    applyMealRecipeChanges(meal, { recipeUrl, recipeImageUrl })
 
     await meal.save()
     res.json(meal)
@@ -5116,25 +5128,32 @@ const buildMealieImageUrl = (config, recipe) => recipe.image && recipe.id
   ? `${config.baseUrl}/api/media/recipes/${encodeURIComponent(recipe.id)}/images/min-original.webp?version=${encodeURIComponent(recipe.image)}`
   : null
 
-const formatMealieQuantity = (quantity) => {
-  const n = Number(quantity)
-  if (!Number.isFinite(n) || n <= 0) return ''
-  return n.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+// Transforme un ingrédient Mealie en élément structuré : aliment + quantité + unité quand
+// l'ingrédient est structuré (le client ajuste la quantité au nombre de couverts), sinon le
+// texte affiché par Mealie, repris tel quel.
+const mealieIngredientToItem = (ing) => {
+  const foodName = ing.food?.name ? String(ing.food.name).trim() : ''
+  const quantity = Number(ing.quantity)
+  const unit = ing.unit
+    ? String((ing.unit.useAbbreviation && ing.unit.abbreviation) || ing.unit.name || '').trim()
+    : ''
+  return {
+    food: foodName ? foodName.charAt(0).toUpperCase() + foodName.slice(1) : '',
+    quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : null,
+    unit,
+    text: String(ing.display || ing.note || ing.originalText || '').replace(/\s+/g, ' ').trim()
+  }
 }
 
-// Transforme un ingrédient Mealie en libellé d'article de courses : « Farine (200 g) » quand
-// l'ingrédient est structuré (aliment + quantité + unité), sinon le texte affiché par Mealie.
-const mealieIngredientToShoppingName = (ing) => {
-  const foodName = ing.food?.name ? String(ing.food.name).trim() : ''
-  if (foodName) {
-    const unit = ing.unit
-      ? String((ing.unit.useAbbreviation && ing.unit.abbreviation) || ing.unit.name || '').trim()
-      : ''
-    const amount = [formatMealieQuantity(ing.quantity), unit].filter(Boolean).join(' ')
-    const name = foodName.charAt(0).toUpperCase() + foodName.slice(1)
-    return amount ? `${name} (${amount})` : name
+// Nombre de portions de la recette : champ numérique (Mealie v2), sinon premier entier de la
+// chaîne libre recipeYield (« 4 personnes »), sinon null (quantités non ajustables).
+const getMealieBaseServings = (recipe) => {
+  for (const value of [recipe.recipeServings, recipe.recipeYieldQuantity]) {
+    const n = Number(value)
+    if (Number.isFinite(n) && n > 0) return n
   }
-  return String(ing.display || ing.note || ing.originalText || '').replace(/\s+/g, ' ').trim()
+  const match = String(recipe.recipeYield || '').match(/\d+/)
+  return match && Number(match[0]) > 0 ? Number(match[0]) : null
 }
 
 const getFamilyMealieConfig = async (familyId) => {
@@ -5230,21 +5249,21 @@ app.get('/api/mealie/recipes', requireAuth, attachFamilyContext, async (req, res
   }
 })
 
-// GET /api/mealie/recipes/:slug : détail d'une recette, avec ses ingrédients convertis en
-// libellés d'articles de courses.
+// GET /api/mealie/recipes/:slug : détail d'une recette, avec ses ingrédients structurés et
+// son nombre de portions.
 app.get('/api/mealie/recipes/:slug', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const config = await getFamilyMealieConfig(req.family._id)
     const recipe = await mealieRequest(config, `/api/recipes/${encodeURIComponent(req.params.slug)}`)
     const ingredients = (Array.isArray(recipe?.recipeIngredient) ? recipe.recipeIngredient : [])
-      .map(mealieIngredientToShoppingName)
-      .filter(Boolean)
+      .map(mealieIngredientToItem)
+      .filter(ing => ing.food || ing.text)
 
     res.json({
       slug: recipe.slug,
       name: recipe.name,
       description: String(recipe.description || ''),
-      servings: recipe.recipeServings || recipe.recipeYield || '',
+      baseServings: getMealieBaseServings(recipe),
       recipeUrl: buildMealieRecipeUrl(config, recipe.slug),
       imageUrl: buildMealieImageUrl(config, recipe),
       ingredients
@@ -5456,6 +5475,7 @@ mountMcpServer(app, {
   createShoppingItemsForIngredients,
   deleteMealCascade,
   sanitizeRecipeUrl,
+  applyMealRecipeChanges,
   getOrSeedShoppingCategories
 })
 
