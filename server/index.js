@@ -586,7 +586,7 @@ const getRecurrenceDates = (startDateStr, frequency, interval, endDateStr, maxCo
 // Helper : Diffusion d'une notification par email aux membres ayant activé cette option
 // Les 4 catégories d'alerte pilotées par un simple choix "notifications on/off" à l'onboarding
 // (le récapitulatif quotidien n'en fait pas partie : il garde son propre défaut de schéma).
-const ONBOARDING_NOTIFICATION_CATEGORIES = ['presence', 'meals', 'tasks', 'events']
+const ONBOARDING_NOTIFICATION_CATEGORIES = ['presence', 'meals', 'tasks', 'taskReminders', 'events']
 
 // Applique uniformément une paire push/email aux 4 catégories d'alerte (utilisé à l'onboarding,
 // où l'on ne propose que 2 cases à cocher simples plutôt que la grille complète du profil).
@@ -602,6 +602,7 @@ const CATEGORY_LABELS = {
   presence: 'Présences, absences & invités aux repas',
   meals: 'Repas',
   tasks: 'Tâches',
+  taskReminders: 'Rappels de tâches à échéance',
   events: 'Événements',
   digest: 'Récapitulatif quotidien'
 }
@@ -616,7 +617,9 @@ const sendNotificationEmail = async ({
   excludeUserId = null,
   calendarData = null,
   familyId = null,
-  action = null
+  action = null,
+  // Restreint l'envoi à ces comptes (ex : rappel destiné à la seule personne assignée).
+  recipientUserIds = null
 }) => {
   try {
     const config = await getSmtpConfig()
@@ -639,6 +642,9 @@ const sendNotificationEmail = async ({
       const memberQuery = { familyId }
       if (excludeUserId) {
         memberQuery.userId = { $ne: Number(excludeUserId) }
+      }
+      if (recipientUserIds) {
+        memberQuery.userId = { ...memberQuery.userId, $in: recipientUserIds.map(Number) }
       }
       const members = await FamilyMember.find(memberQuery)
       const memberUserIds = members.map(m => m.userId)
@@ -828,7 +834,9 @@ const sendPushNotification = async ({
   actions = [],
   googleCalendarUrl = null,
   familyId = null,
-  action = null
+  action = null,
+  // Restreint l'envoi à ces comptes (ex : rappel destiné à la seule personne assignée).
+  recipientUserIds = null
 }) => {
   try {
     if (!vapidPublicKey || !vapidPrivateKey) return { success: false, reason: 'PUSH_NOT_CONFIGURED', count: 0, recipients: [] }
@@ -847,6 +855,9 @@ const sendPushNotification = async ({
       const memberQuery = { familyId }
       if (excludeUserId) {
         memberQuery.userId = { $ne: Number(excludeUserId) }
+      }
+      if (recipientUserIds) {
+        memberQuery.userId = { ...memberQuery.userId, $in: recipientUserIds.map(Number) }
       }
       const eligibleMembers = await FamilyMember.find(memberQuery).select('userId')
       userIds = eligibleMembers.map(m => m.userId)
@@ -1383,7 +1394,7 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     // réglage depuis le profil n'avait aucun effet sur les repas. Pour régler sa présence, voir
     // PUT /api/members/:id/usual-presence, qui est accessible à chaque membre pour lui-même.
 
-    // Préférences de notification granulaires (5 catégories × push/email), gérées uniquement
+    // Préférences de notification granulaires (6 catégories × push/email), gérées uniquement
     // par l'utilisateur pour son propre compte — valables sur toutes ses familles.
     if (notificationPreferences && typeof notificationPreferences === 'object') {
       for (const category of Object.keys(CATEGORY_LABELS)) {
@@ -3371,6 +3382,15 @@ const toggleTaskCompletion = async ({ familyId, taskId }) => {
   return task
 }
 
+// Échéance d'une tâche : date « AAAA-MM-JJ » ou null (vide / invalide = pas d'échéance).
+const normalizeTaskDueDate = (raw) => {
+  const value = String(raw ?? '').trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+  const [y, m, d] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d))
+  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d ? value : null
+}
+
 // Met à jour partiellement une tâche (pas de route HTTP équivalente avant l'ajout du connecteur MCP).
 const updateTask = async ({ familyId, taskId, fields }) => {
   const task = await Task.findOne({ id: Number(taskId), familyId })
@@ -3382,7 +3402,7 @@ const updateTask = async ({ familyId, taskId, fields }) => {
   if (assignedTo !== undefined) task.assignedTo = Number(assignedTo)
   if (priority !== undefined) task.priority = priority
   if (points !== undefined) task.points = Number(points) || task.points
-  if (dueDate !== undefined) task.dueDate = dueDate
+  if (dueDate !== undefined) task.dueDate = normalizeTaskDueDate(dueDate)
 
   await task.save()
   return task
@@ -3408,7 +3428,7 @@ app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
       priority: req.body.priority || 'Moyenne',
       points: Number(req.body.points) || 10,
       completed: false,
-      dueDate: req.body.dueDate
+      dueDate: normalizeTaskDueDate(req.body.dueDate)
     })
     await newTask.save()
 
@@ -3445,7 +3465,7 @@ app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
             <li><strong>Catégorie :</strong> ${newTask.category || 'Maison'}</li>
             <li><strong>Priorité :</strong> ${newTask.priority || 'Moyenne'}</li>
             <li><strong>Récompense :</strong> +${newTask.points} pts</li>
-            ${newTask.dueDate ? `<li><strong>Échéance :</strong> ${newTask.dueDate}</li>` : ''}
+            ${newTask.dueDate ? `<li><strong>Échéance :</strong> ${new Date(`${newTask.dueDate}T12:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</li>` : ''}
           </ul>
         `,
         actionUrl: `/${req.family.slug}/tasks`,
@@ -5476,6 +5496,7 @@ mountMcpServer(app, {
   deleteMealCascade,
   sanitizeRecipeUrl,
   applyMealRecipeChanges,
+  normalizeTaskDueDate,
   getOrSeedShoppingCategories
 })
 
@@ -5507,6 +5528,7 @@ const startServer = async () => {
     User, FamilyMember, Family, Task, Event, Absence, MealGuest, Meal, ShoppingItem,
     PushSubscription, GlobalConfig,
     getSmtpConfig, sendEmailWithConfig,
+    sendPushNotification, sendNotificationEmail,
     webpush,
     getVapidKeys: () => ({ publicKey: vapidPublicKey, privateKey: vapidPrivateKey }),
     logAlertEntry, toAlertChannelLog,

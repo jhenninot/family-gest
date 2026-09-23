@@ -1,5 +1,6 @@
 import cron from 'node-cron'
 import { runDailyDigest } from './runDigest.js'
+import { runTaskDueReminders } from './taskReminders.js'
 
 // Empêche deux exécutions simultanées (tick planifié + déclenchement manuel depuis la console
 // Super Admin, ou double-clic sur le bouton d'envoi immédiat).
@@ -67,10 +68,19 @@ export const startDigestScheduler = (ctx) => {
       await config.save()
 
       console.log(`[Digest] Déclenchement du récapitulatif quotidien (${dateStr} ${hour}:${String(minute).padStart(2, '0')} ${timezone})`)
-      await runDigestSafely(ctx, {
-        onSkip: () => console.log('[Digest] Tick ignoré : un envoi est déjà en cours (probablement déclenché manuellement).')
-      })
-      console.log('[Digest] Récapitulatif quotidien terminé.')
+      try {
+        await runDigestSafely(ctx, {
+          onSkip: () => console.log('[Digest] Tick ignoré : un envoi est déjà en cours (probablement déclenché manuellement).')
+        })
+        console.log('[Digest] Récapitulatif quotidien terminé.')
+      } catch (err) {
+        console.error('[Digest] Erreur lors de l\'envoi du récapitulatif quotidien:', err.message)
+      }
+
+      // Rappel des tâches à échéance, à la même heure (même verrou quotidien lastDigestRunDate),
+      // envoyé même si le récapitulatif a échoué.
+      await runTaskDueReminders(ctx, dateStr)
+      console.log('[TaskReminders] Rappels des tâches à échéance envoyés.')
     } catch (err) {
       console.error('[Digest] Erreur planificateur récapitulatif quotidien:', err.message)
     }

@@ -9,6 +9,24 @@ import User from '../models/User.js'
 // son défaut fixe (push désactivé, email activé), indépendamment des anciens flags.
 export const migrateNotificationPreferences = async () => {
   try {
+    // Catégorie ajoutée après coup : les comptes existants reprennent leur réglage « Tâches ».
+    // Écrit en base (et pas seulement en défaut de schéma) car les helpers d'envoi filtrent
+    // les destinataires par requête sur ce champ.
+    const backfill = await User.updateMany(
+      { notificationPreferences: { $exists: true }, 'notificationPreferences.taskReminders': { $exists: false } },
+      [{
+        $set: {
+          'notificationPreferences.taskReminders': {
+            push: { $ifNull: ['$notificationPreferences.tasks.push', true] },
+            email: { $ifNull: ['$notificationPreferences.tasks.email', false] }
+          }
+        }
+      }]
+    )
+    if (backfill.modifiedCount > 0) {
+      console.log(`✅ [Migration] Préférences « Rappels de tâches » initialisées pour ${backfill.modifiedCount} compte(s).`)
+    }
+
     const usersToMigrate = await User.find({ notificationPreferences: { $exists: false } })
     if (usersToMigrate.length === 0) return
 
@@ -22,6 +40,7 @@ export const migrateNotificationPreferences = async () => {
         presence: { push: legacyPush, email: legacyEmail },
         meals: { push: legacyPush, email: legacyEmail },
         tasks: { push: legacyPush, email: legacyEmail },
+        taskReminders: { push: legacyPush, email: legacyEmail },
         events: { push: legacyPush, email: legacyEmail },
         digest: { push: false, email: true }
       }

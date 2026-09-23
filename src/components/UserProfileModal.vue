@@ -318,6 +318,7 @@ const NOTIFICATION_CATEGORIES = [
   { key: 'presence', label: 'Présences, absences & invités aux repas' },
   { key: 'meals', label: 'Repas' },
   { key: 'tasks', label: 'Tâches' },
+  { key: 'taskReminders', label: 'Rappels de tâches à échéance' },
   { key: 'events', label: 'Événements' },
   { key: 'digest', label: 'Récapitulatif quotidien' }
 ]
@@ -326,6 +327,7 @@ const defaultNotificationPreferences = () => ({
   presence: { push: true, email: false },
   meals: { push: true, email: false },
   tasks: { push: true, email: false },
+  taskReminders: { push: true, email: false },
   events: { push: true, email: false },
   digest: { push: false, email: true }
 })

@@ -39,6 +39,12 @@ const userSchema = new mongoose.Schema({
       push: { type: Boolean, default: true },
       email: { type: Boolean, default: false }
     },
+    // Rappel quotidien (à l'heure du récapitulatif) des tâches assignées dont l'échéance est
+    // atteinte ou dépassée.
+    taskReminders: {
+      push: { type: Boolean, default: true },
+      email: { type: Boolean, default: false }
+    },
     events: {
       push: { type: Boolean, default: true },
       email: { type: Boolean, default: false }

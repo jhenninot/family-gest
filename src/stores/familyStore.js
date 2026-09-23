@@ -612,6 +612,23 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  const updateTask = async (id, taskData) => {
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(taskData)
+      })
+      if (res.ok) {
+        const updatedTask = await res.json()
+        const index = tasks.value.findIndex(t => t.id === id)
+        if (index !== -1) tasks.value[index] = updatedTask
+      }
+    } catch (err) {
+      console.error('Erreur updateTask API', err)
+    }
+  }
+
   const deleteTask = async (id) => {
     try {
       const res = await fetch(`/api/tasks/${id}`, {
@@ -1294,6 +1311,7 @@ export const useFamilyStore = defineStore('family', () => {
     resendWelcomeEmail,
     addTask,
     toggleTask,
+    updateTask,
     deleteTask,
     addEvent,
     updateEvent,

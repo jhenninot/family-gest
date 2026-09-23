@@ -9,7 +9,7 @@ const taskSchema = new mongoose.Schema({
   priority: { type: String, default: 'Moyenne' },
   points: { type: Number, default: 10 },
   completed: { type: Boolean, default: false },
-  dueDate: { type: String }
+  dueDate: { type: String, default: null } // Échéance « AAAA-MM-JJ » : urgente et rappelée chaque jour une fois atteinte
 }, { timestamps: true })
 
 taskSchema.index({ familyId: 1, id: 1 }, { unique: true })

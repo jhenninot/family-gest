@@ -39,7 +39,7 @@
         </div>
       </div>
 
-      <button @click="showAddModal = true" class="btn btn-primary">
+      <button @click="openAddModal" class="btn btn-primary">
         <Plus :size="18" />
         <span>Ajouter une Tâche</span>
       </button>
@@ -51,17 +51,23 @@
         v-for="task in filteredTasks" 
         :key="task.id"
         class="glass-card task-card"
-        :class="{ completed: task.completed }"
+        :class="{ completed: task.completed, urgent: isTaskUrgent(task) }"
       >
         <div class="task-card-header">
+          <span v-if="isTaskUrgent(task)" class="badge badge-rose">Urgente 🔥</span>
           <span class="badge" :class="getPriorityClass(task.priority)">
             {{ task.priority }}
           </span>
           <span class="badge badge-purple">{{ task.category }}</span>
 
-          <button @click="handleDeleteTask(task)" class="btn-icon-delete" title="Supprimer">
-            <Trash2 :size="16" />
-          </button>
+          <div class="task-card-actions">
+            <button @click="openEditModal(task)" class="btn-icon-action" title="Modifier">
+              <Pencil :size="16" />
+            </button>
+            <button @click="handleDeleteTask(task)" class="btn-icon-action delete" title="Supprimer">
+              <Trash2 :size="16" />
+            </button>
+          </div>
         </div>
 
         <div class="task-card-body">
@@ -81,6 +87,10 @@
             <UserAvatar :avatar="getMemberAvatar(task.assignedTo)" :name="getMemberName(task.assignedTo)" size="xs" />
             <span class="assignee-name">{{ getMemberName(task.assignedTo) }}</span>
           </div>
+          <span v-if="task.dueDate" class="due-date" :class="{ overdue: isTaskUrgent(task) }" :title="'Échéance : ' + formatDueDate(task.dueDate, true)">
+            <CalendarClock :size="14" />
+            {{ formatDueDate(task.dueDate) }}
+          </span>
         </div>
       </div>
     </div>
@@ -89,19 +99,19 @@
       <p>Aucune tâche trouvée avec ces filtres.</p>
     </div>
 
-    <!-- Modal Ajouter une Tâche -->
-    <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
+    <!-- Modal Ajouter / Modifier une Tâche -->
+    <div v-if="showTaskModal" class="modal-overlay" @click.self="closeTaskModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Nouvelle Tâche</h3>
-          <button @click="showAddModal = false" class="btn-close">&times;</button>
+          <h3>{{ editingTaskId ? 'Modifier la tâche' : 'Nouvelle Tâche' }}</h3>
+          <button @click="closeTaskModal" class="btn-close">&times;</button>
         </div>
 
-        <form @submit.prevent="handleAddTask">
+        <form @submit.prevent="handleSubmitTask">
           <div class="form-group">
             <label class="form-label">Titre de la tâche</label>
             <input 
-              v-model="newTask.title" 
+              v-model="taskForm.title" 
               type="text" 
               required 
               placeholder="ex: Nettoyer la cuisine..."
@@ -112,7 +122,7 @@
           <div class="grid-2">
             <div class="form-group">
               <label class="form-label">Catégorie</label>
-              <select v-model="newTask.category" class="form-select">
+              <select v-model="taskForm.category" class="form-select">
                 <option value="Maison">Maison</option>
                 <option value="Cuisine">Cuisine</option>
                 <option value="Jardin">Jardin</option>
@@ -123,7 +133,7 @@
 
             <div class="form-group">
               <label class="form-label">Attribuer à</label>
-              <select v-model="newTask.assignedTo" class="form-select">
+              <select v-model="taskForm.assignedTo" class="form-select">
                 <option v-for="m in store.members" :key="m.id" :value="m.id">
                   {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} ({{ m.role }})
                 </option>
@@ -134,19 +144,23 @@
           <div class="grid-2">
             <div class="form-group">
               <label class="form-label">Priorité</label>
-              <select v-model="newTask.priority" class="form-select">
+              <select v-model="taskForm.priority" class="form-select">
                 <option value="Basse">Basse</option>
                 <option value="Moyenne">Moyenne</option>
                 <option value="Haute">Haute</option>
               </select>
             </div>
 
-
+            <div class="form-group">
+              <label class="form-label">Échéance (optionnel)</label>
+              <input v-model="taskForm.dueDate" type="date" class="form-input" />
+              <p class="form-hint">À cette date, la tâche devient urgente et un rappel est envoyé chaque jour à la personne assignée.</p>
+            </div>
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="showAddModal = false" class="btn btn-secondary">Annuler</button>
-            <button type="submit" class="btn btn-primary">Créer la tâche</button>
+            <button type="button" @click="closeTaskModal" class="btn btn-secondary">Annuler</button>
+            <button type="submit" class="btn btn-primary">{{ editingTaskId ? 'Enregistrer' : 'Créer la tâche' }}</button>
           </div>
         </form>
       </div>
@@ -157,7 +171,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
-import { CheckSquare, Plus, Trash2 } from '@lucide/vue'
+import { CheckSquare, Plus, Trash2, Pencil, CalendarClock } from '@lucide/vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
@@ -168,17 +182,37 @@ const { confirm } = useConfirm()
 
 const statusFilter = ref('all')
 const memberFilter = ref('all')
-const showAddModal = ref(false)
+const showTaskModal = ref(false)
+const editingTaskId = ref(null)
 
-const newTask = ref({
+const emptyTaskForm = () => ({
   title: '',
   category: 'Maison',
   assignedTo: store.members[0]?.id || 1,
-  priority: 'Moyenne'
+  priority: 'Moyenne',
+  dueDate: ''
 })
 
+const taskForm = ref(emptyTaskForm())
+
+// Une tâche non terminée devient urgente dès que son échéance est atteinte ou dépassée.
+const isTaskUrgent = (task) => !task.completed && Boolean(task.dueDate) && task.dueDate <= store.todayStr
+
+const formatDueDate = (dateStr, long = false) => {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  if (Number.isNaN(date.getTime())) return dateStr
+  if (!long) {
+    if (dateStr === store.todayStr) return "Aujourd'hui"
+    return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+  }
+  return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+// Les tâches urgentes remontent en tête, les plus anciennes échéances d'abord ; l'ordre
+// d'origine (plus récentes d'abord) est conservé pour les autres.
 const filteredTasks = computed(() => {
-  return store.tasks.filter(t => {
+  const list = store.tasks.filter(t => {
     // Status filter
     if (statusFilter.value === 'pending' && t.completed) return false
     if (statusFilter.value === 'completed' && !t.completed) return false
@@ -188,6 +222,8 @@ const filteredTasks = computed(() => {
 
     return true
   })
+  const urgent = list.filter(isTaskUrgent).sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+  return [...urgent, ...list.filter(t => !isTaskUrgent(t))]
 })
 
 const getMemberName = (id) => {
@@ -221,16 +257,39 @@ const handleDeleteTask = async (task) => {
   }
 }
 
-const handleAddTask = () => {
-  if (!newTask.value.title.trim()) return
-  store.addTask(newTask.value)
-  showAddModal.value = false
-  newTask.value = {
-    title: '',
-    category: 'Maison',
-    assignedTo: store.members[0]?.id || 1,
-    priority: 'Moyenne'
+const openAddModal = () => {
+  editingTaskId.value = null
+  taskForm.value = emptyTaskForm()
+  showTaskModal.value = true
+}
+
+const openEditModal = (task) => {
+  editingTaskId.value = task.id
+  taskForm.value = {
+    title: task.title,
+    category: task.category || 'Maison',
+    assignedTo: task.assignedTo,
+    priority: task.priority || 'Moyenne',
+    dueDate: task.dueDate || ''
   }
+  showTaskModal.value = true
+}
+
+const closeTaskModal = () => {
+  showTaskModal.value = false
+  editingTaskId.value = null
+}
+
+const handleSubmitTask = async () => {
+  const title = taskForm.value.title.trim()
+  if (!title) return
+  const payload = { ...taskForm.value, title }
+  if (editingTaskId.value) {
+    await store.updateTask(editingTaskId.value, payload)
+  } else {
+    await store.addTask(payload)
+  }
+  closeTaskModal()
 }
 </script>
 
@@ -315,8 +374,17 @@ const handleAddTask = () => {
   gap: 0.5rem;
 }
 
-.btn-icon-delete {
+.task-card.urgent {
+  border-color: var(--accent-rose);
+}
+
+.task-card-actions {
   margin-left: auto;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.btn-icon-action {
   background: none;
   border: none;
   color: var(--text-muted);
@@ -325,8 +393,30 @@ const handleAddTask = () => {
   border-radius: var(--radius-sm);
   transition: color var(--transition-fast);
 }
-.btn-icon-delete:hover {
+.btn-icon-action:hover {
+  color: var(--accent-primary);
+}
+.btn-icon-action.delete:hover {
   color: var(--accent-rose);
+}
+
+.due-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.due-date.overdue {
+  color: var(--accent-rose);
+}
+
+.form-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .task-checkbox-wrapper {

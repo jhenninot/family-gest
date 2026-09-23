@@ -7,6 +7,7 @@
 // compte) et restent toujours envoyées, hors du système d'opt-in.
 export const ALERT_ACTIONS = {
   TASK_CREATED: { code: 'task.created', label: 'Nouvelle tâche', category: 'tasks' },
+  TASK_DUE: { code: 'task.due', label: 'Rappel de tâche à échéance', category: 'taskReminders' },
   EVENT_CREATED: { code: 'event.created', label: 'Nouvel événement', category: 'events' },
   EVENT_UPDATED: { code: 'event.updated', label: 'Événement modifié', category: 'events' },
   PRESENCE_CREATED: { code: 'absence.presence', label: 'Présence signalée', category: 'presence' },

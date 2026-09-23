@@ -5,7 +5,7 @@ import { jsonResult } from '../toolHelpers.js'
 import { notifyMcpAction } from '../notify.js'
 
 export const registerTaskTools = (server, req, ctx) => {
-  const { toggleTaskCompletion, updateTask, ALERT_ACTIONS } = ctx
+  const { toggleTaskCompletion, updateTask, normalizeTaskDueDate, ALERT_ACTIONS } = ctx
   const familyId = req.family._id
 
   server.registerTool('list_tasks', {
@@ -26,7 +26,7 @@ export const registerTaskTools = (server, req, ctx) => {
       category: z.string().optional(),
       priority: z.string().optional(),
       points: z.number().optional().describe('Points attribués à la complétion (défaut: 10)'),
-      dueDate: z.string().optional()
+      dueDate: z.string().optional().describe('Échéance AAAA-MM-JJ : la tâche devient urgente et est rappelée chaque jour à la personne assignée une fois cette date atteinte')
     }
   }, async ({ title, assignedTo, category, priority, points, dueDate }) => {
     const resolved = await resolveMember(familyId, assignedTo)
@@ -40,7 +40,7 @@ export const registerTaskTools = (server, req, ctx) => {
       priority: priority || 'Moyenne',
       points: Number(points) || 10,
       completed: false,
-      dueDate
+      dueDate: normalizeTaskDueDate(dueDate)
     })
     await newTask.save()
 
@@ -65,7 +65,7 @@ export const registerTaskTools = (server, req, ctx) => {
       assignedTo: z.string().optional(),
       priority: z.string().optional(),
       points: z.number().optional(),
-      dueDate: z.string().optional()
+      dueDate: z.string().optional().describe('Échéance AAAA-MM-JJ ; chaîne vide pour la retirer')
     }
   }, async ({ id, assignedTo, ...fields }) => {
     const resolvedAssignedTo = assignedTo !== undefined ? (await resolveMember(familyId, assignedTo)).id : undefined
