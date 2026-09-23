@@ -93,12 +93,21 @@
             </div>
 
             <!-- List of Lunch Meals -->
-            <div class="slot-meals-list">
+            <!-- Zone de dépôt du glisser-déposer : les data-* sont lues par usePointerDrag
+                 via elementFromPoint, il n'y a donc pas d'écouteur à poser sur chaque case. -->
+            <div 
+              class="slot-meals-list drop-zone"
+              :class="{ 'is-drop-target': isDropHovered(day.dateStr, 'lunch') }"
+              data-drop-slot="lunch"
+              :data-drop-date="day.dateStr"
+            >
               <div 
                 v-for="m in day.lunchMeals" 
                 :key="m.id" 
                 class="dish-card"
-                @click="openDetailModal(m)"
+                :class="{ 'is-drag-source': isDragSource(m), 'is-moving': movingMealId === m.id }"
+                @pointerdown="startDrag($event, m)"
+                @click="onDishCardClick(m)"
               >
                 <div class="dish-card-main">
                   <div class="dish-title-row">
@@ -190,12 +199,21 @@
             </div>
 
             <!-- List of Dinner Meals -->
-            <div class="slot-meals-list">
+            <!-- Zone de dépôt du glisser-déposer : les data-* sont lues par usePointerDrag
+                 via elementFromPoint, il n'y a donc pas d'écouteur à poser sur chaque case. -->
+            <div 
+              class="slot-meals-list drop-zone"
+              :class="{ 'is-drop-target': isDropHovered(day.dateStr, 'dinner') }"
+              data-drop-slot="dinner"
+              :data-drop-date="day.dateStr"
+            >
               <div 
                 v-for="m in day.dinnerMeals" 
                 :key="m.id" 
                 class="dish-card"
-                @click="openDetailModal(m)"
+                :class="{ 'is-drag-source': isDragSource(m), 'is-moving': movingMealId === m.id }"
+                @pointerdown="startDrag($event, m)"
+                @click="onDishCardClick(m)"
               >
                 <div class="dish-card-main">
                   <div class="dish-title-row">
@@ -584,6 +602,22 @@
         </form>
       </div>
     </div>
+
+    <!-- Fantôme suivant le pointeur pendant le glissement.
+         Téléporté dans body : une position fixed serait recalée par n'importe quel ancêtre
+         transformé. pointer-events:none est indispensable, sinon elementFromPoint ne
+         retournerait que le fantôme et aucune zone de dépôt ne serait jamais détectée. -->
+    <Teleport to="body">
+      <div
+        v-if="dragPayload"
+        class="drag-ghost"
+        :class="{ 'is-rejected': hoverRejected, 'is-touch': dragPointerType !== 'mouse' }"
+        :style="{ left: pointerPos.x + 'px', top: pointerPos.y + 'px' }"
+      >
+        <ChefHat :size="14" />
+        <span class="drag-ghost-title">{{ dragPayload.dish }}</span>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -610,6 +644,7 @@ import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
+import { usePointerDrag } from '../composables/usePointerDrag'
 
 const store = useFamilyStore()
 const authStore = useAuthStore()
@@ -652,7 +687,10 @@ const mealsViewRef = ref(null)
 useSwipeNavigation({
   target: mealsViewRef,
   onSwipeLeft: nextWeek,
-  onSwipeRight: prevWeek
+  onSwipeRight: prevWeek,
+  // Sans ce garde, déplacer une carte de quelques dizaines de pixels à l'horizontale
+  // changerait aussi de semaine, et le plat partirait dans une semaine qu'on ne voit plus.
+  isBlocked: () => isGestureSuppressed()
 })
 
 const goToCurrentWeek = () => {
@@ -711,6 +749,56 @@ const weekDays = computed(() => {
 
   return days
 })
+
+// === Glisser-déposer d'un plat d'un créneau vers un autre ===
+//
+// Le backend acceptait déjà date et slot sur PUT /api/meals/:id : il n'y a donc qu'un geste
+// à fournir, pas de nouvelle route. Souris et tactile passent par le même code (Pointer
+// Events) ; l'API HTML5 draggable aurait exclu les téléphones, où cette vue est très utilisée.
+const {
+  dragPayload,
+  dragPointerType,
+  pointerPos,
+  hoverData,
+  hoverRejected,
+  startDrag,
+  consumedAsDrag,
+  isGestureSuppressed
+} = usePointerDrag({
+  dropSelector: '[data-drop-slot]',
+  canDrop: (meal, data) => {
+    if (!meal) return false
+    // Même règle que le formulaire d'ajout : pas de plat déposé dans le passé.
+    if (data.dropDate < store.todayStr) return false
+    // Reposer un plat sur son propre créneau n'est pas une erreur, mais n'a rien à valider.
+    return !(data.dropDate === meal.date && data.dropSlot === meal.slot)
+  },
+  onDrop: (meal, data) => moveMeal(meal, data.dropDate, data.dropSlot)
+})
+
+// Plat en cours d'enregistrement, pour signaler l'attente sur la carte concernée.
+const movingMealId = ref(null)
+
+const moveMeal = async (meal, date, slot) => {
+  movingMealId.value = meal.id
+  const res = await store.updateMeal(meal.id, { date, slot })
+  movingMealId.value = null
+  if (!res.success) {
+    alert(res.error || 'Impossible de déplacer ce plat.')
+  }
+}
+
+const isDropHovered = (dateStr, slot) =>
+  hoverData.value?.dropDate === dateStr && hoverData.value?.dropSlot === slot
+
+const isDragSource = (meal) => Boolean(dragPayload.value) && dragPayload.value.id === meal.id
+
+// Le relâchement d'un glissement produit aussi un clic : sans ce garde, déposer un plat
+// ouvrirait sa fiche détail dans la foulée.
+const onDishCardClick = (meal) => {
+  if (consumedAsDrag()) return
+  openDetailModal(meal)
+}
 
 const currentWeekRangeLabel = computed(() => {
   if (weekDays.value.length === 0) return ''
@@ -2017,6 +2105,91 @@ const getMemberFirstName = (id) => {
 }
 
 /* Responsive */
+/* ===== Glisser-déposer d'un plat vers un autre créneau ===== */
+
+.dish-card {
+  /* Empêche la sélection de texte pendant un glissement à la souris. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* La carte d'origine reste en place, estompée : on garde ainsi le repère du point de départ
+   tant que le dépôt n'est pas validé. */
+.dish-card.is-drag-source {
+  opacity: 0.35;
+  border-style: dashed;
+}
+
+.dish-card.is-drag-source:hover {
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Enregistrement en cours côté serveur. */
+.dish-card.is-moving {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.drop-zone {
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  /* Une liste vide n'a presque pas de hauteur : sans ce minimum, le créneau serait
+     pratiquement impossible à viser au doigt. */
+  min-height: 2.25rem;
+  /* Marge intérieure permanente, et non ajoutée au survol : la carte du plat recouvre sinon
+     toute la zone et il ne reste qu'un filet de couleur pour signaler la cible. L'appliquer
+     en permanence évite de décaler la mise en page au moment du glissement. */
+  padding: 0.25rem;
+  margin: -0.25rem;
+}
+
+/* Pendant un glissement, toutes les destinations possibles s'esquissent. */
+body.is-dragging-item .drop-zone {
+  box-shadow: inset 0 0 0 1px var(--border-color);
+}
+
+body.is-dragging-item .drop-zone.is-drop-target {
+  background: var(--accent-amber-light);
+  box-shadow: inset 0 0 0 2px var(--accent-amber);
+}
+
+.drag-ghost {
+  position: fixed;
+  z-index: 3000;
+  /* À la souris, le fantôme colle au curseur : rien ne masque la cible. */
+  transform: translate(0.75rem, 0.75rem);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 220px;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 2px solid var(--accent-amber);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Au doigt, il faut le remonter franchement : la main masque la zone de dépôt. */
+.drag-ghost.is-touch {
+  transform: translate(-50%, -160%);
+}
+
+.drag-ghost.is-rejected {
+  border-color: var(--accent-rose);
+  opacity: 0.75;
+}
+
+.drag-ghost-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 1200px) {
   .week-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));

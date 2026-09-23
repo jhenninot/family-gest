@@ -541,3 +541,11 @@ a {
     gap: 1rem; 
   }
 }
+
+/* Glisser-déposer d'un élément (repas, ...) : posé sur <body> par usePointerDrag, donc hors
+   de portée des styles scoped d'un composant. */
+body.is-dragging-item {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+}

@@ -11,6 +11,9 @@ import { onMounted, onUnmounted, watch, unref } from 'vue'
  * @param {number} [options.threshold=50] - Distance minimale en pixels pour déclencher le swipe
  * @param {number} [options.maxVerticalRatio=0.75] - Ratio vertical max autorisé (|deltaY| / |deltaX|) pour ignorer le défilement vertical
  * @param {number} [options.maxDuration=700] - Durée maximale du geste en ms pour garantir un geste vif et intentionnel
+ * @param {Function} [options.isBlocked] - Prédicat ; si vrai, le geste est ignoré. Sert à céder
+ *   la priorité à un autre geste en cours, typiquement un glisser-déposer d'élément : sans cela,
+ *   déplacer une carte de quelques dizaines de pixels changerait aussi de semaine.
  */
 export function useSwipeNavigation({
   target,
@@ -18,7 +21,8 @@ export function useSwipeNavigation({
   onSwipeRight,
   threshold = 50,
   maxVerticalRatio = 0.75,
-  maxDuration = 700
+  maxDuration = 700,
+  isBlocked = null
 }) {
   let touchStartX = 0
   let touchStartY = 0
@@ -28,6 +32,7 @@ export function useSwipeNavigation({
   const handleTouchStart = (e) => {
     // Un seul doigt autorisé
     if (e.touches.length !== 1) return
+    if (typeof isBlocked === 'function' && isBlocked()) return
 
     const targetEl = e.target
     if (targetEl && targetEl.closest) {
@@ -60,6 +65,10 @@ export function useSwipeNavigation({
 
     // Réinitialiser le temps de début
     touchStartTime = 0
+
+    // Réévalué ici aussi : un glissement peut avoir démarré APRÈS le touchstart (appui
+    // maintenu), et pointerup précède touchend, donc le prédicat doit couvrir les deux bords.
+    if (typeof isBlocked === 'function' && isBlocked()) return
 
     // Vérifier la durée du geste
     if (duration > maxDuration) return
