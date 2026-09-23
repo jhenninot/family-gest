@@ -935,7 +935,9 @@ export const useFamilyStore = defineStore('family', () => {
       })
       if (res.ok) {
         const saved = await res.json()
-        const existingIdx = absences.value.findIndex(a => a.id === saved.id || (a.memberId === saved.memberId && a.date === saved.date))
+        // Le backend garde une ligne par (membre, date, type) : une absence et une présence du même
+        // jour sont deux lignes distinctes, qu'il ne faut pas écraser l'une par l'autre ici.
+        const existingIdx = absences.value.findIndex(a => a.id === saved.id || (a.memberId === saved.memberId && a.date === saved.date && (a.type || 'absence') === saved.type))
         if (existingIdx !== -1) {
           absences.value[existingIdx] = saved
         } else {
@@ -1006,7 +1008,9 @@ export const useFamilyStore = defineStore('family', () => {
         const { longAbsence, absences: createdOrUpdatedAbsences } = await res.json()
         longAbsences.value.push(longAbsence)
         createdOrUpdatedAbsences.forEach(saved => {
-          const existingIdx = absences.value.findIndex(a => a.id === saved.id || (a.memberId === saved.memberId && a.date === saved.date))
+          // Le backend garde une ligne par (membre, date, type) : une absence et une présence du même
+        // jour sont deux lignes distinctes, qu'il ne faut pas écraser l'une par l'autre ici.
+        const existingIdx = absences.value.findIndex(a => a.id === saved.id || (a.memberId === saved.memberId && a.date === saved.date && (a.type || 'absence') === saved.type))
           if (existingIdx !== -1) {
             absences.value[existingIdx] = saved
           } else {
@@ -1040,7 +1044,9 @@ export const useFamilyStore = defineStore('family', () => {
 
         // Injecter les nouveaux créneaux
         createdOrUpdatedAbsences.forEach(saved => {
-          const existingIdx = absences.value.findIndex(a => a.id === saved.id || (a.memberId === saved.memberId && a.date === saved.date))
+          // Le backend garde une ligne par (membre, date, type) : une absence et une présence du même
+        // jour sont deux lignes distinctes, qu'il ne faut pas écraser l'une par l'autre ici.
+        const existingIdx = absences.value.findIndex(a => a.id === saved.id || (a.memberId === saved.memberId && a.date === saved.date && (a.type || 'absence') === saved.type))
           if (existingIdx !== -1) {
             absences.value[existingIdx] = saved
           } else {

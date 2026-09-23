@@ -471,22 +471,60 @@
               <UserAvatar :avatar="m.avatar" :name="getMemberFirstName(m.id)" size="xs" />
               <span class="presence-name">{{ getMemberFirstName(m.id) }}</span>
               <span v-if="isExceptionalPresence(m.id)" class="presence-tag tag-exceptional">exceptionnel</span>
+              <button
+                v-if="isPresenceEditable"
+                type="button"
+                class="btn-presence-toggle to-absent"
+                :disabled="presenceBusyKey !== null"
+                :title="`Déclarer ${getMemberFirstName(m.id)} absent(e) à ce repas`"
+                @click="setMemberPresence(m, false)"
+              >
+                <UserX :size="13" />
+                <span>Absent</span>
+              </button>
               <span v-if="m.note" class="presence-note">💬 {{ m.note }}</span>
             </li>
           </ul>
           <p v-else class="presence-empty">Aucun membre de la famille à table.</p>
         </div>
 
-        <div v-if="presenceDetail.guests.length > 0" class="presence-section">
+        <div v-if="presenceDetail.guests.length > 0 || isPresenceEditable" class="presence-section">
           <h4 class="presence-section-title guest">
             Invités ({{ presenceDetail.guestsCount }})
           </h4>
-          <ul class="presence-list">
+          <ul v-if="presenceDetail.guests.length > 0" class="presence-list">
             <li v-for="g in presenceDetail.guests" :key="'pg-' + g.id" class="presence-row">
               <span class="presence-guest-dot">+</span>
               <span class="presence-name">{{ g.name }}</span>
+              <button
+                v-if="isPresenceEditable"
+                type="button"
+                class="btn-presence-toggle to-remove"
+                :disabled="presenceBusyKey !== null"
+                :title="`Retirer ${g.name} de ce repas`"
+                @click="removeGuestFromSlot(g)"
+              >
+                <X :size="13" />
+              </button>
             </li>
           </ul>
+          <form v-if="isPresenceEditable" class="presence-guest-form" @submit.prevent="addGuestToSlot">
+            <input
+              v-model="newGuestName"
+              type="text"
+              class="form-input"
+              placeholder="Nom de l'invité"
+              maxlength="80"
+            />
+            <button
+              type="submit"
+              class="btn btn-secondary"
+              :disabled="!newGuestName.trim() || presenceBusyKey !== null"
+            >
+              <UserPlus :size="14" />
+              <span>Inviter</span>
+            </button>
+          </form>
         </div>
 
         <div class="presence-section">
@@ -497,6 +535,17 @@
             <li v-for="m in presenceDetail.absentMembers" :key="'pa-' + m.id" class="presence-row">
               <UserAvatar :avatar="m.avatar" :name="getMemberFirstName(m.id)" size="xs" />
               <span class="presence-name">{{ getMemberFirstName(m.id) }}</span>
+              <button
+                v-if="isPresenceEditable"
+                type="button"
+                class="btn-presence-toggle to-present"
+                :disabled="presenceBusyKey !== null"
+                :title="`Déclarer ${getMemberFirstName(m.id)} présent(e) à ce repas`"
+                @click="setMemberPresence(m, true)"
+              >
+                <UserCheck :size="13" />
+                <span>Présent</span>
+              </button>
               <span v-if="m.note" class="presence-note">💬 {{ m.note }}</span>
             </li>
           </ul>
@@ -508,12 +557,25 @@
             Habituellement absents ({{ presenceDetail.usuallyAbsentMembers.length }})
           </h4>
           <ul class="presence-list">
-            <li v-for="m in presenceDetail.usuallyAbsentMembers" :key="'pu-' + m.id" class="presence-row muted">
-              <UserAvatar :avatar="m.avatar" :name="getMemberFirstName(m.id)" size="xs" />
-              <span class="presence-name">{{ getMemberFirstName(m.id) }}</span>
+            <li v-for="m in presenceDetail.usuallyAbsentMembers" :key="'pu-' + m.id" class="presence-row">
+              <UserAvatar :avatar="m.avatar" :name="getMemberFirstName(m.id)" size="xs" class="muted" />
+              <span class="presence-name muted">{{ getMemberFirstName(m.id) }}</span>
+              <button
+                v-if="isPresenceEditable"
+                type="button"
+                class="btn-presence-toggle to-present"
+                :disabled="presenceBusyKey !== null"
+                :title="`Déclarer ${getMemberFirstName(m.id)} présent(e) à ce repas`"
+                @click="setMemberPresence(m, true)"
+              >
+                <UserCheck :size="13" />
+                <span>Présent</span>
+              </button>
             </li>
           </ul>
         </div>
+
+        <p v-if="presenceError" class="presence-error">{{ presenceError }}</p>
 
         <div class="modal-footer">
           <button type="button" @click="closePresenceModal" class="btn btn-primary">Fermer</button>
@@ -717,7 +779,11 @@ import {
   Trash2,
   ShoppingCart,
   Sun,
-  Sunset
+  Sunset,
+  UserCheck,
+  UserX,
+  UserPlus,
+  X
 } from '@lucide/vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
@@ -725,6 +791,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 import { usePointerDrag } from '../composables/usePointerDrag'
+import { SLOT_KEYS } from '@shared/presence.js'
 
 const store = useFamilyStore()
 const authStore = useAuthStore()
@@ -1192,11 +1259,110 @@ const isExceptionalPresence = (memberId) =>
 
 const openPresenceModal = (dateStr, slot) => {
   presenceModalSlot.value = { dateStr, slot }
+  newGuestName.value = ''
+  presenceError.value = ''
 }
 
 const closePresenceModal = () => {
   presenceModalSlot.value = null
 }
+
+// Comme dans la vue Absences : on ne déclare rien sur un jour passé.
+const isPresenceEditable = computed(() =>
+  Boolean(presenceDetail.value) && presenceDetail.value.date >= store.todayStr
+)
+
+// Clé de l'action en cours ; tous les boutons sont désactivés tant qu'elle n'est pas terminée,
+// sinon deux clics rapprochés enchaîneraient des déclarations calculées sur un état périmé.
+const presenceBusyKey = ref(null)
+const presenceError = ref('')
+const newGuestName = ref('')
+
+const runPresenceAction = async (key, action) => {
+  presenceBusyKey.value = key
+  presenceError.value = ''
+  try {
+    await action()
+  } catch (err) {
+    presenceError.value = err.message || 'Une erreur est survenue, veuillez réessayer.'
+  } finally {
+    presenceBusyKey.value = null
+  }
+}
+
+const ensureSuccess = (res) => {
+  if (!res.success) throw new Error(res.error || 'Une erreur est survenue, veuillez réessayer.')
+}
+
+// Mêmes droits que PUT/DELETE /api/absences/:id côté serveur.
+const canEditDeclaration = (rec) => {
+  const me = Number(authStore.user?.id)
+  return store.isFamilyAdmin ||
+    Number(rec.memberId) === me ||
+    (rec.declaredBy !== null && rec.declaredBy !== undefined && Number(rec.declaredBy) === me)
+}
+
+const isMemberPresentAt = (memberId, dateStr, slot) =>
+  store.getMealSlotPresence(dateStr, slot).presentMembers.some(m => m.id === memberId)
+
+const setMemberPresence = (member, present) => runPresenceAction(`member-${member.id}`, async () => {
+  const { dateStr, slot } = presenceModalSlot.value
+  const targetType = present ? 'presence' : 'absence'
+  const memberRecords = () => store.absences.filter(a => Number(a.memberId) === Number(member.id) && a.date === dateStr)
+
+  // 1. On retire ce créneau des déclarations contraires qu'on a le droit de modifier : revenir à
+  //    l'habitude du membre efface la déclaration au lieu d'en empiler une inverse.
+  const opposing = memberRecords().filter(a => a[slot] && (a.type || 'absence') !== targetType && canEditDeclaration(a))
+  for (const rec of opposing) {
+    const keepsOtherSlots = SLOT_KEYS.some(s => s !== slot && rec[s])
+    ensureSuccess(keepsOtherSlots
+      ? await store.updateAbsence(rec.id, { [slot]: false })
+      : await store.deleteAbsence(rec.id))
+  }
+
+  // 2. Si l'habitude (ou une déclaration qu'on ne peut pas modifier) ne donne toujours pas le bon
+  //    résultat, on déclare. La déclaration la plus récente fait foi (cf. pickDeclaredRecord).
+  if (isMemberPresentAt(member.id, dateStr, slot) === present) return
+
+  // POST fait un upsert par (membre, date, type) qui remplace les créneaux : on conserve ceux
+  // de la déclaration du même type déjà existante.
+  const sameType = memberRecords().find(a => (a.type || 'absence') === targetType)
+  ensureSuccess(await store.addAbsence({
+    memberId: member.id,
+    date: dateStr,
+    type: targetType,
+    lunch: slot === 'lunch' || Boolean(sameType?.lunch),
+    dinner: slot === 'dinner' || Boolean(sameType?.dinner),
+    night: slot === 'night' || Boolean(sameType?.night),
+    note: sameType?.note || ''
+  }))
+})
+
+const addGuestToSlot = () => {
+  const name = newGuestName.value.trim()
+  if (!name) return
+  return runPresenceAction('guest-add', async () => {
+    const { dateStr, slot } = presenceModalSlot.value
+    ensureSuccess(await store.addMealGuest({
+      name,
+      date: dateStr,
+      lunch: slot === 'lunch',
+      dinner: slot === 'dinner',
+      night: false,
+      invitedBy: authStore.user?.id
+    }))
+    newGuestName.value = ''
+  })
+}
+
+// Un invité peut couvrir plusieurs créneaux (midi + soir) : on ne le retire que de celui-ci.
+const removeGuestFromSlot = (guest) => runPresenceAction(`guest-${guest.id}`, async () => {
+  const { slot } = presenceModalSlot.value
+  const keepsOtherSlots = SLOT_KEYS.some(s => s !== slot && guest[s])
+  ensureSuccess(keepsOtherSlots
+    ? await store.updateMealGuest(guest.id, { [slot]: false })
+    : await store.deleteMealGuest(guest.id))
+})
 
 const formatDetailDate = (dateStr) => {
   if (!dateStr) return ''
@@ -1873,8 +2039,63 @@ button.slot-headcount-circle:hover {
   font-size: 0.875rem;
 }
 
-.presence-row.muted {
-  opacity: 0.65;
+.presence-row .muted {
+  opacity: 0.6;
+}
+
+.btn-presence-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-presence-toggle:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.btn-presence-toggle.to-absent:not(:disabled):hover,
+.btn-presence-toggle.to-remove:not(:disabled):hover {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.btn-presence-toggle.to-present:not(:disabled):hover {
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.presence-guest-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.presence-guest-form .form-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.presence-error {
+  margin: 0 0 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  font-size: 0.82rem;
 }
 
 .presence-name {
