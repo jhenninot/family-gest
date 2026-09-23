@@ -18,5 +18,14 @@ const absenceSchema = new mongoose.Schema({
 
 absenceSchema.index({ familyId: 1, id: 1 }, { unique: true })
 absenceSchema.index({ familyId: 1, memberId: 1, date: 1 })
+// Une ligne 'absence' et une ligne 'presence' peuvent coexister pour un même membre et une même
+// date : c'est ce qui permet d'être absent à midi mais exceptionnellement présent le soir, et de
+// ne plus écraser une présence exceptionnelle quand une absence longue couvre le même jour.
+//
+// NON unique, volontairement : des doublons (membre, date, type) préexistent en base, créés par
+// la génération d'absences depuis les événements d'agenda qui ne passe pas par
+// upsertAbsenceRecord. Un index unique ferait échouer la construction des index à chaque
+// démarrage. Le départage se fait à la lecture, par pickDeclaredRecord() (shared/presence.js).
+absenceSchema.index({ familyId: 1, memberId: 1, date: 1, type: 1 })
 
 export default mongoose.model('Absence', absenceSchema)

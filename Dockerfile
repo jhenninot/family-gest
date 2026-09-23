@@ -33,6 +33,14 @@ RUN npm ci --omit=dev
 # Copie du code du serveur
 COPY server/ ./
 
+# Logique métier partagée avec le frontend (présence habituelle : parité semaine A/B, grilles).
+# Le serveur l'importe via '../shared/presence.js' depuis /app/server.
+# ATTENTION : shared/package.json ({ "type": "module" }) est indispensable ici. Cette image n'a
+# pas de /app/package.json ; sans lui, Node remonterait sans trouver de manifeste et traiterait
+# /app/shared/*.js en CommonJS -> "SyntaxError: Unexpected token 'export'". Le bug ne se voit
+# qu'en production, le dev étant couvert par le package.json de la racine du dépôt.
+COPY shared/ /app/shared/
+
 # Copie des fichiers frontend compilés depuis l'étape 1
 COPY --from=builder /app/dist /app/dist
 

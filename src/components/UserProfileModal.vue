@@ -78,14 +78,23 @@
           </div>
         </div>
 
+        <!-- La présence habituelle est propre à chaque famille (elle vit sur l'adhésion, pas sur
+             le compte) : elle se règle depuis la page Présence de la famille concernée, et non
+             ici où le profil est commun à toutes les familles. -->
         <div class="form-group">
           <label class="form-label">Présence habituelle à la maison</label>
-          <select v-model="editProfile.usualPresence" class="form-select">
-            <option value="present">🟢 Habituellement présent(e) (je signale mes absences)</option>
-            <option value="absent">⚪ Habituellement absent(e) (je signale mes présences)</option>
-          </select>
+          <p class="presence-recap">{{ usualPresenceSummary }}</p>
+          <button
+            v-if="store.currentFamily?.slug"
+            type="button"
+            class="btn btn-secondary btn-sm"
+            @click="goToUsualPresence"
+          >
+            <CalendarCheck :size="16" /> Régler ma présence habituelle
+          </button>
           <span class="help-subtext">
             Détermine si vous êtes comptabilisé(e) par défaut aux repas de famille et pour la nuit.
+            Ce réglage est propre à chaque famille.
           </span>
         </div>
 
@@ -244,11 +253,12 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
-import { ShieldCheck, Shield, Mail, Bell, BellOff, Download, Trash2, AlertTriangle } from '@lucide/vue'
+import { ShieldCheck, Shield, Mail, Bell, BellOff, Download, Trash2, AlertTriangle, CalendarCheck } from '@lucide/vue'
+import { describeUsualPresence, normalizeUsualPresenceConfig } from '@shared/presence.js'
 import AvatarPicker from './AvatarPicker.vue'
 import PasswordStrengthIndicator from './PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
@@ -285,6 +295,25 @@ const initialDeviceSubscribed = ref(false)
 
 const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e']
 
+// Résumé en lecture seule de la présence habituelle DANS LA FAMILLE ACTIVE : le profil est
+// commun à toutes les familles, le réglage ne l'est pas.
+const usualPresenceSummary = computed(() => {
+  const member = store.members.find(m => m.id === authStore.user?.id)
+  if (!member) return 'Sélectionnez une famille pour régler votre présence habituelle.'
+  return describeUsualPresence(
+    normalizeUsualPresenceConfig(member.usualPresenceConfig, member.usualPresence),
+    store.todayStr,
+    store.presenceWeekAnchor
+  )
+})
+
+const goToUsualPresence = () => {
+  const slug = store.currentFamily?.slug
+  if (!slug) return
+  close()
+  router.push({ name: 'family-absences', params: { familySlug: slug }, query: { presence: '1' } })
+}
+
 const NOTIFICATION_CATEGORIES = [
   { key: 'presence', label: 'Présences, absences & invités aux repas' },
   { key: 'meals', label: 'Repas' },
@@ -311,8 +340,9 @@ const editProfile = ref({
   color: '#6366f1',
   // État local uniquement (abonnement du navigateur) : jamais envoyé à PUT /api/auth/profile.
   deviceSubscribed: false,
-  notificationPreferences: defaultNotificationPreferences(),
-  usualPresence: 'present'
+  notificationPreferences: defaultNotificationPreferences()
+  // Pas de usualPresence ici : la présence habituelle appartient à l'adhésion à une famille
+  // (FamilyMember), pas au compte. Elle se règle depuis la page Présence de chaque famille.
 })
 
 const close = () => {
@@ -402,8 +432,7 @@ const loadUserData = async () => {
     avatar: authStore.user.avatar || DEFAULT_AVATAR,
     color: authStore.user.color || '#6366f1',
     deviceSubscribed: initialDeviceSubscribed.value,
-    notificationPreferences,
-    usualPresence: authStore.user.usualPresence || 'present'
+    notificationPreferences
   }
 }
 
@@ -452,6 +481,16 @@ const handleSaveProfile = async () => {
 <style scoped>
 .profile-modal-content {
   max-width: 550px;
+}
+
+.presence-recap {
+  margin: 0 0 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
 }
 
 .admin-status-box {

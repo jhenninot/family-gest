@@ -40,7 +40,9 @@ import { ALERT_ACTIONS, ALERT_ACTIONS_LIST, ACTION_CATEGORY_BY_CODE } from './co
 import webpush from 'web-push'
 import { mountMcpServer } from './mcp/index.js'
 import { migrateNotificationPreferences } from './scripts/migrate-notification-preferences.js'
+import { migrateUsualPresenceGrid } from './scripts/migrate-usual-presence-grid.js'
 import { startDigestScheduler, mountDigestAdminRoutes } from './digest/index.js'
+import { normalizeUsualPresenceConfig, summarizeUsualPresence, mondayOf, DEFAULT_WEEK_ANCHOR } from '../shared/presence.js'
 
 dotenv.config()
 
@@ -1365,16 +1367,20 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     const user = await User.findOne({ id: req.user.id })
     if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
 
-    const { firstName, lastName, email, password, role, avatar, color, notificationPreferences, usualPresence } = req.body
+    const { firstName, lastName, email, password, role, avatar, color, notificationPreferences } = req.body
 
     if (firstName) user.firstName = firstName.trim()
     if (lastName) user.lastName = lastName.trim()
     if (role) user.role = role
     if (avatar) user.avatar = avatar
     if (color) user.color = color
-    if (usualPresence && ['present', 'absent'].includes(usualPresence)) {
-      user.usualPresence = usualPresence
-    }
+
+    // La présence habituelle n'est volontairement PAS modifiable ici. User.usualPresence n'est
+    // qu'une GRAINE, recopiée dans FamilyMember à la création d'une adhésion ; la source de
+    // vérité fonctionnelle est FamilyMember.usualPresence / usualPresenceConfig, qui est propre
+    // à chaque famille. Cette route écrivait autrefois User.usualPresence seul, si bien que le
+    // réglage depuis le profil n'avait aucun effet sur les repas. Pour régler sa présence, voir
+    // PUT /api/members/:id/usual-presence, qui est accessible à chaque membre pour lui-même.
 
     // Préférences de notification granulaires (5 catégories × push/email), gérées uniquement
     // par l'utilisateur pour son propre compte — valables sur toutes ses familles.
@@ -1453,6 +1459,7 @@ app.get('/api/auth/export', requireAuth, async (req, res) => {
         role: m.role,
         isAdmin: m.isAdmin,
         usualPresence: m.usualPresence,
+        usualPresenceConfig: normalizeUsualPresenceConfig(m.usualPresenceConfig, m.usualPresence),
         points: m.points,
         createdAt: m.createdAt
       })),
@@ -2627,12 +2634,36 @@ app.get('/api/families/:familySlug', requireAuth, attachFamilyContext, async (re
         name: req.family.name,
         slug: req.family.slug,
         maxMembers: req.family.maxMembers,
-        memberCount
+        memberCount,
+        // Référence de l'alternance semaine A / semaine B des présences habituelles.
+        presenceWeekAnchor: req.family.presenceWeekAnchor || DEFAULT_WEEK_ANCHOR
       },
       membership: req.membership,
       role: req.membership?.role || (isFamilyAdmin ? 'Administrateur' : 'Membre'),
       isAdmin: isFamilyAdmin
     })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PUT /api/families/:familySlug/presence-anchor (Déclare quel lundi sert de « semaine A »)
+//
+// L'ancrage est commun à toute la famille pour que « semaine A » désigne la même semaine civile
+// pour tout le monde. Deux membres en phases opposées inversent leurs grilles, pas leur ancrage.
+app.put('/api/families/:familySlug/presence-anchor', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const raw = String(req.body.presenceWeekAnchor || '').trim()
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      return res.status(400).json({ error: 'Date invalide (format attendu : YYYY-MM-DD)' })
+    }
+
+    // Toujours stocker un lundi : la parité se calcule de lundi à lundi, un ancrage en milieu
+    // de semaine donnerait un résultat correct mais illisible en base.
+    const anchor = mondayOf(raw)
+    await Family.updateOne({ _id: req.family._id }, { $set: { presenceWeekAnchor: anchor } })
+
+    res.json({ presenceWeekAnchor: anchor })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -2904,6 +2935,25 @@ app.post('/api/invitations/:token/accept', authRateLimiter, async (req, res) => 
 })
 
 // === MEMBERS ROUTES (SCOPED TO FAMILY) ===
+
+// Forme canonique d'un membre renvoyée au frontend (liste, création, modification). Normalise
+// systématiquement la présence habituelle détaillée : les adhésions créées avant cette
+// fonctionnalité n'ont pas de usualPresenceConfig et retombent sur leur usualPresence.
+const serializeMember = (user, membership) => ({
+  id: user.id,
+  name: `${user.firstName} ${user.lastName}`,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  email: user.email,
+  isAdmin: membership.isAdmin,
+  role: membership.role || 'Membre',
+  avatar: user.avatar,
+  color: user.color,
+  points: membership.points || 0,
+  usualPresence: membership.usualPresence || 'present',
+  usualPresenceConfig: normalizeUsualPresenceConfig(membership.usualPresenceConfig, membership.usualPresence)
+})
+
 app.get('/api/members', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const memberships = await FamilyMember.find({ familyId: req.family._id })
@@ -2913,20 +2963,7 @@ app.get('/api/members', requireAuth, attachFamilyContext, async (req, res) => {
     const members = memberships.map(mem => {
       const u = users.find(user => user.id === mem.userId)
       if (!u) return null
-      return {
-        id: u.id,
-        name: `${u.firstName} ${u.lastName}`,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        email: u.email,
-        isAdmin: mem.isAdmin,
-        role: mem.role || 'Membre',
-        avatar: u.avatar,
-        color: u.color,
-        points: mem.points || 0,
-        usualPresence: mem.usualPresence || 'present',
-        isSuperAdmin: Boolean(u.isSuperAdmin)
-      }
+      return { ...serializeMember(u, mem), isSuperAdmin: Boolean(u.isSuperAdmin) }
     }).filter(Boolean)
 
     // Inclure les invitations en attente pour cette famille
@@ -2944,6 +2981,7 @@ app.get('/api/members', requireAuth, attachFamilyContext, async (req, res) => {
         color: '#94a3b8',
         points: 0,
         usualPresence: 'present',
+        usualPresenceConfig: normalizeUsualPresenceConfig(null, 'present'),
         isPending: true,
         invitationToken: inv.token
       })
@@ -2963,6 +3001,7 @@ app.get('/api/members', requireAuth, attachFamilyContext, async (req, res) => {
         color: '#f59e0b',
         points: 0,
         usualPresence: 'present',
+        usualPresenceConfig: normalizeUsualPresenceConfig(null, 'present'),
         isSuperAdmin: true
       })
     }
@@ -3052,19 +3091,7 @@ app.post('/api/members', requireAuth, attachFamilyContext, requireFamilyAdmin, a
     })
     await newMembership.save()
 
-    res.status(201).json({
-      id: user.id,
-      name: `${user.firstName} ${user.lastName}`,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      isAdmin: newMembership.isAdmin,
-      role: newMembership.role,
-      avatar: user.avatar,
-      color: user.color,
-      points: newMembership.points,
-      usualPresence: newMembership.usualPresence
-    })
+    res.status(201).json(serializeMember(user, newMembership))
   } catch (err) {
     res.status(400).json({ error: err.message })
   }
@@ -3080,7 +3107,7 @@ app.put('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAdmin
     const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: memberId })
     if (!membership) return res.status(404).json({ error: 'Membre non trouvé dans cette famille' })
 
-    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, usualPresence } = req.body
+    const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, usualPresence, usualPresenceConfig } = req.body
 
     if (firstName) user.firstName = firstName.trim()
     if (lastName) user.lastName = lastName.trim()
@@ -3096,8 +3123,20 @@ app.put('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAdmin
     if (points !== undefined && points !== null) membership.points = Number(points)
     // Les préférences de notification ne sont plus pilotables par un admin de famille pour un
     // autre membre — elles sont désormais gérées par chacun dans son propre profil.
-    if (usualPresence && ['present', 'absent'].includes(usualPresence)) {
+    // Présence habituelle : la grille détaillée prime si elle est fournie, sinon on retombe sur
+    // l'enum simple (formulaires plus anciens, ou modification qui ne touche pas à la présence).
+    if (usualPresenceConfig) {
+      const cfg = normalizeUsualPresenceConfig(usualPresenceConfig, usualPresence || membership.usualPresence)
+      membership.usualPresenceConfig = cfg
+      membership.usualPresence = summarizeUsualPresence(cfg)
+    } else if (usualPresence && ['present', 'absent'].includes(usualPresence)) {
       membership.usualPresence = usualPresence
+      // Régler l'enum simple repasse explicitement en mode simple, sinon une grille réglée
+      // auparavant continuerait de s'appliquer et le changement semblerait sans effet.
+      membership.usualPresenceConfig = normalizeUsualPresenceConfig(
+        { ...(membership.usualPresenceConfig?.toObject?.() ?? membership.usualPresenceConfig), mode: 'simple' },
+        usualPresence
+      )
     }
 
     if (isAdmin !== undefined && isAdmin !== null) {
@@ -3133,19 +3172,53 @@ app.put('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAdmin
     await user.save()
     await membership.save()
 
-    res.json({
-      id: user.id,
-      name: `${user.firstName} ${user.lastName}`,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      isAdmin: membership.isAdmin,
-      role: membership.role,
-      avatar: user.avatar,
-      color: user.color,
-      points: membership.points,
-      usualPresence: membership.usualPresence || 'present'
-    })
+    res.json(serializeMember(user, membership))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Régler la présence habituelle détaillée (grille hebdomadaire par créneau, alternance A/B).
+//
+// Route distincte de PUT /api/members/:id, qui est réservée aux administrateurs de la famille :
+// ici, chaque membre doit pouvoir régler la SIENNE. Le contrôle est donc fait dans le handler
+// et non via requireFamilyAdmin, sur le modèle de PUT /api/absences/:id.
+app.put('/api/members/:id/usual-presence', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const memberId = Number(req.params.id)
+    const isSelf = memberId === req.user.id
+    if (!isSelf && !req.membership?.isAdmin && !req.user?.isSuperAdmin) {
+      return res.status(403).json({ error: 'Vous ne pouvez modifier que votre propre présence habituelle' })
+    }
+
+    const user = await User.findOne({ id: memberId })
+    if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
+
+    const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: memberId })
+    if (!membership) return res.status(404).json({ error: 'Membre non trouvé dans cette famille' })
+
+    // On fusionne avec la config stockée avant de normaliser, pour accepter un patch partiel
+    // (par exemple n'envoyer que weekB). La normalisation élimine au passage les clés inconnues
+    // et force les booléens : ne jamais écrire req.body tel quel dans le document.
+    const stored = membership.usualPresenceConfig?.toObject?.() ?? membership.usualPresenceConfig ?? {}
+    const merged = {
+      mode: req.body.mode ?? stored.mode,
+      alternating: req.body.alternating ?? stored.alternating,
+      weekA: req.body.weekA ?? stored.weekA,
+      weekB: req.body.weekB ?? stored.weekB
+    }
+    const simple = ['present', 'absent'].includes(req.body.simple)
+      ? req.body.simple
+      : membership.usualPresence
+
+    const cfg = normalizeUsualPresenceConfig(merged, simple)
+    membership.usualPresenceConfig = cfg
+    // Dénormalisation obligatoire : usualPresence reste exposé par une vingtaine de routes,
+    // l'export RGPD et l'outil MCP list_members.
+    membership.usualPresence = summarizeUsualPresence(cfg)
+    await membership.save()
+
+    res.json(serializeMember(user, membership))
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -4029,14 +4102,20 @@ app.delete('/api/shopping/:id', requireAuth, attachFamilyContext, async (req, re
 
 // === ABSENCES & MEALS ROUTES ===
 
-// Crée ou met à jour (upsert par memberId+date) une déclaration de présence/absence.
+// Crée ou met à jour (upsert par memberId+date+type) une déclaration de présence/absence.
 // Partagée par la route HTTP et l'outil MCP set_presence_or_absence pour garantir la même
-// sémantique d'upsert (re-déclarer le même jour met à jour la ligne existante, jamais de doublon).
+// sémantique d'upsert (re-déclarer le même type le même jour met à jour la ligne existante).
+//
+// Le type fait partie de la clé : depuis que la présence habituelle peut varier d'un créneau à
+// l'autre, il faut pouvoir être absent à midi ET exceptionnellement présent le soir le même
+// jour. Une ligne 'absence' et une ligne 'presence' coexistent donc pour un même (membre, date) ;
+// c'est pickDeclaredRecord() (shared/presence.js) qui tranche à la lecture si elles se
+// chevauchent sur un créneau.
 const upsertAbsenceRecord = async ({ familyId, memberId, date, type, lunch, dinner, night, note, declaredBy, eventId }) => {
   const recordType = type === 'presence' ? 'presence' : 'absence'
   const trimmedDate = date.trim()
 
-  let record = await Absence.findOne({ memberId: Number(memberId), date: trimmedDate, familyId })
+  let record = await Absence.findOne({ memberId: Number(memberId), date: trimmedDate, type: recordType, familyId })
   if (record) {
     record.type = recordType
     record.lunch = Boolean(lunch)
@@ -4073,6 +4152,31 @@ const deleteAbsenceIfEmptySlots = async (absence, familyId) => {
     return true
   }
   return false
+}
+
+// Déplacer une déclaration (changement de membre, de date ou de type) peut désormais l'amener
+// sur les mêmes coordonnées qu'une ligne sœur, puisque la clé d'unicité logique inclut le type.
+// Plutôt que de renvoyer un conflit — incompréhensible pour qui déclare juste une absence — on
+// fusionne les créneaux dans la ligne existante et on supprime celle qu'on vient de déplacer.
+// Retourne la ligne qui fait foi.
+const mergeAbsenceIntoSibling = async (absence, familyId) => {
+  const sibling = await Absence.findOne({
+    familyId,
+    memberId: absence.memberId,
+    date: absence.date,
+    type: absence.type,
+    id: { $ne: absence.id }
+  })
+  if (!sibling) return absence
+
+  sibling.lunch = sibling.lunch || absence.lunch
+  sibling.dinner = sibling.dinner || absence.dinner
+  sibling.night = sibling.night || absence.night
+  if (absence.note) sibling.note = absence.note
+  sibling.declaredBy = absence.declaredBy ?? sibling.declaredBy
+  await sibling.save()
+  await Absence.deleteOne({ id: absence.id, familyId })
+  return sibling
 }
 
 app.get('/api/absences', requireAuth, attachFamilyContext, async (req, res) => {
@@ -4234,6 +4338,7 @@ app.put('/api/absences/:id', requireAuth, attachFamilyContext, async (req, res) 
     }
 
     const { memberId, date, type, lunch, dinner, night, note } = req.body
+    const previousCoords = `${absence.memberId}|${absence.date}|${absence.type}`
     if (memberId !== undefined && (req.membership?.isAdmin || req.user?.isSuperAdmin)) absence.memberId = Number(memberId)
     if (date) absence.date = date.trim()
     if (type && ['absence', 'presence'].includes(type)) absence.type = type
@@ -4248,7 +4353,11 @@ app.put('/api/absences/:id', requireAuth, attachFamilyContext, async (req, res) 
     }
 
     await absence.save()
-    res.json(absence)
+
+    // La déclaration a changé de coordonnées : elle peut recouvrir une ligne sœur existante.
+    const moved = previousCoords !== `${absence.memberId}|${absence.date}|${absence.type}`
+    const result = moved ? await mergeAbsenceIntoSibling(absence, req.family._id) : absence
+    res.json(result)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -4339,7 +4448,9 @@ const regenerateLongAbsenceDailyRows = async ({ familyId, longAbsenceId, memberI
     const { lunch, dinner, night } = computeSlotsForDate(dStr, startDate, startSlot, endDate, endSlot)
     if (!lunch && !dinner && !night) continue
 
-    let existing = await Absence.findOne({ memberId: Number(memberId), date: dStr, familyId })
+    // Cible explicitement les lignes d'absence : sans le type dans la clé, une absence longue
+    // écraserait une présence exceptionnelle saisie auparavant pour le même jour.
+    let existing = await Absence.findOne({ memberId: Number(memberId), date: dStr, type: 'absence', familyId })
     if (existing) {
       existing.type = 'absence'
       existing.lunch = lunch
@@ -5112,6 +5223,7 @@ mountMcpServer(app, {
   updateTask,
   upsertAbsenceRecord,
   deleteAbsenceIfEmptySlots,
+  mergeAbsenceIntoSibling,
   regenerateLongAbsenceDailyRows,
   createEventOrSeries,
   updateEventOrSeries,
@@ -5143,6 +5255,7 @@ const startServer = async () => {
   await seedDatabaseIfEmpty()
   await migrateToMultiFamily()
   await migrateNotificationPreferences()
+  await migrateUsualPresenceGrid()
   await initVapid()
 
   const digestCtx = {

@@ -231,6 +231,51 @@
       </div>
     </div>
 
+    <!-- Ma présence habituelle : repliée par défaut pour ne pas repousser le calendrier -->
+    <div class="glass-card section-card" ref="usualPresenceCardRef">
+      <div class="section-card-header usual-presence-header" @click="toggleUsualPresencePanel">
+        <div class="section-title-group">
+          <h2 class="section-title"><CalendarCheck :size="20" /> Ma présence habituelle</h2>
+          <span class="section-subtitle">{{ myUsualPresenceSummary }}</span>
+        </div>
+        <button class="btn-icon btn-icon-ghost" :title="usualPresenceOpen ? 'Replier' : 'Personnaliser'">
+          <ChevronUp v-if="usualPresenceOpen" :size="20" />
+          <ChevronDown v-else :size="20" />
+        </button>
+      </div>
+
+      <div v-if="usualPresenceOpen" class="usual-presence-body">
+        <UsualPresenceEditor
+          v-model="myUsualPresenceDraft"
+          :legacy-usual-presence="currentMember?.usualPresence || 'present'"
+          :week-anchor="store.presenceWeekAnchor"
+          :today="store.todayStr"
+          subject="self"
+        />
+
+        <div v-if="store.isFamilyAdmin && myUsualPresenceDraft?.alternating" class="anchor-row">
+          <span class="help-subtext">
+            Semaine en cours : <strong>Semaine {{ store.getWeekPhase(store.todayStr) }}</strong>.
+            L'alternance est commune à toute la famille.
+          </span>
+          <button class="btn btn-secondary btn-sm" @click="declareCurrentWeekAsA">
+            Déclarer la semaine en cours comme Semaine A
+          </button>
+        </div>
+
+        <div class="usual-presence-actions">
+          <span v-if="usualPresenceError" class="text-error">{{ usualPresenceError }}</span>
+          <span v-else-if="usualPresenceSaved" class="saved-hint">Enregistré ✓</span>
+          <button class="btn btn-secondary btn-sm" @click="resetUsualPresenceDraft" :disabled="!usualPresenceDirty">
+            Annuler
+          </button>
+          <button class="btn btn-presence-primary btn-sm" @click="saveUsualPresence" :disabled="!usualPresenceDirty || savingUsualPresence">
+            {{ savingUsualPresence ? 'Enregistrement…' : 'Enregistrer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Calendar View Card (Weekly & Monthly) -->
     <div class="glass-card section-card calendar-card">
       <div class="section-card-header flex-between">
@@ -498,7 +543,7 @@
             <label class="form-label">Membre concerné</label>
             <select v-model="form.memberId" class="form-select" required>
               <option v-for="m in store.members" :key="m.id" :value="m.id">
-                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ m.usualPresence === 'absent' ? '(Habituellement absent)' : '' }} {{ m.id === authStore.user?.id ? '• Moi' : '' }}
+                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ usualAbsenceHint(m) }} {{ m.id === authStore.user?.id ? '• Moi' : '' }}
               </option>
             </select>
             <span v-if="form.memberId !== authStore.user?.id" class="help-subtext text-indigo">
@@ -1474,7 +1519,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
@@ -1490,10 +1536,14 @@ import {
   CalendarRange,
   Sun,
   Sunset,
-  BedDouble
+  BedDouble,
+  ChevronDown,
+  ChevronUp
 } from '@lucide/vue'
 import HouseUser from '../components/icons/HouseUser.vue'
 import UserAvatar from '../components/UserAvatar.vue'
+import UsualPresenceEditor from '../components/UsualPresenceEditor.vue'
+import { DAY_LABELS, SLOT_KEYS, SLOT_LABELS, dayKeyFor, describeUsualPresence, normalizeUsualPresenceConfig } from '@shared/presence.js'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -1503,10 +1553,95 @@ const authStore = useAuthStore()
 const store = useFamilyStore()
 const { confirm } = useConfirm()
 
-// Current user usual presence check
-const isCurrentUserUsuallyAbsent = computed(() => {
-  const member = store.members.find(m => m.id === authStore.user?.id)
-  return member?.usualPresence === 'absent' || authStore.user?.usualPresence === 'absent'
+const route = useRoute()
+
+const currentMember = computed(() => store.members.find(m => m.id === authStore.user?.id) || null)
+
+// Ce membre est-il habituellement absent toute la journée ? Vrai seulement si les 3 créneaux le
+// sont : c'est ce qui décide du type de déclaration proposé par défaut.
+const isUsuallyAbsentAllDay = (member, dateStr) =>
+  Boolean(member) && SLOT_KEYS.every(slot => !store.isMemberUsuallyPresent(member, dateStr, slot))
+
+const isCurrentUserUsuallyAbsentOn = (dateStr) => isUsuallyAbsentAllDay(currentMember.value, dateStr)
+
+// Suffixe affiché dans le sélecteur de membre. Il dépend de la date choisie dans le formulaire :
+// « habituellement absent » n'a plus de sens dans l'absolu dès que la présence varie par jour.
+const usualAbsenceHint = (member) => {
+  const dateStr = form.value?.date || store.todayStr
+  const absentSlots = SLOT_KEYS.filter(slot => !store.isMemberUsuallyPresent(member, dateStr, slot))
+  if (absentSlots.length === 0) return ''
+  const day = DAY_LABELS[dayKeyFor(dateStr)]
+  if (absentSlots.length === SLOT_KEYS.length) return `(Habituellement absent le ${day})`
+  return `(Habituellement absent le ${day} ${absentSlots.map(s => SLOT_LABELS[s].toLowerCase()).join('/')})`
+}
+
+// === Carte « Ma présence habituelle » ===
+const USUAL_PRESENCE_PANEL_KEY = 'familygest_usual_presence_open'
+
+const usualPresenceOpen = ref(localStorage.getItem(USUAL_PRESENCE_PANEL_KEY) === '1')
+const usualPresenceCardRef = ref(null)
+const myUsualPresenceDraft = ref(null)
+const savingUsualPresence = ref(false)
+const usualPresenceError = ref('')
+const usualPresenceSaved = ref(false)
+
+const storedUsualPresenceConfig = computed(() =>
+  normalizeUsualPresenceConfig(currentMember.value?.usualPresenceConfig, currentMember.value?.usualPresence)
+)
+
+const resetUsualPresenceDraft = () => {
+  myUsualPresenceDraft.value = storedUsualPresenceConfig.value
+  usualPresenceError.value = ''
+}
+
+const usualPresenceDirty = computed(() =>
+  JSON.stringify(myUsualPresenceDraft.value) !== JSON.stringify(storedUsualPresenceConfig.value)
+)
+
+// Le brouillon suit la valeur stockée tant qu'il n'a pas été modifié : indispensable au
+// changement de famille et au premier chargement des membres (la vue peut être rendue avant).
+watch(storedUsualPresenceConfig, (cfg) => {
+  if (!myUsualPresenceDraft.value || !usualPresenceDirty.value) myUsualPresenceDraft.value = cfg
+}, { immediate: true })
+
+const myUsualPresenceSummary = computed(() =>
+  describeUsualPresence(storedUsualPresenceConfig.value, store.todayStr, store.presenceWeekAnchor)
+)
+
+const toggleUsualPresencePanel = () => {
+  usualPresenceOpen.value = !usualPresenceOpen.value
+  localStorage.setItem(USUAL_PRESENCE_PANEL_KEY, usualPresenceOpen.value ? '1' : '0')
+}
+
+const saveUsualPresence = async () => {
+  if (!currentMember.value) return
+  savingUsualPresence.value = true
+  usualPresenceError.value = ''
+  usualPresenceSaved.value = false
+  const res = await store.updateMemberUsualPresence(currentMember.value.id, myUsualPresenceDraft.value)
+  savingUsualPresence.value = false
+  if (res.success) {
+    usualPresenceSaved.value = true
+    setTimeout(() => { usualPresenceSaved.value = false }, 3000)
+  } else {
+    usualPresenceError.value = res.error || 'Enregistrement impossible'
+  }
+}
+
+const declareCurrentWeekAsA = async () => {
+  const res = await store.updateFamilyPresenceAnchor(store.todayStr)
+  if (!res.success) usualPresenceError.value = res.error || 'Enregistrement impossible'
+}
+
+// Ouverture directe depuis le modal Profil (?presence=1), où le réglage n'est plus éditable
+// puisqu'il est propre à chaque famille.
+onMounted(async () => {
+  if (route.query.presence === '1') {
+    usualPresenceOpen.value = true
+    localStorage.setItem(USUAL_PRESENCE_PANEL_KEY, '1')
+    await nextTick()
+    usualPresenceCardRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 })
 
 // Absence Modal State
@@ -1746,7 +1881,21 @@ const canEdit = (abs) => {
   return store.isFamilyAdmin || mId === currentUserId || (dBy !== null && dBy === currentUserId)
 }
 
-const hasUsuallyAbsentMembers = computed(() => store.members.some(m => m.usualPresence === 'absent'))
+// Pilote l'affichage de l'option « Présence exceptionnelle ». On regarde les 14 prochains jours
+// et non le seul jour courant : avec une grille hebdomadaire ou une alternance A/B, un membre
+// peut être habituellement absent le mercredi seulement, et l'option disparaîtrait les autres
+// jours — ou une semaine sur deux.
+const hasUsuallyAbsentMembers = computed(() => {
+  const start = new Date(`${store.todayStr}T12:00:00Z`)
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(start.getTime() + i * 86400000)
+    const dateStr = d.toISOString().slice(0, 10)
+    for (const m of store.members) {
+      if (SLOT_KEYS.some(slot => !store.isMemberUsuallyPresent(m, dateStr, slot))) return true
+    }
+  }
+  return false
+})
 
 const getDayAbsences = (day) => {
   const dateStr = formatDateStr(currentYear.value, currentMonth.value, day)
@@ -1812,13 +1961,22 @@ const formatRelativeDate = (dStr) => {
 // Absence/Presence Modal actions
 const openAddModal = (defaultDate = null, defaultType = null, defaultMemberId = null) => {
   editingId.value = null
+
+  // La date doit être calculée AVANT le type : depuis que la présence habituelle varie selon le
+  // jour et le créneau, c'est elle qui détermine si l'on propose de déclarer une absence ou une
+  // présence exceptionnelle.
+  let effectiveDate = defaultDate || store.todayStr
+  if (effectiveDate < store.todayStr) {
+    effectiveDate = store.todayStr
+  }
+
   let initialMemberId = defaultMemberId
   if (!initialMemberId) {
     if (defaultType === 'presence') {
-      if (isCurrentUserUsuallyAbsent.value) {
+      if (isCurrentUserUsuallyAbsentOn(effectiveDate)) {
         initialMemberId = authStore.user?.id
       } else {
-        const absentMember = store.members.find(m => m.usualPresence === 'absent')
+        const absentMember = store.members.find(m => isUsuallyAbsentAllDay(m, effectiveDate))
         initialMemberId = absentMember ? absentMember.id : (authStore.user?.id || (store.members[0]?.id || 1))
       }
     } else {
@@ -1826,13 +1984,9 @@ const openAddModal = (defaultDate = null, defaultType = null, defaultMemberId = 
     }
   }
   const mem = store.members.find(m => m.id === initialMemberId)
-  const initialType = defaultType || (mem?.usualPresence === 'absent' ? 'presence' : 'absence')
-  
-  let effectiveDate = defaultDate || store.todayStr
-  if (effectiveDate < store.todayStr) {
-    effectiveDate = store.todayStr
-  }
-  
+  const initialType = defaultType || (mem && isUsuallyAbsentAllDay(mem, effectiveDate) ? 'presence' : 'absence')
+
+
   form.value = {
     type: initialType,
     memberId: initialMemberId,
@@ -2611,6 +2765,89 @@ const handleSelectDeclarationType = (type) => {
 /* Section Card (Like CalendarView) */
 .section-card {
   padding: 1.5rem;
+}
+
+/* --- Carte « Ma présence habituelle » --- */
+.usual-presence-header {
+  cursor: pointer;
+  margin-bottom: 0;
+  user-select: none;
+}
+
+.usual-presence-header:hover .section-title {
+  color: var(--accent-primary);
+}
+
+.section-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.05rem;
+  transition: color var(--transition-fast);
+}
+
+.section-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.usual-presence-body {
+  margin-top: 1.25rem;
+}
+
+.help-subtext {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+
+.anchor-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+  padding: 0.7rem 0.8rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.anchor-row .help-subtext {
+  margin-top: 0;
+  flex: 1;
+  min-width: 220px;
+}
+
+.usual-presence-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.usual-presence-actions .text-error {
+  margin-top: 0;
+  margin-right: auto;
+}
+
+.saved-hint {
+  margin-right: auto;
+  font-size: 0.78rem;
+  color: var(--accent-secondary);
+  font-weight: 600;
 }
 
 .section-card-header {

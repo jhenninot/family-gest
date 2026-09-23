@@ -8,9 +8,9 @@ export const gatherFamilyDigestSection = async (ctx, family, user, todayStr) => 
   const [lunchMeal, dinnerMeal, lunchPresence, dinnerPresence, nightPresence, myTasks, todaysEvents, shoppingList] = await Promise.all([
     ctx.Meal.findOne({ familyId: family._id, date: todayStr, slot: 'lunch' }),
     ctx.Meal.findOne({ familyId: family._id, date: todayStr, slot: 'dinner' }),
-    getMealSlotPresence(ctx, family._id, todayStr, 'lunch'),
-    getMealSlotPresence(ctx, family._id, todayStr, 'dinner'),
-    getMealSlotPresence(ctx, family._id, todayStr, 'night'),
+    getMealSlotPresence(ctx, family, todayStr, 'lunch'),
+    getMealSlotPresence(ctx, family, todayStr, 'dinner'),
+    getMealSlotPresence(ctx, family, todayStr, 'night'),
     ctx.Task.find({ familyId: family._id, assignedTo: user.id, completed: false }),
     ctx.Event.find({ familyId: family._id, date: todayStr }).sort({ time: 1 }),
     ctx.ShoppingItem.find({ familyId: family._id, checked: false }).sort({ category: 1, name: 1 })

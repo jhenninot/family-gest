@@ -5,7 +5,7 @@ import { jsonResult } from '../toolHelpers.js'
 import { notifyMcpAction } from '../notify.js'
 
 export const registerAbsenceTools = (server, req, ctx) => {
-  const { upsertAbsenceRecord, deleteAbsenceIfEmptySlots, ALERT_ACTIONS } = ctx
+  const { upsertAbsenceRecord, deleteAbsenceIfEmptySlots, mergeAbsenceIntoSibling, ALERT_ACTIONS } = ctx
   const familyId = req.family._id
 
   server.registerTool('list_absences', {
@@ -30,7 +30,8 @@ export const registerAbsenceTools = (server, req, ctx) => {
   server.registerTool('set_presence_or_absence', {
     title: 'Déclarer une présence ou une absence',
     description: 'Déclare la présence ou l\'absence d\'un membre pour une date et des créneaux donnés (midi/soir/nuit). ' +
-      'Si une déclaration existe déjà pour ce membre et cette date, elle est mise à jour (pas de doublon).',
+      'Si une déclaration du même type existe déjà pour ce membre et cette date, elle est mise à jour (pas de doublon). ' +
+      'Une absence et une présence exceptionnelle peuvent coexister le même jour sur des créneaux différents.',
     inputSchema: {
       member: z.string().describe('Nom ou id du membre concerné'),
       date: z.string().describe('Date (YYYY-MM-DD)'),
@@ -79,6 +80,7 @@ export const registerAbsenceTools = (server, req, ctx) => {
     const absence = await Absence.findOne({ id: Number(id), familyId })
     if (!absence) throw new Error('Déclaration non trouvée')
 
+    const previousCoords = `${absence.memberId}|${absence.date}|${absence.type}`
     if (date) absence.date = date.trim()
     if (type) absence.type = type
     if (lunch !== undefined) absence.lunch = Boolean(lunch)
@@ -90,7 +92,10 @@ export const registerAbsenceTools = (server, req, ctx) => {
     if (deleted) return jsonResult({ deleted: true })
 
     await absence.save()
-    return jsonResult(absence)
+
+    // Changer de date ou de type peut amener la déclaration sur une ligne sœur existante.
+    const moved = previousCoords !== `${absence.memberId}|${absence.date}|${absence.type}`
+    return jsonResult(moved ? await mergeAbsenceIntoSibling(absence, familyId) : absence)
   })
 
   server.registerTool('delete_absence', {

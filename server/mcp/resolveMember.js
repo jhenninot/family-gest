@@ -1,5 +1,6 @@
 import FamilyMember from '../models/FamilyMember.js'
 import User from '../models/User.js'
+import { normalizeUsualPresenceConfig } from '../../shared/presence.js'
 
 // Reproduit la jointure FamilyMember + User utilisée par GET /api/members (server/index.js), sans les
 // invitations en attente : le connecteur MCP ne pilote que des membres déjà actifs dans la famille.
@@ -19,6 +20,7 @@ export const getFamilyMembersList = async (familyId) => {
       role: mem.role || 'Membre',
       isAdmin: mem.isAdmin,
       usualPresence: mem.usualPresence || 'present',
+      usualPresenceConfig: normalizeUsualPresenceConfig(mem.usualPresenceConfig, mem.usualPresence),
       points: mem.points || 0
     }
   }).filter(Boolean)

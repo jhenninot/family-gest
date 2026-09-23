@@ -1,6 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './authStore'
+import {
+  DEFAULT_WEEK_ANCHOR,
+  isUsuallyPresent,
+  mondayOf,
+  pickDeclaredRecord,
+  resolveSlot,
+  weekPhaseFor
+} from '@shared/presence.js'
 
 export const useFamilyStore = defineStore('family', () => {
   // Theme state
@@ -302,48 +310,65 @@ export const useFamilyStore = defineStore('family', () => {
 
   const pendingShoppingCount = computed(() => shoppingList.value.filter(item => !item.checked).length)
 
-  // Calcul précis des présences et repas pour n'importe quelle date et créneau ('lunch', 'dinner', 'night')
+  // Lundi de référence de l'alternance semaine A / semaine B, réglé par famille.
+  // Doit rester une computed : une valeur capturée ne recalculerait pas les présences après un
+  // changement d'ancrage ou de famille.
+  const presenceWeekAnchor = computed(() => currentFamily.value?.presenceWeekAnchor || DEFAULT_WEEK_ANCHOR)
+
+  const getWeekPhase = (dateStr) => weekPhaseFor(dateStr, presenceWeekAnchor.value)
+
+  // Ce membre est-il habituellement présent à ce créneau, ce jour-là ? (hors déclarations)
+  const isMemberUsuallyPresent = (memberOrId, dateStr, slot) => {
+    const member = typeof memberOrId === 'object'
+      ? memberOrId
+      : members.value.find(m => Number(m.id) === Number(memberOrId))
+    if (!member) return true
+    return isUsuallyPresent(member, dateStr, slot, presenceWeekAnchor.value)
+  }
+
+  // Calcul précis des présences et repas pour n'importe quelle date et créneau ('lunch', 'dinner', 'night').
+  //
+  // La règle (présence habituelle par jour/créneau, alternance A/B, priorité des déclarations,
+  // départage des doublons) vit dans shared/presence.js et est partagée avec le serveur
+  // (server/digest/mealPresence.js pour le récapitulatif quotidien, server/mcp/tools/aggregation.js
+  // pour le connecteur MCP). Ne pas la réimplémenter ici : une divergence ferait dire au
+  // récapitulatif email l'inverse de ce qu'affiche l'app.
   const getMealSlotPresence = (dateStr, slot) => {
-    const usuallyPresentMembers = members.value.filter(m => m.usualPresence !== 'absent')
-    const usuallyAbsentMembers = members.value.filter(m => m.usualPresence === 'absent')
-
+    const anchor = presenceWeekAnchor.value
     const dayRecords = absences.value.filter(a => a.date === dateStr && a[slot])
-    const absenceRecords = dayRecords.filter(a => a.type !== 'presence')
-    const presenceRecords = dayRecords.filter(a => a.type === 'presence')
 
-    const absentMembers = usuallyPresentMembers
-      .filter(m => absenceRecords.some(a => Number(a.memberId) === Number(m.id)))
-      .map(m => {
-        const record = absenceRecords.find(a => Number(a.memberId) === Number(m.id))
-        return {
-          ...m,
-          memberId: m.id,
-          absenceId: record?.id,
-          note: record?.note || '',
-          declaredBy: record?.declaredBy || null,
-          record
-        }
+    const presentMembers = []
+    const absentMembers = []
+    const exceptionalPresences = []
+    const usuallyAbsentMembers = []
+
+    for (const m of members.value) {
+      const usually = isUsuallyPresent(m, dateStr, slot, anchor)
+      const record = pickDeclaredRecord(dayRecords, m.id, slot)
+      const present = resolveSlot(usually, record)
+
+      const withRecord = () => ({
+        ...m,
+        memberId: m.id,
+        absenceId: record?.id,
+        note: record?.note || '',
+        declaredBy: record?.declaredBy || null,
+        record
       })
 
-    const presentUsualMembers = usuallyPresentMembers.filter(m => 
-      !absenceRecords.some(a => Number(a.memberId) === Number(m.id))
-    )
+      if (present) {
+        presentMembers.push(record ? withRecord() : m)
+        // Présence exceptionnelle = présent alors que l'habitude dit le contraire.
+        if (!usually && record) exceptionalPresences.push(withRecord())
+      } else if (record) {
+        // Seules les absences DÉCLARÉES sont listées : un membre habituellement absent à ce
+        // créneau n'est pas une information à afficher, c'est sa normale (cf. usuallyAbsentMembers).
+        absentMembers.push(withRecord())
+      } else {
+        usuallyAbsentMembers.push(m)
+      }
+    }
 
-    const exceptionalPresences = usuallyAbsentMembers
-      .filter(m => presenceRecords.some(a => Number(a.memberId) === Number(m.id)))
-      .map(m => {
-        const record = presenceRecords.find(a => Number(a.memberId) === Number(m.id))
-        return {
-          ...m,
-          memberId: m.id,
-          absenceId: record?.id,
-          note: record?.note || '',
-          declaredBy: record?.declaredBy || null,
-          record
-        }
-      })
-
-    const presentMembers = [...presentUsualMembers, ...exceptionalPresences]
     const dayGuests = mealGuests.value.filter(g => g.date === dateStr && g[slot])
 
     return {
@@ -352,6 +377,7 @@ export const useFamilyStore = defineStore('family', () => {
       presentMembers,
       absentMembers,
       exceptionalPresences,
+      usuallyAbsentMembers,
       guests: dayGuests,
       presentMembersCount: presentMembers.length,
       absentMembersCount: absentMembers.length,
@@ -485,6 +511,49 @@ export const useFamilyStore = defineStore('family', () => {
       } else {
         return { success: false, error: data.error }
       }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }
+
+  // Enregistre la présence habituelle détaillée d'un membre. Route distincte de updateMember
+  // parce que PUT /api/members/:id est réservé aux administrateurs de la famille : celle-ci
+  // autorise aussi chaque membre à régler la sienne.
+  const updateMemberUsualPresence = async (id, config) => {
+    try {
+      const res = await fetch(`/api/members/${id}/usual-presence`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(config)
+      })
+      const data = await res.json()
+      if (res.ok) {
+        const index = members.value.findIndex(m => Number(m.id) === Number(id))
+        if (index !== -1) members.value[index] = data
+        return { success: true, data }
+      }
+      return { success: false, error: data.error }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  }
+
+  // Déclare quel lundi sert de référence à l'alternance A/B (réservé aux admins de la famille).
+  const updateFamilyPresenceAnchor = async (dateStr) => {
+    try {
+      const slug = currentFamily.value?.slug
+      if (!slug) return { success: false, error: 'Aucune famille active' }
+      const res = await fetch(`/api/families/${slug}/presence-anchor`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ presenceWeekAnchor: mondayOf(dateStr) })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        if (currentFamily.value) currentFamily.value.presenceWeekAnchor = data.presenceWeekAnchor
+        return { success: true, data }
+      }
+      return { success: false, error: data.error }
     } catch (err) {
       return { success: false, error: err.message }
     }
@@ -1186,6 +1255,9 @@ export const useFamilyStore = defineStore('family', () => {
     taskCompletionPercentage,
     pendingShoppingCount,
     getMealSlotPresence,
+    presenceWeekAnchor,
+    getWeekPhase,
+    isMemberUsuallyPresent,
     nextMealInfo,
     nextMealHeadcount,
     fetchAllData,
@@ -1193,6 +1265,8 @@ export const useFamilyStore = defineStore('family', () => {
     deleteMember,
     toggleAdminStatus,
     updateMember,
+    updateMemberUsualPresence,
+    updateFamilyPresenceAnchor,
     resendWelcomeEmail,
     addTask,
     toggleTask,

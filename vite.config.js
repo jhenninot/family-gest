@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -88,6 +89,13 @@ export default defineConfig({
       }
     })
   ],
+  resolve: {
+    // shared/ contient la logique métier partagée avec le backend (voir shared/presence.js).
+    // Le dossier est déjà sous la racine Vite, l'alias sert juste à éviter les '../../shared/'.
+    alias: {
+      '@shared': fileURLToPath(new URL('./shared', import.meta.url))
+    }
+  },
   server: {
     port: 5173,
     proxy: {

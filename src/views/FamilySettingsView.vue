@@ -489,6 +489,11 @@
               <option value="present">🟢 Habituellement présent(e) (signale des absences)</option>
               <option value="absent">⚪ Habituellement absent(e) (signale des présences)</option>
             </select>
+            <!-- Volontairement limité au réglage simple : l'invitation ne transporte pas de
+                 grille détaillée (FamilyInvitation n'a aucun champ de présence). -->
+            <span class="help-subtext">
+              Le réglage détaillé (par jour et par repas) sera possible une fois l'invitation acceptée.
+            </span>
           </div>
 
           <div v-if="!memberCheck.checked || !memberCheck.exists">
@@ -610,10 +615,24 @@
 
           <div class="form-group">
             <label class="form-label">Présence habituelle à la maison</label>
-            <select v-model="editMemberForm.usualPresence" class="form-select">
-              <option value="present">🟢 Habituellement présent(e) (signale des absences)</option>
-              <option value="absent">⚪ Habituellement absent(e) (signale des présences)</option>
-            </select>
+            <UsualPresenceEditor
+              v-model="editMemberForm.usualPresenceConfig"
+              :legacy-usual-presence="editMemberForm.usualPresence"
+              :week-anchor="store.presenceWeekAnchor"
+              :today="store.todayStr"
+              subject="member"
+            />
+            <!-- L'ancrage A/B est commun à toute la famille : on ne l'expose ici que lorsqu'il
+                 sert réellement, pour éviter de le déplacer par inadvertance. -->
+            <div v-if="editMemberForm.usualPresenceConfig?.alternating" class="anchor-row">
+              <span class="help-subtext">
+                Semaine en cours : <strong>Semaine {{ store.getWeekPhase(store.todayStr) }}</strong>.
+                L'alternance est commune à toute la famille.
+              </span>
+              <button type="button" class="btn btn-secondary btn-sm" @click="declareCurrentWeekAsA">
+                Déclarer la semaine en cours comme Semaine A
+              </button>
+            </div>
           </div>
 
           <div class="form-group">
@@ -820,6 +839,8 @@ import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValid
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import AvatarPicker from '../components/AvatarPicker.vue'
 import UserAvatar from '../components/UserAvatar.vue'
+import UsualPresenceEditor from '../components/UsualPresenceEditor.vue'
+import { normalizeUsualPresenceConfig } from '@shared/presence.js'
 import { DEFAULT_AVATAR } from '../utils/avatarHelper'
 import {
   Mail, Settings, ShieldAlert,
@@ -1129,7 +1150,8 @@ const editMemberForm = ref({
   isAdmin: false,
   avatar: '👤',
   color: '#6366f1',
-  usualPresence: 'present'
+  usualPresence: 'present',
+  usualPresenceConfig: null
 })
 
 const handleResendWelcomeEmail = async (memberId) => {
@@ -1162,9 +1184,15 @@ const openEditMemberModal = (member) => {
     isAdmin: Boolean(member.isAdmin),
     avatar: member.avatar || DEFAULT_AVATAR,
     color: member.color || '#6366f1',
-    usualPresence: member.usualPresence || 'present'
+    usualPresence: member.usualPresence || 'present',
+    usualPresenceConfig: normalizeUsualPresenceConfig(member.usualPresenceConfig, member.usualPresence)
   }
   showEditMemberModal.value = true
+}
+
+const declareCurrentWeekAsA = async () => {
+  const res = await store.updateFamilyPresenceAnchor(store.todayStr)
+  if (!res.success) alert(res.error || 'Enregistrement impossible')
 }
 
 const handleSaveEditMember = async () => {
@@ -2308,5 +2336,32 @@ onMounted(() => {
 
 .modal-shortcut-content {
   max-width: 480px;
+}
+
+.help-subtext {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+
+/* Ancrage de l'alternance A/B, affiché sous la grille de présence habituelle */
+.anchor-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+  padding: 0.7rem 0.8rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+.anchor-row .help-subtext {
+  margin-top: 0;
+  flex: 1;
+  min-width: 200px;
 }
 </style>

@@ -1,46 +1,57 @@
-// Portage serveur fidèle de getMealSlotPresence (src/stores/familyStore.js:306-361), la logique
-// canonique déjà utilisée par le Dashboard/AbsencesView pour déterminer qui est présent à un
-// repas donné. Aucun équivalent serveur complet n'existait avant ce module (l'outil MCP
-// get_meal_presence_summary fait une version simplifiée qui ne distingue pas les présences
-// exceptionnelles) — reproduire exactement la même règle est important pour que le
-// récapitulatif ne contredise jamais ce que l'app affiche.
+// Agrégation serveur de « qui est présent à ce créneau ? », utilisée par le récapitulatif
+// quotidien (email/push).
+//
+// La RÈGLE elle-même (présence habituelle, parité semaine A/B, priorité des déclarations,
+// départage des doublons) vit dans shared/presence.js et NE DOIT PAS être réimplémentée ici :
+// ce fichier ne fait que la plomberie Mongo et la mise en forme. Toute divergence avec
+// src/stores/familyStore.js ferait dire au récapitulatif l'inverse de ce qu'affiche l'app.
 //
 // Point de vigilance : la comparaison se fait sur FamilyMember.userId (= User.id), jamais sur
 // FamilyMember._id — c'est l'espace d'identifiants utilisé par Absence.memberId/MealGuest.
-export const getMealSlotPresence = async (ctx, familyId, dateStr, slot) => {
+import { isUsuallyPresent, pickDeclaredRecord, resolveSlot } from '../../shared/presence.js'
+
+export const getMealSlotPresence = async (ctx, family, dateStr, slot) => {
+  const familyId = family._id
+  const anchor = family.presenceWeekAnchor
+
   const members = await ctx.FamilyMember.find({ familyId })
   const userIds = members.map(m => m.userId)
   const users = await ctx.User.find({ id: { $in: userIds } }).select('id firstName lastName avatar color')
   const usersById = new Map(users.map(u => [u.id, u]))
 
-  const usuallyPresentMembers = members.filter(m => m.usualPresence !== 'absent')
-  const usuallyAbsentMembers = members.filter(m => m.usualPresence === 'absent')
-
   const dayRecords = await ctx.Absence.find({ familyId, date: dateStr, [slot]: true })
-  const absenceRecords = dayRecords.filter(a => a.type !== 'presence')
-  const presenceRecords = dayRecords.filter(a => a.type === 'presence')
 
-  const isDeclaredAbsent = (m) => absenceRecords.some(a => Number(a.memberId) === Number(m.userId))
-  const isDeclaredPresent = (m) => presenceRecords.some(a => Number(a.memberId) === Number(m.userId))
+  const presentMembers = []
+  const absentMembers = []
+  const exceptionalPresences = []
 
-  const absentMembers = usuallyPresentMembers.filter(isDeclaredAbsent)
-  const presentUsualMembers = usuallyPresentMembers.filter(m => !isDeclaredAbsent(m))
-  const exceptionalPresences = usuallyAbsentMembers.filter(isDeclaredPresent)
+  for (const m of members) {
+    const usually = isUsuallyPresent(m, dateStr, slot, anchor)
+    const declared = pickDeclaredRecord(dayRecords, m.userId, slot)
+    const present = resolveSlot(usually, declared)
 
-  const toUserInfo = (m) => {
     const u = usersById.get(m.userId)
-    return u ? { id: u.id, name: `${u.firstName} ${u.lastName}`.trim() } : null
-  }
+    if (!u) continue
+    const info = { id: u.id, name: `${u.firstName} ${u.lastName}`.trim() }
 
-  const presentMembers = [...presentUsualMembers, ...exceptionalPresences].map(toUserInfo).filter(Boolean)
-  const absentMembersInfo = absentMembers.map(toUserInfo).filter(Boolean)
+    if (present) {
+      presentMembers.push(info)
+      // Présence exceptionnelle = présent alors que l'habitude dit le contraire.
+      if (!usually && declared) exceptionalPresences.push(info)
+    } else if (declared) {
+      // Seules les absences DÉCLARÉES sont listées : un membre habituellement absent ce
+      // créneau-là n'est pas une information, c'est la normale.
+      absentMembers.push(info)
+    }
+  }
 
   const guests = await ctx.MealGuest.find({ familyId, date: dateStr, [slot]: true })
   const guestsInfo = guests.map(g => ({ id: g.id, name: g.name, note: g.note || '' }))
 
   return {
     presentMembers,
-    absentMembers: absentMembersInfo,
+    absentMembers,
+    exceptionalPresences,
     guests: guestsInfo,
     headcount: presentMembers.length + guestsInfo.length
   }
