@@ -391,6 +391,52 @@
               <h4>Articles & Ingrédients à acheter</h4>
               <span class="badge badge-amber badge-sm">{{ currentMealIngredients.length }}</span>
             </div>
+            <button
+              v-if="selectedMealRecipeSlug && !detailRecipe.ingredients"
+              type="button"
+              class="btn btn-secondary btn-sm"
+              :disabled="detailRecipe.loading"
+              @click="loadDetailRecipeIngredients"
+            >
+              <Loader2 v-if="detailRecipe.loading" :size="14" class="spin" />
+              <ChefHat v-else :size="14" />
+              <span>Ingrédients de la recette</span>
+            </button>
+          </div>
+
+          <p v-if="detailRecipe.error" class="detail-recipe-error">{{ detailRecipe.error }}</p>
+
+          <!-- Ingrédients de la recette liée, à cocher pour les ajouter à la liste de courses -->
+          <div v-if="detailRecipe.ingredients" class="detail-recipe-ingredients">
+            <template v-if="detailRecipe.ingredients.length > 0">
+              <RecipeIngredientPicker
+                :ingredients="detailRecipe.ingredients"
+                :base-servings="detailRecipe.baseServings"
+                :headcount="selectedMealHeadcount"
+              />
+              <p v-if="detailRecipe.alreadyListed > 0" class="detail-recipe-note">
+                {{ detailRecipe.alreadyListed }} ingrédient{{ detailRecipe.alreadyListed > 1 ? 's' : '' }}
+                de la recette déjà dans la liste ci-dessous.
+              </p>
+            </template>
+            <p v-else class="detail-recipe-note">
+              Tous les ingrédients de la recette sont déjà dans la liste de courses de ce plat.
+            </p>
+            <div class="detail-recipe-actions">
+              <button type="button" class="btn btn-secondary btn-sm" @click="resetDetailRecipe">
+                {{ detailRecipe.ingredients.length > 0 ? 'Annuler' : 'Fermer' }}
+              </button>
+              <button
+                v-if="detailRecipe.ingredients.length > 0"
+                type="button"
+                class="btn btn-primary btn-sm"
+                :disabled="detailRecipeSelectedCount === 0 || detailRecipe.adding"
+                @click="addDetailRecipeIngredients"
+              >
+                <Plus :size="14" />
+                <span>Ajouter {{ detailRecipeSelectedCount || '' }} à la liste de courses</span>
+              </button>
+            </div>
           </div>
 
           <!-- Liste des ingrédients liés -->
@@ -736,35 +782,12 @@
             </label>
 
             <!-- Ingrédients de la recette Mealie : seuls ceux cochés seront ajoutés -->
-            <div v-if="recipeIngredients.length > 0" class="recipe-ing-picker">
-              <div class="recipe-ing-header">
-                <span>Ingrédients de la recette ({{ selectedRecipeIngredientsCount }}/{{ recipeIngredients.length }} cochés)</span>
-                <button type="button" class="recipe-ing-toggle-all" @click="toggleAllRecipeIngredients">
-                  {{ allRecipeIngredientsSelected ? 'Tout décocher' : 'Tout cocher' }}
-                </button>
-              </div>
-              <div class="recipe-ing-scale">
-                <template v-if="recipeBaseServings && slotHeadcount > 0">
-                  Quantités pour {{ slotHeadcount }} personne{{ slotHeadcount > 1 ? 's' : '' }}
-                  (recette prévue pour {{ recipeBaseServings }})
-                </template>
-                <template v-else-if="!recipeBaseServings">
-                  Quantités de la recette (nombre de portions inconnu)
-                </template>
-                <template v-else>
-                  Quantités de la recette (personne à table sur ce créneau)
-                </template>
-              </div>
-              <label
-                v-for="(ing, idx) in recipeIngredients"
-                :key="idx"
-                class="recipe-ing-item"
-                :class="{ selected: ing.selected }"
-              >
-                <input v-model="ing.selected" type="checkbox" />
-                <span>{{ formatRecipeIngredient(ing) }}</span>
-              </label>
-            </div>
+            <RecipeIngredientPicker
+              v-if="recipeIngredients.length > 0"
+              :ingredients="recipeIngredients"
+              :base-servings="recipeBaseServings"
+              :headcount="slotHeadcount"
+            />
 
             <!-- Liste des ingrédients saisis pour ce plat -->
             <div v-if="modalIngredientsList.length > 0" class="modal-ing-tags">
@@ -870,10 +893,20 @@ import {
   UserPlus,
   X,
   BookOpen,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from '@lucide/vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import MealieRecipeSearch from '../components/MealieRecipeSearch.vue'
+import RecipeIngredientPicker from '../components/RecipeIngredientPicker.vue'
+import {
+  toSelectableIngredients,
+  recipeIngredientKey,
+  getRecipeScaleFactor,
+  formatRecipeIngredient,
+  isIngredientInList,
+  parseMealieRecipeSlug
+} from '../utils/recipeIngredients'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -1130,52 +1163,15 @@ const recipeIngredients = ref([])
 // Nombre de portions prévu par la recette (null si Mealie ne le renseigne pas).
 const recipeBaseServings = ref(null)
 
-const selectedRecipeIngredientsCount = computed(() => recipeIngredients.value.filter(ing => ing.selected).length)
-const allRecipeIngredientsSelected = computed(() =>
-  recipeIngredients.value.length > 0 && selectedRecipeIngredientsCount.value === recipeIngredients.value.length
-)
-
-const toggleAllRecipeIngredients = () => {
-  const selected = !allRecipeIngredientsSelected.value
-  recipeIngredients.value.forEach(ing => { ing.selected = selected })
-}
-
 // Couverts du créneau choisi dans le formulaire : suit les changements de jour / créneau.
 const slotHeadcount = computed(() =>
   form.value.date ? store.getMealSlotPresence(form.value.date, form.value.slot).headcount : 0
 )
 
-// Coefficient appliqué aux quantités de la recette ; 1 si l'une des deux valeurs est inconnue.
-const recipeScaleFactor = computed(() =>
-  recipeBaseServings.value > 0 && slotHeadcount.value > 0
-    ? slotHeadcount.value / recipeBaseServings.value
-    : 1
-)
-
-// Arrondi lisible : à l'entier supérieur pour ce qui se compte (œufs...), une décimale au plus
-// pour les quantités avec unité (aucune au-delà de 10).
-const formatScaledQuantity = (quantity, unit) => {
-  if (!unit) return String(Math.ceil(quantity - 1e-9))
-  return quantity.toLocaleString('fr-FR', { maximumFractionDigits: quantity >= 10 ? 0 : 1 })
-}
-
-// Libellé d'article de courses : « Farine (250 g) » avec la quantité ajustée aux couverts, ou le
-// texte libre de Mealie (non ajustable) pour les ingrédients non structurés.
-const formatRecipeIngredient = (ing) => {
-  if (!ing.food) return ing.text
-  if (!ing.quantity) return ing.food
-  const amount = [formatScaledQuantity(ing.quantity * recipeScaleFactor.value, ing.unit), ing.unit]
-    .filter(Boolean)
-    .join(' ')
-  return `${ing.food} (${amount})`
-}
-
 const unlinkRecipe = () => {
   form.value.recipeUrl = ''
   form.value.recipeImageUrl = ''
 }
-
-const recipeIngredientKey = (ing) => (ing.food || ing.text).toLowerCase()
 
 // Recette choisie dans Mealie : reprend son nom et son lien, et, à la création, propose ses
 // ingrédients à cocher (une nouvelle recette remplace la sélection de la précédente).
@@ -1185,24 +1181,18 @@ const applyMealieRecipe = (recipe) => {
   form.value.recipeImageUrl = recipe.imageUrl || ''
   if (isEditing.value) return
 
-  const known = new Set()
-  recipeIngredients.value = []
+  recipeIngredients.value = toSelectableIngredients(recipe.ingredients)
   recipeBaseServings.value = recipe.baseServings || null
-  for (const ing of recipe.ingredients || []) {
-    const key = recipeIngredientKey(ing)
-    if (known.has(key)) continue
-    known.add(key)
-    recipeIngredients.value.push({ ...ing, selected: false })
-  }
 }
 
 // Ingrédients envoyés à la création du repas : saisis à la main + cochés dans la recette
 // (quantités ajustées aux couverts), sans doublon.
 const buildIngredientsToAdd = () => {
   const known = new Set(modalIngredientsList.value.map(ing => ing.name.toLowerCase()))
+  const scaleFactor = getRecipeScaleFactor(recipeBaseServings.value, slotHeadcount.value)
   const fromRecipe = recipeIngredients.value
     .filter(ing => ing.selected && !known.has(recipeIngredientKey(ing)))
-    .map(ing => ({ name: formatRecipeIngredient(ing), category: 'Frais', quantity: 1 }))
+    .map(ing => ({ name: formatRecipeIngredient(ing, scaleFactor), category: 'Frais', quantity: 1 }))
   return [...modalIngredientsList.value, ...fromRecipe]
 }
 
@@ -1367,6 +1357,7 @@ const recipeImageFailed = ref(false)
 const openDetailModal = (meal, isPrompt = false) => {
   selectedMeal.value = meal
   recipeImageFailed.value = false
+  resetDetailRecipe()
   isPostValidationPrompt.value = isPrompt
   newIngredient.value = {
     name: '',
@@ -1388,6 +1379,71 @@ const closeDetailModal = () => {
   showDetailModal.value = false
   selectedMeal.value = null
   isPostValidationPrompt.value = false
+  resetDetailRecipe()
+}
+
+// === Ingrédients de la recette Mealie liée, depuis le détail d'un plat ===
+const emptyDetailRecipe = () => ({ loading: false, adding: false, error: '', ingredients: null, baseServings: null, alreadyListed: 0 })
+const detailRecipe = ref(emptyDetailRecipe())
+
+const resetDetailRecipe = () => {
+  detailRecipe.value = emptyDetailRecipe()
+}
+
+const selectedMealRecipeSlug = computed(() =>
+  store.currentFamily?.mealieEnabled && selectedMeal.value?.recipeUrl
+    ? parseMealieRecipeSlug(selectedMeal.value.recipeUrl)
+    : null
+)
+
+const selectedMealHeadcount = computed(() =>
+  selectedMeal.value ? store.getMealSlotPresence(selectedMeal.value.date, selectedMeal.value.slot).headcount : 0
+)
+
+const detailRecipeSelectedCount = computed(() =>
+  (detailRecipe.value.ingredients || []).filter(ing => ing.selected).length
+)
+
+// Charge les ingrédients de la recette en écartant ceux déjà présents dans la liste du plat.
+const loadDetailRecipeIngredients = async () => {
+  const slug = selectedMealRecipeSlug.value
+  if (!slug) return
+  detailRecipe.value = { ...emptyDetailRecipe(), loading: true }
+  try {
+    const recipe = await store.getMealieRecipe(slug)
+    const listedNames = currentMealIngredients.value.map(item => item.name)
+    const all = toSelectableIngredients(recipe.ingredients)
+    const missing = all.filter(ing => !isIngredientInList(ing, listedNames))
+    detailRecipe.value = {
+      ...emptyDetailRecipe(),
+      ingredients: missing,
+      baseServings: recipe.baseServings || null,
+      alreadyListed: all.length - missing.length
+    }
+  } catch (err) {
+    detailRecipe.value = { ...emptyDetailRecipe(), error: err.message }
+  }
+}
+
+const addDetailRecipeIngredients = async () => {
+  const meal = selectedMeal.value
+  if (!meal || !detailRecipe.value.ingredients) return
+  const scaleFactor = getRecipeScaleFactor(detailRecipe.value.baseServings, selectedMealHeadcount.value)
+  const selected = detailRecipe.value.ingredients.filter(ing => ing.selected)
+  detailRecipe.value.adding = true
+  try {
+    for (const ing of selected) {
+      await store.addShoppingItem({
+        name: formatRecipeIngredient(ing, scaleFactor),
+        category: 'Frais',
+        quantity: 1,
+        urgent: false,
+        mealId: meal.id
+      })
+    }
+  } finally {
+    resetDetailRecipe()
+  }
 }
 
 const handleAddIngredientToMeal = async () => {
@@ -2437,6 +2493,45 @@ button.slot-headcount-circle:hover {
   align-items: center;
 }
 
+.detail-recipe-ingredients {
+  margin-top: 0.75rem;
+}
+
+.detail-recipe-note {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.detail-recipe-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--accent-rose);
+}
+
+.detail-recipe-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.detail-recipe-actions .btn,
+.ingredients-header .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.spin {
+  animation: meals-spin 1s linear infinite;
+}
+
+@keyframes meals-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .ing-header-left {
   display: flex;
   align-items: center;
@@ -2724,73 +2819,6 @@ button.slot-headcount-circle:hover {
   gap: 0.3rem;
   color: var(--accent-amber);
   font-weight: 600;
-}
-
-/* Ingrédients de la recette Mealie à cocher */
-.recipe-ing-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  max-height: 14rem;
-  overflow-y: auto;
-  margin-bottom: 0.5rem;
-  padding: 0.5rem;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: var(--bg-tertiary);
-}
-
-.recipe-ing-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0 0.25rem 0.35rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.recipe-ing-toggle-all {
-  background: transparent;
-  border: none;
-  color: var(--accent-amber);
-  font-size: 0.78rem;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 0;
-  white-space: nowrap;
-}
-
-.recipe-ing-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.25rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.recipe-ing-item:hover {
-  background: var(--bg-secondary);
-}
-
-.recipe-ing-item.selected {
-  color: var(--text-primary);
-}
-
-.recipe-ing-item input {
-  accent-color: var(--accent-amber);
-  flex-shrink: 0;
-}
-
-.recipe-ing-scale {
-  padding: 0 0.25rem 0.35rem;
-  font-size: 0.75rem;
-  color: var(--text-muted);
 }
 
 /* Modal Ingredients Tags */
