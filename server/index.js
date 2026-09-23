@@ -43,6 +43,7 @@ import { mountMcpServer } from './mcp/index.js'
 import { migrateNotificationPreferences } from './scripts/migrate-notification-preferences.js'
 import { migrateUsualPresenceGrid } from './scripts/migrate-usual-presence-grid.js'
 import { startDigestScheduler, mountDigestAdminRoutes } from './digest/index.js'
+import { escapeHtml } from './digest/templates.js'
 import { normalizeUsualPresenceConfig, summarizeUsualPresence, mondayOf, DEFAULT_WEEK_ANCHOR } from '../shared/presence.js'
 
 dotenv.config()
@@ -3392,19 +3393,109 @@ const normalizeTaskDueDate = (raw) => {
 }
 
 // Met à jour partiellement une tâche (pas de route HTTP équivalente avant l'ajout du connecteur MCP).
-const updateTask = async ({ familyId, taskId, fields }) => {
+// Libellés des champs d'une tâche suivis dans la notification de modification.
+const TASK_FIELD_LABELS = {
+  title: 'Titre',
+  assignedTo: 'Assignée à',
+  dueDate: 'Échéance',
+  priority: 'Priorité',
+  category: 'Catégorie',
+  points: 'Récompense',
+  notes: 'Notes'
+}
+
+const formatTaskFieldValue = async (field, value) => {
+  if (value === null || value === undefined || value === '') return 'aucune'
+  if (field === 'assignedTo') {
+    const user = await User.findOne({ id: value }).select('firstName lastName')
+    return user ? `${user.firstName} ${user.lastName}`.trim() : 'Non assignée'
+  }
+  if (field === 'dueDate') {
+    return new Date(`${value}T12:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
+  }
+  if (field === 'points') return `+${value} pts`
+  return String(value)
+}
+
+// Prévient la personne assignée (et l'ancienne en cas de réassignation) qu'une tâche a été
+// modifiée, par push et/ou email selon sa préférence « Tâches ». L'auteur de la modification
+// n'est jamais notifié. Tâche de fond : ne doit pas faire échouer l'appelant.
+const notifyTaskUpdated = async ({ family, actor, task, before, via = null }) => {
+  const normalize = (v) => (v === undefined || v === '' ? null : v)
+  const changedFields = Object.keys(TASK_FIELD_LABELS).filter(f => normalize(before[f]) !== normalize(task[f]))
+  if (changedFields.length === 0) return
+
+  const recipientUserIds = [...new Set([task.assignedTo, before.assignedTo])]
+    .filter(id => id != null && id !== actor?.id)
+  if (recipientUserIds.length === 0) return
+
+  const changes = await Promise.all(changedFields.map(async (field) => ({
+    field,
+    label: TASK_FIELD_LABELS[field],
+    from: await formatTaskFieldValue(field, before[field]),
+    to: await formatTaskFieldValue(field, task[field])
+  })))
+
+  const authorName = actor ? actor.firstName : 'Un membre'
+  const authorSuffix = via ? ` ${via}` : ''
+  const url = `/${family.slug}/tasks`
+
+  await dispatchFamilyAlert({
+    family,
+    actor,
+    action: ALERT_ACTIONS.TASK_UPDATED.code,
+    actionLabel: ALERT_ACTIONS.TASK_UPDATED.label,
+    title: `Tâche modifiée : ${task.title}`,
+    targetType: 'task',
+    targetId: task.id,
+    push: {
+      title: `✏️ Tâche modifiée : ${task.title}`,
+      // Les notes (texte long) ne sont que signalées dans le push ; leur contenu est dans l'email.
+      body: `${changes.map(c => c.field === 'notes' ? 'Notes modifiées' : `${c.label} : ${c.to}`).join(' • ')} • Par ${authorName}${authorSuffix}`,
+      url,
+      recipientUserIds
+    },
+    email: {
+      subject: `✏️ Tâche modifiée : ${task.title}`,
+      title: 'Tâche modifiée',
+      badge: '✏️',
+      detailsHtml: `
+        <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+          <strong>${escapeHtml(authorName)}</strong>${escapeHtml(authorSuffix)} a modifié la tâche <strong>${escapeHtml(task.title)}</strong> :
+        </p>
+        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+          ${changes.map(c => `<li><strong>${c.label} :</strong> <span style="color:#94a3b8; text-decoration: line-through;">${escapeHtml(c.from)}</span> → <strong>${escapeHtml(c.to)}</strong></li>`).join('')}
+        </ul>
+      `,
+      actionUrl: url,
+      actionText: 'Voir les tâches',
+      recipientUserIds
+    }
+  })
+}
+
+// Met à jour partiellement une tâche. Avec `family`, notifie la ou les personnes concernées
+// (voir notifyTaskUpdated) en tâche de fond.
+const updateTask = async ({ familyId, taskId, fields, family = null, actor = null, via = null }) => {
   const task = await Task.findOne({ id: Number(taskId), familyId })
   if (!task) return null
 
-  const { title, category, assignedTo, priority, points, dueDate } = fields
+  const before = Object.fromEntries(Object.keys(TASK_FIELD_LABELS).map(f => [f, task[f]]))
+  const { title, category, assignedTo, priority, points, dueDate, notes } = fields
   if (title !== undefined) task.title = String(title).trim()
   if (category !== undefined) task.category = category
   if (assignedTo !== undefined) task.assignedTo = Number(assignedTo)
   if (priority !== undefined) task.priority = priority
   if (points !== undefined) task.points = Number(points) || task.points
   if (dueDate !== undefined) task.dueDate = normalizeTaskDueDate(dueDate)
+  if (notes !== undefined) task.notes = String(notes ?? '').trim()
 
   await task.save()
+
+  if (family) {
+    notifyTaskUpdated({ family, actor, task, before, via })
+      .catch(err => console.error('[AlertLog] notifyTaskUpdated:', err.message))
+  }
   return task
 }
 
@@ -3428,7 +3519,8 @@ app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
       priority: req.body.priority || 'Moyenne',
       points: Number(req.body.points) || 10,
       completed: false,
-      dueDate: normalizeTaskDueDate(req.body.dueDate)
+      dueDate: normalizeTaskDueDate(req.body.dueDate),
+      notes: String(req.body.notes ?? '').trim()
     })
     await newTask.save()
 
@@ -3465,6 +3557,7 @@ app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
             <li><strong>Catégorie :</strong> ${newTask.category || 'Maison'}</li>
             <li><strong>Priorité :</strong> ${newTask.priority || 'Moyenne'}</li>
             <li><strong>Récompense :</strong> +${newTask.points} pts</li>
+            ${newTask.notes ? `<li><strong>Notes :</strong> ${escapeHtml(newTask.notes).replace(/\n/g, '<br/>')}</li>` : ''}
             ${newTask.dueDate ? `<li><strong>Échéance :</strong> ${new Date(`${newTask.dueDate}T12:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</li>` : ''}
           </ul>
         `,
@@ -3491,7 +3584,7 @@ app.put('/api/tasks/:id/toggle', requireAuth, attachFamilyContext, async (req, r
 
 app.put('/api/tasks/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const task = await updateTask({ familyId: req.family._id, taskId: req.params.id, fields: req.body })
+    const task = await updateTask({ familyId: req.family._id, taskId: req.params.id, fields: req.body, family: req.family, actor: req.user })
     if (!task) return res.status(404).json({ error: 'Tâche non trouvée' })
     res.json(task)
   } catch (err) {

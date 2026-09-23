@@ -26,9 +26,10 @@ export const registerTaskTools = (server, req, ctx) => {
       category: z.string().optional(),
       priority: z.string().optional(),
       points: z.number().optional().describe('Points attribués à la complétion (défaut: 10)'),
+      notes: z.string().optional().describe('Description libre de la tâche'),
       dueDate: z.string().optional().describe('Échéance AAAA-MM-JJ : la tâche devient urgente et est rappelée chaque jour à la personne assignée une fois cette date atteinte')
     }
-  }, async ({ title, assignedTo, category, priority, points, dueDate }) => {
+  }, async ({ title, assignedTo, category, priority, points, dueDate, notes }) => {
     const resolved = await resolveMember(familyId, assignedTo)
 
     const newTask = new Task({
@@ -40,7 +41,8 @@ export const registerTaskTools = (server, req, ctx) => {
       priority: priority || 'Moyenne',
       points: Number(points) || 10,
       completed: false,
-      dueDate: normalizeTaskDueDate(dueDate)
+      dueDate: normalizeTaskDueDate(dueDate),
+      notes: String(notes ?? '').trim()
     })
     await newTask.save()
 
@@ -65,11 +67,19 @@ export const registerTaskTools = (server, req, ctx) => {
       assignedTo: z.string().optional(),
       priority: z.string().optional(),
       points: z.number().optional(),
+      notes: z.string().optional().describe('Description libre ; chaîne vide pour la retirer'),
       dueDate: z.string().optional().describe('Échéance AAAA-MM-JJ ; chaîne vide pour la retirer')
     }
   }, async ({ id, assignedTo, ...fields }) => {
     const resolvedAssignedTo = assignedTo !== undefined ? (await resolveMember(familyId, assignedTo)).id : undefined
-    const task = await updateTask({ familyId, taskId: id, fields: { ...fields, assignedTo: resolvedAssignedTo } })
+    const task = await updateTask({
+      familyId,
+      taskId: id,
+      fields: { ...fields, assignedTo: resolvedAssignedTo },
+      family: req.family,
+      actor: req.mcpFallbackActor || null,
+      via: "via l'assistant"
+    })
     if (!task) throw new Error('Tâche non trouvée')
     return jsonResult(task)
   })

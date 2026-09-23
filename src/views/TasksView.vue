@@ -80,6 +80,7 @@
             />
             <span class="task-title-text">{{ task.title }}</span>
           </label>
+          <p v-if="task.notes" class="task-notes">{{ task.notes }}</p>
         </div>
 
         <div class="task-card-footer">
@@ -117,6 +118,16 @@
               placeholder="ex: Nettoyer la cuisine..."
               class="form-input" 
             />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes (optionnel)</label>
+            <textarea
+              v-model="taskForm.notes"
+              rows="3"
+              placeholder="ex: Penser à sortir les poubelles de tri aussi..."
+              class="form-input task-notes-input"
+            ></textarea>
           </div>
 
           <div class="grid-2">
@@ -190,7 +201,8 @@ const emptyTaskForm = () => ({
   category: 'Maison',
   assignedTo: store.members[0]?.id || 1,
   priority: 'Moyenne',
-  dueDate: ''
+  dueDate: '',
+  notes: ''
 })
 
 const taskForm = ref(emptyTaskForm())
@@ -270,7 +282,8 @@ const openEditModal = (task) => {
     category: task.category || 'Maison',
     assignedTo: task.assignedTo,
     priority: task.priority || 'Moyenne',
-    dueDate: task.dueDate || ''
+    dueDate: task.dueDate || '',
+    notes: task.notes || ''
   }
   showTaskModal.value = true
 }
@@ -283,7 +296,7 @@ const closeTaskModal = () => {
 const handleSubmitTask = async () => {
   const title = taskForm.value.title.trim()
   if (!title) return
-  const payload = { ...taskForm.value, title }
+  const payload = { ...taskForm.value, title, notes: taskForm.value.notes.trim() }
   if (editingTaskId.value) {
     await store.updateTask(editingTaskId.value, payload)
   } else {
@@ -437,6 +450,19 @@ const handleSubmitTask = async () => {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.task-notes {
+  margin: 0.5rem 0 0 calc(22px + 0.75rem);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.task-notes-input {
+  resize: vertical;
+  font-family: inherit;
 }
 
 .task-card.completed .task-title-text {
