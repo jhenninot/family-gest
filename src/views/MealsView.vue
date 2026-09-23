@@ -75,12 +75,14 @@
               <div class="slot-title">
                 <Sun :size="18" class="slot-icon slot-icon-lunch" />
                 <span class="slot-label">Midi</span>
-                <span 
+                <button 
+                  type="button"
                   class="slot-headcount-circle lunch" 
-                  :title="`${day.lunchPresence.headcount} personne(s) à table ce midi`"
+                  :title="`${day.lunchPresence.headcount} personne(s) à table ce midi — voir le détail`"
+                  @click="openPresenceModal(day.dateStr, 'lunch')"
                 >
                   {{ day.lunchPresence.headcount }}
-                </span>
+                </button>
               </div>
               <button 
                 v-if="!day.isPast"
@@ -181,12 +183,14 @@
               <div class="slot-title">
                 <Sunset :size="18" class="slot-icon slot-icon-dinner" />
                 <span class="slot-label">Soir</span>
-                <span 
+                <button 
+                  type="button"
                   class="slot-headcount-circle dinner" 
-                  :title="`${day.dinnerPresence.headcount} personne(s) à table ce soir`"
+                  :title="`${day.dinnerPresence.headcount} personne(s) à table ce soir — voir le détail`"
+                  @click="openPresenceModal(day.dateStr, 'dinner')"
                 >
                   {{ day.dinnerPresence.headcount }}
-                </span>
+                </button>
               </div>
               <button 
                 v-if="!day.isPast"
@@ -437,6 +441,82 @@
           <button type="button" @click="closeDetailModal" class="btn btn-primary">
             Fermer
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- MODALE 3 : Détail des présences d'un créneau    -->
+    <!-- ============================================== -->
+    <div v-if="presenceModalSlot && presenceDetail" class="modal-overlay" @click.self="closePresenceModal">
+      <div class="modal-content presence-detail-modal">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <Sun v-if="presenceDetail.slot === 'lunch'" :size="22" class="slot-icon-lunch" />
+            <Sunset v-else :size="22" class="slot-icon-dinner" />
+            <div>
+              <h3>{{ presenceDetail.slot === 'lunch' ? 'Midi' : 'Soir' }} · {{ presenceDetail.headcount }} à table</h3>
+              <p class="presence-modal-date">{{ formatDetailDate(presenceDetail.date) }}</p>
+            </div>
+          </div>
+          <button @click="closePresenceModal" class="btn-close">&times;</button>
+        </div>
+
+        <div class="presence-section">
+          <h4 class="presence-section-title present">
+            Présents ({{ presenceDetail.presentMembersCount }})
+          </h4>
+          <ul v-if="presenceDetail.presentMembers.length > 0" class="presence-list">
+            <li v-for="m in presenceDetail.presentMembers" :key="'pp-' + m.id" class="presence-row">
+              <UserAvatar :avatar="m.avatar" :name="getMemberFirstName(m.id)" size="xs" />
+              <span class="presence-name">{{ getMemberFirstName(m.id) }}</span>
+              <span v-if="isExceptionalPresence(m.id)" class="presence-tag tag-exceptional">exceptionnel</span>
+              <span v-if="m.note" class="presence-note">💬 {{ m.note }}</span>
+            </li>
+          </ul>
+          <p v-else class="presence-empty">Aucun membre de la famille à table.</p>
+        </div>
+
+        <div v-if="presenceDetail.guests.length > 0" class="presence-section">
+          <h4 class="presence-section-title guest">
+            Invités ({{ presenceDetail.guestsCount }})
+          </h4>
+          <ul class="presence-list">
+            <li v-for="g in presenceDetail.guests" :key="'pg-' + g.id" class="presence-row">
+              <span class="presence-guest-dot">+</span>
+              <span class="presence-name">{{ g.name }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="presence-section">
+          <h4 class="presence-section-title absent">
+            Absents ({{ presenceDetail.absentMembersCount }})
+          </h4>
+          <ul v-if="presenceDetail.absentMembers.length > 0" class="presence-list">
+            <li v-for="m in presenceDetail.absentMembers" :key="'pa-' + m.id" class="presence-row">
+              <UserAvatar :avatar="m.avatar" :name="getMemberFirstName(m.id)" size="xs" />
+              <span class="presence-name">{{ getMemberFirstName(m.id) }}</span>
+              <span v-if="m.note" class="presence-note">💬 {{ m.note }}</span>
+            </li>
+          </ul>
+          <p v-else class="presence-empty">Aucune absence déclarée.</p>
+        </div>
+
+        <div v-if="presenceDetail.usuallyAbsentMembers.length > 0" class="presence-section">
+          <h4 class="presence-section-title usual">
+            Habituellement absents ({{ presenceDetail.usuallyAbsentMembers.length }})
+          </h4>
+          <ul class="presence-list">
+            <li v-for="m in presenceDetail.usuallyAbsentMembers" :key="'pu-' + m.id" class="presence-row muted">
+              <UserAvatar :avatar="m.avatar" :name="getMemberFirstName(m.id)" size="xs" />
+              <span class="presence-name">{{ getMemberFirstName(m.id) }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" @click="closePresenceModal" class="btn btn-primary">Fermer</button>
         </div>
       </div>
     </div>
@@ -1096,6 +1176,28 @@ const handleDeleteFromDetail = async () => {
   }
 }
 
+// === Détail des présences d'un créneau (clic sur la pastille du nombre de couverts) ===
+// On ne mémorise que la date et le créneau : la présence est recalculée depuis le store,
+// la modale reste donc à jour si une absence ou un invité change pendant qu'elle est ouverte.
+const presenceModalSlot = ref(null)
+
+const presenceDetail = computed(() => {
+  if (!presenceModalSlot.value) return null
+  const { dateStr, slot } = presenceModalSlot.value
+  return store.getMealSlotPresence(dateStr, slot)
+})
+
+const isExceptionalPresence = (memberId) =>
+  Boolean(presenceDetail.value?.exceptionalPresences.some(p => p.id === memberId))
+
+const openPresenceModal = (dateStr, slot) => {
+  presenceModalSlot.value = { dateStr, slot }
+}
+
+const closePresenceModal = () => {
+  presenceModalSlot.value = null
+}
+
 const formatDetailDate = (dateStr) => {
   if (!dateStr) return ''
   try {
@@ -1475,6 +1577,18 @@ const getMemberFirstName = (id) => {
   user-select: none;
 }
 
+button.slot-headcount-circle {
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+button.slot-headcount-circle:hover {
+  transform: scale(1.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
 .slot-headcount-circle.lunch {
   background: linear-gradient(135deg, #f59e0b, #d97706);
 }
@@ -1704,6 +1818,106 @@ const getMemberFirstName = (id) => {
 .empty-icon {
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+/* ============================================== */
+/* PRESENCE DETAIL MODAL                          */
+/* ============================================== */
+.presence-detail-modal {
+  max-width: 440px;
+  width: 94%;
+}
+
+.presence-modal-date {
+  margin: 0.1rem 0 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.presence-section {
+  margin-bottom: 1rem;
+}
+
+.presence-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.4rem 0;
+}
+
+.presence-section-title.present { color: #10b981; }
+.presence-section-title.guest { color: #3b82f6; }
+.presence-section-title.absent { color: #ef4444; }
+.presence-section-title.usual { color: var(--text-muted); }
+
+.presence-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.presence-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+}
+
+.presence-row.muted {
+  opacity: 0.65;
+}
+
+.presence-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.presence-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.05rem 0.45rem;
+  border-radius: var(--radius-full);
+}
+
+.tag-exceptional {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.presence-note {
+  flex-basis: 100%;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.presence-guest-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.presence-empty {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* ============================================== */
