@@ -71,16 +71,20 @@
         </div>
 
         <div class="task-card-body">
-          <label class="task-checkbox-wrapper">
+          <!-- Seule la case marque la tâche comme faite ; le titre et les notes l'ouvrent en modification. -->
+          <div class="task-checkbox-wrapper">
             <input 
               type="checkbox" 
               :checked="task.completed" 
               @change="store.toggleTask(task.id)"
               class="custom-checkbox-lg"
+              :aria-label="task.completed ? `Marquer « ${task.title} » comme à faire` : `Marquer « ${task.title} » comme faite`"
             />
-            <span class="task-title-text">{{ task.title }}</span>
-          </label>
-          <p v-if="task.notes" class="task-notes">{{ task.notes }}</p>
+            <button type="button" class="task-title-text" title="Modifier la tâche" @click="openEditModal(task)">
+              {{ task.title }}
+            </button>
+          </div>
+          <p v-if="task.notes" class="task-notes" title="Modifier la tâche" @click="openEditModal(task)">{{ task.notes }}</p>
         </div>
 
         <div class="task-card-footer">
@@ -436,7 +440,11 @@ const handleSubmitTask = async () => {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
+}
+
+.custom-checkbox-lg {
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .custom-checkbox-lg {
@@ -447,6 +455,12 @@ const handleSubmitTask = async () => {
 }
 
 .task-title-text {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
   font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
@@ -458,11 +472,16 @@ const handleSubmitTask = async () => {
   color: var(--text-secondary);
   white-space: pre-line;
   overflow-wrap: anywhere;
+  cursor: pointer;
 }
 
 .task-notes-input {
   resize: vertical;
   font-family: inherit;
+}
+
+.task-title-text:hover {
+  color: var(--accent-primary);
 }
 
 .task-card.completed .task-title-text {
