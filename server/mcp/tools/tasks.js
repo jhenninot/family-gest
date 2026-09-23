@@ -2,10 +2,9 @@ import { z } from 'zod'
 import Task from '../../models/Task.js'
 import { resolveMember } from '../resolveMember.js'
 import { jsonResult } from '../toolHelpers.js'
-import { notifyMcpAction } from '../notify.js'
 
 export const registerTaskTools = (server, req, ctx) => {
-  const { toggleTaskCompletion, updateTask, normalizeTaskDueDate, ALERT_ACTIONS } = ctx
+  const { toggleTaskCompletion, updateTask, notifyTaskCreated, normalizeTaskDueDate } = ctx
   const familyId = req.family._id
 
   server.registerTool('list_tasks', {
@@ -46,13 +45,8 @@ export const registerTaskTools = (server, req, ctx) => {
     })
     await newTask.save()
 
-    notifyMcpAction(req, ctx, {
-      action: ALERT_ACTIONS.TASK_CREATED,
-      title: `Nouvelle tâche : ${newTask.title}`,
-      targetType: 'task',
-      targetId: newTask.id,
-      body: `Assignée à ${resolved.name} • +${newTask.points} pts • Ajoutée via l'assistant`
-    })
+    notifyTaskCreated({ family: req.family, actor: req.mcpFallbackActor || null, task: newTask, via: "via l'assistant" })
+      .catch(err => console.error('[MCP] notifyTaskCreated:', err.message))
 
     return jsonResult(newTask)
   })

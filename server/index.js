@@ -3474,6 +3474,60 @@ const notifyTaskUpdated = async ({ family, actor, task, before, via = null }) =>
   })
 }
 
+// Prévient la personne assignée d'une nouvelle tâche, par push et/ou email selon sa préférence
+// « Tâches » — sauf si c'est elle qui l'a créée. Tâche de fond : ne doit pas faire échouer l'appelant.
+const notifyTaskCreated = async ({ family, actor, task, via = null }) => {
+  if (task.assignedTo == null || task.assignedTo === actor?.id) return
+  const recipientUserIds = [task.assignedTo]
+
+  const authorName = actor ? actor.firstName : 'Un membre'
+  const authorSuffix = via ? ` ${via}` : ''
+  const dueLabel = task.dueDate ? await formatTaskFieldValue('dueDate', task.dueDate) : null
+  const url = `/${family.slug}/tasks`
+
+  await dispatchFamilyAlert({
+    family,
+    actor,
+    action: ALERT_ACTIONS.TASK_CREATED.code,
+    actionLabel: ALERT_ACTIONS.TASK_CREATED.label,
+    title: `Nouvelle tâche : ${task.title}`,
+    targetType: 'task',
+    targetId: task.id,
+    push: {
+      title: `📋 Nouvelle tâche : ${task.title}`,
+      body: [
+        'Assignée à vous',
+        `+${task.points} pts`,
+        dueLabel ? `Échéance : ${dueLabel}` : null,
+        `Ajoutée par ${authorName}${authorSuffix}`
+      ].filter(Boolean).join(' • '),
+      url,
+      recipientUserIds
+    },
+    email: {
+      subject: `📋 Nouvelle tâche : ${task.title}`,
+      title: 'Nouvelle tâche pour vous',
+      badge: '📋',
+      detailsHtml: `
+        <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+          <strong>${escapeHtml(authorName)}</strong>${escapeHtml(authorSuffix)} vous a assigné une nouvelle tâche :
+        </p>
+        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+          <li><strong>Titre :</strong> ${escapeHtml(task.title)}</li>
+          <li><strong>Catégorie :</strong> ${escapeHtml(task.category || 'Maison')}</li>
+          <li><strong>Priorité :</strong> ${escapeHtml(task.priority || 'Moyenne')}</li>
+          <li><strong>Récompense :</strong> +${task.points} pts</li>
+          ${dueLabel ? `<li><strong>Échéance :</strong> ${escapeHtml(dueLabel)}</li>` : ''}
+          ${task.notes ? `<li><strong>Notes :</strong> ${escapeHtml(task.notes).replace(/\n/g, '<br/>')}</li>` : ''}
+        </ul>
+      `,
+      actionUrl: url,
+      actionText: 'Voir mes tâches',
+      recipientUserIds
+    }
+  })
+}
+
 // Met à jour partiellement une tâche. Avec `family`, notifie la ou les personnes concernées
 // (voir notifyTaskUpdated) en tâche de fond.
 const updateTask = async ({ familyId, taskId, fields, family = null, actor = null, via = null }) => {
@@ -3524,47 +3578,8 @@ app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
     })
     await newTask.save()
 
-    // Informations pour les notifications
-    const authorName = req.user ? req.user.firstName : 'Un membre'
-    const assignedUser = await User.findOne({ id: newTask.assignedTo })
-    const assignedName = assignedUser ? `${assignedUser.firstName} ${assignedUser.lastName}` : 'Non assigné'
-
-    // Alerte push + email pour la nouvelle tâche (journalisée dans le journal des alertes)
-    dispatchFamilyAlert({
-      family: req.family,
-      actor: req.user,
-      action: ALERT_ACTIONS.TASK_CREATED.code,
-      actionLabel: ALERT_ACTIONS.TASK_CREATED.label,
-      title: `Nouvelle tâche : ${newTask.title}`,
-      targetType: 'task',
-      targetId: newTask.id,
-      push: {
-        title: `📋 Nouvelle tâche : ${newTask.title}`,
-        body: `Assignée à ${assignedName} • +${newTask.points} pts • Ajoutée par ${authorName}`,
-        url: `/${req.family.slug}/tasks`
-      },
-      email: {
-        subject: `📋 Nouvelle tâche : ${newTask.title}`,
-        title: `Nouvelle tâche ajoutée`,
-        badge: '📋',
-        detailsHtml: `
-          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-            <strong>${authorName}</strong> a ajouté une nouvelle tâche :
-          </p>
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-            <li><strong>Titre :</strong> ${newTask.title}</li>
-            <li><strong>Assignée à :</strong> ${assignedName}</li>
-            <li><strong>Catégorie :</strong> ${newTask.category || 'Maison'}</li>
-            <li><strong>Priorité :</strong> ${newTask.priority || 'Moyenne'}</li>
-            <li><strong>Récompense :</strong> +${newTask.points} pts</li>
-            ${newTask.notes ? `<li><strong>Notes :</strong> ${escapeHtml(newTask.notes).replace(/\n/g, '<br/>')}</li>` : ''}
-            ${newTask.dueDate ? `<li><strong>Échéance :</strong> ${new Date(`${newTask.dueDate}T12:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</li>` : ''}
-          </ul>
-        `,
-        actionUrl: `/${req.family.slug}/tasks`,
-        actionText: 'Voir les tâches'
-      }
-    }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (task.created):', err.message))
+    notifyTaskCreated({ family: req.family, actor: req.user, task: newTask })
+      .catch(err => console.error('[AlertLog] notifyTaskCreated:', err.message))
 
     res.status(201).json(newTask)
   } catch (err) {
@@ -5577,6 +5592,7 @@ mountMcpServer(app, {
   ALERT_ACTIONS,
   toggleTaskCompletion,
   updateTask,
+  notifyTaskCreated,
   upsertAbsenceRecord,
   deleteAbsenceIfEmptySlots,
   mergeAbsenceIntoSibling,
