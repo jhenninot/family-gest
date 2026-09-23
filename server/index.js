@@ -36,6 +36,7 @@ import PushConfig from './models/PushConfig.js'
 import PushSubscription from './models/PushSubscription.js'
 import AlertLog from './models/AlertLog.js'
 import McpConnector from './models/McpConnector.js'
+import MealieConfig from './models/MealieConfig.js'
 import { ALERT_ACTIONS, ALERT_ACTIONS_LIST, ACTION_CATEGORY_BY_CODE } from './constants/alertActions.js'
 import webpush from 'web-push'
 import { mountMcpServer } from './mcp/index.js'
@@ -2626,7 +2627,10 @@ app.get('/api/user/families', requireAuth, async (req, res) => {
 // GET /api/families/:familySlug (Détails de la famille demandée et membership du profil)
 app.get('/api/families/:familySlug', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const memberCount = await FamilyMember.countDocuments({ familyId: req.family._id })
+    const [memberCount, mealieConfigured] = await Promise.all([
+      FamilyMember.countDocuments({ familyId: req.family._id }),
+      MealieConfig.exists({ familyId: req.family._id })
+    ])
     const isFamilyAdmin = Boolean(req.user?.isSuperAdmin || req.membership?.isAdmin)
     res.json({
       family: {
@@ -2636,7 +2640,9 @@ app.get('/api/families/:familySlug', requireAuth, attachFamilyContext, async (re
         maxMembers: req.family.maxMembers,
         memberCount,
         // Référence de l'alternance semaine A / semaine B des présences habituelles.
-        presenceWeekAnchor: req.family.presenceWeekAnchor || DEFAULT_WEEK_ANCHOR
+        presenceWeekAnchor: req.family.presenceWeekAnchor || DEFAULT_WEEK_ANCHOR,
+        // Active la recherche de recettes Mealie dans la modale d'ajout de repas.
+        mealieEnabled: Boolean(mealieConfigured)
       },
       membership: req.membership,
       role: req.membership?.role || (isFamilyAdmin ? 'Administrateur' : 'Membre'),
@@ -4879,6 +4885,19 @@ const createShoppingItemsForIngredients = async ({ familyId, mealId, ingredients
   return createdIngredients
 }
 
+// Le lien de recette est affiché tel quel dans un <a href> : seuls http(s) sont acceptés, pour
+// empêcher l'enregistrement d'un lien javascript: exécuté au clic par un autre membre.
+const sanitizeRecipeUrl = (raw) => {
+  const value = String(raw || '').trim()
+  if (!value) return ''
+  try {
+    const url = new URL(value)
+    return ['http:', 'https:'].includes(url.protocol) ? url.toString() : ''
+  } catch {
+    return ''
+  }
+}
+
 // Supprime un repas et les articles de courses liés (cascade). Partagée par la route HTTP et
 // l'outil MCP delete_meal.
 const deleteMealCascade = async ({ familyId, mealId }) => {
@@ -4905,7 +4924,7 @@ app.get('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
 
 app.post('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const { date, slot, dish, notes, suggestedBy } = req.body
+    const { date, slot, dish, notes, suggestedBy, recipeUrl } = req.body
 
     if (!date || !slot || !dish) {
       return res.status(400).json({ error: 'La date, le créneau (midi/soir) et l\'intitulé du plat sont obligatoires' })
@@ -4927,7 +4946,8 @@ app.post('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
       slot: slot === 'dinner' ? 'dinner' : 'lunch',
       dish: cleanDish,
       suggestedBy: memberId,
-      notes: notes ? String(notes).trim() : ''
+      notes: notes ? String(notes).trim() : '',
+      recipeUrl: sanitizeRecipeUrl(recipeUrl)
     })
 
     await newMeal.save()
@@ -5000,7 +5020,7 @@ app.put('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) => 
     const meal = await Meal.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!meal) return res.status(404).json({ error: 'Plat non trouvé' })
 
-    const { date, slot, dish, notes, suggestedBy } = req.body
+    const { date, slot, dish, notes, suggestedBy, recipeUrl } = req.body
     if (date !== undefined) meal.date = String(date)
     if (slot !== undefined) meal.slot = slot === 'dinner' ? 'dinner' : 'lunch'
     if (dish !== undefined) {
@@ -5010,6 +5030,7 @@ app.put('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) => 
     }
     if (notes !== undefined) meal.notes = String(notes).trim()
     if (suggestedBy !== undefined) meal.suggestedBy = suggestedBy ? Number(suggestedBy) : null
+    if (recipeUrl !== undefined) meal.recipeUrl = sanitizeRecipeUrl(recipeUrl)
 
     await meal.save()
     res.json(meal)
@@ -5027,6 +5048,209 @@ app.delete('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) 
     res.json({ message: 'Plat et ingrédients associés supprimés' })
   } catch (err) {
     res.status(500).json({ error: err.message })
+  }
+})
+
+// === INTÉGRATION MEALIE (RECHERCHE DE RECETTES) ===
+// Le serveur sert de relais vers l'instance Mealie de la famille : le jeton d'API reste côté
+// serveur et seuls les champs utiles des réponses Mealie sont renvoyés au navigateur.
+const MEALIE_TIMEOUT_MS = 8000
+
+class MealieError extends Error {
+  constructor(message, status = 502) {
+    super(message)
+    this.status = status
+  }
+}
+
+// Conserve un éventuel sous-chemin (Mealie servi derrière un reverse proxy sous /mealie), mais
+// retire le / final, la query et le hash pour pouvoir concaténer les chemins d'API.
+const normalizeMealieBaseUrl = (raw) => {
+  let url
+  try {
+    url = new URL(String(raw || '').trim())
+  } catch {
+    return null
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) return null
+  return `${url.origin}${url.pathname.replace(/\/+$/, '')}`
+}
+
+// Les erreurs d'authentification Mealie sont renvoyées en 502 et non en 401 : un 401 de notre
+// API serait interprété par le client comme une session FamilyGest expirée.
+const mealieRequest = async ({ baseUrl, apiToken }, apiPath) => {
+  let res
+  try {
+    res = await fetch(`${baseUrl}${apiPath}`, {
+      headers: { Authorization: `Bearer ${apiToken}`, Accept: 'application/json' },
+      signal: AbortSignal.timeout(MEALIE_TIMEOUT_MS)
+    })
+  } catch (err) {
+    const reason = err.name === 'TimeoutError' ? 'délai dépassé' : (err.cause?.code || err.message)
+    throw new MealieError(`Serveur Mealie injoignable (${reason})`)
+  }
+  if (res.status === 401 || res.status === 403) throw new MealieError('Jeton d\'API Mealie refusé par le serveur')
+  if (res.status === 404) throw new MealieError('Ressource introuvable sur le serveur Mealie', 404)
+  if (!res.ok) throw new MealieError(`Erreur du serveur Mealie (HTTP ${res.status})`)
+  try {
+    return await res.json()
+  } catch {
+    throw new MealieError('Réponse inattendue : l\'URL indiquée ne semble pas être une instance Mealie')
+  }
+}
+
+const sendMealieError = (res, err) => {
+  if (err instanceof MealieError) return res.status(err.status).json({ error: err.message })
+  res.status(500).json({ error: err.message })
+}
+
+// Depuis Mealie v1, les recettes sont servies sous /g/<groupe>/r/<slug> ; /recipe/<slug> reste la
+// forme des versions antérieures.
+const buildMealieRecipeUrl = (config, slug) => config.groupSlug
+  ? `${config.baseUrl}/g/${encodeURIComponent(config.groupSlug)}/r/${encodeURIComponent(slug)}`
+  : `${config.baseUrl}/recipe/${encodeURIComponent(slug)}`
+
+// Les images de recettes Mealie sont publiques (pas de jeton requis) : le navigateur les charge
+// directement. Le champ `image` de la recette sert de clé de version pour le cache.
+const buildMealieImageUrl = (config, recipe) => recipe.image && recipe.id
+  ? `${config.baseUrl}/api/media/recipes/${encodeURIComponent(recipe.id)}/images/min-original.webp?version=${encodeURIComponent(recipe.image)}`
+  : null
+
+const formatMealieQuantity = (quantity) => {
+  const n = Number(quantity)
+  if (!Number.isFinite(n) || n <= 0) return ''
+  return n.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+}
+
+// Transforme un ingrédient Mealie en libellé d'article de courses : « Farine (200 g) » quand
+// l'ingrédient est structuré (aliment + quantité + unité), sinon le texte affiché par Mealie.
+const mealieIngredientToShoppingName = (ing) => {
+  const foodName = ing.food?.name ? String(ing.food.name).trim() : ''
+  if (foodName) {
+    const unit = ing.unit
+      ? String((ing.unit.useAbbreviation && ing.unit.abbreviation) || ing.unit.name || '').trim()
+      : ''
+    const amount = [formatMealieQuantity(ing.quantity), unit].filter(Boolean).join(' ')
+    const name = foodName.charAt(0).toUpperCase() + foodName.slice(1)
+    return amount ? `${name} (${amount})` : name
+  }
+  return String(ing.display || ing.note || ing.originalText || '').replace(/\s+/g, ' ').trim()
+}
+
+const getFamilyMealieConfig = async (familyId) => {
+  const config = await MealieConfig.findOne({ familyId })
+  if (!config) throw new MealieError('Aucun serveur Mealie n\'est configuré pour cette famille', 404)
+  return { baseUrl: config.baseUrl, apiToken: config.apiToken, groupSlug: config.groupSlug }
+}
+
+const serializeMealieConfig = (config) => config
+  ? { configured: true, baseUrl: config.baseUrl, tokenPreview: config.tokenPreview, groupSlug: config.groupSlug, updatedAt: config.updatedAt }
+  : { configured: false }
+
+app.get('/api/family-settings/mealie', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const config = await MealieConfig.findOne({ familyId: req.family._id })
+    res.json(serializeMealieConfig(config))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PUT /api/family-settings/mealie : enregistre l'URL et le jeton après avoir vérifié la connexion.
+// Le jeton est facultatif si une configuration existe déjà (seule l'URL est alors modifiée).
+app.put('/api/family-settings/mealie', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const baseUrl = normalizeMealieBaseUrl(req.body.baseUrl)
+    if (!baseUrl) {
+      return res.status(400).json({ error: 'URL du serveur Mealie invalide (ex : https://mealie.exemple.fr)' })
+    }
+
+    const existing = await MealieConfig.findOne({ familyId: req.family._id })
+    const newToken = String(req.body.apiToken || '').trim()
+    const apiToken = newToken || existing?.apiToken
+    if (!apiToken) {
+      return res.status(400).json({ error: 'Le jeton d\'API Mealie est obligatoire' })
+    }
+
+    // Vérifie l'URL et le jeton, et récupère le groupe du compte pour construire les liens.
+    const self = await mealieRequest({ baseUrl, apiToken }, '/api/users/self')
+
+    const config = existing || new MealieConfig({ familyId: req.family._id })
+    config.baseUrl = baseUrl
+    if (newToken) {
+      config.apiToken = newToken
+      config.tokenPreview = newToken.slice(-4)
+    }
+    config.groupSlug = self?.groupSlug ? String(self.groupSlug) : ''
+    config.updatedByUserId = req.user.id
+    await config.save()
+
+    res.json({ ...serializeMealieConfig(config), mealieUser: self?.fullName || self?.username || '' })
+  } catch (err) {
+    sendMealieError(res, err)
+  }
+})
+
+app.delete('/api/family-settings/mealie', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    await MealieConfig.deleteOne({ familyId: req.family._id })
+    res.json({ message: 'Connexion Mealie supprimée' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/mealie/recipes?search=... : recherche de recettes (tout membre de la famille).
+app.get('/api/mealie/recipes', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const config = await getFamilyMealieConfig(req.family._id)
+    const search = String(req.query.search || '').trim().slice(0, 100)
+    const params = new URLSearchParams({ page: '1', perPage: '12' })
+    if (search) {
+      params.set('search', search)
+    } else {
+      params.set('orderBy', 'updatedAt')
+      params.set('orderDirection', 'desc')
+    }
+
+    const data = await mealieRequest(config, `/api/recipes?${params}`)
+    const items = Array.isArray(data?.items) ? data.items : []
+    res.json({
+      total: Number(data?.total) || items.length,
+      recipes: items.map(r => ({
+        slug: r.slug,
+        name: r.name,
+        description: String(r.description || '').slice(0, 200),
+        totalTime: r.totalTime || '',
+        imageUrl: buildMealieImageUrl(config, r)
+      }))
+    })
+  } catch (err) {
+    sendMealieError(res, err)
+  }
+})
+
+// GET /api/mealie/recipes/:slug : détail d'une recette, avec ses ingrédients convertis en
+// libellés d'articles de courses.
+app.get('/api/mealie/recipes/:slug', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const config = await getFamilyMealieConfig(req.family._id)
+    const recipe = await mealieRequest(config, `/api/recipes/${encodeURIComponent(req.params.slug)}`)
+    const ingredients = (Array.isArray(recipe?.recipeIngredient) ? recipe.recipeIngredient : [])
+      .map(mealieIngredientToShoppingName)
+      .filter(Boolean)
+
+    res.json({
+      slug: recipe.slug,
+      name: recipe.name,
+      description: String(recipe.description || ''),
+      servings: recipe.recipeServings || recipe.recipeYield || '',
+      recipeUrl: buildMealieRecipeUrl(config, recipe.slug),
+      imageUrl: buildMealieImageUrl(config, recipe),
+      ingredients
+    })
+  } catch (err) {
+    sendMealieError(res, err)
   }
 })
 
@@ -5231,6 +5455,7 @@ mountMcpServer(app, {
   createMealGuestsBatch,
   createShoppingItemsForIngredients,
   deleteMealCascade,
+  sanitizeRecipeUrl,
   getOrSeedShoppingCategories
 })
 

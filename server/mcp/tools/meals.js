@@ -14,7 +14,7 @@ const ingredientSchema = z.union([
 ])
 
 export const registerMealTools = (server, req, ctx) => {
-  const { createShoppingItemsForIngredients, deleteMealCascade, ALERT_ACTIONS } = ctx
+  const { createShoppingItemsForIngredients, deleteMealCascade, sanitizeRecipeUrl, ALERT_ACTIONS } = ctx
   const familyId = req.family._id
 
   server.registerTool('list_meals', {
@@ -41,10 +41,11 @@ export const registerMealTools = (server, req, ctx) => {
       slot: z.enum(['lunch', 'dinner']),
       dish: z.string().describe('Nom du plat'),
       notes: z.string().optional(),
+      recipeUrl: z.string().optional().describe('Lien http(s) vers la recette (ex : recette Mealie)'),
       suggestedBy: z.string().optional().describe('Nom ou id du membre qui suggère le plat'),
       ingredients: z.array(ingredientSchema).optional()
     }
-  }, async ({ date, slot, dish, notes, suggestedBy, ingredients }) => {
+  }, async ({ date, slot, dish, notes, recipeUrl, suggestedBy, ingredients }) => {
     const cleanDish = String(dish).trim()
     if (!cleanDish) throw new Error('L\'intitulé du plat ne peut pas être vide')
 
@@ -57,7 +58,8 @@ export const registerMealTools = (server, req, ctx) => {
       slot: slot === 'dinner' ? 'dinner' : 'lunch',
       dish: cleanDish,
       suggestedBy: memberId,
-      notes: notes ? String(notes).trim() : ''
+      notes: notes ? String(notes).trim() : '',
+      recipeUrl: sanitizeRecipeUrl(recipeUrl)
     })
     await newMeal.save()
 
@@ -83,9 +85,10 @@ export const registerMealTools = (server, req, ctx) => {
       slot: z.enum(['lunch', 'dinner']).optional(),
       dish: z.string().optional(),
       notes: z.string().optional(),
+      recipeUrl: z.string().optional().describe('Lien http(s) vers la recette ; chaîne vide pour le retirer'),
       suggestedBy: z.string().optional()
     }
-  }, async ({ id, date, slot, dish, notes, suggestedBy }) => {
+  }, async ({ id, date, slot, dish, notes, recipeUrl, suggestedBy }) => {
     const meal = await Meal.findOne({ id: Number(id), familyId })
     if (!meal) throw new Error('Plat non trouvé')
 
@@ -97,6 +100,7 @@ export const registerMealTools = (server, req, ctx) => {
       meal.dish = cleanDish
     }
     if (notes !== undefined) meal.notes = String(notes).trim()
+    if (recipeUrl !== undefined) meal.recipeUrl = sanitizeRecipeUrl(recipeUrl)
     if (suggestedBy !== undefined) meal.suggestedBy = suggestedBy ? (await resolveMember(familyId, suggestedBy)).id : null
 
     await meal.save()

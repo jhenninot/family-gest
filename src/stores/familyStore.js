@@ -1172,6 +1172,22 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  // Recherche de recettes sur le serveur Mealie de la famille (relayée par l'API : le jeton
+  // Mealie ne quitte jamais le serveur). Lève une erreur avec le message renvoyé par l'API.
+  const searchMealieRecipes = async (search, { signal } = {}) => {
+    const res = await fetch(`/api/mealie/recipes?search=${encodeURIComponent(search)}`, { headers: getHeaders(), signal })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || 'Erreur lors de la recherche Mealie')
+    return data.recipes || []
+  }
+
+  const getMealieRecipe = async (slug) => {
+    const res = await fetch(`/api/mealie/recipes/${encodeURIComponent(slug)}`, { headers: getHeaders() })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || 'Erreur lors de la récupération de la recette Mealie')
+    return data
+  }
+
   const updateMeal = async (id, mealData) => {
     try {
       const res = await fetch(`/api/meals/${id}`, {
@@ -1228,6 +1244,8 @@ export const useFamilyStore = defineStore('family', () => {
 
   return {
     isDarkMode,
+    searchMealieRecipes,
+    getMealieRecipe,
     toggleTheme,
     currentFamily,
     currentFamilyRole,

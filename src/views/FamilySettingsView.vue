@@ -219,6 +219,78 @@
         </div>
       </div>
 
+      <!-- Mealie Card: connexion au serveur de recettes Mealie de la famille -->
+      <div class="card glass-card mealie-card margin-top-lg">
+        <div class="section-title-group">
+          <h2 class="section-title">
+            <ChefHat :size="20" class="title-icon-mealie" /> Serveur de recettes Mealie
+          </h2>
+          <p class="section-subtitle">
+            Reliez votre instance Mealie pour rechercher une recette lors de l'ajout d'un repas : le plat,
+            le lien vers la recette et ses ingrédients sont alors pré-remplis. Le jeton d'API se crée dans
+            Mealie, depuis <em>Profil › Gérer vos jetons d'API</em>. Il est stocké chiffré et n'est jamais
+            transmis aux navigateurs des membres.
+          </p>
+        </div>
+
+        <div class="margin-top-md">
+          <div v-if="mealieLoading" class="mcp-status-line">
+            <Loader2 :size="16" class="spin" /> Chargement de la configuration Mealie...
+          </div>
+
+          <form v-else @submit.prevent="saveMealieConfig">
+            <div v-if="mealieStatus.configured" class="mcp-status-line mealie-status">
+              ✅ Connecté à <code>{{ mealieStatus.baseUrl }}</code>
+              · jeton se terminant par <code>...{{ mealieStatus.tokenPreview }}</code>
+              <span v-if="mealieConnectedAs">· compte « {{ mealieConnectedAs }} »</span>
+            </div>
+
+            <div class="mealie-form-grid">
+              <div class="form-group">
+                <label class="form-label">URL du serveur Mealie</label>
+                <input
+                  v-model="mealieForm.baseUrl"
+                  type="url"
+                  required
+                  placeholder="https://mealie.exemple.fr"
+                  class="form-input"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Jeton d'API</label>
+                <input
+                  v-model="mealieForm.apiToken"
+                  type="password"
+                  autocomplete="off"
+                  :required="!mealieStatus.configured"
+                  :placeholder="mealieStatus.configured ? 'Laisser vide pour conserver le jeton actuel' : 'Jeton généré dans Mealie'"
+                  class="form-input"
+                />
+              </div>
+            </div>
+
+            <p v-if="mealieError" class="mealie-error">{{ mealieError }}</p>
+
+            <div class="mcp-connector-actions">
+              <button type="submit" class="btn btn-primary" :disabled="mealieSaving">
+                <Loader2 v-if="mealieSaving" :size="15" class="spin" />
+                <Plug v-else :size="15" />
+                <span>{{ mealieSaving ? 'Vérification de la connexion...' : 'Tester et enregistrer' }}</span>
+              </button>
+              <button
+                v-if="mealieStatus.configured"
+                type="button"
+                class="btn btn-danger"
+                :disabled="mealieSaving"
+                @click="removeMealieConfig"
+              >
+                <Trash2 :size="15" /> Déconnecter
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <!-- Shopping Categories Card: Catégories de courses -->
       <div class="card glass-card shopping-cats-card margin-top-lg">
         <div class="shopping-cats-header">
@@ -847,7 +919,7 @@ import {
   ShieldCheck, Loader2, Globe,
   UserPlus, Download, ShoppingCart, Plus, Pencil, Trash2, ExternalLink,
   Users, Shield,
-  Bot, RefreshCw, Copy, KeyRound
+  Bot, RefreshCw, Copy, KeyRound, ChefHat, Plug
 } from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -1393,9 +1465,87 @@ const copyMcpUrl = async () => {
   }
 }
 
+// --- Connexion au serveur de recettes Mealie ---
+const mealieLoading = ref(true)
+const mealieSaving = ref(false)
+const mealieStatus = ref({ configured: false })
+const mealieForm = ref({ baseUrl: '', apiToken: '' })
+const mealieError = ref('')
+const mealieConnectedAs = ref('')
+
+// Le drapeau de la famille courante pilote l'affichage de la recherche Mealie dans la vue Repas.
+const setFamilyMealieEnabled = (enabled) => {
+  if (store.currentFamily) store.currentFamily.mealieEnabled = enabled
+}
+
+const fetchMealieConfig = async () => {
+  mealieLoading.value = true
+  try {
+    const res = await fetch('/api/family-settings/mealie', { headers: getSettingsHeaders() })
+    if (!res.ok) throw new Error('Erreur lors de la récupération de la configuration Mealie')
+    mealieStatus.value = await res.json()
+    mealieForm.value = { baseUrl: mealieStatus.value.baseUrl || '', apiToken: '' }
+  } catch (err) {
+    console.error(err)
+  } finally {
+    mealieLoading.value = false
+  }
+}
+
+const saveMealieConfig = async () => {
+  mealieError.value = ''
+  mealieSaving.value = true
+  try {
+    const res = await fetch('/api/family-settings/mealie', {
+      method: 'PUT',
+      headers: getSettingsHeaders(),
+      body: JSON.stringify({
+        baseUrl: mealieForm.value.baseUrl.trim(),
+        apiToken: mealieForm.value.apiToken.trim()
+      })
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || 'Erreur lors de l\'enregistrement de la configuration Mealie')
+    mealieStatus.value = data
+    mealieConnectedAs.value = data.mealieUser || ''
+    mealieForm.value = { baseUrl: data.baseUrl, apiToken: '' }
+    setFamilyMealieEnabled(true)
+  } catch (err) {
+    mealieError.value = err.message
+  } finally {
+    mealieSaving.value = false
+  }
+}
+
+const removeMealieConfig = async () => {
+  const ok = await confirm({
+    title: 'Déconnecter Mealie ?',
+    message: 'La recherche de recettes Mealie ne sera plus proposée lors de l\'ajout d\'un repas. Les liens de recettes déjà enregistrés sur les repas sont conservés.',
+    confirmText: 'Déconnecter',
+    type: 'danger'
+  })
+  if (!ok) return
+
+  mealieSaving.value = true
+  try {
+    const res = await fetch('/api/family-settings/mealie', { method: 'DELETE', headers: getSettingsHeaders() })
+    if (!res.ok) throw new Error('Erreur lors de la suppression de la configuration Mealie')
+    mealieStatus.value = { configured: false }
+    mealieConnectedAs.value = ''
+    mealieForm.value = { baseUrl: '', apiToken: '' }
+    mealieError.value = ''
+    setFamilyMealieEnabled(false)
+  } catch (err) {
+    alert(`Erreur : ${err.message}`)
+  } finally {
+    mealieSaving.value = false
+  }
+}
+
 onMounted(() => {
   if (store.isFamilyAdmin) {
     fetchMcpConnectorStatus()
+    fetchMealieConfig()
   }
 })
 
@@ -2216,6 +2366,28 @@ onMounted(() => {
   gap: 0.75rem;
   margin-top: 0.75rem;
   flex-wrap: wrap;
+}
+
+/* Mealie Card */
+.title-icon-mealie {
+  color: var(--accent-amber, #f59e0b);
+}
+
+.mealie-status {
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.mealie-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 1rem;
+}
+
+.mealie-error {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--accent-rose);
 }
 
 /* Shortcuts Admin Card */

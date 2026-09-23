@@ -115,6 +115,16 @@
                   <div class="dish-title-row">
                     <span class="dish-title">{{ m.dish }}</span>
                     <div class="dish-actions" @click.stop>
+                      <a
+                        v-if="m.recipeUrl"
+                        :href="m.recipeUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn-dish-action"
+                        title="Ouvrir la recette"
+                      >
+                        <BookOpen :size="13" />
+                      </a>
                       <button @click="openEditModal(m)" class="btn-dish-action" title="Modifier le plat">
                         <Pencil :size="13" />
                       </button>
@@ -223,6 +233,16 @@
                   <div class="dish-title-row">
                     <span class="dish-title">{{ m.dish }}</span>
                     <div class="dish-actions" @click.stop>
+                      <a
+                        v-if="m.recipeUrl"
+                        :href="m.recipeUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn-dish-action"
+                        title="Ouvrir la recette"
+                      >
+                        <BookOpen :size="13" />
+                      </a>
                       <button @click="openEditModal(m)" class="btn-dish-action" title="Modifier le plat">
                         <Pencil :size="13" />
                       </button>
@@ -336,6 +356,13 @@
               />
               <span>{{ getMemberFirstName(selectedMeal.suggestedBy) }}</span>
             </div>
+          </div>
+
+          <div class="overview-item full-width" v-if="selectedMeal.recipeUrl">
+            <span class="overview-label">Recette :</span>
+            <a :href="selectedMeal.recipeUrl" target="_blank" rel="noopener noreferrer" class="overview-val recipe-link">
+              <BookOpen :size="14" /> Voir la recette <ExternalLink :size="12" />
+            </a>
           </div>
 
           <div class="overview-item full-width" v-if="selectedMeal.notes">
@@ -644,6 +671,15 @@
             </select>
           </div>
 
+          <!-- Recherche d'une recette sur le serveur Mealie de la famille -->
+          <div v-if="store.currentFamily?.mealieEnabled" class="form-group">
+            <label class="form-label">
+              <ChefHat :size="15" class="text-amber" />
+              <span>Recette Mealie (optionnel)</span>
+            </label>
+            <MealieRecipeSearch @select="applyMealieRecipe" />
+          </div>
+
           <!-- Intitulé du plat -->
           <div class="form-group">
             <label class="form-label">
@@ -658,6 +694,12 @@
               class="form-input" 
               autofocus
             />
+
+            <div v-if="form.recipeUrl" class="linked-recipe">
+              <BookOpen :size="14" />
+              <a :href="form.recipeUrl" target="_blank" rel="noopener noreferrer">Recette liée</a>
+              <button type="button" class="btn-remove-pill" title="Retirer le lien vers la recette" @click="form.recipeUrl = ''">&times;</button>
+            </div>
 
             <!-- Quick inspiration chips -->
             <div class="inspiration-chips">
@@ -783,9 +825,12 @@ import {
   UserCheck,
   UserX,
   UserPlus,
-  X
+  X,
+  BookOpen,
+  ExternalLink
 } from '@lucide/vue'
 import UserAvatar from '../components/UserAvatar.vue'
+import MealieRecipeSearch from '../components/MealieRecipeSearch.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -1013,7 +1058,8 @@ const form = ref({
   slot: 'lunch',
   dish: '',
   suggestedBy: null,
-  notes: ''
+  notes: '',
+  recipeUrl: ''
 })
 
 const modalIngredientsList = ref([])
@@ -1032,6 +1078,21 @@ const addModalIngredient = () => {
 
 const removeModalIngredient = (idx) => {
   modalIngredientsList.value.splice(idx, 1)
+}
+
+// Recette choisie dans Mealie : reprend son nom et son lien, et, à la création, propose ses
+// ingrédients pour la liste de courses (retirables un à un avant validation).
+const applyMealieRecipe = (recipe) => {
+  form.value.dish = recipe.name
+  form.value.recipeUrl = recipe.recipeUrl || ''
+  if (isEditing.value) return
+
+  const known = new Set(modalIngredientsList.value.map(ing => ing.name.toLowerCase()))
+  for (const name of recipe.ingredients || []) {
+    if (known.has(name.toLowerCase())) continue
+    known.add(name.toLowerCase())
+    modalIngredientsList.value.push({ name, category: 'Frais', quantity: 1 })
+  }
 }
 
 const defaultMemberId = computed(() => {
@@ -1064,7 +1125,8 @@ const openAddModal = (dateStr = null, slot = 'lunch') => {
     slot: slot,
     dish: '',
     suggestedBy: defaultMemberId.value,
-    notes: ''
+    notes: '',
+    recipeUrl: ''
   }
   modalIngredientsList.value = []
   tempIngredientName.value = ''
@@ -1079,7 +1141,8 @@ const openEditModal = (meal) => {
     slot: meal.slot,
     dish: meal.dish,
     suggestedBy: meal.suggestedBy || defaultMemberId.value,
-    notes: meal.notes || ''
+    notes: meal.notes || '',
+    recipeUrl: meal.recipeUrl || ''
   }
   modalIngredientsList.value = []
   tempIngredientName.value = ''
@@ -1109,7 +1172,8 @@ const handleSubmitMeal = async () => {
         slot: form.value.slot,
         dish: form.value.dish.trim(),
         suggestedBy: form.value.suggestedBy,
-        notes: form.value.notes.trim()
+        notes: form.value.notes.trim(),
+        recipeUrl: form.value.recipeUrl
       })
       closeModal()
     } else {
@@ -1119,6 +1183,7 @@ const handleSubmitMeal = async () => {
         dish: form.value.dish.trim(),
         suggestedBy: form.value.suggestedBy,
         notes: form.value.notes.trim(),
+        recipeUrl: form.value.recipeUrl,
         ingredients: modalIngredientsList.value
       })
 
@@ -2492,6 +2557,32 @@ button.slot-headcount-circle:hover {
   color: var(--accent-amber);
   border-color: var(--accent-amber);
   transform: translateY(-1px);
+}
+
+/* Lien vers la recette (Mealie) */
+.linked-recipe {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-amber-light);
+  color: var(--accent-amber);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.linked-recipe a {
+  color: inherit;
+}
+
+.recipe-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--accent-amber);
+  font-weight: 600;
 }
 
 /* Modal Ingredients Tags */
