@@ -82,8 +82,9 @@
               <div class="item-tags">
                 <span class="qty-tag">Qté : {{ item.quantity }}</span>
                 <span v-if="item.urgent" class="badge badge-rose">Urgent 🔥</span>
-                <span v-if="getMealName(item.mealId)" class="badge badge-purple" :title="'Ingrédient lié au repas : ' + getMealName(item.mealId)">
+                <span v-if="getLinkedMeal(item.mealId)" class="badge badge-purple" :title="getMealTooltip(item.mealId)">
                   🍲 {{ getMealName(item.mealId) }}
+                  <span class="meal-badge-date">· {{ formatMealShortDate(getLinkedMeal(item.mealId)) }}</span>
                 </span>
               </div>
             </div>
@@ -130,8 +131,9 @@
             <span class="item-name">{{ item.name }}</span>
             <div class="item-tags">
               <span class="qty-tag">Qté : {{ item.quantity }}</span>
-              <span v-if="getMealName(item.mealId)" class="badge badge-purple" :title="'Ingrédient lié au repas : ' + getMealName(item.mealId)">
+              <span v-if="getLinkedMeal(item.mealId)" class="badge badge-purple" :title="getMealTooltip(item.mealId)">
                 🍲 {{ getMealName(item.mealId) }}
+                <span class="meal-badge-date">· {{ formatMealShortDate(getLinkedMeal(item.mealId)) }}</span>
               </span>
             </div>
           </div>
@@ -250,6 +252,22 @@ const getMealName = (mealId) => {
   return m ? m.dish : null
 }
 
+// Libellé court du badge : « mar. 24 sept. · midi ».
+const formatMealShortDate = (meal) => {
+  if (!meal || !meal.date) return ''
+  const slotLabel = meal.slot === 'dinner' ? 'soir' : 'midi'
+  const [year, month, day] = meal.date.split('-').map(Number)
+  const d = new Date(year, month - 1, day)
+  if (Number.isNaN(d.getTime())) return `${meal.date} · ${slotLabel}`
+  const dayFormatted = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+  return `${dayFormatted} · ${slotLabel}`
+}
+
+const getMealTooltip = (mealId) => {
+  const meal = getLinkedMeal(mealId)
+  return meal ? `Ingrédient lié au repas : ${meal.dish} — ${formatMealDate(meal)}` : ''
+}
+
 const formatMealDate = (meal) => {
   if (!meal || !meal.date) return ''
   const slotLabel = meal.slot === 'dinner' ? 'Dîner (Soir)' : 'Déjeuner (Midi)'
@@ -343,6 +361,11 @@ const handleEditSave = () => {
 </script>
 
 <style scoped>
+.meal-badge-date {
+  font-weight: 500;
+  opacity: 0.85;
+}
+
 .text-amber { color: var(--accent-amber); }
 .margin-bottom-lg { margin-bottom: 2rem; }
 .margin-top-lg { margin-top: 2rem; }
