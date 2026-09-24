@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './authStore'
+import { themePreference as themePreferenceRef, isDarkMode as isDarkModeRef, setThemePreference } from '../utils/theme.js'
 import {
   DEFAULT_WEEK_ANCHOR,
   isUsuallyPresent,
@@ -11,19 +12,9 @@ import {
 } from '@shared/presence.js'
 
 export const useFamilyStore = defineStore('family', () => {
-  // Theme state
-  const isDarkMode = ref(localStorage.getItem('familygest_theme') === 'dark')
-  
-  const toggleTheme = () => {
-    isDarkMode.value = !isDarkMode.value
-    const theme = isDarkMode.value ? 'dark' : 'light'
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('familygest_theme', theme)
-  }
-
-  if (isDarkMode.value) {
-    document.documentElement.setAttribute('data-theme', 'dark')
-  }
+  // Thème (logique dans utils/theme.js, exposée ici pour les composants)
+  const themePreference = themePreferenceRef
+  const isDarkMode = isDarkModeRef
 
   // Reactive State
   const currentFamily = ref(null)
@@ -1261,9 +1252,10 @@ export const useFamilyStore = defineStore('family', () => {
 
   return {
     isDarkMode,
+    themePreference,
+    setThemePreference,
     searchMealieRecipes,
     getMealieRecipe,
-    toggleTheme,
     currentFamily,
     currentFamilyRole,
     currentFamilyIsAdmin,

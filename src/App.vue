@@ -114,19 +114,32 @@
                 </div>
               </button>
 
-              <button @click="toggleThemeFromMenu" class="user-dropdown-item">
+              <div class="user-dropdown-item theme-item">
                 <div class="item-icon-wrapper theme-icon">
-                  <Sun v-if="familyStore.isDarkMode" :size="16" />
-                  <Moon v-else :size="16" />
+                  <SunMoon v-if="familyStore.themePreference === 'auto'" :size="16" />
+                  <Moon v-else-if="familyStore.isDarkMode" :size="16" />
+                  <Sun v-else :size="16" />
                 </div>
                 <div class="item-label-group">
-                  <span class="item-title">{{ familyStore.isDarkMode ? 'Mode Clair' : 'Mode Sombre' }}</span>
-                  <span class="item-subtitle">{{ familyStore.isDarkMode ? 'Passer au thème clair' : 'Passer au thème sombre' }}</span>
+                  <span class="item-title">Thème</span>
+                  <span class="item-subtitle">{{ themeSubtitle }}</span>
                 </div>
-                <span class="theme-status-tag">
-                  {{ familyStore.isDarkMode ? 'Sombre' : 'Clair' }}
-                </span>
-              </button>
+                <div class="theme-switch" role="radiogroup" aria-label="Thème">
+                  <button
+                    v-for="option in themeOptions"
+                    :key="option.value"
+                    type="button"
+                    role="radio"
+                    :aria-checked="familyStore.themePreference === option.value"
+                    :title="option.title"
+                    class="theme-switch-btn"
+                    :class="{ active: familyStore.themePreference === option.value }"
+                    @click="familyStore.setThemePreference(option.value)"
+                  >
+                    <component :is="option.icon" :size="14" />
+                  </button>
+                </div>
+              </div>
 
               <!-- Rafraîchir l'application / Vider le cache -->
               <button @click="handleForceRefresh" class="user-dropdown-item refresh-item" :disabled="isRefreshing">
@@ -196,7 +209,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 import { useFamilyStore } from './stores/familyStore'
-import { Sun, Moon, LogOut, User, Grid, ShieldAlert, Settings, RefreshCw } from '@lucide/vue'
+import { Sun, Moon, SunMoon, LogOut, User, Grid, ShieldAlert, Settings, RefreshCw } from '@lucide/vue'
 import { forceAppRefresh } from './utils/cacheHelper'
 import Sidebar from './components/Sidebar.vue'
 import UserAvatar from './components/UserAvatar.vue'
@@ -305,9 +318,16 @@ const openProfileFromMenu = () => {
   showProfileModal.value = true
 }
 
-const toggleThemeFromMenu = () => {
-  familyStore.toggleTheme()
-}
+const themeOptions = [
+  { value: 'auto', icon: SunMoon, title: 'Automatique : suit le mode nuit de l\'appareil' },
+  { value: 'light', icon: Sun, title: 'Clair' },
+  { value: 'dark', icon: Moon, title: 'Sombre' }
+]
+
+const themeSubtitle = computed(() => {
+  if (familyStore.themePreference === 'auto') return 'Suit l\'appareil'
+  return familyStore.themePreference === 'dark' ? 'Toujours sombre' : 'Toujours clair'
+})
 
 const logoutFromMenu = () => {
   closeUserMenu()
@@ -742,6 +762,48 @@ onUnmounted(() => {
 .item-subtitle {
   font-size: 0.72rem;
   color: var(--text-muted);
+}
+
+.user-dropdown-item.theme-item {
+  cursor: default;
+}
+
+.user-dropdown-item.theme-item:hover,
+.user-dropdown-item.theme-item:active {
+  transform: none;
+}
+
+.theme-switch {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-full);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.theme-switch-btn {
+  width: 28px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.theme-switch-btn:hover {
+  color: var(--text-primary);
+}
+
+.theme-switch-btn.active {
+  background: var(--accent-primary);
+  color: #fff;
 }
 
 .theme-status-tag {
