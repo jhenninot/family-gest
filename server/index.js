@@ -44,6 +44,7 @@ import { migrateNotificationPreferences } from './scripts/migrate-notification-p
 import { migrateUsualPresenceGrid } from './scripts/migrate-usual-presence-grid.js'
 import { startDigestScheduler, mountDigestAdminRoutes } from './digest/index.js'
 import { escapeHtml } from './digest/templates.js'
+import { normalizeLanguage } from './i18n/index.js'
 import { normalizeUsualPresenceConfig, summarizeUsualPresence, mondayOf, DEFAULT_WEEK_ANCHOR } from '../shared/presence.js'
 
 dotenv.config()
@@ -1134,6 +1135,7 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
         color: user.color,
         points: user.points,
         notificationPreferences: user.notificationPreferences,
+        language: user.language || null,
         usualPresence: user.usualPresence || 'present',
         families: familiesData
       }
@@ -1199,6 +1201,7 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
         color: user.color,
         points: user.points,
         notificationPreferences: user.notificationPreferences,
+        language: user.language || null,
         usualPresence: user.usualPresence || 'present',
         families: familiesData
       }
@@ -1366,6 +1369,7 @@ app.post('/api/auth/set-password', authRateLimiter, async (req, res) => {
         color: user.color,
         points: user.points,
         notificationPreferences: user.notificationPreferences,
+        language: user.language || null,
         usualPresence: user.usualPresence || 'present'
       }
     })
@@ -1380,13 +1384,18 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     const user = await User.findOne({ id: req.user.id })
     if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
 
-    const { firstName, lastName, email, password, role, avatar, color, notificationPreferences } = req.body
+    const { firstName, lastName, email, password, role, avatar, color, notificationPreferences, language } = req.body
 
     if (firstName) user.firstName = firstName.trim()
     if (lastName) user.lastName = lastName.trim()
     if (role) user.role = role
     if (avatar) user.avatar = avatar
     if (color) user.color = color
+    if (language !== undefined) {
+      const normalized = normalizeLanguage(language)
+      if (!normalized) return res.status(400).json({ error: 'Langue non prise en charge' })
+      user.language = normalized
+    }
 
     // La présence habituelle n'est volontairement PAS modifiable ici. User.usualPresence n'est
     // qu'une GRAINE, recopiée dans FamilyMember à la création d'une adhésion ; la source de
@@ -1437,6 +1446,7 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
       color: user.color,
       points: user.points,
       notificationPreferences: user.notificationPreferences,
+      language: user.language || null,
       usualPresence: user.usualPresence || 'present'
     })
   } catch (err) {

@@ -80,9 +80,10 @@ export const useAuthStore = defineStore('auth', () => {
         return { success: false, error: data.error }
       }
 
-      user.value = data
-      localStorage.setItem('familygest_user', JSON.stringify(data))
-      return { success: true, user: data }
+      // Fusion : la réponse du profil ne contient ni les familles ni isSuperAdmin
+      user.value = { ...user.value, ...data }
+      localStorage.setItem('familygest_user', JSON.stringify(user.value))
+      return { success: true, user: user.value }
     } catch (err) {
       error.value = 'Impossible de contacter le serveur'
       return { success: false, error: err.message }

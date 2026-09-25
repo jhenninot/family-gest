@@ -141,6 +141,32 @@
                 </div>
               </div>
 
+              <!-- Langue du compte (masqué tant que les traductions ne sont pas activées) -->
+              <div v-if="i18nActive" class="user-dropdown-item theme-item">
+                <div class="item-icon-wrapper theme-icon">
+                  <Languages :size="16" />
+                </div>
+                <div class="item-label-group">
+                  <span class="item-title">{{ t('common.language.title') }}</span>
+                  <span class="item-subtitle">{{ t('common.language.subtitle') }}</span>
+                </div>
+                <div class="theme-switch" role="radiogroup" :aria-label="t('common.language.title')">
+                  <button
+                    v-for="lang in SUPPORTED_LOCALES"
+                    :key="lang"
+                    type="button"
+                    role="radio"
+                    :aria-checked="currentLocale === lang"
+                    :title="LOCALE_LABELS[lang]"
+                    class="theme-switch-btn lang-switch-btn"
+                    :class="{ active: currentLocale === lang }"
+                    @click="changeLanguage(lang)"
+                  >
+                    {{ lang.toUpperCase() }}
+                  </button>
+                </div>
+              </div>
+
               <!-- Rafraîchir l'application / Vider le cache -->
               <button @click="handleForceRefresh" class="user-dropdown-item refresh-item" :disabled="isRefreshing">
                 <div class="item-icon-wrapper refresh-icon">
@@ -209,7 +235,9 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 import { useFamilyStore } from './stores/familyStore'
-import { Sun, Moon, SunMoon, LogOut, User, Grid, ShieldAlert, Settings, RefreshCw } from '@lucide/vue'
+import { Sun, Moon, SunMoon, LogOut, User, Grid, ShieldAlert, Settings, RefreshCw, Languages } from '@lucide/vue'
+import { useI18n } from 'vue-i18n'
+import { SUPPORTED_LOCALES, LOCALE_LABELS, currentLocale, isI18nActive, setLocale } from './i18n'
 import { forceAppRefresh } from './utils/cacheHelper'
 import Sidebar from './components/Sidebar.vue'
 import UserAvatar from './components/UserAvatar.vue'
@@ -222,6 +250,15 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
+const { t } = useI18n()
+
+// Langue : appliquée tout de suite, puis enregistrée sur le compte (emails et notifications)
+const i18nActive = isI18nActive()
+const changeLanguage = async (lang) => {
+  if (lang === currentLocale.value) return
+  await setLocale(lang)
+  await authStore.updateProfile({ language: lang })
+}
 
 const appVersion = __APP_VERSION__
 const buildSha = __APP_BUILD_SHA__
@@ -799,6 +836,14 @@ onUnmounted(() => {
 
 .theme-switch-btn:hover {
   color: var(--text-primary);
+}
+
+.lang-switch-btn {
+  width: auto;
+  min-width: 28px;
+  padding: 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
 .theme-switch-btn.active {

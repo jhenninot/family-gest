@@ -10,7 +10,11 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
-    __APP_BUILD_SHA__: JSON.stringify((process.env.GIT_SHA || 'dev').slice(0, 7))
+    __APP_BUILD_SHA__: JSON.stringify((process.env.GIT_SHA || 'dev').slice(0, 7)),
+    // vue-i18n : API Composition uniquement (bundle plus léger), sans outils de développement en production
+    __VUE_I18N_FULL_INSTALL__: true,
+    __VUE_I18N_LEGACY_API__: false,
+    __INTLIFY_PROD_DEVTOOLS__: false
   },
   plugins: [
     vue(),
