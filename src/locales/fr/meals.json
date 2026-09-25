@@ -8,6 +8,118 @@
     "errors": {
       "search": "Erreur lors de la recherche Mealie",
       "recipe": "Erreur lors de la récupération de la recette Mealie"
-    }
+    },
+    "searchPlaceholder": "Chercher une recette dans Mealie…",
+    "noResult": "Aucune recette trouvée pour « {query} »."
+  },
+  "slots": {
+    "lunchShort": "midi",
+    "dinnerShort": "soir",
+    "lunchLong": "Déjeuner (midi)",
+    "dinnerLong": "Dîner (soir)"
+  },
+  "thisWeek": "Cette semaine",
+  "backToCurrentWeek": "Revenir à la semaine actuelle",
+  "jumpToDateTitle": "Choisir une date pour sauter directement à la semaine",
+  "goTo": "Aller au…",
+  "plannedCount": "{n} plat prévu | {n} plats prévus",
+  "headcountLunchTitle": "{n} personne à table ce midi — voir le détail | {n} personnes à table ce midi — voir le détail",
+  "headcountDinnerTitle": "{n} personne à table ce soir — voir le détail | {n} personnes à table ce soir — voir le détail",
+  "addForLunch": "Ajouter un plat pour ce midi",
+  "addForDinner": "Ajouter un plat pour ce soir",
+  "openRecipe": "Ouvrir la recette",
+  "editDish": "Modifier le plat",
+  "deleteThisDish": "Supprimer ce plat",
+  "noDish": "Aucun plat",
+  "addDish": "Ajouter un plat",
+  "seeRecipe": "Voir la recette",
+  "suggestDish": "Suggérer un plat",
+  "thisDish": "ce plat",
+  "ingredientsBadge": {
+    "seeTitle": "Voir la liste des ingrédients pour ce plat",
+    "addTitle": "Ajouter des ingrédients à la liste de courses",
+    "count": "{n} ingrédient | {n} ingrédients",
+    "add": "+ Ingrédients"
+  },
+  "savedPrompt": {
+    "title": "Plat enregistré avec succès !",
+    "text": "Ajoutez dès maintenant les ingrédients nécessaires à votre liste de courses ci-dessous :"
+  },
+  "detail": {
+    "moment": "Moment :",
+    "lunchMoment": "Midi (déjeuner)",
+    "dinnerMoment": "Soir (dîner)",
+    "date": "Date :",
+    "suggestedBy": "Suggéré par :",
+    "recipe": "Recette :",
+    "remarks": "Remarques :",
+    "itemsToBuy": "Articles & ingrédients à acheter",
+    "recipeIngredients": "Ingrédients de la recette",
+    "alreadyListed": "{n} ingrédient de la recette déjà dans la liste ci-dessous. | {n} ingrédients de la recette déjà dans la liste ci-dessous.",
+    "allListed": "Tous les ingrédients de la recette sont déjà dans la liste de courses de ce plat.",
+    "addSelected": "Ajouter {n} à la liste de courses",
+    "removeFromList": "Retirer de la liste de courses",
+    "noIngredient": "Aucun ingrédient de courses n'est encore associé à ce plat.",
+    "addIngredientPlaceholder": "Ajouter un ingrédient (ex : crème fraîche, lardons, pâtes…)"
+  },
+  "presence": {
+    "present": "Présents ({n})",
+    "exceptional": "exceptionnel",
+    "declareAbsent": "Déclarer {name} absent(e) à ce repas",
+    "absentBtn": "Absent",
+    "noneAtTable": "Aucun membre de la famille à table.",
+    "guests": "Invités ({n})",
+    "removeGuest": "Retirer {name} de ce repas",
+    "guestName": "Nom de l'invité",
+    "invite": "Inviter",
+    "absent": "Absents ({n})",
+    "declarePresent": "Déclarer {name} présent(e) à ce repas",
+    "presentBtn": "Présent",
+    "noAbsence": "Aucune absence déclarée.",
+    "usuallyAbsent": "Habituellement absents ({n})"
+  },
+  "form": {
+    "moment": "Moment du repas",
+    "day": "Jour du repas",
+    "pastLocked": "(Passé - non modifiable)",
+    "mealieRecipe": "Recette Mealie (optionnel)",
+    "dish": "Plat ou menu",
+    "dishPlaceholder": "ex : Gratin dauphinois, poulet rôti, salade composée…",
+    "linkedRecipe": "Recette liée",
+    "unlinkRecipe": "Retirer le lien vers la recette",
+    "quickIdeas": "Idées rapides :",
+    "ingredients": "Ingrédients à ajouter à la liste de courses (optionnel)",
+    "ingredientPlaceholder": "ex : viande hachée, œufs, fromage…",
+    "suggestedBy": "Suggéré par",
+    "notes": "Notes ou détails (optionnel)",
+    "notesPlaceholder": "ex : avec salade verte, sans gluten…",
+    "submit": "Valider le plat"
+  },
+  "ideas": {
+    "pasta": "Pâtes",
+    "chicken": "Poulet",
+    "salad": "Salade",
+    "pizza": "Pizza",
+    "fish": "Poisson",
+    "soup": "Soupe",
+    "quiche": "Quiche",
+    "burgers": "Burgers"
+  },
+  "delete": {
+    "title": "Supprimer le plat",
+    "message": "Voulez-vous vraiment retirer <strong>« {dish} »</strong> du menu ?",
+    "warning": "Tous les ingrédients associés dans la liste de courses seront également supprimés."
+  },
+  "errors": {
+    "moveFailed": "Impossible de déplacer ce plat.",
+    "pastDate": "Impossible d'ajouter un repas à une date passée."
+  },
+  "picker": {
+    "header": "Ingrédients de la recette ({selected}/{total} cochés)",
+    "uncheckAll": "Tout décocher",
+    "checkAll": "Tout cocher",
+    "scaledFor": "Quantités pour {n} personne (recette prévue pour {base}) | Quantités pour {n} personnes (recette prévue pour {base})",
+    "unknownServings": "Quantités de la recette (nombre de portions inconnu)",
+    "nobodyAtTable": "Quantités de la recette (personne à table sur ce créneau)"
   }
 }

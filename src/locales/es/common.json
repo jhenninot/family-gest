@@ -7,11 +7,20 @@
   "errors": {
     "server": "Error de conexión con el servidor.",
     "unreachable": "No se puede contactar con el servidor",
-    "noActiveFamily": "Ninguna familia activa"
+    "noActiveFamily": "Ninguna familia activa",
+    "retry": "Se ha producido un error, inténtalo de nuevo."
   },
   "logout": "Cerrar sesión",
   "cancel": "Cancelar",
   "saving": "Guardando…",
   "close": "Cerrar",
-  "hide": "Ocultar"
+  "hide": "Ocultar",
+  "edit": "Editar",
+  "delete": "Eliminar",
+  "save": "Guardar",
+  "today": "Hoy",
+  "unknown": "Desconocido",
+  "irreversible": "Esta acción es irreversible.",
+  "add": "Añadir",
+  "tomorrow": "Mañana"
 }

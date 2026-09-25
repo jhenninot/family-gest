@@ -1,21 +1,20 @@
 <template>
   <div class="recipe-ing-picker">
     <div class="recipe-ing-header">
-      <span>Ingrédients de la recette ({{ selectedCount }}/{{ ingredients.length }} cochés)</span>
+      <span>{{ t('meals.picker.header', { selected: selectedCount, total: ingredients.length }) }}</span>
       <button type="button" class="recipe-ing-toggle-all" @click="toggleAll">
-        {{ allSelected ? 'Tout décocher' : 'Tout cocher' }}
+        {{ allSelected ? t('meals.picker.uncheckAll') : t('meals.picker.checkAll') }}
       </button>
     </div>
     <div class="recipe-ing-scale">
       <template v-if="baseServings && headcount > 0">
-        Quantités pour {{ headcount }} personne{{ headcount > 1 ? 's' : '' }}
-        (recette prévue pour {{ baseServings }})
+        {{ t('meals.picker.scaledFor', { n: headcount, base: baseServings }, headcount) }}
       </template>
       <template v-else-if="!baseServings">
-        Quantités de la recette (nombre de portions inconnu)
+        {{ t('meals.picker.unknownServings') }}
       </template>
       <template v-else>
-        Quantités de la recette (personne à table sur ce créneau)
+        {{ t('meals.picker.nobodyAtTable') }}
       </template>
     </div>
     <label
@@ -32,6 +31,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { formatRecipeIngredient, getRecipeScaleFactor } from '../utils/recipeIngredients'
 
 // Liste à cocher des ingrédients d'une recette Mealie. `ingredients` vient de
@@ -42,6 +42,8 @@ const props = defineProps({
   baseServings: { type: Number, default: null },
   headcount: { type: Number, default: 0 }
 })
+
+const { t } = useI18n()
 
 const scaleFactor = computed(() => getRecipeScaleFactor(props.baseServings, props.headcount))
 const selectedCount = computed(() => props.ingredients.filter(ing => ing.selected).length)

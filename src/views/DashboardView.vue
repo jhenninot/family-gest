@@ -11,7 +11,7 @@
           <HouseUser :size="22" />
         </div>
         <div class="metric-details">
-          <span class="metric-label">Présence</span>
+          <span class="metric-label">{{ t('nav.presence') }}</span>
           <div class="metric-value" :class="{ 'metric-value-text': store.todayAbsences.length === 0 && store.todayMealGuests.length === 0 }">
             {{ todayMealsCardValue }}
           </div>
@@ -27,10 +27,10 @@
           <ShoppingCart :size="22" />
         </div>
         <div class="metric-details">
-          <span class="metric-label">Liste de courses</span>
+          <span class="metric-label">{{ t('nav.shopping') }}</span>
           <div class="metric-value">{{ store.pendingShoppingCount }}</div>
           <span class="metric-subtext">
-            {{ urgentShoppingCount }} article(s) urgent(s)
+            {{ t('dashboard.urgentItems', { n: urgentShoppingCount }, urgentShoppingCount) }}
           </span>
         </div>
       </router-link>
@@ -41,12 +41,12 @@
           <CheckSquare :size="22" />
         </div>
         <div class="metric-details">
-          <span class="metric-label">Progression des Tâches</span>
+          <span class="metric-label">{{ t('dashboard.taskProgress') }}</span>
           <div class="metric-value">{{ store.taskCompletionPercentage }}%</div>
           <div class="progress-bar-bg margin-top-xs">
             <div class="progress-bar-fill" :style="{ width: store.taskCompletionPercentage + '%' }"></div>
           </div>
-          <span class="metric-subtext">{{ store.pendingTasksCount }} tâche(s) en attente</span>
+          <span class="metric-subtext">{{ t('dashboard.pendingTasks', { n: store.pendingTasksCount }, store.pendingTasksCount) }}</span>
         </div>
       </router-link>
 
@@ -56,7 +56,7 @@
           <Calendar :size="22" />
         </div>
         <div class="metric-details">
-          <span class="metric-label">Événements du jour</span>
+          <span class="metric-label">{{ t('dashboard.todayEvents') }}</span>
           <div class="metric-value">{{ todayEvents.length }}</div>
           <span class="metric-subtext">{{ todayEventsSubtext }}</span>
         </div>
@@ -72,14 +72,14 @@
           <div class="section-card-header">
             <div class="header-title">
               <HouseUser :size="20" class="text-emerald" />
-              <h2>Présence & Repas</h2>
+              <h2>{{ t('dashboard.presenceAndMeals') }}</h2>
             </div>
             <div class="header-links-group">
-              <router-link :to="getPath('/meals')" class="view-all-link meals-link" title="Gérer les repas de la semaine">
+              <router-link :to="getPath('/meals')" class="view-all-link meals-link" :title="t('dashboard.manageMeals')">
                 <Utensils :size="13" />
-                <span>Menus</span>
+                <span>{{ t('dashboard.menus') }}</span>
               </router-link>
-              <router-link :to="getPath('/absences')" class="view-all-link">Planning &rarr;</router-link>
+              <router-link :to="getPath('/absences')" class="view-all-link">{{ t('dashboard.planning') }} &rarr;</router-link>
             </div>
           </div>
 
@@ -90,13 +90,13 @@
                 <div class="slot-header-left">
                   <Sun :size="20" class="slot-row-icon slot-row-icon-lunch" />
                   <div class="slot-row-title-col">
-                    <span class="slot-row-title">Déjeuner</span>
-                    <span class="slot-row-subtitle">Midi</span>
+                    <span class="slot-row-title">{{ t('dashboard.slots.lunch') }}</span>
+                    <span class="slot-row-subtitle">{{ t('dashboard.slots.lunchSub') }}</span>
                   </div>
                 </div>
                 <div class="slot-row-badge-wrapper">
                   <span class="headcount-badge badge-lunch">
-                    <strong>{{ lunchHeadcount }}</strong> à table
+                    <i18n-t keypath="dashboard.atTable" :plural="lunchHeadcount" tag="span"><template #n><strong>{{ lunchHeadcount }}</strong></template></i18n-t>
                   </span>
                 </div>
               </div>
@@ -104,7 +104,7 @@
               <div class="slot-row-content">
                 <!-- Absents -->
                 <div v-if="todayLunchPresence.absentMembers.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label absent-badge">Absents ({{ todayLunchPresence.absentMembers.length }}) :</span>
+                  <span class="detail-badge-label absent-badge">{{ t('dashboard.absentsLabel', { n: todayLunchPresence.absentMembers.length }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="m in todayLunchPresence.absentMembers" 
@@ -120,7 +120,7 @@
 
                 <!-- Présences exceptionnelles -->
                 <div v-if="todayLunchPresence.exceptionalPresences.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label presence-badge">Présences ({{ todayLunchPresence.exceptionalPresences.length }}) :</span>
+                  <span class="detail-badge-label presence-badge">{{ t('dashboard.presencesLabel', { n: todayLunchPresence.exceptionalPresences.length }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="m in todayLunchPresence.exceptionalPresences" 
@@ -137,13 +137,13 @@
 
                 <!-- Invités -->
                 <div v-if="todayLunchPresence.guests.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label guest-badge">Invités ({{ todayLunchPresence.guests.length }}) :</span>
+                  <span class="detail-badge-label guest-badge">{{ t('dashboard.guestsLabel', { n: todayLunchPresence.guests.length }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="g in todayLunchPresence.guests" 
                       :key="'l-gst-' + g.id" 
                       class="person-tag guest-tag"
-                      :title="g.note ? `Note: ${g.note}` : 'Invité'"
+                      :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('dashboard.guest')"
                     >
                       👥 {{ g.name }}
                     </span>
@@ -152,12 +152,12 @@
 
                 <!-- Au complet sans invité -->
                 <div v-if="todayLunchPresence.absentMembers.length === 0 && todayLunchPresence.exceptionalPresences.length === 0 && todayLunchPresence.guests.length === 0" class="slot-all-present">
-                  Au complet ({{ todayLunchPresence.headcount }} personnes) sans invité
+                  {{ t('dashboard.fullNoGuestCount', { n: todayLunchPresence.headcount }) }}
                 </div>
 
                 <!-- Plat(s) prévu(s) ce midi -->
                 <div v-if="todayLunchMeals.length > 0" class="slot-dish-highlight">
-                  <span class="dish-badge-label">🍲 Au menu :</span>
+                  <span class="dish-badge-label">🍲 {{ t('dashboard.onTheMenu') }}</span>
                   <span class="dish-badge-text">{{ todayLunchMeals.map(m => m.dish).join(' • ') }}</span>
                 </div>
               </div>
@@ -169,13 +169,13 @@
                 <div class="slot-header-left">
                   <Sunset :size="20" class="slot-row-icon slot-row-icon-dinner" />
                   <div class="slot-row-title-col">
-                    <span class="slot-row-title">Dîner</span>
-                    <span class="slot-row-subtitle">Soir</span>
+                    <span class="slot-row-title">{{ t('dashboard.slots.dinner') }}</span>
+                    <span class="slot-row-subtitle">{{ t('dashboard.slots.dinnerSub') }}</span>
                   </div>
                 </div>
                 <div class="slot-row-badge-wrapper">
                   <span class="headcount-badge badge-dinner">
-                    <strong>{{ dinnerHeadcount }}</strong> à table
+                    <i18n-t keypath="dashboard.atTable" :plural="dinnerHeadcount" tag="span"><template #n><strong>{{ dinnerHeadcount }}</strong></template></i18n-t>
                   </span>
                 </div>
               </div>
@@ -183,7 +183,7 @@
               <div class="slot-row-content">
                 <!-- Absents -->
                 <div v-if="todayDinnerPresence.absentMembers.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label absent-badge">Absents ({{ todayDinnerPresence.absentMembers.length }}) :</span>
+                  <span class="detail-badge-label absent-badge">{{ t('dashboard.absentsLabel', { n: todayDinnerPresence.absentMembers.length }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="m in todayDinnerPresence.absentMembers" 
@@ -199,7 +199,7 @@
 
                 <!-- Présences exceptionnelles -->
                 <div v-if="todayDinnerPresence.exceptionalPresences.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label presence-badge">Présences ({{ todayDinnerPresence.exceptionalPresences.length }}) :</span>
+                  <span class="detail-badge-label presence-badge">{{ t('dashboard.presencesLabel', { n: todayDinnerPresence.exceptionalPresences.length }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="m in todayDinnerPresence.exceptionalPresences" 
@@ -216,13 +216,13 @@
 
                 <!-- Invités -->
                 <div v-if="todayDinnerPresence.guests.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label guest-badge">Invités ({{ todayDinnerPresence.guests.length }}) :</span>
+                  <span class="detail-badge-label guest-badge">{{ t('dashboard.guestsLabel', { n: todayDinnerPresence.guests.length }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="g in todayDinnerPresence.guests" 
                       :key="'d-gst-' + g.id" 
                       class="person-tag guest-tag"
-                      :title="g.note ? `Note: ${g.note}` : 'Invité'"
+                      :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('dashboard.guest')"
                     >
                       👥 {{ g.name }}
                     </span>
@@ -231,12 +231,12 @@
 
                 <!-- Au complet sans invité -->
                 <div v-if="todayDinnerPresence.absentMembers.length === 0 && todayDinnerPresence.exceptionalPresences.length === 0 && todayDinnerPresence.guests.length === 0" class="slot-all-present">
-                  Au complet ({{ todayDinnerPresence.headcount }} personnes) sans invité
+                  {{ t('dashboard.fullNoGuestCount', { n: todayDinnerPresence.headcount }) }}
                 </div>
 
                 <!-- Plat(s) prévu(s) ce soir -->
                 <div v-if="todayDinnerMeals.length > 0" class="slot-dish-highlight">
-                  <span class="dish-badge-label">🍲 Au menu :</span>
+                  <span class="dish-badge-label">🍲 {{ t('dashboard.onTheMenu') }}</span>
                   <span class="dish-badge-text">{{ todayDinnerMeals.map(m => m.dish).join(' • ') }}</span>
                 </div>
               </div>
@@ -248,13 +248,13 @@
                 <div class="slot-header-left">
                   <BedDouble :size="20" class="slot-row-icon slot-row-icon-night" />
                   <div class="slot-row-title-col">
-                    <span class="slot-row-title">Nuit</span>
-                    <span class="slot-row-subtitle">Couchage</span>
+                    <span class="slot-row-title">{{ t('dashboard.slots.night') }}</span>
+                    <span class="slot-row-subtitle">{{ t('dashboard.slots.nightSub') }}</span>
                   </div>
                 </div>
                 <div class="slot-row-badge-wrapper">
                   <span class="headcount-badge badge-night">
-                    <strong>{{ nightHeadcount }}</strong> présent{{ nightHeadcount > 1 ? 's' : '' }}
+                    <i18n-t keypath="dashboard.presentCount" :plural="nightHeadcount" tag="span"><template #n><strong>{{ nightHeadcount }}</strong></template></i18n-t>
                   </span>
                 </div>
               </div>
@@ -262,7 +262,7 @@
               <div class="slot-row-content">
                 <!-- Absents (dorment ailleurs) -->
                 <div v-if="todayNightPresence.absentMembers.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label absent-badge">Absents ({{ todayNightPresence.absentMembers.length }}) :</span>
+                  <span class="detail-badge-label absent-badge">{{ t('dashboard.absentsLabel', { n: todayNightPresence.absentMembers.length }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="m in todayNightPresence.absentMembers" 
@@ -278,7 +278,7 @@
 
                 <!-- Présences exceptionnelles (dorment à la maison) -->
                 <div v-if="todayNightPresence.exceptionalPresences.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label presence-badge">Présences ({{ todayNightPresence.exceptionalPresences.length }}) :</span>
+                  <span class="detail-badge-label presence-badge">{{ t('dashboard.presencesLabel', { n: todayNightPresence.exceptionalPresences.length }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="m in todayNightPresence.exceptionalPresences" 
@@ -295,13 +295,13 @@
 
                 <!-- Invités (dorment à la maison) -->
                 <div v-if="todayNightPresence.guests.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label guest-badge">Invités ({{ todayNightPresence.guests.length }}) :</span>
+                  <span class="detail-badge-label guest-badge">{{ t('dashboard.guestsLabel', { n: todayNightPresence.guests.length }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="g in todayNightPresence.guests" 
                       :key="'n-gst-' + g.id" 
                       class="person-tag guest-tag"
-                      :title="g.note ? `Note: ${g.note}` : 'Dort à la maison'"
+                      :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('dashboard.sleepsHome')"
                     >
                       👥 {{ g.name }}
                     </span>
@@ -310,7 +310,7 @@
 
                 <!-- Au complet -->
                 <div v-if="todayNightPresence.absentMembers.length === 0 && todayNightPresence.exceptionalPresences.length === 0 && todayNightPresence.guests.length === 0" class="slot-all-present">
-                  Tout le monde dort à la maison ({{ todayNightPresence.headcount }})
+                  {{ t('dashboard.everyoneSleepsHome', { n: todayNightPresence.headcount }) }}
                 </div>
               </div>
             </div>
@@ -322,9 +322,9 @@
           <div class="section-card-header">
             <div class="header-title">
               <ShoppingCart :size="20" class="text-amber" />
-              <h2>Liste de courses</h2>
+              <h2>{{ t('nav.shopping') }}</h2>
             </div>
-            <router-link :to="getPath('/shopping')" class="view-all-link">Voir la liste &rarr;</router-link>
+            <router-link :to="getPath('/shopping')" class="view-all-link">{{ t('dashboard.seeList') }} &rarr;</router-link>
           </div>
 
           <div class="tasks-list">
@@ -338,26 +338,26 @@
                 :checked="item.checked" 
                 @change="store.toggleShoppingItem(item.id)" 
                 class="custom-checkbox"
-                :title="item.checked ? 'Décocher cet article' : 'Cocher cet article (acheté)'"
+                :title="item.checked ? t('dashboard.uncheckItem') : t('dashboard.checkItem')"
               />
               <div class="task-info">
                 <span class="task-title-text">{{ item.name }}</span>
                 <div class="task-meta">
                   <span class="badge badge-amber" v-if="item.category">
-                    {{ getShoppingCategoryIcon(item.category) }} {{ item.category }}
+                    {{ getShoppingCategoryIcon(item.category) }} {{ translateValue('shoppingCategory', item.category) }}
                   </span>
                   <span v-if="item.quantity" class="assigned-tag">
-                    Qté : {{ item.quantity }}
+                    {{ t('shopping.qty', { n: item.quantity }) }}
                   </span>
                   <span v-if="item.urgent" class="badge badge-rose">
-                    Urgent 🔥
+                    {{ t('shopping.urgent') }} 🔥
                   </span>
                 </div>
               </div>
             </div>
 
             <div v-if="dashboardShoppingItems.length === 0" class="empty-state">
-              🛒 La liste de courses est vide ! Tout est sous contrôle.
+              🛒 {{ t('shopping.emptyPending') }}
             </div>
           </div>
         </div>
@@ -370,9 +370,9 @@
           <div class="section-card-header">
             <div class="header-title">
               <CheckSquare :size="20" class="text-indigo" />
-              <h2>Tâches à réaliser</h2>
+              <h2>{{ t('dashboard.tasksToDo') }}</h2>
             </div>
-            <router-link :to="getPath('/tasks')" class="view-all-link">Tout voir &rarr;</router-link>
+            <router-link :to="getPath('/tasks')" class="view-all-link">{{ t('dashboard.seeAll') }} &rarr;</router-link>
           </div>
 
           <div class="tasks-list">
@@ -391,7 +391,7 @@
               <div class="task-info">
                 <span class="task-title-text">{{ task.title }}</span>
                 <div class="task-meta">
-                  <span class="badge badge-indigo">{{ task.category }}</span>
+                  <span class="badge badge-indigo">{{ translateValue('taskCategory', task.category) }}</span>
                   <span class="assigned-tag">
                     {{ getMemberName(task.assignedTo) }}
                   </span>
@@ -400,7 +400,7 @@
             </div>
 
             <div v-if="dashboardTasks.length === 0" class="empty-state">
-              👍 Toutes les tâches sont terminées ! Bravo !
+              👍 {{ t('dashboard.allTasksDone') }}
             </div>
           </div>
         </div>
@@ -410,9 +410,9 @@
           <div class="section-card-header">
             <div class="header-title">
               <Calendar :size="20" class="text-purple" />
-              <h2>Prochains événements</h2>
+              <h2>{{ t('dashboard.upcomingEvents') }}</h2>
             </div>
-            <router-link :to="getPath('/calendar')" class="view-all-link">Voir l'agenda &rarr;</router-link>
+            <router-link :to="getPath('/calendar')" class="view-all-link">{{ t('dashboard.seeCalendar') }} &rarr;</router-link>
           </div>
 
           <div class="events-list">
@@ -441,8 +441,8 @@
                 <button 
                   @click="openGoogleCalendar(event)" 
                   class="btn-dash-cal btn-dash-google" 
-                  title="Ajouter à Google Agenda"
-                  aria-label="Ajouter à Google Agenda"
+                  :title="t('calendarExport.addToGoogle')"
+                  :aria-label="t('calendarExport.addToGoogle')"
                 >
                   <ExternalLink :size="12" />
                   <span class="dash-btn-text">Google</span>
@@ -450,8 +450,8 @@
                 <button 
                   @click="downloadIcsFile(event)" 
                   class="btn-dash-cal btn-dash-ics" 
-                  title="Télécharger pour Apple Calendrier ou Outlook (.ics)"
-                  aria-label="Télécharger pour Apple Calendrier ou Outlook"
+                  :title="t('calendarExport.downloadIcsTitle')"
+                  :aria-label="t('calendarExport.downloadIcs')"
                 >
                   <Download :size="12" />
                   <span class="dash-btn-text">.ics</span>
@@ -459,7 +459,7 @@
               </div>
             </div>
             <div v-if="dashboardEvents.length === 0" class="empty-state">
-              📅 Aucun événement dans les 7 prochains jours.
+              📅 {{ t('dashboard.noUpcomingEvents') }}
             </div>
           </div>
         </div>
@@ -474,6 +474,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
+import { useI18n } from 'vue-i18n'
+import { formatDate } from '../i18n/format'
+import { translateValue } from '../i18n/values'
 import {
   CheckSquare,
   Calendar,
@@ -494,6 +497,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const store = useFamilyStore()
+const { t } = useI18n()
 
 const currentSlug = computed(() => route.params.familySlug || store.currentFamily?.slug || localStorage.getItem('familygest_active_slug') || '')
 const getPath = (sub) => currentSlug.value ? `/${currentSlug.value}${sub}` : (sub || '/')
@@ -538,12 +542,12 @@ const todayEvents = computed(() => {
 
 const todayEventsSubtext = computed(() => {
   const events = todayEvents.value
-  if (events.length === 0) return 'Aucun événement aujourd\'hui'
+  if (events.length === 0) return t('dashboard.noEventToday')
   const maxShown = 3
   const titles = events.slice(0, maxShown).map(e => e.title)
   const remaining = events.length - maxShown
   return remaining > 0
-    ? `${titles.join(' • ')} • +${remaining} autre${remaining > 1 ? 's' : ''}`
+    ? `${titles.join(' • ')} • ${t('dashboard.moreEvents', { n: remaining }, remaining)}`
     : titles.join(' • ')
 })
 
@@ -553,9 +557,9 @@ const getShoppingCategoryIcon = (categoryName) => {
 }
 
 const getMemberName = (id) => {
-  if (!id) return 'Non assigné'
+  if (!id) return t('dashboard.unassigned')
   const m = store.members.find(m => m.id === id || String(m.id) === String(id))
-  return m ? (m.firstName || m.name) : 'Non assigné'
+  return m ? (m.firstName || m.name) : t('dashboard.unassigned')
 }
 
 const getDayNumber = (dateStr) => {
@@ -566,12 +570,12 @@ const getDayNumber = (dateStr) => {
 
 const getMonthShort = (dateStr) => {
   if (!dateStr) return ''
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { month: 'short' }).replace(/\.$/, '')
+  return formatDate(new Date(dateStr + 'T00:00:00'), { month: 'short' }).replace(/\.$/, '')
 }
 
 const getWeekdayShort = (dateStr) => {
   if (!dateStr) return ''
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short' }).replace(/\.$/, '')
+  return formatDate(new Date(dateStr + 'T00:00:00'), { weekday: 'short' }).replace(/\.$/, '')
 }
 
 const loadDashboardData = async () => {
@@ -612,7 +616,7 @@ const dinnerHeadcount = computed(() => todayDinnerPresence.value.headcount)
 const nightHeadcount = computed(() => todayNightPresence.value.headcount)
 
 const todayMealsCardValue = computed(() => {
-  return `${lunchHeadcount.value} midi • ${dinnerHeadcount.value} soir`
+  return t('dashboard.headcountSummary', { lunch: lunchHeadcount.value, dinner: dinnerHeadcount.value })
 })
 
 const todayMeals = computed(() => (store.getMealsForDate ? store.getMealsForDate(store.todayStr) : { lunch: [], dinner: [] }))
@@ -630,16 +634,16 @@ const formatTodayAbsencesSubtext = () => {
   const totalGuests = new Set([...l.guests, ...d.guests, ...n.guests].map(g => g.id)).size
 
   if (totalAbsents > 0) {
-    parts.push(`🚫 ${totalAbsents} absent${totalAbsents > 1 ? 's' : ''}`)
+    parts.push(`🚫 ${t('dashboard.absentCount', { n: totalAbsents }, totalAbsents)}`)
   }
   if (totalPresences > 0) {
-    parts.push(`🟢 ${totalPresences} présence${totalPresences > 1 ? 's' : ''}`)
+    parts.push(`🟢 ${t('dashboard.presenceCount', { n: totalPresences }, totalPresences)}`)
   }
   if (totalGuests > 0) {
-    parts.push(`👥 ${totalGuests} invité${totalGuests > 1 ? 's' : ''}`)
+    parts.push(`👥 ${t('dashboard.guestCount', { n: totalGuests }, totalGuests)}`)
   }
   if (parts.length === 0) {
-    return 'Au complet, sans invité'
+    return t('dashboard.fullNoGuest')
   }
   return parts.join(' • ')
 }
@@ -651,8 +655,8 @@ const getMemberAvatar = (memberId) => {
 
 const getMemberFirstName = (memberId) => {
   const m = store.members.find(m => m.id === memberId)
-  if (!m) return 'Inconnu'
-  return m.firstName || (m.name ? m.name.split(' ')[0] : 'Membre')
+  if (!m) return t('common.unknown')
+  return m.firstName || (m.name ? m.name.split(' ')[0] : t('menu.badges.member'))
 }
 
 </script>

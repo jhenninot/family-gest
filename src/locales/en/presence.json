@@ -1,0 +1,67 @@
+{
+  "days": {
+    "mon": "Monday",
+    "tue": "Tuesday",
+    "wed": "Wednesday",
+    "thu": "Thursday",
+    "fri": "Friday",
+    "sat": "Saturday",
+    "sun": "Sunday"
+  },
+  "daysShort": {
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "sun": "Sun"
+  },
+  "slots": {
+    "lunch": "Lunch",
+    "dinner": "Dinner",
+    "night": "Night"
+  },
+  "slotsInline": {
+    "lunch": "lunch",
+    "dinner": "dinner",
+    "night": "night"
+  },
+  "describe": {
+    "and": " and ",
+    "allPresent": "present for every slot",
+    "allAbsent": "absent for every slot",
+    "absentOn": "absent on {groups}",
+    "presentOn": "present on {groups}",
+    "simpleAbsent": "Usually absent — you report when you are present",
+    "simplePresent": "Usually present — you report your absences",
+    "everyWeek": "Every week: {summary}",
+    "weekPhase": "Week {phase}: {summary}",
+    "weekPhaseCurrent": "Week {phase} (current): {summary}"
+  },
+  "editor": {
+    "simple": "Simple",
+    "simpleDesc": "The same every day",
+    "custom": "Custom",
+    "customDesc": "By day and by meal",
+    "usuallyPresentOption": "Usually present (reports absences)",
+    "usuallyAbsentOption": "Usually absent (reports presences)",
+    "helpSelf": "Determines whether you are counted by default for family meals and overnight.",
+    "helpMember": "Determines whether this member is counted by default for family meals and overnight.",
+    "alternate": "Alternate every other week",
+    "alternateDesc": "For shared custody or a routine that changes every week.",
+    "weekTab": "Week {week}",
+    "current": "current",
+    "gridLabel": "Usual presence, week {week}",
+    "toggleDay": "Turn all of {day} on or off",
+    "toggleSlot": "Turn all on or off: {slot}",
+    "cellPresent": "present",
+    "cellAbsent": "absent",
+    "presetAll": "All present",
+    "presetNone": "All absent",
+    "presetNoWeekdayLunch": "Never at lunch on weekdays",
+    "presetWeekend": "Weekends only",
+    "copyAB": "Copy A → B",
+    "swapAB": "Swap A and B"
+  }
+}

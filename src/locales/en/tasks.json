@@ -1,0 +1,34 @@
+{
+  "filters": {
+    "status": "Status:",
+    "all": "All ({n})",
+    "pending": "To do ({n})",
+    "completed": "Done ({n})",
+    "member": "Member:",
+    "allMembers": "All members"
+  },
+  "add": "Add a task",
+  "urgent": "Urgent",
+  "markPending": "Mark “{title}” as to do",
+  "markDone": "Mark “{title}” as done",
+  "editTask": "Edit the task",
+  "newTask": "New task",
+  "dueTitle": "Due: {date}",
+  "empty": "No tasks match these filters.",
+  "create": "Create the task",
+  "form": {
+    "title": "Task title",
+    "titlePlaceholder": "e.g. Clean the kitchen…",
+    "notes": "Notes (optional)",
+    "notesPlaceholder": "e.g. Remember to take out the recycling too…",
+    "category": "Category",
+    "assignTo": "Assign to",
+    "priority": "Priority",
+    "dueDate": "Due date (optional)",
+    "dueDateHint": "On this date the task becomes urgent and a reminder is sent every day to the assigned person."
+  },
+  "delete": {
+    "title": "Delete the task",
+    "message": "Do you really want to delete the task “{title}”?"
+  }
+}

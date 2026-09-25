@@ -14,30 +14,30 @@
               class="view-mode-btn" 
               :class="{ active: calendarViewMode === 'month' }" 
               @click="calendarViewMode = 'month'"
-              title="Afficher le calendrier mensuel"
+              :title="t('calendar.showMonth')"
             >
               <CalendarIcon :size="15" />
-              <span>Mois</span>
+              <span>{{ t('calendar.month') }}</span>
             </button>
             <button 
               class="view-mode-btn" 
               :class="{ active: calendarViewMode === 'week' }" 
               @click="calendarViewMode = 'week'"
-              title="Afficher le planning hebdomadaire"
+              :title="t('calendar.showWeek')"
             >
               <CalendarRange :size="15" />
-              <span>Semaine</span>
+              <span>{{ t('calendar.week') }}</span>
             </button>
           </div>
 
           <div class="calendar-nav-controls">
-            <button @click="prevPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? 'Semaine précédente' : 'Mois précédent'">
+            <button @click="prevPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.prevWeek') : t('calendar.prevMonth')">
               <ChevronLeft :size="22" />
             </button>
             <button @click="goToToday" class="btn-today-nav">
-              Aujourd'hui
+              {{ t('common.today') }}
             </button>
-            <button @click="nextPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? 'Semaine suivante' : 'Mois suivant'">
+            <button @click="nextPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.nextWeek') : t('calendar.nextMonth')">
               <ChevronRight :size="22" />
             </button>
           </div>
@@ -48,7 +48,7 @@
       <template v-if="calendarViewMode === 'month'">
         <!-- Days of week -->
         <div class="calendar-grid-header">
-          <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
+          <span v-for="name in weekdayHeaders" :key="name">{{ name }}</span>
         </div>
 
         <div class="calendar-days-grid">
@@ -65,7 +65,7 @@
             class="day-cell cell-interactive"
             :class="{ today: isDayToday(day), past: isDayPast(day), 'has-events': hasEventOnDay(day) }"
             @click="handleDayClick(day)"
-            :title="`Voir les événements du ${day} ${currentMonthName}`"
+            :title="t('calendar.seeDayEvents', { day: `${day} ${currentMonthName}` })"
           >
             <span class="day-number">{{ day }}</span>
             <div v-if="hasEventOnDay(day)" class="day-dots">
@@ -90,7 +90,7 @@
             class="week-day-column"
             :class="{ 'is-today': day.isToday, 'is-past': day.isPast }"
             @click="handleWeekDayClick(day)"
-            :title="`Voir les événements du ${day.name} ${day.dayNum} ${day.monthShort}`"
+            :title="t('calendar.seeDayEvents', { day: `${day.name} ${day.dayNum} ${day.monthShort}` })"
           >
             <!-- Day Header -->
             <div class="week-col-header">
@@ -98,7 +98,7 @@
                 <span class="day-name-text">{{ day.name }}</span>
                 <span class="day-date-text">{{ day.dayNum }} {{ day.monthShort }}</span>
               </div>
-              <span v-if="day.isPast" class="past-tag-mini">Passé</span>
+              <span v-if="day.isPast" class="past-tag-mini">{{ t('calendar.past') }}</span>
             </div>
 
             <!-- Day Events List -->
@@ -109,29 +109,29 @@
                 class="week-event-card"
                 :style="{ borderLeftColor: ev.color }"
                 @click.stop="handleSelectEvent(ev)"
-                :title="`${ev.title} (${formatEventTime(ev) || 'Toute la journée'})`"
+                :title="`${ev.title} (${formatEventTime(ev) || t('calendar.allDay')})`"
               >
                 <div class="week-event-top">
                   <span v-if="ev.time" class="week-event-time">{{ formatEventTime(ev) }}</span>
-                  <span class="week-event-cat" :style="{ color: ev.color }">{{ ev.category }}</span>
+                  <span class="week-event-cat" :style="{ color: ev.color }">{{ translateValue('eventCategory', ev.category) }}</span>
                 </div>
                 <span class="week-event-title">
-                  <span v-if="ev.recurrenceId" title="Événement récurrent">🔁</span>
+                  <span v-if="ev.recurrenceId" :title="t('calendar.recurringEvent')">🔁</span>
                   {{ ev.title }}
                 </span>
-                <span v-if="ev.location" class="week-event-loc">📍 {{ ev.location }}</span>
+                <span v-if="ev.location" class="week-event-loc">📍 {{ translateValue('location', ev.location) }}</span>
               </div>
 
               <!-- Empty Day placeholder -->
               <div v-if="day.events.length === 0" class="week-empty-day">
-                <span class="empty-day-txt">Aucun événement</span>
+                <span class="empty-day-txt">{{ t('calendar.noEvent') }}</span>
               </div>
             </div>
 
             <!-- Day Footer -->
             <div class="week-col-footer">
               <span class="week-col-hint">
-                {{ day.events.length > 0 ? `${day.events.length} événement${day.events.length > 1 ? 's' : ''}` : (day.isPast ? 'Consulter' : '+ Ajouter') }}
+                {{ day.events.length > 0 ? t('calendar.eventCount', { n: day.events.length }, day.events.length) : (day.isPast ? t('calendar.consult') : t('calendar.addShort')) }}
               </span>
             </div>
           </div>
@@ -143,69 +143,65 @@
     <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Nouvel Événement</h3>
+          <h3>{{ t('calendar.newEvent') }}</h3>
           <button @click="showAddModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleAddEvent">
           <div class="form-group">
-            <label class="form-label">Titre de l'événement</label>
+            <label class="form-label">{{ t('calendar.form.title') }}</label>
             <input 
               v-model="newEvent.title" 
               type="text" 
               required 
-              placeholder="ex: Fête d'anniversaire, Match de foot..."
+              :placeholder="t('calendar.form.titlePlaceholder')"
               class="form-input" 
             />
           </div>
 
           <div class="grid-3">
             <div class="form-group">
-              <label class="form-label">Date</label>
+              <label class="form-label">{{ t('calendar.form.date') }}</label>
               <input v-model="newEvent.date" type="date" :min="store.todayStr" required class="form-input" />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Heure de début</label>
+              <label class="form-label">{{ t('calendar.form.startTime') }}</label>
               <input v-model="newEvent.time" type="time" class="form-input" />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Heure de fin</label>
+              <label class="form-label">{{ t('calendar.form.endTime') }}</label>
               <input v-model="newEvent.endTime" @input="newEventEndTimeTouched = true" type="time" class="form-input" />
             </div>
           </div>
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Catégorie</label>
+              <label class="form-label">{{ t('tasks.form.category') }}</label>
               <select v-model="newEvent.category" class="form-select">
-                <option value="Fête">Fête</option>
-                <option value="Santé">Santé</option>
-                <option value="Famille">Famille</option>
-                <option value="Scolaire">Scolaire</option>
-                <option value="Loisirs">Loisirs</option>
+                <option v-for="c in EVENT_CATEGORY_VALUES" :key="c" :value="c">{{ translateValue('eventCategory', c) }}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Lieu</label>
+              <label class="form-label">{{ t('calendar.form.location') }}</label>
               <label class="checkbox-label at-home-toggle">
                 <input type="checkbox" v-model="newEvent.atHome" @change="handleAtHomeToggle(newEvent)" />
-                <span>🏠 À la maison</span>
+                <span>🏠 {{ t('calendar.form.atHome') }}</span>
               </label>
               <input
                 v-if="!newEvent.atHome"
                 v-model="newEvent.location"
                 type="text"
-                placeholder="ex: Maison, École..."
+                :placeholder="t('calendar.form.locationPlaceholder')"
                 class="form-input"
               />
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Couleur d'étiquette</label>
+            <label class="form-label">{{ t('calendar.form.color') }}</label>
             <div class="color-picker-options">
               <button
                 v-for="c in colorOptions"
@@ -220,7 +216,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Membres concernés</label>
+            <label class="form-label">{{ t('calendar.form.members') }}</label>
             <div class="member-select-list">
               <button
                 v-for="m in store.members"
@@ -238,71 +234,71 @@
 
           <div class="form-group checkbox-group" v-if="newEvent.memberIds.length > 0">
             <p v-if="newEventSuggestedSlots.includes('lunch')" class="suggestion-hint">
-              💡 Cet événement chevauche le déjeuner (12h-14h) : une absence du midi est suggérée.
+              💡 {{ t('calendar.form.lunchOverlap') }}
             </p>
             <p v-if="newEventSuggestedSlots.includes('dinner')" class="suggestion-hint">
-              💡 Cet événement chevauche le dîner (20h-22h) : une absence du soir est suggérée.
+              💡 {{ t('calendar.form.dinnerOverlap') }}
             </p>
 
             <label class="checkbox-label">
               <input type="checkbox" v-model="newEvent.generateAbsence" />
-              <span>Générer une absence pour {{ newEvent.memberIds.length > 1 ? 'ces membres' : 'ce membre' }} à cette date</span>
+              <span>{{ t('calendar.form.generateAbsence', newEvent.memberIds.length) }}</span>
             </label>
 
             <div v-if="newEvent.generateAbsence" class="absence-slots-row">
               <label class="slot-chip" :class="{ selected: newEvent.absenceSlots.lunch }">
                 <input type="checkbox" v-model="newEvent.absenceSlots.lunch" />
                 <Sun :size="14" />
-                <span>Midi</span>
+                <span>{{ t('dashboard.slots.lunchSub') }}</span>
               </label>
               <label class="slot-chip" :class="{ selected: newEvent.absenceSlots.dinner }">
                 <input type="checkbox" v-model="newEvent.absenceSlots.dinner" />
                 <Sunset :size="14" />
-                <span>Soir</span>
+                <span>{{ t('dashboard.slots.dinnerSub') }}</span>
               </label>
               <label class="slot-chip" :class="{ selected: newEvent.absenceSlots.night }">
                 <input type="checkbox" v-model="newEvent.absenceSlots.night" />
                 <BedDouble :size="14" />
-                <span>Nuit</span>
+                <span>{{ t('dashboard.slots.night') }}</span>
               </label>
             </div>
             <span v-if="newEvent.generateAbsence && !hasAnySlot(newEvent.absenceSlots)" class="text-error">
-              Veuillez sélectionner au moins un créneau.
+              {{ t('calendar.form.selectSlot') }}
             </span>
           </div>
 
           <div class="form-group checkbox-group">
             <label class="checkbox-label">
               <input type="checkbox" v-model="newEvent.isRecurring" />
-              <span>🔁 Événement récurrent</span>
+              <span>🔁 {{ t('calendar.recurringEvent') }}</span>
             </label>
 
             <div v-if="newEvent.isRecurring" class="recurrence-fields grid-3">
               <div class="form-group">
-                <label class="form-label">Fréquence</label>
+                <label class="form-label">{{ t('calendar.form.frequency') }}</label>
                 <select v-model="newEvent.recurrenceFrequency" class="form-select">
-                  <option value="daily">Quotidien</option>
-                  <option value="weekly">Hebdomadaire</option>
-                  <option value="monthly">Mensuel</option>
+                  <option value="daily">{{ t('calendar.form.daily') }}</option>
+                  <option value="weekly">{{ t('calendar.form.weekly') }}</option>
+                  <option value="monthly">{{ t('calendar.form.monthly') }}</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label class="form-label">Intervalle</label>
+                <label class="form-label">{{ t('calendar.form.interval') }}</label>
                 <input v-model.number="newEvent.recurrenceInterval" type="number" min="1" class="form-input" />
                 <span class="field-hint">{{ recurrenceIntervalLabel(newEvent) }}</span>
               </div>
 
               <div class="form-group">
-                <label class="form-label">Se termine le</label>
+                <label class="form-label">{{ t('calendar.form.endsOn') }}</label>
                 <input v-model="newEvent.recurrenceEndDate" type="date" :min="newEvent.date" required class="form-input" />
               </div>
             </div>
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="showAddModal = false" class="btn btn-secondary">Annuler</button>
-            <button type="submit" class="btn btn-primary">Enregistrer l'événement</button>
+            <button type="button" @click="showAddModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
+            <button type="submit" class="btn btn-primary">{{ t('calendar.saveEvent') }}</button>
           </div>
         </form>
       </div>
@@ -312,74 +308,70 @@
     <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Modifier l'Événement</h3>
+          <h3>{{ t('calendar.editEvent') }}</h3>
           <button @click="showEditModal = false" class="btn-close">&times;</button>
         </div>
 
         <p v-if="editEventForm.recurrenceId" class="recurrence-badge-note">
-          🔁 Fait partie d'une série récurrente
+          🔁 {{ t('calendar.partOfSeries') }}
         </p>
 
         <form @submit.prevent="handleUpdateEvent">
           <div class="form-group">
-            <label class="form-label">Titre de l'événement</label>
+            <label class="form-label">{{ t('calendar.form.title') }}</label>
             <input
               v-model="editEventForm.title"
               type="text"
               required
-              placeholder="ex: Fête d'anniversaire, Match de foot..."
+              :placeholder="t('calendar.form.titlePlaceholder')"
               class="form-input"
             />
           </div>
 
           <div class="grid-3">
             <div class="form-group">
-              <label class="form-label">Date</label>
+              <label class="form-label">{{ t('calendar.form.date') }}</label>
               <input v-model="editEventForm.date" type="date" required class="form-input" />
-              <span v-if="editEventForm.recurrenceId" class="field-hint">S'applique uniquement à « Cette occurrence »</span>
+              <span v-if="editEventForm.recurrenceId" class="field-hint">{{ t('calendar.form.dateOnlyThisOccurrence') }}</span>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Heure de début</label>
+              <label class="form-label">{{ t('calendar.form.startTime') }}</label>
               <input v-model="editEventForm.time" type="time" class="form-input" />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Heure de fin</label>
+              <label class="form-label">{{ t('calendar.form.endTime') }}</label>
               <input v-model="editEventForm.endTime" type="time" class="form-input" />
             </div>
           </div>
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Catégorie</label>
+              <label class="form-label">{{ t('tasks.form.category') }}</label>
               <select v-model="editEventForm.category" class="form-select">
-                <option value="Fête">Fête</option>
-                <option value="Santé">Santé</option>
-                <option value="Famille">Famille</option>
-                <option value="Scolaire">Scolaire</option>
-                <option value="Loisirs">Loisirs</option>
+                <option v-for="c in EVENT_CATEGORY_VALUES" :key="c" :value="c">{{ translateValue('eventCategory', c) }}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Lieu</label>
+              <label class="form-label">{{ t('calendar.form.location') }}</label>
               <label class="checkbox-label at-home-toggle">
                 <input type="checkbox" v-model="editEventForm.atHome" @change="handleAtHomeToggle(editEventForm)" />
-                <span>🏠 À la maison</span>
+                <span>🏠 {{ t('calendar.form.atHome') }}</span>
               </label>
               <input
                 v-if="!editEventForm.atHome"
                 v-model="editEventForm.location"
                 type="text"
-                placeholder="ex: Maison, École..."
+                :placeholder="t('calendar.form.locationPlaceholder')"
                 class="form-input"
               />
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Couleur d'étiquette</label>
+            <label class="form-label">{{ t('calendar.form.color') }}</label>
             <div class="color-picker-options">
               <button
                 v-for="c in colorOptions"
@@ -394,7 +386,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Membres concernés</label>
+            <label class="form-label">{{ t('calendar.form.members') }}</label>
             <div class="member-select-list">
               <button
                 v-for="m in store.members"
@@ -412,48 +404,48 @@
 
           <div class="form-group checkbox-group" v-if="editEventForm.memberIds.length > 0">
             <p v-if="editEventSuggestedSlots.includes('lunch')" class="suggestion-hint">
-              💡 Cet événement chevauche le déjeuner (12h-14h) : une absence du midi est suggérée.
+              💡 {{ t('calendar.form.lunchOverlap') }}
             </p>
             <p v-if="editEventSuggestedSlots.includes('dinner')" class="suggestion-hint">
-              💡 Cet événement chevauche le dîner (20h-22h) : une absence du soir est suggérée.
+              💡 {{ t('calendar.form.dinnerOverlap') }}
             </p>
 
             <label class="checkbox-label">
               <input type="checkbox" v-model="editEventForm.generateAbsence" />
-              <span>Générer une absence pour {{ editEventForm.memberIds.length > 1 ? 'ces membres' : 'ce membre' }} à cette date</span>
+              <span>{{ t('calendar.form.generateAbsence', editEventForm.memberIds.length) }}</span>
             </label>
 
             <div v-if="editEventForm.generateAbsence" class="absence-slots-row">
               <label class="slot-chip" :class="{ selected: editEventForm.absenceSlots.lunch }">
                 <input type="checkbox" v-model="editEventForm.absenceSlots.lunch" />
                 <Sun :size="14" />
-                <span>Midi</span>
+                <span>{{ t('dashboard.slots.lunchSub') }}</span>
               </label>
               <label class="slot-chip" :class="{ selected: editEventForm.absenceSlots.dinner }">
                 <input type="checkbox" v-model="editEventForm.absenceSlots.dinner" />
                 <Sunset :size="14" />
-                <span>Soir</span>
+                <span>{{ t('dashboard.slots.dinnerSub') }}</span>
               </label>
               <label class="slot-chip" :class="{ selected: editEventForm.absenceSlots.night }">
                 <input type="checkbox" v-model="editEventForm.absenceSlots.night" />
                 <BedDouble :size="14" />
-                <span>Nuit</span>
+                <span>{{ t('dashboard.slots.night') }}</span>
               </label>
             </div>
             <span v-if="editEventForm.generateAbsence && !hasAnySlot(editEventForm.absenceSlots)" class="text-error">
-              Veuillez sélectionner au moins un créneau.
+              {{ t('calendar.form.selectSlot') }}
             </span>
           </div>
 
           <div class="modal-footer flex-between">
-            <button type="button" @click="handleDeleteCurrentEvent" class="btn btn-danger btn-icon-only" title="Supprimer" aria-label="Supprimer">
+            <button type="button" @click="handleDeleteCurrentEvent" class="btn btn-danger btn-icon-only" :title="t('common.delete')" :aria-label="t('common.delete')">
               <Trash2 :size="18" />
             </button>
             <div class="modal-actions-right">
-              <button type="button" @click="cancelEditModal" class="btn btn-secondary btn-icon-only" title="Annuler" aria-label="Annuler">
+              <button type="button" @click="cancelEditModal" class="btn btn-secondary btn-icon-only" :title="t('common.cancel')" :aria-label="t('common.cancel')">
                 <X :size="18" />
               </button>
-              <button type="submit" class="btn btn-primary btn-icon-only" title="Enregistrer les modifications" aria-label="Enregistrer les modifications">
+              <button type="submit" class="btn btn-primary btn-icon-only" :title="t('profile.save')" :aria-label="t('profile.save')">
                 <Save :size="18" />
               </button>
             </div>
@@ -468,7 +460,7 @@
         <div class="modal-header">
           <div class="export-modal-title-group">
             <CalendarPlus :size="22" class="text-purple" />
-            <h3>{{ isEditSuccess ? 'Événement Mis à Jour !' : 'Événement Enregistré !' }}</h3>
+            <h3>{{ isEditSuccess ? t('calendar.updated') : t('calendar.saved') }}</h3>
           </div>
           <button @click="showSuccessExportModal = false" class="btn-close">&times;</button>
         </div>
@@ -478,38 +470,38 @@
             <h4 class="event-summary-title">{{ justAddedEvent.title }}</h4>
             <div class="event-summary-meta">
               <span class="badge" :style="{ backgroundColor: justAddedEvent.color + '25', color: justAddedEvent.color }">
-                {{ justAddedEvent.category }}
+                {{ translateValue('eventCategory', justAddedEvent.category) }}
               </span>
               <span>📅 {{ formatDate(justAddedEvent.date) }}</span>
               <span v-if="justAddedEvent.time">⏰ {{ formatEventTime(justAddedEvent) }}</span>
-              <span v-if="justAddedEvent.location">📍 {{ justAddedEvent.location }}</span>
+              <span v-if="justAddedEvent.location">📍 {{ translateValue('location', justAddedEvent.location) }}</span>
             </div>
           </div>
 
           <p v-if="recurringCreationSummary" class="recurrence-summary-note">
-            🔁 {{ recurringCreationSummary.count }} occurrence{{ recurringCreationSummary.count > 1 ? 's' : '' }} créée{{ recurringCreationSummary.count > 1 ? 's' : '' }}, jusqu'au {{ formatDate(recurringCreationSummary.endDate) }}{{ recurringCreationSummary.truncated ? ' (limite atteinte, série tronquée)' : '' }}.
+            🔁 {{ t('calendar.seriesCreated', { n: recurringCreationSummary.count, date: formatDate(recurringCreationSummary.endDate) }, recurringCreationSummary.count) }}{{ recurringCreationSummary.truncated ? ' ' + t('calendar.seriesTruncated') : '' }}
           </p>
 
           <p class="export-modal-prompt">
-            Souhaitez-vous synchroniser cet événement sur votre agenda personnel dès maintenant ?
+            {{ t('calendar.syncPrompt') }}
           </p>
 
           <div class="export-modal-buttons">
             <button @click="openGoogleCalendar(justAddedEvent)" class="btn-export-full btn-google-full">
               <ExternalLink :size="16" />
-              <span>{{ isEditSuccess ? 'Mettre à jour sur Google Agenda' : 'Ajouter à Google Agenda' }}</span>
+              <span>{{ isEditSuccess ? t('calendar.updateOnGoogle') : t('calendarExport.addToGoogle') }}</span>
             </button>
 
             <button @click="downloadIcsFile(justAddedEvent)" class="btn-export-full btn-ics-full">
               <Download :size="16" />
-              <span>Apple Calendrier / Outlook (.ics)</span>
+              <span>{{ t('calendar.appleOutlook') }}</span>
             </button>
           </div>
         </div>
 
         <div class="modal-footer">
           <button @click="showSuccessExportModal = false" class="btn btn-secondary btn-block">
-            Terminer
+            {{ t('calendar.finish') }}
           </button>
         </div>
       </div>
@@ -519,7 +511,7 @@
     <div v-if="showDayEventsModal" class="modal-overlay" @click.self="showDayEventsModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Événements du {{ selectedDayDisplayTitle }}</h3>
+          <h3>{{ t('calendar.dayEventsTitle', { day: selectedDayDisplayTitle }) }}</h3>
           <button @click="showDayEventsModal = false" class="btn-close">&times;</button>
         </div>
 
@@ -529,23 +521,23 @@
             :key="ev.id" 
             class="timeline-card day-event-clickable"
             @click="handleSelectEvent(ev)"
-            title="Cliquer pour afficher les détails et modifier cet événement"
+            :title="t('calendar.clickToEditTitle')"
           >
             <div class="timeline-date-strip" :style="{ backgroundColor: ev.color }"></div>
             <div class="timeline-content">
               <div class="timeline-header">
                 <span class="event-title-text">
-                  <span v-if="ev.recurrenceId" title="Événement récurrent">🔁</span>
+                  <span v-if="ev.recurrenceId" :title="t('calendar.recurringEvent')">🔁</span>
                   {{ ev.title }}
                 </span>
                 <div class="timeline-header-actions" @click.stop>
                   <span class="badge" :style="{ backgroundColor: ev.color + '25', color: ev.color }">
-                    {{ ev.category }}
+                    {{ translateValue('eventCategory', ev.category) }}
                   </span>
-                  <button @click="handleSelectEvent(ev)" class="btn-action-icon btn-edit" title="Modifier l'événement">
+                  <button @click="handleSelectEvent(ev)" class="btn-action-icon btn-edit" :title="t('calendar.editEventLower')">
                     <Edit3 :size="15" />
                   </button>
-                  <button @click="handleDeleteFromDay(ev.id)" class="btn-action-icon btn-delete" title="Supprimer">
+                  <button @click="handleDeleteFromDay(ev.id)" class="btn-action-icon btn-delete" :title="t('common.delete')">
                     <Trash2 :size="15" />
                   </button>
                 </div>
@@ -557,7 +549,7 @@
                 </div>
                 <div class="meta-tag" v-if="ev.location">
                   <MapPin :size="14" />
-                  <span>{{ ev.location }}</span>
+                  <span>{{ translateValue('location', ev.location) }}</span>
                 </div>
                 <div class="meta-tag event-members-tag" v-if="ev.memberIds && ev.memberIds.length > 0">
                   <UserAvatar
@@ -570,11 +562,11 @@
                 </div>
               </div>
               <div class="timeline-export-bar" @click.stop>
-                <span class="export-hint">Ajouter à mon agenda :</span>
+                <span class="export-hint">{{ t('calendar.addToMyCalendar') }}</span>
                 <div class="export-btns-row">
                   <button @click="openGoogleCalendar(ev)" class="btn-cal-action btn-cal-google">
                     <ExternalLink :size="12" />
-                    <span>Google Agenda</span>
+                    <span>{{ t('calendar.googleCalendar') }}</span>
                   </button>
                   <button @click="downloadIcsFile(ev)" class="btn-cal-action btn-cal-ics">
                     <Download :size="12" />
@@ -584,29 +576,29 @@
               </div>
               <div class="timeline-click-hint">
                 <Edit3 :size="13" />
-                <span>Cliquer pour voir le détail et modifier</span>
+                <span>{{ t('calendar.clickToEdit') }}</span>
               </div>
             </div>
           </div>
 
           <div v-if="selectedDayEvents.length === 0" class="empty-day-state">
             <CalendarIcon :size="36" class="empty-day-icon text-muted" />
-            <p>Aucun événement programmé pour cette journée.</p>
+            <p>{{ t('calendar.noEventThisDay') }}</p>
             <button v-if="!isCurrentSelectedDayPast" @click="openAddForSelectedDay" class="btn btn-primary btn-sm">
               <Plus :size="15" />
-              <span>Ajouter un événement ce jour</span>
+              <span>{{ t('calendar.addEventThisDay') }}</span>
             </button>
-            <span v-else class="past-day-badge-note">Journée passée (consultation uniquement)</span>
+            <span v-else class="past-day-badge-note">{{ t('calendar.pastDayReadOnly') }}</span>
           </div>
         </div>
 
         <div class="modal-footer flex-between">
           <button v-if="selectedDayEvents.length > 0 && !isCurrentSelectedDayPast" @click="openAddForSelectedDay" class="btn btn-secondary btn-sm">
             <Plus :size="15" />
-            <span>Ajouter un événement</span>
+            <span>{{ t('calendar.addEvent') }}</span>
           </button>
           <span v-else></span>
-          <button @click="showDayEventsModal = false" class="btn btn-secondary">Fermer</button>
+          <button @click="showDayEventsModal = false" class="btn btn-secondary">{{ t('common.close') }}</button>
         </div>
       </div>
     </div>
@@ -617,6 +609,9 @@
 import { ref, computed, watch } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
 import { useAuthStore } from '../stores/authStore'
+import { useI18n } from 'vue-i18n'
+import { formatDate as intlFormatDate, weekdayNames, monthNames as intlMonthNames } from '../i18n/format'
+import { EVENT_CATEGORY_VALUES, translateValue } from '../i18n/values'
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft,
@@ -644,6 +639,7 @@ import UserAvatar from '../components/UserAvatar.vue'
 
 const store = useFamilyStore()
 const authStore = useAuthStore()
+const { t } = useI18n()
 const { confirm } = useConfirm()
 
 // Calendar Month Navigation
@@ -651,12 +647,10 @@ const todayDate = new Date()
 const currentYear = ref(todayDate.getFullYear())
 const currentMonth = ref(todayDate.getMonth()) // 0-indexed
 
-const monthNames = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-]
+const monthNames = computed(() => intlMonthNames('long', { capitalized: true }))
+const weekdayHeaders = computed(() => weekdayNames('short').map(n => n.replace(/\.$/, '')))
 
-const currentMonthName = computed(() => monthNames[currentMonth.value])
+const currentMonthName = computed(() => monthNames.value[currentMonth.value])
 
 // Calendar View Mode: 'week' or 'month' (default 'week')
 const calendarViewMode = ref('week')
@@ -734,8 +728,8 @@ const goToToday = () => {
 
 const weekDays = computed(() => {
   const days = []
-  const dayNames = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
-  const monthNamesList = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
+  const dayNames = weekdayNames('long')
+  const monthNamesList = intlMonthNames('short')
   const base = new Date(currentMonday.value)
   const todayStr = store.todayStr
 
@@ -763,7 +757,7 @@ const currentWeekLabel = computed(() => {
   if (weekDays.value.length === 0) return ''
   const first = weekDays.value[0]
   const last = weekDays.value[6]
-  return `Semaine du ${first.dayNum} ${first.monthShort} au ${last.dayNum} ${last.monthShort} ${currentMonday.value.getFullYear()}`
+  return t('calendar.weekLabel', { start: `${first.dayNum} ${first.monthShort}`, end: `${last.dayNum} ${last.monthShort}`, year: currentMonday.value.getFullYear() })
 })
 
 // Days in current month
@@ -830,7 +824,7 @@ const selectedDayDisplayTitle = computed(() => {
   if (!selectedDayDateStr.value) return ''
   const parts = selectedDayDateStr.value.split('-')
   const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
-  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  return intlFormatDate(d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 })
 
 const colorOptions = ['#8b5cf6', '#ec4899', '#6366f1', '#10b981', '#f59e0b', '#06b6d4']
@@ -889,12 +883,10 @@ const newEvent = ref({
 
 const recurrenceIntervalLabel = (form) => {
   const n = Math.max(1, Number(form.recurrenceInterval) || 1)
-  const unit = form.recurrenceFrequency === 'daily'
-    ? (n > 1 ? 'jours' : 'jour')
-    : form.recurrenceFrequency === 'monthly'
-      ? 'mois'
-      : (n > 1 ? 'semaines' : 'semaine')
-  return `Tous les ${n > 1 ? n + ' ' : ''}${unit}`
+  const unitKey = form.recurrenceFrequency === 'daily'
+    ? 'everyDays'
+    : form.recurrenceFrequency === 'monthly' ? 'everyMonths' : 'everyWeeks'
+  return t(`calendar.form.${unitKey}`, { n }, n)
 }
 
 const recurringCreationSummary = ref(null)
@@ -966,7 +958,7 @@ const toggleMember = (formRef, memberId) => {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long' })
+  return intlFormatDate(new Date(dateStr), { weekday: 'short', day: 'numeric', month: 'long' })
 }
 
 const formatEventTime = (event) => {
@@ -976,7 +968,7 @@ const formatEventTime = (event) => {
 
 const getMemberName = (id) => {
   const m = store.members.find(m => m.id === id)
-  return m ? m.name : 'Inconnu'
+  return m ? m.name : t('common.unknown')
 }
 
 const getMemberAvatar = (id) => {
@@ -1046,7 +1038,7 @@ const generateAbsencesForEvent = async (memberIds, date, title, slots, eventId) 
       lunch: Boolean(slots.lunch),
       dinner: Boolean(slots.dinner),
       night: Boolean(slots.night),
-      note: `Événement : ${title}`,
+      note: t('calendar.absenceNote', { title }),
       eventId
     })
   }
@@ -1055,11 +1047,11 @@ const generateAbsencesForEvent = async (memberIds, date, title, slots, eventId) 
 // Demande à l'utilisateur si une action (édition/suppression) doit s'appliquer à toute la série récurrente ou seulement à l'occurrence en cours
 const askRecurrenceScope = async (message) => {
   const applyToSeries = await confirm({
-    title: 'Événement récurrent',
+    title: t('calendar.recurringEvent'),
     message,
-    description: "Cette action peut s'appliquer uniquement à cette occurrence, ou à toute la série.",
-    confirmText: 'Toute la série',
-    cancelText: 'Cette occurrence',
+    description: t('calendar.scope.description'),
+    confirmText: t('calendar.scope.series'),
+    cancelText: t('calendar.scope.occurrence'),
     type: 'primary'
   })
   return applyToSeries ? 'series' : 'this'
@@ -1069,17 +1061,17 @@ const handleAddEvent = async () => {
   if (!newEvent.value.title.trim()) return
 
   if (newEvent.value.date < store.todayStr) {
-    alert("Impossible d'ajouter un événement à une date passée.")
+    alert(t('calendar.errors.pastDate'))
     return
   }
 
   if (newEvent.value.isRecurring) {
     if (!newEvent.value.recurrenceEndDate) {
-      alert('Veuillez indiquer une date de fin pour la récurrence.')
+      alert(t('calendar.errors.endDateRequired'))
       return
     }
     if (newEvent.value.recurrenceEndDate < newEvent.value.date) {
-      alert("La date de fin de récurrence doit être postérieure ou égale à la date de l'événement.")
+      alert(t('calendar.errors.endDateBeforeStart'))
       return
     }
   }
@@ -1102,7 +1094,7 @@ const handleAddEvent = async () => {
 
   const res = await store.addEvent(eventPayload)
   if (!res || !res.success) {
-    alert(res?.error || "Erreur lors de la création de l'événement.")
+    alert(res?.error || t('calendar.errors.createFailed'))
     return
   }
   showAddModal.value = false
@@ -1174,7 +1166,7 @@ const handleUpdateEvent = async () => {
   if (!editEventForm.value.title.trim()) return
 
   const scope = editEventForm.value.recurrenceId
-    ? await askRecurrenceScope('Voulez-vous appliquer ces modifications à toute la série récurrente, ou seulement à cette occurrence ?')
+    ? await askRecurrenceScope(t('calendar.scope.editQuestion'))
     : 'this'
 
   const { generateAbsence, absenceSlots, atHome, _prevLocation, recurrenceId, ...eventPayload } = editEventForm.value
@@ -1208,16 +1200,16 @@ const handleUpdateEvent = async () => {
 const handleDeleteCurrentEvent = async () => {
   if (!editingEventId.value) return
   const ok = await confirm({
-    title: 'Supprimer l\'événement',
-    message: `Voulez-vous vraiment supprimer l'événement « ${escapeHtml(editEventForm.value.title)} » ?`,
-    description: 'Cette action est irréversible.',
-    confirmText: 'Supprimer',
+    title: t('calendar.delete.title'),
+    message: t('calendar.delete.message', { title: escapeHtml(editEventForm.value.title) }),
+    description: t('common.irreversible'),
+    confirmText: t('common.delete'),
     type: 'danger'
   })
   if (!ok) return
 
   const scope = editEventForm.value.recurrenceId
-    ? await askRecurrenceScope('Voulez-vous supprimer toute la série récurrente, ou seulement cette occurrence ?')
+    ? await askRecurrenceScope(t('calendar.scope.deleteQuestion'))
     : 'this'
 
   await store.deleteEvent(editingEventId.value, scope)
@@ -1234,16 +1226,16 @@ const handleDeleteCurrentEvent = async () => {
 const handleDeleteFromDay = async (id) => {
   const event = store.events.find(e => e.id === id)
   const ok = await confirm({
-    title: 'Supprimer l\'événement',
-    message: `Voulez-vous vraiment supprimer l'événement « ${escapeHtml(event ? event.title : '')} » ?`,
-    description: 'Cette action est irréversible.',
-    confirmText: 'Supprimer',
+    title: t('calendar.delete.title'),
+    message: t('calendar.delete.message', { title: escapeHtml(event ? event.title : '') }),
+    description: t('common.irreversible'),
+    confirmText: t('common.delete'),
     type: 'danger'
   })
   if (!ok) return
 
   const scope = event?.recurrenceId
-    ? await askRecurrenceScope('Voulez-vous supprimer toute la série récurrente, ou seulement cette occurrence ?')
+    ? await askRecurrenceScope(t('calendar.scope.deleteQuestion'))
     : 'this'
 
   await store.deleteEvent(id, scope)

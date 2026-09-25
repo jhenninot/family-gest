@@ -8,6 +8,118 @@
     "errors": {
       "search": "Error while searching Mealie",
       "recipe": "Error while fetching the Mealie recipe"
-    }
+    },
+    "searchPlaceholder": "Search for a recipe in Mealie…",
+    "noResult": "No recipe found for “{query}”."
+  },
+  "slots": {
+    "lunchShort": "lunch",
+    "dinnerShort": "dinner",
+    "lunchLong": "Lunch (midday)",
+    "dinnerLong": "Dinner (evening)"
+  },
+  "thisWeek": "This week",
+  "backToCurrentWeek": "Back to the current week",
+  "jumpToDateTitle": "Pick a date to jump straight to its week",
+  "goTo": "Go to…",
+  "plannedCount": "{n} dish planned | {n} dishes planned",
+  "headcountLunchTitle": "{n} person at the table for lunch — see details | {n} people at the table for lunch — see details",
+  "headcountDinnerTitle": "{n} person at the table for dinner — see details | {n} people at the table for dinner — see details",
+  "addForLunch": "Add a dish for lunch",
+  "addForDinner": "Add a dish for dinner",
+  "openRecipe": "Open the recipe",
+  "editDish": "Edit the dish",
+  "deleteThisDish": "Delete this dish",
+  "noDish": "No dish",
+  "addDish": "Add a dish",
+  "seeRecipe": "See the recipe",
+  "suggestDish": "Suggest a dish",
+  "thisDish": "this dish",
+  "ingredientsBadge": {
+    "seeTitle": "See the ingredients for this dish",
+    "addTitle": "Add ingredients to the shopping list",
+    "count": "{n} ingredient | {n} ingredients",
+    "add": "+ Ingredients"
+  },
+  "savedPrompt": {
+    "title": "Dish saved!",
+    "text": "Now add the ingredients you need to your shopping list below:"
+  },
+  "detail": {
+    "moment": "Meal:",
+    "lunchMoment": "Lunch (midday)",
+    "dinnerMoment": "Dinner (evening)",
+    "date": "Date:",
+    "suggestedBy": "Suggested by:",
+    "recipe": "Recipe:",
+    "remarks": "Notes:",
+    "itemsToBuy": "Items & ingredients to buy",
+    "recipeIngredients": "Recipe ingredients",
+    "alreadyListed": "{n} recipe ingredient is already in the list below. | {n} recipe ingredients are already in the list below.",
+    "allListed": "All the recipe's ingredients are already in this dish's shopping list.",
+    "addSelected": "Add {n} to the shopping list",
+    "removeFromList": "Remove from the shopping list",
+    "noIngredient": "No shopping ingredient is linked to this dish yet.",
+    "addIngredientPlaceholder": "Add an ingredient (e.g. cream, bacon, pasta…)"
+  },
+  "presence": {
+    "present": "Present ({n})",
+    "exceptional": "exceptional",
+    "declareAbsent": "Mark {name} as absent for this meal",
+    "absentBtn": "Absent",
+    "noneAtTable": "No family member at the table.",
+    "guests": "Guests ({n})",
+    "removeGuest": "Remove {name} from this meal",
+    "guestName": "Guest's name",
+    "invite": "Invite",
+    "absent": "Absent ({n})",
+    "declarePresent": "Mark {name} as present for this meal",
+    "presentBtn": "Present",
+    "noAbsence": "No absence declared.",
+    "usuallyAbsent": "Usually absent ({n})"
+  },
+  "form": {
+    "moment": "Meal",
+    "day": "Day",
+    "pastLocked": "(Past - cannot be changed)",
+    "mealieRecipe": "Mealie recipe (optional)",
+    "dish": "Dish or menu",
+    "dishPlaceholder": "e.g. Potato gratin, roast chicken, mixed salad…",
+    "linkedRecipe": "Linked recipe",
+    "unlinkRecipe": "Remove the link to the recipe",
+    "quickIdeas": "Quick ideas:",
+    "ingredients": "Ingredients to add to the shopping list (optional)",
+    "ingredientPlaceholder": "e.g. minced meat, eggs, cheese…",
+    "suggestedBy": "Suggested by",
+    "notes": "Notes or details (optional)",
+    "notesPlaceholder": "e.g. with green salad, gluten-free…",
+    "submit": "Save the dish"
+  },
+  "ideas": {
+    "pasta": "Pasta",
+    "chicken": "Chicken",
+    "salad": "Salad",
+    "pizza": "Pizza",
+    "fish": "Fish",
+    "soup": "Soup",
+    "quiche": "Quiche",
+    "burgers": "Burgers"
+  },
+  "delete": {
+    "title": "Delete the dish",
+    "message": "Do you really want to remove <strong>“{dish}”</strong> from the menu?",
+    "warning": "All linked ingredients in the shopping list will also be deleted."
+  },
+  "errors": {
+    "moveFailed": "Unable to move this dish.",
+    "pastDate": "You cannot add a meal on a past date."
+  },
+  "picker": {
+    "header": "Recipe ingredients ({selected}/{total} ticked)",
+    "uncheckAll": "Untick all",
+    "checkAll": "Tick all",
+    "scaledFor": "Quantities for {n} person (recipe serves {base}) | Quantities for {n} people (recipe serves {base})",
+    "unknownServings": "Recipe quantities (number of servings unknown)",
+    "nobodyAtTable": "Recipe quantities (nobody at the table for this meal)"
   }
 }

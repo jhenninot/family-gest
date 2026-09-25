@@ -3,7 +3,7 @@
     <!-- Week Navigator Bar -->
     <div class="glass-card week-nav-bar margin-bottom-lg">
       <div class="week-nav-controls">
-        <button @click="prevWeek" class="btn-nav-arrow" title="Semaine précédente">
+        <button @click="prevWeek" class="btn-nav-arrow" :title="t('calendar.prevWeek')">
           <ChevronLeft :size="20" />
         </button>
 
@@ -12,10 +12,10 @@
             <Calendar :size="18" class="text-amber" />
             <span class="week-range-text">{{ currentWeekRangeLabel }}</span>
           </div>
-          <span v-if="isViewingCurrentWeek" class="badge badge-amber badge-sm">Cette semaine</span>
+          <span v-if="isViewingCurrentWeek" class="badge badge-amber badge-sm">{{ t('meals.thisWeek') }}</span>
         </div>
 
-        <button @click="nextWeek" class="btn-nav-arrow" title="Semaine suivante">
+        <button @click="nextWeek" class="btn-nav-arrow" :title="t('calendar.nextWeek')">
           <ChevronRight :size="20" />
         </button>
       </div>
@@ -25,13 +25,13 @@
           v-if="!isViewingCurrentWeek" 
           @click="goToCurrentWeek" 
           class="btn-today-pill"
-          title="Revenir à la semaine actuelle"
+          :title="t('meals.backToCurrentWeek')"
         >
-          Cette semaine
+          {{ t('meals.thisWeek') }}
         </button>
 
         <!-- Date Picker Jump -->
-        <label class="date-picker-label" title="Choisir une date pour sauter directement à la semaine">
+        <label class="date-picker-label" :title="t('meals.jumpToDateTitle')">
           <CalendarDays :size="16" />
           <input 
             type="date" 
@@ -39,13 +39,13 @@
             @change="onDateSelected" 
             class="hidden-date-input"
           />
-          <span class="date-picker-text">Aller au...</span>
+          <span class="date-picker-text">{{ t('meals.goTo') }}</span>
         </label>
 
         <!-- Week Stats -->
         <div class="week-stats-pill">
           <ChefHat :size="16" class="text-amber" />
-          <span>{{ weekMealsCount }} plat{{ weekMealsCount > 1 ? 's' : '' }} prévu{{ weekMealsCount > 1 ? 's' : '' }}</span>
+          <span>{{ t('meals.plannedCount', { n: weekMealsCount }, weekMealsCount) }}</span>
         </div>
       </div>
     </div>
@@ -64,7 +64,7 @@
             <span class="day-name">{{ day.name }}</span>
             <span class="day-date">{{ day.dayNum }} {{ day.monthShort }}</span>
           </div>
-          <span v-if="day.isPast" class="past-tag">Passé</span>
+          <span v-if="day.isPast" class="past-tag">{{ t('calendar.past') }}</span>
         </div>
 
         <!-- SLOTS: Midi & Soir -->
@@ -74,11 +74,11 @@
             <div class="slot-header">
               <div class="slot-title">
                 <Sun :size="18" class="slot-icon slot-icon-lunch" />
-                <span class="slot-label">Midi</span>
+                <span class="slot-label">{{ t('presence.slots.lunch') }}</span>
                 <button 
                   type="button"
                   class="slot-headcount-circle lunch" 
-                  :title="`${day.lunchPresence.headcount} personne(s) à table ce midi — voir le détail`"
+                  :title="t('meals.headcountLunchTitle', { n: day.lunchPresence.headcount }, day.lunchPresence.headcount)"
                   @click="openPresenceModal(day.dateStr, 'lunch')"
                 >
                   {{ day.lunchPresence.headcount }}
@@ -88,7 +88,7 @@
                 v-if="!day.isPast"
                 @click="openAddModal(day.dateStr, 'lunch')" 
                 class="btn-add-slot-mini" 
-                title="Ajouter un plat pour ce midi"
+                :title="t('meals.addForLunch')"
               >
                 <Plus :size="14" />
               </button>
@@ -121,14 +121,14 @@
                         target="_blank"
                         rel="noopener noreferrer"
                         class="btn-dish-action"
-                        title="Ouvrir la recette"
+                        :title="t('meals.openRecipe')"
                       >
                         <BookOpen :size="13" />
                       </a>
-                      <button @click="openEditModal(m)" class="btn-dish-action" title="Modifier le plat">
+                      <button @click="openEditModal(m)" class="btn-dish-action" :title="t('meals.editDish')">
                         <Pencil :size="13" />
                       </button>
-                      <button @click="handleDeleteMeal(m.id)" class="btn-dish-action delete" title="Supprimer ce plat">
+                      <button @click="handleDeleteMeal(m.id)" class="btn-dish-action delete" :title="t('meals.deleteThisDish')">
                         <Trash2 :size="13" />
                       </button>
                     </div>
@@ -154,13 +154,13 @@
                       <button 
                         class="dish-ingredients-badge" 
                         :class="{ 'has-items': getMealIngredients(m.id).length > 0 }"
-                        :title="getMealIngredients(m.id).length > 0 ? 'Voir la liste des ingrédients pour ce plat' : 'Ajouter des ingrédients à la liste de courses'"
+                        :title="getMealIngredients(m.id).length > 0 ? t('meals.ingredientsBadge.seeTitle') : t('meals.ingredientsBadge.addTitle')"
                       >
                         <ShoppingCart :size="12" />
                         <span>
                           {{ getMealIngredients(m.id).length > 0 
-                            ? `${getMealIngredients(m.id).length} ingrédient${getMealIngredients(m.id).length > 1 ? 's' : ''}` 
-                            : '+ Ingrédients' 
+                            ? t('meals.ingredientsBadge.count', { n: getMealIngredients(m.id).length }, getMealIngredients(m.id).length) 
+                            : t('meals.ingredientsBadge.add') 
                           }}
                         </span>
                       </button>
@@ -174,7 +174,7 @@
                 v-if="day.lunchMeals.length === 0 && day.isPast" 
                 class="slot-empty is-past"
               >
-                <span class="empty-text muted">Aucun plat</span>
+                <span class="empty-text muted">{{ t('meals.noDish') }}</span>
               </div>
               <div 
                 v-else-if="day.lunchMeals.length === 0" 
@@ -182,7 +182,7 @@
                 @click="openAddModal(day.dateStr, 'lunch')"
               >
                 <span class="empty-icon">+</span>
-                <span class="empty-text">Ajouter un plat</span>
+                <span class="empty-text">{{ t('meals.addDish') }}</span>
               </div>
             </div>
           </div>
@@ -192,11 +192,11 @@
             <div class="slot-header">
               <div class="slot-title">
                 <Sunset :size="18" class="slot-icon slot-icon-dinner" />
-                <span class="slot-label">Soir</span>
+                <span class="slot-label">{{ t('presence.slots.dinner') }}</span>
                 <button 
                   type="button"
                   class="slot-headcount-circle dinner" 
-                  :title="`${day.dinnerPresence.headcount} personne(s) à table ce soir — voir le détail`"
+                  :title="t('meals.headcountDinnerTitle', { n: day.dinnerPresence.headcount }, day.dinnerPresence.headcount)"
                   @click="openPresenceModal(day.dateStr, 'dinner')"
                 >
                   {{ day.dinnerPresence.headcount }}
@@ -206,7 +206,7 @@
                 v-if="!day.isPast"
                 @click="openAddModal(day.dateStr, 'dinner')" 
                 class="btn-add-slot-mini" 
-                title="Ajouter un plat pour ce soir"
+                :title="t('meals.addForDinner')"
               >
                 <Plus :size="14" />
               </button>
@@ -239,14 +239,14 @@
                         target="_blank"
                         rel="noopener noreferrer"
                         class="btn-dish-action"
-                        title="Ouvrir la recette"
+                        :title="t('meals.openRecipe')"
                       >
                         <BookOpen :size="13" />
                       </a>
-                      <button @click="openEditModal(m)" class="btn-dish-action" title="Modifier le plat">
+                      <button @click="openEditModal(m)" class="btn-dish-action" :title="t('meals.editDish')">
                         <Pencil :size="13" />
                       </button>
-                      <button @click="handleDeleteMeal(m.id)" class="btn-dish-action delete" title="Supprimer ce plat">
+                      <button @click="handleDeleteMeal(m.id)" class="btn-dish-action delete" :title="t('meals.deleteThisDish')">
                         <Trash2 :size="13" />
                       </button>
                     </div>
@@ -272,13 +272,13 @@
                       <button 
                         class="dish-ingredients-badge" 
                         :class="{ 'has-items': getMealIngredients(m.id).length > 0 }"
-                        :title="getMealIngredients(m.id).length > 0 ? 'Voir la liste des ingrédients pour ce plat' : 'Ajouter des ingrédients à la liste de courses'"
+                        :title="getMealIngredients(m.id).length > 0 ? t('meals.ingredientsBadge.seeTitle') : t('meals.ingredientsBadge.addTitle')"
                       >
                         <ShoppingCart :size="12" />
                         <span>
                           {{ getMealIngredients(m.id).length > 0 
-                            ? `${getMealIngredients(m.id).length} ingrédient${getMealIngredients(m.id).length > 1 ? 's' : ''}` 
-                            : '+ Ingrédients' 
+                            ? t('meals.ingredientsBadge.count', { n: getMealIngredients(m.id).length }, getMealIngredients(m.id).length) 
+                            : t('meals.ingredientsBadge.add') 
                           }}
                         </span>
                       </button>
@@ -292,7 +292,7 @@
                 v-if="day.dinnerMeals.length === 0 && day.isPast" 
                 class="slot-empty is-past"
               >
-                <span class="empty-text muted">Aucun plat</span>
+                <span class="empty-text muted">{{ t('meals.noDish') }}</span>
               </div>
               <div 
                 v-else-if="day.dinnerMeals.length === 0" 
@@ -300,7 +300,7 @@
                 @click="openAddModal(day.dateStr, 'dinner')"
               >
                 <span class="empty-icon">+</span>
-                <span class="empty-text">Ajouter un plat</span>
+                <span class="empty-text">{{ t('meals.addDish') }}</span>
               </div>
             </div>
           </div>
@@ -325,8 +325,8 @@
         <div v-if="isPostValidationPrompt" class="prompt-banner">
           <div class="prompt-banner-icon">💡</div>
           <div class="prompt-banner-text">
-            <strong>Plat enregistré avec succès !</strong>
-            <p>Ajoutez dès maintenant les ingrédients nécessaires à votre liste de courses ci-dessous :</p>
+            <strong>{{ t('meals.savedPrompt.title') }}</strong>
+            <p>{{ t('meals.savedPrompt.text') }}</p>
           </div>
         </div>
 
@@ -337,7 +337,7 @@
           target="_blank"
           rel="noopener noreferrer"
           class="detail-recipe-image"
-          title="Voir la recette"
+          :title="t('meals.seeRecipe')"
         >
           <img :src="selectedMeal.recipeImageUrl" :alt="selectedMeal.dish" @error="recipeImageFailed = true" />
         </a>
@@ -345,21 +345,21 @@
         <!-- Détails du repas -->
         <div class="detail-overview-card">
           <div class="overview-item">
-            <span class="overview-label">Moment :</span>
+            <span class="overview-label">{{ t('meals.detail.moment') }}</span>
             <span class="overview-val badge" :class="selectedMeal.slot === 'lunch' ? 'badge-amber' : 'badge-purple'">
               <Sun v-if="selectedMeal.slot === 'lunch'" :size="14" />
               <Sunset v-else :size="14" />
-              {{ selectedMeal.slot === 'lunch' ? 'Midi (Déjeuner)' : 'Soir (Dîner)' }}
+              {{ selectedMeal.slot === 'lunch' ? t('meals.detail.lunchMoment') : t('meals.detail.dinnerMoment') }}
             </span>
           </div>
 
           <div class="overview-item">
-            <span class="overview-label">Date :</span>
+            <span class="overview-label">{{ t('meals.detail.date') }}</span>
             <span class="overview-val font-semibold">{{ formatDetailDate(selectedMeal.date) }}</span>
           </div>
 
           <div class="overview-item" v-if="getMemberInfo(selectedMeal.suggestedBy)">
-            <span class="overview-label">Suggéré par :</span>
+            <span class="overview-label">{{ t('meals.detail.suggestedBy') }}</span>
             <div class="overview-author">
               <UserAvatar 
                 :avatar="getMemberInfo(selectedMeal.suggestedBy).avatar" 
@@ -371,14 +371,14 @@
           </div>
 
           <div class="overview-item full-width" v-if="selectedMeal.recipeUrl">
-            <span class="overview-label">Recette :</span>
+            <span class="overview-label">{{ t('meals.detail.recipe') }}</span>
             <a :href="selectedMeal.recipeUrl" target="_blank" rel="noopener noreferrer" class="overview-val recipe-link">
-              <BookOpen :size="14" /> Voir la recette <ExternalLink :size="12" />
+              <BookOpen :size="14" /> {{ t('meals.seeRecipe') }} <ExternalLink :size="12" />
             </a>
           </div>
 
           <div class="overview-item full-width" v-if="selectedMeal.notes">
-            <span class="overview-label">Remarques :</span>
+            <span class="overview-label">{{ t('meals.detail.remarks') }}</span>
             <span class="overview-val italic-text">{{ selectedMeal.notes }}</span>
           </div>
         </div>
@@ -388,7 +388,7 @@
           <div class="ingredients-header">
             <div class="ing-header-left">
               <ShoppingCart :size="18" class="text-amber" />
-              <h4>Articles & Ingrédients à acheter</h4>
+              <h4>{{ t('meals.detail.itemsToBuy') }}</h4>
               <span class="badge badge-amber badge-sm">{{ currentMealIngredients.length }}</span>
             </div>
             <button
@@ -400,7 +400,7 @@
             >
               <Loader2 v-if="detailRecipe.loading" :size="14" class="spin" />
               <ChefHat v-else :size="14" />
-              <span>Ingrédients de la recette</span>
+              <span>{{ t('meals.detail.recipeIngredients') }}</span>
             </button>
           </div>
 
@@ -415,16 +415,15 @@
                 :headcount="selectedMealHeadcount"
               />
               <p v-if="detailRecipe.alreadyListed > 0" class="detail-recipe-note">
-                {{ detailRecipe.alreadyListed }} ingrédient{{ detailRecipe.alreadyListed > 1 ? 's' : '' }}
-                de la recette déjà dans la liste ci-dessous.
+                {{ t('meals.detail.alreadyListed', { n: detailRecipe.alreadyListed }, detailRecipe.alreadyListed) }}
               </p>
             </template>
             <p v-else class="detail-recipe-note">
-              Tous les ingrédients de la recette sont déjà dans la liste de courses de ce plat.
+              {{ t('meals.detail.allListed') }}
             </p>
             <div class="detail-recipe-actions">
               <button type="button" class="btn btn-secondary btn-sm" @click="resetDetailRecipe">
-                {{ detailRecipe.ingredients.length > 0 ? 'Annuler' : 'Fermer' }}
+                {{ detailRecipe.ingredients.length > 0 ? t('common.cancel') : t('common.close') }}
               </button>
               <button
                 v-if="detailRecipe.ingredients.length > 0"
@@ -434,7 +433,7 @@
                 @click="addDetailRecipeIngredients"
               >
                 <Plus :size="14" />
-                <span>Ajouter {{ detailRecipeSelectedCount || '' }} à la liste de courses</span>
+                <span>{{ t('meals.detail.addSelected', { n: detailRecipeSelectedCount || '' }) }}</span>
               </button>
             </div>
           </div>
@@ -458,13 +457,13 @@
               </label>
 
               <div class="ing-meta">
-                <span class="badge badge-cat">{{ item.category || 'Frais' }}</span>
+                <span class="badge badge-cat">{{ translateValue('shoppingCategory', item.category || 'Frais') }}</span>
                 <span class="ing-qty" v-if="item.quantity && item.quantity > 1">x{{ item.quantity }}</span>
 
                 <button 
                   @click="handleDeleteIngredient(item.id)" 
                   class="btn-delete-ing" 
-                  title="Retirer de la liste de courses"
+                  :title="t('meals.detail.removeFromList')"
                 >
                   <Trash2 :size="14" />
                 </button>
@@ -473,7 +472,7 @@
           </div>
 
           <div v-else class="empty-ingredients-box">
-            <span>Aucun ingrédient de courses n'est encore associé à ce plat.</span>
+            <span>{{ t('meals.detail.noIngredient') }}</span>
           </div>
 
           <!-- Formulaire d'ajout rapide d'ingrédient -->
@@ -484,13 +483,13 @@
                 v-model="newIngredient.name" 
                 type="text" 
                 required 
-                placeholder="Ajouter un ingrédient (ex: Crème fraîche, Lardons, Pâtes...)"
+                :placeholder="t('meals.detail.addIngredientPlaceholder')"
                 class="form-input ing-name-input"
               />
 
               <select v-model="newIngredient.category" class="form-select ing-cat-select">
                 <option v-for="cat in availableCategories" :key="cat.name" :value="cat.name">
-                  {{ cat.icon }} {{ cat.name }}
+                  {{ cat.icon }} {{ translateValue('shoppingCategory', cat.name) }}
                 </option>
               </select>
 
@@ -499,13 +498,13 @@
                 type="number" 
                 min="0.5" 
                 step="0.5" 
-                placeholder="Qté" 
+                :placeholder="t('shopping.qtyShort')" 
                 class="form-input ing-qty-input"
               />
 
               <button type="submit" class="btn btn-primary btn-add-ing" :disabled="!newIngredient.name.trim()">
                 <Plus :size="16" />
-                <span>Ajouter</span>
+                <span>{{ t('common.add') }}</span>
               </button>
             </div>
           </form>
@@ -515,16 +514,16 @@
           <div class="footer-left-actions">
             <button type="button" @click="handleEditFromDetail" class="btn btn-secondary">
               <Pencil :size="14" />
-              <span>Modifier le plat</span>
+              <span>{{ t('meals.editDish') }}</span>
             </button>
             <button type="button" @click="handleDeleteFromDetail" class="btn btn-danger-outline">
               <Trash2 :size="14" />
-              <span>Supprimer le plat</span>
+              <span>{{ t('meals.delete.title') }}</span>
             </button>
           </div>
 
           <button type="button" @click="closeDetailModal" class="btn btn-primary">
-            Fermer
+            {{ t('common.close') }}
           </button>
         </div>
       </div>
@@ -540,7 +539,7 @@
             <Sun v-if="presenceDetail.slot === 'lunch'" :size="22" class="slot-icon-lunch" />
             <Sunset v-else :size="22" class="slot-icon-dinner" />
             <div>
-              <h3>{{ presenceDetail.slot === 'lunch' ? 'Midi' : 'Soir' }} · {{ presenceDetail.headcount }} à table</h3>
+              <h3>{{ presenceDetail.slot === 'lunch' ? t('presence.slots.lunch') : t('presence.slots.dinner') }} · {{ t('dashboard.atTable', { n: presenceDetail.headcount }) }}</h3>
               <p class="presence-modal-date">{{ formatDetailDate(presenceDetail.date) }}</p>
             </div>
           </div>
@@ -549,33 +548,33 @@
 
         <div class="presence-section">
           <h4 class="presence-section-title present">
-            Présents ({{ presenceDetail.presentMembersCount }})
+            {{ t('meals.presence.present', { n: presenceDetail.presentMembersCount }) }}
           </h4>
           <ul v-if="presenceDetail.presentMembers.length > 0" class="presence-list">
             <li v-for="m in presenceDetail.presentMembers" :key="'pp-' + m.id" class="presence-row">
               <UserAvatar :avatar="m.avatar" :name="getMemberFirstName(m.id)" size="xs" />
               <span class="presence-name">{{ getMemberFirstName(m.id) }}</span>
-              <span v-if="isExceptionalPresence(m.id)" class="presence-tag tag-exceptional">exceptionnel</span>
+              <span v-if="isExceptionalPresence(m.id)" class="presence-tag tag-exceptional">{{ t('meals.presence.exceptional') }}</span>
               <button
                 v-if="isPresenceEditable"
                 type="button"
                 class="btn-presence-toggle to-absent"
                 :disabled="presenceBusyKey !== null"
-                :title="`Déclarer ${getMemberFirstName(m.id)} absent(e) à ce repas`"
+                :title="t('meals.presence.declareAbsent', { name: getMemberFirstName(m.id) })"
                 @click="setMemberPresence(m, false)"
               >
                 <UserX :size="13" />
-                <span>Absent</span>
+                <span>{{ t('meals.presence.absentBtn') }}</span>
               </button>
               <span v-if="m.note" class="presence-note">💬 {{ m.note }}</span>
             </li>
           </ul>
-          <p v-else class="presence-empty">Aucun membre de la famille à table.</p>
+          <p v-else class="presence-empty">{{ t('meals.presence.noneAtTable') }}</p>
         </div>
 
         <div v-if="presenceDetail.guests.length > 0 || isPresenceEditable" class="presence-section">
           <h4 class="presence-section-title guest">
-            Invités ({{ presenceDetail.guestsCount }})
+            {{ t('meals.presence.guests', { n: presenceDetail.guestsCount }) }}
           </h4>
           <ul v-if="presenceDetail.guests.length > 0" class="presence-list">
             <li v-for="g in presenceDetail.guests" :key="'pg-' + g.id" class="presence-row">
@@ -586,7 +585,7 @@
                 type="button"
                 class="btn-presence-toggle to-remove"
                 :disabled="presenceBusyKey !== null"
-                :title="`Retirer ${g.name} de ce repas`"
+                :title="t('meals.presence.removeGuest', { name: g.name })"
                 @click="removeGuestFromSlot(g)"
               >
                 <X :size="13" />
@@ -598,7 +597,7 @@
               v-model="newGuestName"
               type="text"
               class="form-input"
-              placeholder="Nom de l'invité"
+              :placeholder="t('meals.presence.guestName')"
               maxlength="80"
             />
             <button
@@ -607,14 +606,14 @@
               :disabled="!newGuestName.trim() || presenceBusyKey !== null"
             >
               <UserPlus :size="14" />
-              <span>Inviter</span>
+              <span>{{ t('meals.presence.invite') }}</span>
             </button>
           </form>
         </div>
 
         <div class="presence-section">
           <h4 class="presence-section-title absent">
-            Absents ({{ presenceDetail.absentMembersCount }})
+            {{ t('meals.presence.absent', { n: presenceDetail.absentMembersCount }) }}
           </h4>
           <ul v-if="presenceDetail.absentMembers.length > 0" class="presence-list">
             <li v-for="m in presenceDetail.absentMembers" :key="'pa-' + m.id" class="presence-row">
@@ -625,21 +624,21 @@
                 type="button"
                 class="btn-presence-toggle to-present"
                 :disabled="presenceBusyKey !== null"
-                :title="`Déclarer ${getMemberFirstName(m.id)} présent(e) à ce repas`"
+                :title="t('meals.presence.declarePresent', { name: getMemberFirstName(m.id) })"
                 @click="setMemberPresence(m, true)"
               >
                 <UserCheck :size="13" />
-                <span>Présent</span>
+                <span>{{ t('meals.presence.presentBtn') }}</span>
               </button>
               <span v-if="m.note" class="presence-note">💬 {{ m.note }}</span>
             </li>
           </ul>
-          <p v-else class="presence-empty">Aucune absence déclarée.</p>
+          <p v-else class="presence-empty">{{ t('meals.presence.noAbsence') }}</p>
         </div>
 
         <div v-if="presenceDetail.usuallyAbsentMembers.length > 0" class="presence-section">
           <h4 class="presence-section-title usual">
-            Habituellement absents ({{ presenceDetail.usuallyAbsentMembers.length }})
+            {{ t('meals.presence.usuallyAbsent', { n: presenceDetail.usuallyAbsentMembers.length }) }}
           </h4>
           <ul class="presence-list">
             <li v-for="m in presenceDetail.usuallyAbsentMembers" :key="'pu-' + m.id" class="presence-row">
@@ -650,11 +649,11 @@
                 type="button"
                 class="btn-presence-toggle to-present"
                 :disabled="presenceBusyKey !== null"
-                :title="`Déclarer ${getMemberFirstName(m.id)} présent(e) à ce repas`"
+                :title="t('meals.presence.declarePresent', { name: getMemberFirstName(m.id) })"
                 @click="setMemberPresence(m, true)"
               >
                 <UserCheck :size="13" />
-                <span>Présent</span>
+                <span>{{ t('meals.presence.presentBtn') }}</span>
               </button>
             </li>
           </ul>
@@ -663,7 +662,7 @@
         <p v-if="presenceError" class="presence-error">{{ presenceError }}</p>
 
         <div class="modal-footer">
-          <button type="button" @click="closePresenceModal" class="btn btn-primary">Fermer</button>
+          <button type="button" @click="closePresenceModal" class="btn btn-primary">{{ t('common.close') }}</button>
         </div>
       </div>
     </div>
@@ -676,7 +675,7 @@
         <div class="modal-header">
           <div class="modal-title-group">
             <Utensils :size="22" class="text-amber" />
-            <h3>{{ isEditing ? 'Modifier le plat' : 'Suggérer un plat' }}</h3>
+            <h3>{{ isEditing ? t('meals.editDish') : t('meals.suggestDish') }}</h3>
           </div>
           <button @click="closeModal" class="btn-close">&times;</button>
         </div>
@@ -684,7 +683,7 @@
         <form @submit.prevent="handleSubmitMeal">
           <!-- Créneau : Midi ou Soir -->
           <div class="form-group">
-            <label class="form-label">Moment du repas</label>
+            <label class="form-label">{{ t('meals.form.moment') }}</label>
             <div class="slot-toggle-group">
               <button 
                 type="button" 
@@ -694,8 +693,8 @@
               >
                 <Sun :size="20" class="toggle-icon toggle-icon-lunch" />
                 <div class="toggle-text">
-                  <span class="toggle-main">Midi</span>
-                  <span class="toggle-sub">Déjeuner</span>
+                  <span class="toggle-main">{{ t('dashboard.slots.lunchSub') }}</span>
+                  <span class="toggle-sub">{{ t('dashboard.slots.lunch') }}</span>
                 </div>
               </button>
 
@@ -707,8 +706,8 @@
               >
                 <Sunset :size="20" class="toggle-icon toggle-icon-dinner" />
                 <div class="toggle-text">
-                  <span class="toggle-main">Soir</span>
-                  <span class="toggle-sub">Dîner</span>
+                  <span class="toggle-main">{{ t('dashboard.slots.dinnerSub') }}</span>
+                  <span class="toggle-sub">{{ t('dashboard.slots.dinner') }}</span>
                 </div>
               </button>
             </div>
@@ -716,7 +715,7 @@
 
           <!-- Date du repas -->
           <div class="form-group">
-            <label class="form-label">Jour du repas</label>
+            <label class="form-label">{{ t('meals.form.day') }}</label>
             <select v-model="form.date" class="form-select" required>
               <option 
                 v-for="d in weekDays" 
@@ -724,7 +723,7 @@
                 :value="d.dateStr"
                 :disabled="!isEditing && d.isPast"
               >
-                {{ d.name }} {{ d.dayNum }} {{ d.monthName }} {{ d.isToday ? '(Aujourd\'hui)' : (d.isPast ? '(Passé - non modifiable)' : '') }}
+                {{ d.name }} {{ d.dayNum }} {{ d.monthName }} {{ d.isToday ? `(${t('common.today')})` : (d.isPast ? t('meals.form.pastLocked') : '') }}
               </option>
             </select>
           </div>
@@ -733,7 +732,7 @@
           <div v-if="store.currentFamily?.mealieEnabled" class="form-group">
             <label class="form-label">
               <ChefHat :size="15" class="text-amber" />
-              <span>Recette Mealie (optionnel)</span>
+              <span>{{ t('meals.form.mealieRecipe') }}</span>
             </label>
             <MealieRecipeSearch @select="applyMealieRecipe" />
           </div>
@@ -741,27 +740,27 @@
           <!-- Intitulé du plat -->
           <div class="form-group">
             <label class="form-label">
-              <span>Plat ou menu</span>
+              <span>{{ t('meals.form.dish') }}</span>
               <span class="label-req">*</span>
             </label>
             <input 
               v-model="form.dish" 
               type="text" 
               required 
-              placeholder="ex: Gratin dauphinois, Poulet rôti, Salade composée..."
+              :placeholder="t('meals.form.dishPlaceholder')"
               class="form-input" 
               autofocus
             />
 
             <div v-if="form.recipeUrl" class="linked-recipe">
               <BookOpen :size="14" />
-              <a :href="form.recipeUrl" target="_blank" rel="noopener noreferrer">Recette liée</a>
-              <button type="button" class="btn-remove-pill" title="Retirer le lien vers la recette" @click="unlinkRecipe">&times;</button>
+              <a :href="form.recipeUrl" target="_blank" rel="noopener noreferrer">{{ t('meals.form.linkedRecipe') }}</a>
+              <button type="button" class="btn-remove-pill" :title="t('meals.form.unlinkRecipe')" @click="unlinkRecipe">&times;</button>
             </div>
 
             <!-- Quick inspiration chips -->
             <div class="inspiration-chips">
-              <span class="chips-label">Idées rapides :</span>
+              <span class="chips-label">{{ t('meals.form.quickIdeas') }}</span>
               <button 
                 v-for="idea in quickIdeas" 
                 :key="idea" 
@@ -778,7 +777,7 @@
           <div v-if="!isEditing" class="form-group">
             <label class="form-label">
               <ShoppingCart :size="15" class="text-amber" />
-              <span>Ingrédients à ajouter à la liste de courses (optionnel)</span>
+              <span>{{ t('meals.form.ingredients') }}</span>
             </label>
 
             <!-- Ingrédients de la recette Mealie : seuls ceux cochés seront ajoutés -->
@@ -806,7 +805,7 @@
               <input 
                 v-model="tempIngredientName" 
                 type="text" 
-                placeholder="ex: Viande hachée, Oeufs, Fromage..." 
+                :placeholder="t('meals.form.ingredientPlaceholder')" 
                 class="form-input"
                 @keydown.enter.prevent="addModalIngredient"
               />
@@ -816,7 +815,7 @@
                 class="btn btn-secondary btn-sm"
                 :disabled="!tempIngredientName.trim()"
               >
-                + Ajouter
+                + {{ t('common.add') }}
               </button>
             </div>
           </div>
@@ -824,7 +823,7 @@
           <!-- Membre qui suggère & Notes -->
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Suggéré par</label>
+              <label class="form-label">{{ t('meals.form.suggestedBy') }}</label>
               <select v-model="form.suggestedBy" class="form-select">
                 <option v-for="m in store.members" :key="m.id" :value="m.id">
                   {{ getAvatarTextFallback(m.avatar) }} {{ m.firstName || m.name }}
@@ -833,20 +832,20 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Notes ou détails (optionnel)</label>
+              <label class="form-label">{{ t('meals.form.notes') }}</label>
               <input 
                 v-model="form.notes" 
                 type="text" 
-                placeholder="ex: avec salade verte, sans gluten..."
+                :placeholder="t('meals.form.notesPlaceholder')"
                 class="form-input"
               />
             </div>
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="closeModal" class="btn btn-secondary">Annuler</button>
+            <button type="button" @click="closeModal" class="btn btn-secondary">{{ t('common.cancel') }}</button>
             <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
-              {{ isSubmitting ? 'Enregistrement...' : (isEditing ? 'Enregistrer les modifications' : 'Valider le plat') }}
+              {{ isSubmitting ? t('common.saving') : (isEditing ? t('profile.save') : t('meals.form.submit')) }}
             </button>
           </div>
         </form>
@@ -875,6 +874,9 @@
 import { ref, computed, nextTick } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
 import { useAuthStore } from '../stores/authStore'
+import { useI18n } from 'vue-i18n'
+import { formatDate as intlFormatDate, weekdayNames, monthNames as intlMonthNames } from '../i18n/format'
+import { translateValue } from '../i18n/values'
 import { 
   Utensils, 
   Plus, 
@@ -915,6 +917,7 @@ import { usePointerDrag } from '../composables/usePointerDrag'
 import { SLOT_KEYS } from '@shared/presence.js'
 
 const store = useFamilyStore()
+const { t } = useI18n()
 const authStore = useAuthStore()
 const { confirm } = useConfirm()
 
@@ -981,9 +984,9 @@ const isViewingCurrentWeek = computed(() => {
 // Découpage des 7 jours de la semaine (Lundi au Dimanche)
 const weekDays = computed(() => {
   const days = []
-  const dayNames = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
-  const monthNames = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
-  const fullMonthNames = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+  const dayNames = weekdayNames('long')
+  const monthNames = intlMonthNames('short')
+  const fullMonthNames = intlMonthNames('long')
 
   const base = new Date(currentMonday.value)
   const todayStr = store.todayStr
@@ -1052,7 +1055,7 @@ const moveMeal = async (meal, date, slot) => {
   const res = await store.updateMeal(meal.id, { date, slot })
   movingMealId.value = null
   if (!res.success) {
-    alert(res.error || 'Impossible de déplacer ce plat.')
+    alert(res.error || t('meals.errors.moveFailed'))
   }
 }
 
@@ -1072,7 +1075,7 @@ const currentWeekRangeLabel = computed(() => {
   if (weekDays.value.length === 0) return ''
   const first = weekDays.value[0]
   const last = weekDays.value[6]
-  return `Semaine du ${first.dayNum} ${first.monthShort} au ${last.dayNum} ${last.monthShort} ${currentMonday.value.getFullYear()}`
+  return t('calendar.weekLabel', { start: `${first.dayNum} ${first.monthShort}`, end: `${last.dayNum} ${last.monthShort}`, year: currentMonday.value.getFullYear() })
 })
 
 const weekMealsCount = computed(() => {
@@ -1101,16 +1104,16 @@ const availableCategories = computed(() => {
 })
 
 // Idées rapides d'inspiration
-const quickIdeas = [
-  '🍝 Pâtes',
-  '🍗 Poulet',
-  '🥗 Salade',
-  '🍕 Pizza',
-  '🐟 Poisson',
-  '🍲 Soupe',
-  '🥧 Quiche',
-  '🍔 Burgers'
-]
+const quickIdeas = computed(() => [
+  ['🍝', 'pasta'],
+  ['🍗', 'chicken'],
+  ['🥗', 'salad'],
+  ['🍕', 'pizza'],
+  ['🐟', 'fish'],
+  ['🍲', 'soup'],
+  ['🥧', 'quiche'],
+  ['🍔', 'burgers']
+].map(([emoji, key]) => `${emoji} ${t(`meals.ideas.${key}`)}`))
 
 const applyIdea = (idea) => {
   const clean = idea.replace(/^[^\wÀ-ÿ]+/g, '').trim()
@@ -1269,7 +1272,7 @@ const handleSubmitMeal = async () => {
   if (!form.value.dish.trim() || !form.value.date) return
 
   if (!isEditing.value && form.value.date < store.todayStr) {
-    alert("Impossible d'ajouter un repas à une date passée.")
+    alert(t('meals.errors.pastDate'))
     return
   }
 
@@ -1318,13 +1321,13 @@ const handleSubmitMeal = async () => {
 
 const handleDeleteMeal = async (id) => {
   const meal = store.meals.find(m => m.id === id)
-  const dishName = meal ? meal.dish : 'ce plat'
+  const dishName = meal ? meal.dish : t('meals.thisDish')
   const ok = await confirm({
-    title: 'Supprimer le plat',
-    message: `Voulez-vous vraiment retirer <strong>« ${escapeHtml(dishName)} »</strong> du menu ?`,
-    description: 'Cette action est irréversible.',
-    warning: 'Tous les ingrédients associés dans la liste de courses seront également supprimés.',
-    confirmText: 'Supprimer',
+    title: t('meals.delete.title'),
+    message: t('meals.delete.message', { dish: escapeHtml(dishName) }),
+    description: t('common.irreversible'),
+    warning: t('meals.delete.warning'),
+    confirmText: t('common.delete'),
     type: 'danger'
   })
   if (ok) {
@@ -1477,11 +1480,11 @@ const handleDeleteFromDetail = async () => {
   const meal = selectedMeal.value
   if (!meal) return
   const ok = await confirm({
-    title: 'Supprimer le plat',
-    message: `Voulez-vous vraiment retirer <strong>« ${escapeHtml(meal.dish)} »</strong> du menu ?`,
-    description: 'Cette action est irréversible.',
-    warning: 'Tous les ingrédients associés dans la liste de courses seront également supprimés.',
-    confirmText: 'Supprimer',
+    title: t('meals.delete.title'),
+    message: t('meals.delete.message', { dish: escapeHtml(meal.dish) }),
+    description: t('common.irreversible'),
+    warning: t('meals.delete.warning'),
+    confirmText: t('common.delete'),
     type: 'danger'
   })
   if (ok) {
@@ -1531,14 +1534,14 @@ const runPresenceAction = async (key, action) => {
   try {
     await action()
   } catch (err) {
-    presenceError.value = err.message || 'Une erreur est survenue, veuillez réessayer.'
+    presenceError.value = err.message || t('common.errors.retry')
   } finally {
     presenceBusyKey.value = null
   }
 }
 
 const ensureSuccess = (res) => {
-  if (!res.success) throw new Error(res.error || 'Une erreur est survenue, veuillez réessayer.')
+  if (!res.success) throw new Error(res.error || t('common.errors.retry'))
 }
 
 // Mêmes droits que PUT/DELETE /api/absences/:id côté serveur.
@@ -1616,7 +1619,7 @@ const formatDetailDate = (dateStr) => {
   try {
     const parts = dateStr.split('-')
     const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
-    return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    return intlFormatDate(d, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   } catch {
     return dateStr
   }

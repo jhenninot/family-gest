@@ -1,6 +1,7 @@
 // Ingrédients de recettes Mealie : l'API renvoie des éléments structurés
 // { food, quantity, unit, text } (voir GET /api/mealie/recipes/:slug) que l'on convertit ici en
 // libellés d'articles de courses, avec des quantités ajustées au nombre de couverts.
+import { formatNumber } from '../i18n/format'
 
 export const recipeIngredientKey = (ing) => (ing.food || ing.text).toLowerCase()
 
@@ -25,7 +26,7 @@ export const getRecipeScaleFactor = (baseServings, headcount) =>
 // pour les quantités avec unité (aucune au-delà de 10).
 const formatScaledQuantity = (quantity, unit) => {
   if (!unit) return String(Math.ceil(quantity - 1e-9))
-  return quantity.toLocaleString('fr-FR', { maximumFractionDigits: quantity >= 10 ? 0 : 1 })
+  return formatNumber(quantity, { maximumFractionDigits: quantity >= 10 ? 0 : 1 })
 }
 
 // Libellé d'article de courses : « Farine (250 g) » avec la quantité ajustée, ou le texte libre

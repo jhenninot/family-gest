@@ -1,0 +1,34 @@
+{
+  "filters": {
+    "status": "Estado:",
+    "all": "Todas ({n})",
+    "pending": "Pendientes ({n})",
+    "completed": "Hechas ({n})",
+    "member": "Miembro:",
+    "allMembers": "Todos los miembros"
+  },
+  "add": "Añadir una tarea",
+  "urgent": "Urgente",
+  "markPending": "Marcar «{title}» como pendiente",
+  "markDone": "Marcar «{title}» como hecha",
+  "editTask": "Editar la tarea",
+  "newTask": "Nueva tarea",
+  "dueTitle": "Fecha límite: {date}",
+  "empty": "Ninguna tarea coincide con estos filtros.",
+  "create": "Crear la tarea",
+  "form": {
+    "title": "Título de la tarea",
+    "titlePlaceholder": "p. ej. Limpiar la cocina…",
+    "notes": "Notas (opcional)",
+    "notesPlaceholder": "p. ej. Acordarse de sacar también el reciclaje…",
+    "category": "Categoría",
+    "assignTo": "Asignar a",
+    "priority": "Prioridad",
+    "dueDate": "Fecha límite (opcional)",
+    "dueDateHint": "En esta fecha la tarea pasa a ser urgente y se envía un recordatorio cada día a la persona asignada."
+  },
+  "delete": {
+    "title": "Eliminar la tarea",
+    "message": "¿Seguro que quieres eliminar la tarea «{title}»?"
+  }
+}

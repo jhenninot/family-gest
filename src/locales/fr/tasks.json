@@ -1,0 +1,34 @@
+{
+  "filters": {
+    "status": "Statut :",
+    "all": "Toutes ({n})",
+    "pending": "À faire ({n})",
+    "completed": "Terminées ({n})",
+    "member": "Membre :",
+    "allMembers": "Tous les membres"
+  },
+  "add": "Ajouter une tâche",
+  "urgent": "Urgente",
+  "markPending": "Marquer « {title} » comme à faire",
+  "markDone": "Marquer « {title} » comme faite",
+  "editTask": "Modifier la tâche",
+  "newTask": "Nouvelle tâche",
+  "dueTitle": "Échéance : {date}",
+  "empty": "Aucune tâche trouvée avec ces filtres.",
+  "create": "Créer la tâche",
+  "form": {
+    "title": "Titre de la tâche",
+    "titlePlaceholder": "ex : Nettoyer la cuisine…",
+    "notes": "Notes (optionnel)",
+    "notesPlaceholder": "ex : Penser à sortir les poubelles de tri aussi…",
+    "category": "Catégorie",
+    "assignTo": "Attribuer à",
+    "priority": "Priorité",
+    "dueDate": "Échéance (optionnel)",
+    "dueDateHint": "À cette date, la tâche devient urgente et un rappel est envoyé chaque jour à la personne assignée."
+  },
+  "delete": {
+    "title": "Supprimer la tâche",
+    "message": "Voulez-vous vraiment supprimer la tâche « {title} » ?"
+  }
+}

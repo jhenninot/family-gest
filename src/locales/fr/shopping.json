@@ -1,0 +1,20 @@
+{
+  "addPlaceholder": "Ajouter un article (ex : lait, pommes, pain…)",
+  "qtyShort": "Qté",
+  "urgent": "Urgent",
+  "toBuy": "À acheter",
+  "urgentCount": "{n} urgent | {n} urgents",
+  "emptyPending": "La liste de courses est vide ! Tout est sous contrôle.",
+  "qty": "Qté : {n}",
+  "inCart": "Déjà dans le chariot",
+  "emptyCart": "Aucun article n'a encore été coché.",
+  "editItem": "Modifier l'article",
+  "name": "Nom",
+  "quantity": "Quantité",
+  "linkedMealTooltip": "Ingrédient lié au repas : {dish} — {date}",
+  "delete": {
+    "title": "Supprimer l'article",
+    "message": "Voulez-vous vraiment supprimer « {name} » ?",
+    "linkedMeal": "Cet article est prévu pour le plat :"
+  }
+}

@@ -12,5 +12,37 @@
     "oncle_tante": "Uncle / Aunt",
     "baby_sitter": "Babysitter",
     "autre": "Other"
+  },
+  "taskCategory": {
+    "maison": "Home",
+    "cuisine": "Kitchen",
+    "jardin": "Garden",
+    "chambre": "Bedroom",
+    "autre": "Other"
+  },
+  "taskPriority": {
+    "basse": "Low",
+    "moyenne": "Medium",
+    "haute": "High"
+  },
+  "shoppingCategory": {
+    "frais": "Fresh",
+    "epicerie": "Groceries",
+    "fruits_legumes": "Fruit & Veg",
+    "boulangerie": "Bakery",
+    "boissons": "Drinks",
+    "maison": "Household",
+    "autre": "Other",
+    "surgeles": "Frozen"
+  },
+  "eventCategory": {
+    "fete": "Party",
+    "sante": "Health",
+    "famille": "Family",
+    "scolaire": "School",
+    "loisirs": "Leisure"
+  },
+  "location": {
+    "maison": "Home"
   }
 }

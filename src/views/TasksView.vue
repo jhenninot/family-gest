@@ -4,34 +4,34 @@
     <div class="glass-card filters-bar margin-bottom-lg">
       <div class="filters-group-wrap">
         <div class="filter-group">
-          <span class="filter-label">Statut :</span>
+          <span class="filter-label">{{ t('tasks.filters.status') }}</span>
           <button
             @click="statusFilter = 'all'"
             class="filter-pill"
             :class="{ active: statusFilter === 'all' }"
           >
-            Toutes ({{ store.tasks.length }})
+            {{ t('tasks.filters.all', { n: store.tasks.length }) }}
           </button>
           <button
             @click="statusFilter = 'pending'"
             class="filter-pill"
             :class="{ active: statusFilter === 'pending' }"
           >
-            À faire ({{ store.pendingTasksCount }})
+            {{ t('tasks.filters.pending', { n: store.pendingTasksCount }) }}
           </button>
           <button
             @click="statusFilter = 'completed'"
             class="filter-pill"
             :class="{ active: statusFilter === 'completed' }"
           >
-            Terminées ({{ store.completedTasksCount }})
+            {{ t('tasks.filters.completed', { n: store.completedTasksCount }) }}
           </button>
         </div>
 
         <div class="filter-group">
-          <span class="filter-label">Membre :</span>
+          <span class="filter-label">{{ t('tasks.filters.member') }}</span>
           <select v-model="memberFilter" class="form-select select-sm">
-            <option value="all">Tous les membres</option>
+            <option value="all">{{ t('tasks.filters.allMembers') }}</option>
             <option v-for="m in store.members" :key="m.id" :value="m.id">
               {{ getAvatarTextFallback(m.avatar) }} {{ m.name }}
             </option>
@@ -41,7 +41,7 @@
 
       <button @click="openAddModal" class="btn btn-primary">
         <Plus :size="18" />
-        <span>Ajouter une Tâche</span>
+        <span>{{ t('tasks.add') }}</span>
       </button>
     </div>
 
@@ -54,17 +54,17 @@
         :class="{ completed: task.completed, urgent: isTaskUrgent(task) }"
       >
         <div class="task-card-header">
-          <span v-if="isTaskUrgent(task)" class="badge badge-rose">Urgente 🔥</span>
+          <span v-if="isTaskUrgent(task)" class="badge badge-rose">{{ t('tasks.urgent') }} 🔥</span>
           <span class="badge" :class="getPriorityClass(task.priority)">
-            {{ task.priority }}
+            {{ translateValue('taskPriority', task.priority) }}
           </span>
-          <span class="badge badge-purple">{{ task.category }}</span>
+          <span class="badge badge-purple">{{ translateValue('taskCategory', task.category) }}</span>
 
           <div class="task-card-actions">
-            <button @click="openEditModal(task)" class="btn-icon-action" title="Modifier">
+            <button @click="openEditModal(task)" class="btn-icon-action" :title="t('common.edit')">
               <Pencil :size="16" />
             </button>
-            <button @click="handleDeleteTask(task)" class="btn-icon-action delete" title="Supprimer">
+            <button @click="handleDeleteTask(task)" class="btn-icon-action delete" :title="t('common.delete')">
               <Trash2 :size="16" />
             </button>
           </div>
@@ -78,13 +78,13 @@
               :checked="task.completed" 
               @change="store.toggleTask(task.id)"
               class="custom-checkbox-lg"
-              :aria-label="task.completed ? `Marquer « ${task.title} » comme à faire` : `Marquer « ${task.title} » comme faite`"
+              :aria-label="task.completed ? t('tasks.markPending', { title: task.title }) : t('tasks.markDone', { title: task.title })"
             />
-            <button type="button" class="task-title-text" title="Modifier la tâche" @click="openEditModal(task)">
+            <button type="button" class="task-title-text" :title="t('tasks.editTask')" @click="openEditModal(task)">
               {{ task.title }}
             </button>
           </div>
-          <p v-if="task.notes" class="task-notes" title="Modifier la tâche" @click="openEditModal(task)">{{ task.notes }}</p>
+          <p v-if="task.notes" class="task-notes" :title="t('tasks.editTask')" @click="openEditModal(task)">{{ task.notes }}</p>
         </div>
 
         <div class="task-card-footer">
@@ -92,7 +92,7 @@
             <UserAvatar :avatar="getMemberAvatar(task.assignedTo)" :name="getMemberName(task.assignedTo)" size="xs" />
             <span class="assignee-name">{{ getMemberName(task.assignedTo) }}</span>
           </div>
-          <span v-if="task.dueDate" class="due-date" :class="{ overdue: isTaskUrgent(task) }" :title="'Échéance : ' + formatDueDate(task.dueDate, true)">
+          <span v-if="task.dueDate" class="due-date" :class="{ overdue: isTaskUrgent(task) }" :title="t('tasks.dueTitle', { date: formatDueDate(task.dueDate, true) })">
             <CalendarClock :size="14" />
             {{ formatDueDate(task.dueDate) }}
           </span>
@@ -101,56 +101,52 @@
     </div>
 
     <div v-if="filteredTasks.length === 0" class="glass-card empty-card">
-      <p>Aucune tâche trouvée avec ces filtres.</p>
+      <p>{{ t('tasks.empty') }}</p>
     </div>
 
     <!-- Modal Ajouter / Modifier une Tâche -->
     <div v-if="showTaskModal" class="modal-overlay" @click.self="closeTaskModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>{{ editingTaskId ? 'Modifier la tâche' : 'Nouvelle Tâche' }}</h3>
+          <h3>{{ editingTaskId ? t('tasks.editTask') : t('tasks.newTask') }}</h3>
           <button @click="closeTaskModal" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleSubmitTask">
           <div class="form-group">
-            <label class="form-label">Titre de la tâche</label>
+            <label class="form-label">{{ t('tasks.form.title') }}</label>
             <input 
               v-model="taskForm.title" 
               type="text" 
               required 
-              placeholder="ex: Nettoyer la cuisine..."
+              :placeholder="t('tasks.form.titlePlaceholder')"
               class="form-input" 
             />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Notes (optionnel)</label>
+            <label class="form-label">{{ t('tasks.form.notes') }}</label>
             <textarea
               v-model="taskForm.notes"
               rows="3"
-              placeholder="ex: Penser à sortir les poubelles de tri aussi..."
+              :placeholder="t('tasks.form.notesPlaceholder')"
               class="form-input task-notes-input"
             ></textarea>
           </div>
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Catégorie</label>
+              <label class="form-label">{{ t('tasks.form.category') }}</label>
               <select v-model="taskForm.category" class="form-select">
-                <option value="Maison">Maison</option>
-                <option value="Cuisine">Cuisine</option>
-                <option value="Jardin">Jardin</option>
-                <option value="Chambre">Chambre</option>
-                <option value="Autre">Autre</option>
+                <option v-for="c in TASK_CATEGORY_VALUES" :key="c" :value="c">{{ translateValue('taskCategory', c) }}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Attribuer à</label>
+              <label class="form-label">{{ t('tasks.form.assignTo') }}</label>
               <select v-model="taskForm.assignedTo" class="form-select">
                 <option v-for="m in store.members" :key="m.id" :value="m.id">
-                  {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} ({{ m.role }})
+                  {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} ({{ translateValue('role', m.role) }})
                 </option>
               </select>
             </div>
@@ -158,24 +154,22 @@
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Priorité</label>
+              <label class="form-label">{{ t('tasks.form.priority') }}</label>
               <select v-model="taskForm.priority" class="form-select">
-                <option value="Basse">Basse</option>
-                <option value="Moyenne">Moyenne</option>
-                <option value="Haute">Haute</option>
+                <option v-for="p in TASK_PRIORITY_VALUES" :key="p" :value="p">{{ translateValue('taskPriority', p) }}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Échéance (optionnel)</label>
+              <label class="form-label">{{ t('tasks.form.dueDate') }}</label>
               <input v-model="taskForm.dueDate" type="date" class="form-input" />
-              <p class="form-hint">À cette date, la tâche devient urgente et un rappel est envoyé chaque jour à la personne assignée.</p>
+              <p class="form-hint">{{ t('tasks.form.dueDateHint') }}</p>
             </div>
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="closeTaskModal" class="btn btn-secondary">Annuler</button>
-            <button type="submit" class="btn btn-primary">{{ editingTaskId ? 'Enregistrer' : 'Créer la tâche' }}</button>
+            <button type="button" @click="closeTaskModal" class="btn btn-secondary">{{ t('common.cancel') }}</button>
+            <button type="submit" class="btn btn-primary">{{ editingTaskId ? t('common.save') : t('tasks.create') }}</button>
           </div>
         </form>
       </div>
@@ -186,6 +180,9 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
+import { useI18n } from 'vue-i18n'
+import { formatDate } from '../i18n/format'
+import { TASK_CATEGORY_VALUES, TASK_PRIORITY_VALUES, translateValue } from '../i18n/values'
 import { CheckSquare, Plus, Trash2, Pencil, CalendarClock } from '@lucide/vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
@@ -193,6 +190,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 
 const store = useFamilyStore()
+const { t } = useI18n()
 const { confirm } = useConfirm()
 
 const statusFilter = ref('all')
@@ -219,10 +217,10 @@ const formatDueDate = (dateStr, long = false) => {
   const date = new Date(y, m - 1, d)
   if (Number.isNaN(date.getTime())) return dateStr
   if (!long) {
-    if (dateStr === store.todayStr) return "Aujourd'hui"
-    return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+    if (dateStr === store.todayStr) return t('common.today')
+    return formatDate(date, { weekday: 'short', day: 'numeric', month: 'short' })
   }
-  return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  return formatDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 // Les tâches urgentes remontent en tête, les plus anciennes échéances d'abord ; l'ordre
@@ -244,7 +242,7 @@ const filteredTasks = computed(() => {
 
 const getMemberName = (id) => {
   const m = store.members.find(m => m.id === id)
-  return m ? m.name : 'Inconnu'
+  return m ? m.name : t('common.unknown')
 }
 
 const getMemberAvatar = (id) => {
@@ -262,10 +260,10 @@ const getPriorityClass = (priority) => {
 
 const handleDeleteTask = async (task) => {
   const ok = await confirm({
-    title: 'Supprimer la tâche',
-    message: `Voulez-vous vraiment supprimer la tâche « ${escapeHtml(task.title)} » ?`,
-    description: 'Cette action est irréversible.',
-    confirmText: 'Supprimer',
+    title: t('tasks.delete.title'),
+    message: t('tasks.delete.message', { title: escapeHtml(task.title) }),
+    description: t('common.irreversible'),
+    confirmText: t('common.delete'),
     type: 'danger'
   })
   if (ok) {

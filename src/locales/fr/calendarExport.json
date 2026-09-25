@@ -1,3 +1,6 @@
 {
-  "defaultTitle": "Événement FamilyGest"
+  "defaultTitle": "Événement FamilyGest",
+  "addToGoogle": "Ajouter à Google Agenda",
+  "downloadIcsTitle": "Télécharger pour Apple Calendrier ou Outlook (.ics)",
+  "downloadIcs": "Télécharger pour Apple Calendrier ou Outlook"
 }

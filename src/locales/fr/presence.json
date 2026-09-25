@@ -1,0 +1,67 @@
+{
+  "days": {
+    "mon": "lundi",
+    "tue": "mardi",
+    "wed": "mercredi",
+    "thu": "jeudi",
+    "fri": "vendredi",
+    "sat": "samedi",
+    "sun": "dimanche"
+  },
+  "daysShort": {
+    "mon": "Lun",
+    "tue": "Mar",
+    "wed": "Mer",
+    "thu": "Jeu",
+    "fri": "Ven",
+    "sat": "Sam",
+    "sun": "Dim"
+  },
+  "slots": {
+    "lunch": "Midi",
+    "dinner": "Soir",
+    "night": "Nuit"
+  },
+  "slotsInline": {
+    "lunch": "midi",
+    "dinner": "soir",
+    "night": "nuit"
+  },
+  "describe": {
+    "and": " et ",
+    "allPresent": "présent(e) à tous les créneaux",
+    "allAbsent": "absent(e) à tous les créneaux",
+    "absentOn": "absent(e) le {groups}",
+    "presentOn": "présent(e) le {groups}",
+    "simpleAbsent": "Habituellement absent(e) — vous signalez vos présences",
+    "simplePresent": "Habituellement présent(e) — vous signalez vos absences",
+    "everyWeek": "Chaque semaine : {summary}",
+    "weekPhase": "Semaine {phase} : {summary}",
+    "weekPhaseCurrent": "Semaine {phase} (en cours) : {summary}"
+  },
+  "editor": {
+    "simple": "Simple",
+    "simpleDesc": "La même chose tous les jours",
+    "custom": "Personnalisée",
+    "customDesc": "Par jour et par repas",
+    "usuallyPresentOption": "Habituellement présent(e) (signale des absences)",
+    "usuallyAbsentOption": "Habituellement absent(e) (signale des présences)",
+    "helpSelf": "Détermine si vous êtes comptabilisé(e) par défaut aux repas de famille et pour la nuit.",
+    "helpMember": "Détermine si ce membre est comptabilisé(e) par défaut aux repas de famille et pour la nuit.",
+    "alternate": "Alterner une semaine sur deux",
+    "alternateDesc": "Pour une garde alternée ou un rythme qui change chaque semaine.",
+    "weekTab": "Semaine {week}",
+    "current": "en cours",
+    "gridLabel": "Présence habituelle, semaine {week}",
+    "toggleDay": "Tout activer ou désactiver le {day}",
+    "toggleSlot": "Tout activer ou désactiver : {slot}",
+    "cellPresent": "présent",
+    "cellAbsent": "absent",
+    "presetAll": "Tout présent",
+    "presetNone": "Tout absent",
+    "presetNoWeekdayLunch": "Jamais le midi en semaine",
+    "presetWeekend": "Week-end seulement",
+    "copyAB": "Copier A → B",
+    "swapAB": "Inverser A et B"
+  }
+}

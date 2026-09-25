@@ -6,7 +6,7 @@
         v-model="query"
         type="search"
         class="form-input mealie-search-input"
-        placeholder="Chercher une recette dans Mealie..."
+        :placeholder="t('meals.mealie.searchPlaceholder')"
         @keydown.enter.prevent
       />
       <Loader2 v-if="searching" :size="16" class="spin mealie-search-spinner" />
@@ -41,7 +41,7 @@
     </ul>
 
     <p v-else-if="hasSearched && !searching" class="mealie-search-empty">
-      Aucune recette trouvée pour « {{ lastSearch }} ».
+      {{ t('meals.mealie.noResult', { query: lastSearch }) }}
     </p>
   </div>
 </template>
@@ -50,10 +50,12 @@
 import { ref, reactive, watch, onBeforeUnmount } from 'vue'
 import { Search, Loader2, ChefHat } from '@lucide/vue'
 import { useFamilyStore } from '../stores/familyStore'
+import { useI18n } from 'vue-i18n'
 
 // Recherche de recettes sur le serveur Mealie de la famille. Émet `select` avec le détail de la
 // recette choisie (nom, lien, ingrédients convertis en libellés d'articles de courses).
 const emit = defineEmits(['select'])
+const { t } = useI18n()
 
 const store = useFamilyStore()
 

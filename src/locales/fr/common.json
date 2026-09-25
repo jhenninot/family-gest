@@ -7,11 +7,20 @@
   "errors": {
     "server": "Erreur de connexion au serveur.",
     "unreachable": "Impossible de contacter le serveur",
-    "noActiveFamily": "Aucune famille active"
+    "noActiveFamily": "Aucune famille active",
+    "retry": "Une erreur est survenue, veuillez réessayer."
   },
   "logout": "Se déconnecter",
   "cancel": "Annuler",
   "saving": "Enregistrement…",
   "close": "Fermer",
-  "hide": "Masquer"
+  "hide": "Masquer",
+  "edit": "Modifier",
+  "delete": "Supprimer",
+  "save": "Enregistrer",
+  "today": "Aujourd'hui",
+  "unknown": "Inconnu",
+  "irreversible": "Cette action est irréversible.",
+  "add": "Ajouter",
+  "tomorrow": "Demain"
 }

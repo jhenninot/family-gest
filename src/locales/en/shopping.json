@@ -1,0 +1,20 @@
+{
+  "addPlaceholder": "Add an item (e.g. milk, apples, bread…)",
+  "qtyShort": "Qty",
+  "urgent": "Urgent",
+  "toBuy": "To buy",
+  "urgentCount": "{n} urgent | {n} urgent",
+  "emptyPending": "The shopping list is empty! Everything is under control.",
+  "qty": "Qty: {n}",
+  "inCart": "Already in the cart",
+  "emptyCart": "No item has been ticked yet.",
+  "editItem": "Edit the item",
+  "name": "Name",
+  "quantity": "Quantity",
+  "linkedMealTooltip": "Ingredient for the meal: {dish} — {date}",
+  "delete": {
+    "title": "Delete the item",
+    "message": "Do you really want to delete “{name}”?",
+    "linkedMeal": "This item is planned for the dish:"
+  }
+}

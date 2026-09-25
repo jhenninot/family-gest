@@ -250,7 +250,8 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { ShieldCheck, Shield, Mail, Bell, BellOff, Download, Trash2, AlertTriangle, CalendarCheck } from '@lucide/vue'
-import { describeUsualPresence, normalizeUsualPresenceConfig } from '@shared/presence.js'
+import { normalizeUsualPresenceConfig } from '@shared/presence.js'
+import { describePresence } from '../i18n/presence'
 import AvatarPicker from './AvatarPicker.vue'
 import PasswordStrengthIndicator from './PasswordStrengthIndicator.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
@@ -293,7 +294,7 @@ const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#0
 const usualPresenceSummary = computed(() => {
   const member = store.members.find(m => m.id === authStore.user?.id)
   if (!member) return t('profile.selectFamilyForPresence')
-  return describeUsualPresence(
+  return describePresence(
     normalizeUsualPresenceConfig(member.usualPresenceConfig, member.usualPresence),
     store.todayStr,
     store.presenceWeekAnchor

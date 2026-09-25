@@ -11,6 +11,13 @@ export const valueKey = (value) => String(value ?? '')
 // Rôles familiaux proposés dans les formulaires (valeurs enregistrées en base)
 export const FAMILY_ROLE_VALUES = ['Papa', 'Maman', 'Fils', 'Fille', 'Grand-Parent', 'Oncle / Tante', 'Baby-Sitter', 'Autre']
 
+// Catégories et priorités de tâches proposées dans le formulaire (valeurs enregistrées en base)
+export const TASK_CATEGORY_VALUES = ['Maison', 'Cuisine', 'Jardin', 'Chambre', 'Autre']
+export const TASK_PRIORITY_VALUES = ['Basse', 'Moyenne', 'Haute']
+
+// Catégories d'événements proposées dans le formulaire (valeurs enregistrées en base)
+export const EVENT_CATEGORY_VALUES = ['Fête', 'Santé', 'Famille', 'Scolaire', 'Loisirs']
+
 export function translateValue(kind, value) {
   if (value === null || value === undefined || value === '') return value
   const key = `values.${kind}.${valueKey(value)}`

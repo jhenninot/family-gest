@@ -12,5 +12,37 @@
     "oncle_tante": "Tío / Tía",
     "baby_sitter": "Niñero/a",
     "autre": "Otro"
+  },
+  "taskCategory": {
+    "maison": "Casa",
+    "cuisine": "Cocina",
+    "jardin": "Jardín",
+    "chambre": "Dormitorio",
+    "autre": "Otro"
+  },
+  "taskPriority": {
+    "basse": "Baja",
+    "moyenne": "Media",
+    "haute": "Alta"
+  },
+  "shoppingCategory": {
+    "frais": "Frescos",
+    "epicerie": "Despensa",
+    "fruits_legumes": "Frutas y verduras",
+    "boulangerie": "Panadería",
+    "boissons": "Bebidas",
+    "maison": "Hogar",
+    "autre": "Otros",
+    "surgeles": "Congelados"
+  },
+  "eventCategory": {
+    "fete": "Fiesta",
+    "sante": "Salud",
+    "famille": "Familia",
+    "scolaire": "Escolar",
+    "loisirs": "Ocio"
+  },
+  "location": {
+    "maison": "Casa"
   }
 }

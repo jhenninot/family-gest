@@ -5,12 +5,12 @@
       <div class="today-banner-header">
         <div class="today-title">
           <CalendarCheck :size="18" class="text-indigo" />
-          <span>Présences du jour ({{ formatDisplayDate(store.todayStr) }})</span>
+          <span>{{ t('absences.today.title', { date: formatDisplayDate(store.todayStr) }) }}</span>
         </div>
         <div class="today-header-btns">
-          <button @click="openDeclarationChoiceModal(store.todayStr)" class="btn-today-add" title="Déclarer une absence, absence longue, invitation ou présence aujourd'hui">
+          <button @click="openDeclarationChoiceModal(store.todayStr)" class="btn-today-add" :title="t('absences.today.declareTitle')">
             <Plus :size="14" />
-            <span>Déclarer</span>
+            <span>{{ t('absences.today.declare') }}</span>
           </button>
         </div>
       </div>
@@ -21,24 +21,24 @@
           <div class="slot-header">
             <Sun :size="18" class="slot-icon slot-icon-lunch" />
             <div class="slot-title-col">
-              <span class="slot-name">Déjeuner (Midi)</span>
+              <span class="slot-name">{{ t('absences.slots.lunchFull') }}</span>
               <span class="slot-headcount">{{ getSlotHeadcount('lunch') }}</span>
             </div>
-            <button @click="openAddGuestModal(store.todayStr, 'lunch')" class="btn-slot-quick-guest" title="Ajouter un invité pour ce midi">
-              + Invité
+            <button @click="openAddGuestModal(store.todayStr, 'lunch')" class="btn-slot-quick-guest" :title="t('absences.today.addGuestLunch')">
+              + {{ t('absences.today.guestShort') }}
             </button>
           </div>
 
           <div class="slot-members-list">
             <!-- Absents -->
             <div v-if="todayLunchPresence.absentMembers.length > 0" class="slot-chip-group">
-              <span class="chip-group-label">Absents :</span>
+              <span class="chip-group-label">{{ t('absences.today.absents') }}</span>
               <div class="absent-chips">
                 <span 
                   v-for="m in todayLunchPresence.absentMembers" 
                   :key="'abs-' + m.id" 
                   class="member-absent-chip"
-                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Absent'"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? t('absences.today.reason', { note: getRecordForMember(m.id, store.todayStr)?.note }) : t('absences.today.absent')"
                   @click="handleAbsentMemberClick(m.id, store.todayStr)"
                 >
                   <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
@@ -49,13 +49,13 @@
 
             <!-- Présences signalées -->
             <div v-if="todayLunchPresence.exceptionalPresences.length > 0" class="slot-chip-group">
-              <span class="chip-group-label presences-label">Présences :</span>
+              <span class="chip-group-label presences-label">{{ t('absences.today.presences') }}</span>
               <div class="presence-chips">
                 <span 
                   v-for="m in todayLunchPresence.exceptionalPresences" 
                   :key="'prs-' + m.id" 
                   class="member-presence-chip"
-                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Note: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Présence confirmée'"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? t('dashboard.guestNote', { note: getRecordForMember(m.id, store.todayStr)?.note }) : t('absences.today.presenceConfirmed')"
                   @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
                   <span class="presence-dot">🟢</span>
@@ -67,13 +67,13 @@
 
             <!-- Invités -->
             <div v-if="todayLunchPresence.guests.length > 0" class="slot-chip-group">
-              <span class="chip-group-label guests-label">Invités :</span>
+              <span class="chip-group-label guests-label">{{ t('absences.today.guests') }}</span>
               <div class="guest-chips">
                 <span 
                   v-for="g in todayLunchPresence.guests" 
                   :key="'gst-' + g.id" 
                   class="guest-chip"
-                  :title="g.note ? `Note: ${g.note}` : 'Invité(e)'"
+                  :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('absences.today.guest')"
                   @click="openEditGuestModal(g)"
                 >
                   👥 {{ g.name }}
@@ -82,7 +82,7 @@
             </div>
 
             <div v-if="todayLunchPresence.absentMembers.length === 0 && todayLunchPresence.exceptionalPresences.length === 0 && todayLunchPresence.guests.length === 0" class="all-present-text">
-              Au complet ({{ todayLunchPresence.headcount }} personnes) sans invité
+              {{ t('dashboard.fullNoGuestCount', { n: todayLunchPresence.headcount }) }}
             </div>
           </div>
         </div>
@@ -92,24 +92,24 @@
           <div class="slot-header">
             <Sunset :size="18" class="slot-icon slot-icon-dinner" />
             <div class="slot-title-col">
-              <span class="slot-name">Dîner (Soir)</span>
+              <span class="slot-name">{{ t('absences.slots.dinnerFull') }}</span>
               <span class="slot-headcount">{{ getSlotHeadcount('dinner') }}</span>
             </div>
-            <button @click="openAddGuestModal(store.todayStr, 'dinner')" class="btn-slot-quick-guest" title="Ajouter un invité pour ce soir">
-              + Invité
+            <button @click="openAddGuestModal(store.todayStr, 'dinner')" class="btn-slot-quick-guest" :title="t('absences.today.addGuestDinner')">
+              + {{ t('absences.today.guestShort') }}
             </button>
           </div>
 
           <div class="slot-members-list">
             <!-- Absents -->
             <div v-if="todayDinnerPresence.absentMembers.length > 0" class="slot-chip-group">
-              <span class="chip-group-label">Absents :</span>
+              <span class="chip-group-label">{{ t('absences.today.absents') }}</span>
               <div class="absent-chips">
                 <span 
                   v-for="m in todayDinnerPresence.absentMembers" 
                   :key="'abs-' + m.id" 
                   class="member-absent-chip"
-                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Absent'"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? t('absences.today.reason', { note: getRecordForMember(m.id, store.todayStr)?.note }) : t('absences.today.absent')"
                   @click="handleAbsentMemberClick(m.id, store.todayStr)"
                 >
                   <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
@@ -120,13 +120,13 @@
 
             <!-- Présences signalées -->
             <div v-if="todayDinnerPresence.exceptionalPresences.length > 0" class="slot-chip-group">
-              <span class="chip-group-label presences-label">Présences :</span>
+              <span class="chip-group-label presences-label">{{ t('absences.today.presences') }}</span>
               <div class="presence-chips">
                 <span 
                   v-for="m in todayDinnerPresence.exceptionalPresences" 
                   :key="'prs-' + m.id" 
                   class="member-presence-chip"
-                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Note: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Présence confirmée'"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? t('dashboard.guestNote', { note: getRecordForMember(m.id, store.todayStr)?.note }) : t('absences.today.presenceConfirmed')"
                   @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
                   <span class="presence-dot">🟢</span>
@@ -138,13 +138,13 @@
 
             <!-- Invités -->
             <div v-if="todayDinnerPresence.guests.length > 0" class="slot-chip-group">
-              <span class="chip-group-label guests-label">Invités :</span>
+              <span class="chip-group-label guests-label">{{ t('absences.today.guests') }}</span>
               <div class="guest-chips">
                 <span 
                   v-for="g in todayDinnerPresence.guests" 
                   :key="'gst-' + g.id" 
                   class="guest-chip"
-                  :title="g.note ? `Note: ${g.note}` : 'Invité(e)'"
+                  :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('absences.today.guest')"
                   @click="openEditGuestModal(g)"
                 >
                   👥 {{ g.name }}
@@ -153,7 +153,7 @@
             </div>
 
             <div v-if="todayDinnerPresence.absentMembers.length === 0 && todayDinnerPresence.exceptionalPresences.length === 0 && todayDinnerPresence.guests.length === 0" class="all-present-text">
-              Tout le monde dîne à la maison ({{ todayDinnerPresence.headcount }} personnes) sans invité
+              {{ t('absences.today.everyoneDinesHome', { n: todayDinnerPresence.headcount }) }}
             </div>
           </div>
         </div>
@@ -163,24 +163,24 @@
           <div class="slot-header">
             <BedDouble :size="18" class="slot-icon slot-icon-night" />
             <div class="slot-title-col">
-              <span class="slot-name">Nuit (Couchage)</span>
+              <span class="slot-name">{{ t('absences.slots.nightFull') }}</span>
               <span class="slot-headcount">{{ getSlotHeadcount('night') }}</span>
             </div>
-            <button @click="openAddGuestModal(store.todayStr, 'night')" class="btn-slot-quick-guest" title="Ajouter un invité qui dort ce soir">
-              + Invité
+            <button @click="openAddGuestModal(store.todayStr, 'night')" class="btn-slot-quick-guest" :title="t('absences.today.addGuestNight')">
+              + {{ t('absences.today.guestShort') }}
             </button>
           </div>
 
           <div class="slot-members-list">
             <!-- Absents -->
             <div v-if="todayNightPresence.absentMembers.length > 0" class="slot-chip-group">
-              <span class="chip-group-label">Absents :</span>
+              <span class="chip-group-label">{{ t('absences.today.absents') }}</span>
               <div class="absent-chips">
                 <span 
                   v-for="m in todayNightPresence.absentMembers" 
                   :key="'abs-' + m.id" 
                   class="member-absent-chip"
-                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Motif: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Dort ailleurs'"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? t('absences.today.reason', { note: getRecordForMember(m.id, store.todayStr)?.note }) : t('absences.today.sleepsElsewhere')"
                   @click="handleAbsentMemberClick(m.id, store.todayStr)"
                 >
                   <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
@@ -191,13 +191,13 @@
 
             <!-- Présences signalées -->
             <div v-if="todayNightPresence.exceptionalPresences.length > 0" class="slot-chip-group">
-              <span class="chip-group-label presences-label">Présences :</span>
+              <span class="chip-group-label presences-label">{{ t('absences.today.presences') }}</span>
               <div class="presence-chips">
                 <span 
                   v-for="m in todayNightPresence.exceptionalPresences" 
                   :key="'prs-' + m.id" 
                   class="member-presence-chip"
-                  :title="getRecordForMember(m.id, store.todayStr)?.note ? `Note: ${getRecordForMember(m.id, store.todayStr)?.note}` : 'Dort à la maison'"
+                  :title="getRecordForMember(m.id, store.todayStr)?.note ? t('dashboard.guestNote', { note: getRecordForMember(m.id, store.todayStr)?.note }) : t('dashboard.sleepsHome')"
                   @click="getRecordForMember(m.id, store.todayStr) && openEditModal(getRecordForMember(m.id, store.todayStr))"
                 >
                   <span class="presence-dot">🟢</span>
@@ -209,13 +209,13 @@
 
             <!-- Invités -->
             <div v-if="todayNightPresence.guests.length > 0" class="slot-chip-group">
-              <span class="chip-group-label guests-label">Invités :</span>
+              <span class="chip-group-label guests-label">{{ t('absences.today.guests') }}</span>
               <div class="guest-chips">
                 <span 
                   v-for="g in todayNightPresence.guests" 
                   :key="'gst-' + g.id" 
                   class="guest-chip"
-                  :title="g.note ? `Note: ${g.note}` : 'Dort à la maison'"
+                  :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('dashboard.sleepsHome')"
                   @click="openEditGuestModal(g)"
                 >
                   👥 {{ g.name }}
@@ -224,7 +224,7 @@
             </div>
 
             <div v-if="todayNightPresence.absentMembers.length === 0 && todayNightPresence.exceptionalPresences.length === 0 && todayNightPresence.guests.length === 0" class="all-present-text">
-              Tout le monde dort à la maison ({{ todayNightPresence.headcount }}) sans invité
+              {{ t('absences.today.everyoneSleepsHome', { n: todayNightPresence.headcount }) }}
             </div>
           </div>
         </div>
@@ -235,10 +235,10 @@
     <div class="glass-card section-card" ref="usualPresenceCardRef">
       <div class="section-card-header usual-presence-header" @click="toggleUsualPresencePanel">
         <div class="section-title-group">
-          <h2 class="section-title"><CalendarCheck :size="20" /> Ma présence habituelle</h2>
+          <h2 class="section-title"><CalendarCheck :size="20" /> {{ t('absences.usual.title') }}</h2>
           <span class="section-subtitle">{{ myUsualPresenceSummary }}</span>
         </div>
-        <button class="btn-icon btn-icon-ghost" :title="usualPresenceOpen ? 'Replier' : 'Personnaliser'">
+        <button class="btn-icon btn-icon-ghost" :title="usualPresenceOpen ? t('absences.usual.collapse') : t('absences.usual.customize')">
           <ChevronUp v-if="usualPresenceOpen" :size="20" />
           <ChevronDown v-else :size="20" />
         </button>
@@ -255,22 +255,21 @@
 
         <div v-if="store.isFamilyAdmin && myUsualPresenceDraft?.alternating" class="anchor-row">
           <span class="help-subtext">
-            Semaine en cours : <strong>Semaine {{ store.getWeekPhase(store.todayStr) }}</strong>.
-            L'alternance est commune à toute la famille.
+            <i18n-t keypath="absences.usual.currentWeek" tag="span"><template #week><strong>{{ t('presence.editor.weekTab', { week: store.getWeekPhase(store.todayStr) }) }}</strong></template></i18n-t>
           </span>
           <button class="btn btn-secondary btn-sm" @click="declareCurrentWeekAsA">
-            Déclarer la semaine en cours comme Semaine A
+            {{ t('absences.usual.declareCurrentAsA') }}
           </button>
         </div>
 
         <div class="usual-presence-actions">
           <span v-if="usualPresenceError" class="text-error">{{ usualPresenceError }}</span>
-          <span v-else-if="usualPresenceSaved" class="saved-hint">Enregistré ✓</span>
+          <span v-else-if="usualPresenceSaved" class="saved-hint">{{ t('absences.usual.saved') }} ✓</span>
           <button class="btn btn-secondary btn-sm" @click="resetUsualPresenceDraft" :disabled="!usualPresenceDirty">
-            Annuler
+            {{ t('common.cancel') }}
           </button>
           <button class="btn btn-presence-primary btn-sm" @click="saveUsualPresence" :disabled="!usualPresenceDirty || savingUsualPresence">
-            {{ savingUsualPresence ? 'Enregistrement…' : 'Enregistrer' }}
+            {{ savingUsualPresence ? t('common.saving') : t('common.save') }}
           </button>
         </div>
       </div>
@@ -290,30 +289,30 @@
                 class="view-mode-btn" 
                 :class="{ active: calendarViewMode === 'month' }" 
                 @click="calendarViewMode = 'month'"
-                title="Afficher le calendrier mensuel"
+                :title="t('calendar.showMonth')"
               >
                 <Calendar :size="15" />
-                <span>Mois</span>
+                <span>{{ t('calendar.month') }}</span>
               </button>
               <button 
                 class="view-mode-btn" 
                 :class="{ active: calendarViewMode === 'week' }" 
                 @click="calendarViewMode = 'week'"
-                title="Afficher le planning hebdomadaire"
+                :title="t('calendar.showWeek')"
               >
                 <CalendarRange :size="15" />
-                <span>Semaine</span>
+                <span>{{ t('calendar.week') }}</span>
               </button>
             </div>
 
             <div class="calendar-nav-controls">
-              <button @click="prevPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? 'Semaine précédente' : 'Mois précédent'">
+              <button @click="prevPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.prevWeek') : t('calendar.prevMonth')">
                 <ChevronLeft :size="22" />
               </button>
               <button @click="goToToday" class="btn-today-nav">
-                Aujourd'hui
+                {{ t('common.today') }}
               </button>
-              <button @click="nextPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? 'Semaine suivante' : 'Mois suivant'">
+              <button @click="nextPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.nextWeek') : t('calendar.nextMonth')">
                 <ChevronRight :size="22" />
               </button>
             </div>
@@ -324,7 +323,7 @@
         <template v-if="calendarViewMode === 'month'">
           <!-- Days of week -->
           <div class="calendar-grid-header">
-            <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
+            <span v-for="name in weekdayHeaders" :key="name">{{ name }}</span>
           </div>
 
           <!-- Calendar Days Grid -->
@@ -346,7 +345,7 @@
                 past: isDayPast(day)
               }"
               @click="openDayDetailModal(formatDateStr(currentYear, currentMonth, day))"
-              :title="'Cliquer pour voir le détail du ' + day + ' ' + currentMonthName"
+              :title="t('absences.calendar.clickDay', { day: `${day} ${currentMonthName}` })"
             >
               <div class="day-cell-top">
                 <span class="day-number">{{ day }}</span>
@@ -354,15 +353,15 @@
 
               <!-- Nombres de présents par repas et nuit -->
               <div class="day-headcounts-list">
-                <div class="day-headcount-item lunch" title="Déjeuner (Midi)">
+                <div class="day-headcount-item lunch" :title="t('absences.slots.lunchFull')">
                   <Sun :size="12" class="slot-icon-mini" />
                   <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'lunch') }}</span>
                 </div>
-                <div class="day-headcount-item dinner" title="Dîner (Soir)">
+                <div class="day-headcount-item dinner" :title="t('absences.slots.dinnerFull')">
                   <Sunset :size="12" class="slot-icon-mini" />
                   <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'dinner') }}</span>
                 </div>
-                <div class="day-headcount-item night" title="Nuit (Couchage)">
+                <div class="day-headcount-item night" :title="t('absences.slots.nightFull')">
                   <BedDouble :size="12" class="slot-icon-mini" />
                   <span class="headcount-num">{{ getDaySlotHeadcountNumber(day, 'night') }}</span>
                 </div>
@@ -380,7 +379,7 @@
               class="week-day-column"
               :class="{ 'is-today': day.isToday, 'is-past': day.isPast }"
               @click="openDayDetailModal(day.dateStr)"
-              :title="'Cliquer pour voir ou modifier le détail du ' + day.name + ' ' + day.dayNum + ' ' + day.monthShort"
+              :title="t('absences.calendar.clickWeekDay', { day: `${day.name} ${day.dayNum} ${day.monthShort}` })"
             >
               <!-- Day Header -->
               <div class="week-col-header">
@@ -388,7 +387,7 @@
                   <span class="day-name-text">{{ day.name }}</span>
                   <span class="day-date-text">{{ day.dayNum }} {{ day.monthShort }}</span>
                 </div>
-                <span v-if="day.isPast" class="past-tag-mini">Passé</span>
+                <span v-if="day.isPast" class="past-tag-mini">{{ t('calendar.past') }}</span>
               </div>
 
               <!-- Slots breakdown -->
@@ -396,8 +395,8 @@
                 <!-- Midi (Déjeuner) -->
                 <div class="week-col-slot lunch">
                   <div class="slot-summary-row">
-                    <span class="slot-name-badge"><Sun :size="12" class="slot-name-icon-lunch" /> Midi</span>
-                    <span class="slot-headcount-tag" :title="`${day.lunchPresence.headcount} à table ce midi`">
+                    <span class="slot-name-badge"><Sun :size="12" class="slot-name-icon-lunch" /> {{ t('presence.slots.lunch') }}</span>
+                    <span class="slot-headcount-tag" :title="t('absences.calendar.atTableLunch', { n: day.lunchPresence.headcount })">
                       {{ day.lunchPresence.headcount }}
                     </span>
                   </div>
@@ -406,7 +405,7 @@
                       v-for="p in day.lunchPresence.exceptionalPresences" 
                       :key="'wl-p-' + p.id" 
                       class="mini-chip chip-presence"
-                      :title="`${p.firstName} présent(e)`"
+                      :title="t('absences.calendar.personPresent', { name: p.firstName })"
                     >
                       +{{ p.firstName }}
                     </span>
@@ -414,7 +413,7 @@
                       v-for="a in day.lunchPresence.absentMembers" 
                       :key="'wl-a-' + a.id" 
                       class="mini-chip chip-absence"
-                      :title="`${a.firstName} absent(e)`"
+                      :title="t('absences.calendar.personAbsent', { name: a.firstName })"
                     >
                       -{{ a.firstName }}
                     </span>
@@ -422,7 +421,7 @@
                       v-for="g in day.lunchPresence.guests" 
                       :key="'wl-g-' + g.id" 
                       class="mini-chip chip-guest"
-                      :title="`Invité : ${g.name}`"
+                      :title="t('absences.calendar.guestName', { name: g.name })"
                     >
                       👥 {{ g.name }}
                     </span>
@@ -430,7 +429,7 @@
                       v-if="day.lunchPresence.exceptionalPresences.length === 0 && day.lunchPresence.absentMembers.length === 0 && day.lunchPresence.guests.length === 0" 
                       class="mini-chip chip-normal"
                     >
-                      Habituel
+                      {{ t('absences.calendar.usual') }}
                     </span>
                   </div>
                 </div>
@@ -438,8 +437,8 @@
                 <!-- Soir (Dîner) -->
                 <div class="week-col-slot dinner">
                   <div class="slot-summary-row">
-                    <span class="slot-name-badge"><Sunset :size="12" class="slot-name-icon-dinner" /> Soir</span>
-                    <span class="slot-headcount-tag" :title="`${day.dinnerPresence.headcount} à table ce soir`">
+                    <span class="slot-name-badge"><Sunset :size="12" class="slot-name-icon-dinner" /> {{ t('presence.slots.dinner') }}</span>
+                    <span class="slot-headcount-tag" :title="t('absences.calendar.atTableDinner', { n: day.dinnerPresence.headcount })">
                       {{ day.dinnerPresence.headcount }}
                     </span>
                   </div>
@@ -448,7 +447,7 @@
                       v-for="p in day.dinnerPresence.exceptionalPresences" 
                       :key="'wd-p-' + p.id" 
                       class="mini-chip chip-presence"
-                      :title="`${p.firstName} présent(e)`"
+                      :title="t('absences.calendar.personPresent', { name: p.firstName })"
                     >
                       +{{ p.firstName }}
                     </span>
@@ -456,7 +455,7 @@
                       v-for="a in day.dinnerPresence.absentMembers" 
                       :key="'wd-a-' + a.id" 
                       class="mini-chip chip-absence"
-                      :title="`${a.firstName} absent(e)`"
+                      :title="t('absences.calendar.personAbsent', { name: a.firstName })"
                     >
                       -{{ a.firstName }}
                     </span>
@@ -464,7 +463,7 @@
                       v-for="g in day.dinnerPresence.guests" 
                       :key="'wd-g-' + g.id" 
                       class="mini-chip chip-guest"
-                      :title="`Invité : ${g.name}`"
+                      :title="t('absences.calendar.guestName', { name: g.name })"
                     >
                       👥 {{ g.name }}
                     </span>
@@ -472,7 +471,7 @@
                       v-if="day.dinnerPresence.exceptionalPresences.length === 0 && day.dinnerPresence.absentMembers.length === 0 && day.dinnerPresence.guests.length === 0" 
                       class="mini-chip chip-normal"
                     >
-                      Habituel
+                      {{ t('absences.calendar.usual') }}
                     </span>
                   </div>
                 </div>
@@ -480,8 +479,8 @@
                 <!-- Nuit (Couchage) -->
                 <div class="week-col-slot night">
                   <div class="slot-summary-row">
-                    <span class="slot-name-badge"><BedDouble :size="12" class="slot-name-icon-night" /> Nuit</span>
-                    <span class="slot-headcount-tag" :title="`${day.nightPresence.headcount} au lit`">
+                    <span class="slot-name-badge"><BedDouble :size="12" class="slot-name-icon-night" /> {{ t('presence.slots.night') }}</span>
+                    <span class="slot-headcount-tag" :title="t('absences.calendar.inBed', { n: day.nightPresence.headcount })">
                       {{ day.nightPresence.headcount }}
                     </span>
                   </div>
@@ -490,7 +489,7 @@
                       v-for="p in day.nightPresence.exceptionalPresences" 
                       :key="'wn-p-' + p.id" 
                       class="mini-chip chip-presence"
-                      :title="`${p.firstName} dort sur place`"
+                      :title="t('absences.calendar.sleepsHere', { name: p.firstName })"
                     >
                       +{{ p.firstName }}
                     </span>
@@ -498,7 +497,7 @@
                       v-for="a in day.nightPresence.absentMembers" 
                       :key="'wn-a-' + a.id" 
                       class="mini-chip chip-absence"
-                      :title="`${a.firstName} découché`"
+                      :title="t('absences.calendar.sleepsAway', { name: a.firstName })"
                     >
                       -{{ a.firstName }}
                     </span>
@@ -506,7 +505,7 @@
                       v-for="g in day.nightPresence.guests" 
                       :key="'wn-g-' + g.id" 
                       class="mini-chip chip-guest"
-                      :title="`Invité : ${g.name}`"
+                      :title="t('absences.calendar.guestName', { name: g.name })"
                     >
                       👥 {{ g.name }}
                     </span>
@@ -514,7 +513,7 @@
                       v-if="day.nightPresence.exceptionalPresences.length === 0 && day.nightPresence.absentMembers.length === 0 && day.nightPresence.guests.length === 0" 
                       class="mini-chip chip-normal"
                     >
-                      Habituel
+                      {{ t('absences.calendar.usual') }}
                     </span>
                   </div>
                 </div>
@@ -522,7 +521,7 @@
 
               <!-- Footer action hint -->
               <div class="week-col-footer">
-                <span class="week-col-hint">{{ day.isPast ? 'Consulter' : 'Modifier' }}</span>
+                <span class="week-col-hint">{{ day.isPast ? t('calendar.consult') : t('common.edit') }}</span>
               </div>
             </div>
           </div>
@@ -533,27 +532,27 @@
     <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
       <div class="modal-content absence-modal" :class="{ 'presence-modal-theme': form.type === 'presence' }">
         <div class="modal-header">
-          <h3>{{ editingId ? (form.type === 'presence' ? 'Modifier la Présence' : 'Modifier l\'Absence') : (form.type === 'presence' ? 'Confirmer une Présence' : 'Signaler une Absence') }}</h3>
+          <h3>{{ editingId ? (form.type === 'presence' ? t('absences.form.editPresence') : t('absences.form.editAbsence')) : (form.type === 'presence' ? t('absences.form.confirmPresence') : t('absences.form.reportAbsence')) }}</h3>
           <button @click="showModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleSubmit">
           <!-- Member selection -->
           <div class="form-group">
-            <label class="form-label">Membre concerné</label>
+            <label class="form-label">{{ t('absences.form.member') }}</label>
             <select v-model="form.memberId" class="form-select" required>
               <option v-for="m in store.members" :key="m.id" :value="m.id">
-                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ usualAbsenceHint(m) }} {{ m.id === authStore.user?.id ? '• Moi' : '' }}
+                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ usualAbsenceHint(m) }} {{ m.id === authStore.user?.id ? `• ${t('absences.me')}` : '' }}
               </option>
             </select>
             <span v-if="form.memberId !== authStore.user?.id" class="help-subtext text-indigo">
-              👋 Vous déclarez cette {{ form.type === 'presence' ? 'présence' : 'absence' }} pour <strong>{{ getMemberName(form.memberId) }}</strong>. Une alerte (web & mail) sera envoyée à la famille.
+              👋 <i18n-t :keypath="form.type === 'presence' ? 'absences.form.declaringPresenceFor' : 'absences.form.declaringAbsenceFor'" tag="span"><template #name><strong>{{ getMemberName(form.memberId) }}</strong></template></i18n-t>
             </span>
           </div>
 
           <!-- Date -->
           <div class="form-group">
-            <label class="form-label">{{ form.type === 'presence' ? 'Date de présence' : 'Date de l\'absence' }}</label>
+            <label class="form-label">{{ form.type === 'presence' ? t('absences.form.presenceDate') : t('absences.form.absenceDate') }}</label>
             <input 
               v-model="form.date" 
               type="date" 
@@ -567,8 +566,8 @@
           <div class="form-group">
             <label class="form-label">
               {{ form.type === 'presence' 
-                ? (form.memberId === authStore.user?.id ? 'Créneau(x) où vous serez présent(e) :' : `Créneau(x) où ${getMemberFirstName(form.memberId)} sera présent(e) :`) 
-                : (form.memberId === authStore.user?.id ? 'Créneau(x) où vous serez absent(e) :' : `Créneau(x) où ${getMemberFirstName(form.memberId)} sera absent(e) :`) }}
+                ? (form.memberId === authStore.user?.id ? t('absences.form.slotsPresentSelf') : t('absences.form.slotsPresentOther', { name: getMemberFirstName(form.memberId) })) 
+                : (form.memberId === authStore.user?.id ? t('absences.form.slotsAbsentSelf') : t('absences.form.slotsAbsentOther', { name: getMemberFirstName(form.memberId) })) }}
             </label>
             <div class="slots-toggle-grid">
               <!-- Déjeuner -->
@@ -581,8 +580,8 @@
                   <Sun :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="form.lunch" @click.stop class="slot-toggle-check" />
                 </div>
-                <strong>Déjeuner</strong>
-                <span class="slot-toggle-sub">{{ form.type === 'presence' ? 'Mange le midi' : 'Repas du midi' }}</span>
+                <strong>{{ t('dashboard.slots.lunch') }}</strong>
+                <span class="slot-toggle-sub">{{ form.type === 'presence' ? t('absences.form.eatsLunch') : t('absences.form.lunchMeal') }}</span>
               </div>
 
               <!-- Dîner -->
@@ -595,8 +594,8 @@
                   <Sunset :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="form.dinner" @click.stop class="slot-toggle-check" />
                 </div>
-                <strong>Dîner</strong>
-                <span class="slot-toggle-sub">{{ form.type === 'presence' ? 'Mange le soir' : 'Repas du soir' }}</span>
+                <strong>{{ t('dashboard.slots.dinner') }}</strong>
+                <span class="slot-toggle-sub">{{ form.type === 'presence' ? t('absences.form.eatsDinner') : t('absences.form.dinnerMeal') }}</span>
               </div>
 
               <!-- Nuit -->
@@ -609,22 +608,22 @@
                   <BedDouble :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="form.night" @click.stop class="slot-toggle-check" />
                 </div>
-                <strong>Nuit</strong>
-                <span class="slot-toggle-sub">{{ form.type === 'presence' ? 'Dort à la maison' : 'Dort ailleurs' }}</span>
+                <strong>{{ t('dashboard.slots.night') }}</strong>
+                <span class="slot-toggle-sub">{{ form.type === 'presence' ? t('dashboard.sleepsHome') : t('absences.today.sleepsElsewhere') }}</span>
               </div>
             </div>
             <span v-if="!form.lunch && !form.dinner && !form.night" class="text-error">
-              * Veuillez cocher au moins un créneau.
+              * {{ t('absences.form.selectSlot') }}
             </span>
           </div>
 
           <!-- Note / Reason -->
           <div class="form-group">
-            <label class="form-label">{{ form.type === 'presence' ? 'Précision / Commentaire (Optionnel)' : 'Motif / Commentaire (Optionnel)' }}</label>
+            <label class="form-label">{{ form.type === 'presence' ? t('absences.form.presenceNote') : t('absences.form.absenceNote') }}</label>
             <input 
               v-model="form.note" 
               type="text" 
-              :placeholder="form.type === 'presence' ? 'Ex: De retour pour le week-end, Vacances...' : 'Ex: Invité chez Lucas, Déplacement boulot, Soirée...'"
+              :placeholder="form.type === 'presence' ? t('absences.form.presenceNotePlaceholder') : t('absences.form.absenceNotePlaceholder')"
               class="form-input" 
             />
           </div>
@@ -638,19 +637,19 @@
               :disabled="saving"
             >
               <Trash2 :size="15" />
-              <span>Supprimer</span>
+              <span>{{ t('common.delete') }}</span>
             </button>
 
             <div class="modal-actions-buttons" :class="{ 'center-actions': !editingId }">
-              <button type="button" @click="showModal = false" class="btn btn-secondary">Annuler</button>
+              <button type="button" @click="showModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
               <button 
                 type="submit" 
                 class="btn"
                 :class="form.type === 'presence' ? 'btn-presence-primary' : 'btn-primary'"
                 :disabled="saving || (!form.lunch && !form.dinner && !form.night)"
               >
-                <span v-if="!saving">{{ editingId ? 'Enregistrer' : (form.type === 'presence' ? 'Confirmer la présence' : 'Signaler l\'absence') }}</span>
-                <span v-else>Enregistrement...</span>
+                <span v-if="!saving">{{ editingId ? t('common.save') : (form.type === 'presence' ? t('absences.form.submitPresence') : t('absences.form.submitAbsence')) }}</span>
+                <span v-else>{{ t('common.saving') }}</span>
               </button>
             </div>
           </div>
@@ -662,27 +661,27 @@
     <div v-if="showGuestModal" class="modal-overlay" @click.self="showGuestModal = false">
       <div class="modal-content absence-modal">
         <div class="modal-header">
-          <h3>{{ editingGuestId ? 'Modifier l\'Invité' : 'Ajouter un ou plusieurs Invité(s)' }}</h3>
+          <h3>{{ editingGuestId ? t('absences.guestForm.editTitle') : t('absences.guestForm.addTitle') }}</h3>
           <button @click="showGuestModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleGuestSubmit">
           <!-- Guest Name (single field for full name) -->
           <div class="form-group">
-            <label class="form-label">Nom et prénom de l'invité</label>
+            <label class="form-label">{{ t('absences.guestForm.name') }}</label>
             <input 
               v-model="guestForm.name" 
               type="text" 
               required 
-              placeholder="Ex: Jean Dupont (ou 'Alexandre, Sophie' pour plusieurs)"
+              :placeholder="t('absences.guestForm.namePlaceholder')"
               class="form-input" 
             />
-            <span class="field-help-text">Un seul champ pour le nom et prénom. Vous pouvez indiquer plusieurs invités séparés par des virgules.</span>
+            <span class="field-help-text">{{ t('absences.guestForm.nameHelp') }}</span>
           </div>
 
           <!-- Date -->
           <div class="form-group">
-            <label class="form-label">Date de la visite</label>
+            <label class="form-label">{{ t('absences.guestForm.date') }}</label>
             <input 
               v-model="guestForm.date" 
               type="date" 
@@ -694,7 +693,7 @@
 
           <!-- Slots selection cards -->
           <div class="form-group">
-            <label class="form-label">Créneau(x) de présence de l'invité :</label>
+            <label class="form-label">{{ t('absences.guestForm.slots') }}</label>
             <div class="slots-toggle-grid">
               <!-- Déjeuner -->
               <div 
@@ -706,8 +705,8 @@
                   <Sun :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="guestForm.lunch" @click.stop class="slot-toggle-check" />
                 </div>
-                <strong>Déjeuner</strong>
-                <span class="slot-toggle-sub">Mange à midi</span>
+                <strong>{{ t('dashboard.slots.lunch') }}</strong>
+                <span class="slot-toggle-sub">{{ t('absences.form.eatsLunch') }}</span>
               </div>
 
               <!-- Dîner -->
@@ -720,8 +719,8 @@
                   <Sunset :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="guestForm.dinner" @click.stop class="slot-toggle-check" />
                 </div>
-                <strong>Dîner</strong>
-                <span class="slot-toggle-sub">Mange le soir</span>
+                <strong>{{ t('dashboard.slots.dinner') }}</strong>
+                <span class="slot-toggle-sub">{{ t('absences.form.eatsDinner') }}</span>
               </div>
 
               <!-- Nuit -->
@@ -734,33 +733,33 @@
                   <BedDouble :size="20" class="slot-toggle-emoji" />
                   <input type="checkbox" v-model="guestForm.night" @click.stop class="slot-toggle-check" />
                 </div>
-                <strong>Nuit</strong>
-                <span class="slot-toggle-sub">Dort à la maison</span>
+                <strong>{{ t('dashboard.slots.night') }}</strong>
+                <span class="slot-toggle-sub">{{ t('dashboard.sleepsHome') }}</span>
               </div>
             </div>
             <span v-if="!guestForm.lunch && !guestForm.dinner && !guestForm.night" class="text-error">
-              * Veuillez cocher au moins un créneau de présence pour l'invité.
+              * {{ t('absences.guestForm.selectSlot') }}
             </span>
           </div>
 
           <!-- Host member -->
           <div class="form-group">
-            <label class="form-label">Invité par :</label>
+            <label class="form-label">{{ t('absences.guestForm.invitedBy') }}</label>
             <select v-model="guestForm.invitedBy" class="form-select">
-              <option :value="null">Toute la famille</option>
+              <option :value="null">{{ t('absences.guestForm.wholeFamily') }}</option>
               <option v-for="m in store.members" :key="m.id" :value="m.id">
-                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ m.id === authStore.user?.id ? '(Moi)' : '' }}
+                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ m.id === authStore.user?.id ? `(${t('absences.me')})` : '' }}
               </option>
             </select>
           </div>
 
           <!-- Note / Dietary remarks -->
           <div class="form-group">
-            <label class="form-label">Remarque / Régime alimentaire (Optionnel)</label>
+            <label class="form-label">{{ t('absences.guestForm.note') }}</label>
             <input 
               v-model="guestForm.note" 
               type="text" 
-              placeholder="Ex: Végétarien, Sans gluten, Arrive à 19h..."
+              :placeholder="t('absences.guestForm.notePlaceholder')"
               class="form-input" 
             />
           </div>
@@ -774,18 +773,18 @@
               :disabled="saving"
             >
               <Trash2 :size="15" />
-              <span>Supprimer</span>
+              <span>{{ t('common.delete') }}</span>
             </button>
 
             <div class="modal-actions-buttons" :class="{ 'center-actions': !editingGuestId }">
-              <button type="button" @click="showGuestModal = false" class="btn btn-secondary">Annuler</button>
+              <button type="button" @click="showGuestModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
               <button 
                 type="submit" 
                 class="btn btn-primary" 
                 :disabled="saving || (!guestForm.lunch && !guestForm.dinner && !guestForm.night)"
               >
-                <span v-if="!saving">{{ editingGuestId ? 'Enregistrer' : 'Ajouter l\'invité' }}</span>
-                <span v-else>Enregistrement...</span>
+                <span v-if="!saving">{{ editingGuestId ? t('common.save') : t('absences.guestForm.submit') }}</span>
+                <span v-else>{{ t('common.saving') }}</span>
               </button>
             </div>
           </div>
@@ -810,15 +809,15 @@
             <button 
               @click="openDeclarationChoiceModal(selectedDayDate)" 
               class="btn btn-primary btn-action-card"
-              title="Déclarer une absence, absence longue, invitation ou présence"
+              :title="t('absences.day.declareTitle')"
             >
               <Plus :size="18" />
-              <span>Déclarer pour ce jour</span>
+              <span>{{ t('absences.day.declareForDay') }}</span>
             </button>
           </div>
           <div v-else class="past-day-banner">
             <span class="past-day-icon">ℹ️</span>
-            <span>Cette journée est passée (consultation uniquement). L'ajout de présences, absences ou invités est désactivé.</span>
+            <span>{{ t('absences.day.pastBanner') }}</span>
           </div>
 
           <!-- Slots Details Grid -->
@@ -828,7 +827,7 @@
               <div class="day-slot-detail-header">
                 <div class="slot-name-group">
                   <Sun :size="18" class="slot-icon slot-icon-lunch" />
-                  <strong>Déjeuner (Midi)</strong>
+                  <strong>{{ t('absences.slots.lunchFull') }}</strong>
                 </div>
                 <span class="day-slot-headcount-badge">
                   {{ getSelectedDaySlotHeadcount('lunch') }}
@@ -838,21 +837,21 @@
               <div class="day-slot-items">
                 <!-- Présences exceptionnelles -->
                 <div v-if="selectedDayLunchPresence.exceptionalPresences.length > 0" class="slot-section">
-                  <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayLunchPresence.exceptionalPresences.length }}) :</span>
+                  <span class="slot-section-title text-success">{{ t('absences.day.exceptionalPresences', { n: selectedDayLunchPresence.exceptionalPresences.length }) }}</span>
                   <div class="slot-person-cards">
                     <div v-for="pres in selectedDayLunchPresence.exceptionalPresences" :key="'lunch-pres-' + pres.id" class="slot-person-card presence">
                       <UserAvatar :avatar="pres.avatar || getMemberAvatar(pres)" :name="pres.firstName || getMemberFirstName(pres)" size="sm" />
                       <div class="person-info">
                         <strong>{{ pres.firstName || getMemberFirstName(pres) }}</strong>
-                        <span class="presence-badge-text">🟢 Présence confirmée</span>
-                        <span v-if="pres.declaredBy && pres.declaredBy !== (pres.memberId || pres.id)" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
+                        <span class="presence-badge-text">🟢 {{ t('absences.today.presenceConfirmed') }}</span>
+                        <span v-if="pres.declaredBy && pres.declaredBy !== (pres.memberId || pres.id)" class="person-host">{{ t('absences.day.reportedBy', { name: getMemberFirstName(pres.declaredBy) }) }}</span>
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-ghost" title="Modifier">
+                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-ghost" :title="t('common.edit')">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-ghost danger" title="Supprimer">
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-ghost danger" :title="t('common.delete')">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -862,33 +861,33 @@
 
                 <!-- Absents -->
                 <div v-if="selectedDayLunchAbsents.length > 0" class="slot-section">
-                  <span class="slot-section-title text-amber">Membres absents ({{ selectedDayLunchAbsents.length }}) :</span>
+                  <span class="slot-section-title text-amber">{{ t('absences.day.absentMembers', { n: selectedDayLunchAbsents.length }) }}</span>
                   <div class="slot-person-cards">
                     <div v-for="abs in selectedDayLunchAbsents" :key="'lunch-abs-' + abs.id" class="slot-person-card absence">
                       <UserAvatar :avatar="abs.avatar || getMemberAvatar(abs)" :name="abs.firstName || getMemberFirstName(abs)" size="sm" />
                       <div class="person-info">
                         <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
-                        <span v-if="getLongAbsenceForRecord(abs)" class="person-long-absence-badge" :title="`Absence longue du ${formatDisplayDate(getLongAbsenceForRecord(abs).startDate)} au ${formatDisplayDate(getLongAbsenceForRecord(abs).endDate)}`">
+                        <span v-if="getLongAbsenceForRecord(abs)" class="person-long-absence-badge" :title="t('absences.day.longAbsenceRange', { start: formatDisplayDate(getLongAbsenceForRecord(abs).startDate), end: formatDisplayDate(getLongAbsenceForRecord(abs).endDate) })">
                           <CalendarRange :size="12" />
-                          <span>Absence longue</span>
+                          <span>{{ t('absences.day.longAbsence') }}</span>
                         </span>
-                        <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
+                        <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">{{ t('absences.day.reportedBy', { name: getMemberFirstName(abs.declaredBy) }) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
                         <template v-if="getLongAbsenceForRecord(abs)">
-                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-ghost text-amber" title="Modifier toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-ghost text-amber" :title="t('absences.day.editWholeLong')">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-ghost danger" title="Supprimer toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-ghost danger" :title="t('absences.day.deleteWholeLong')">
                             <Trash2 :size="15" />
                           </button>
                         </template>
                         <template v-else>
-                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-ghost" title="Modifier">
+                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-ghost" :title="t('common.edit')">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-ghost danger" title="Supprimer">
+                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-ghost danger" :title="t('common.delete')">
                             <Trash2 :size="15" />
                           </button>
                         </template>
@@ -899,20 +898,20 @@
 
                 <!-- Invités -->
                 <div v-if="selectedDayLunchGuests.length > 0" class="slot-section">
-                  <span class="slot-section-title text-purple">Invités présents ({{ selectedDayLunchGuests.length }}) :</span>
+                  <span class="slot-section-title text-purple">{{ t('absences.day.presentGuests', { n: selectedDayLunchGuests.length }) }}</span>
                   <div class="slot-person-cards">
                     <div v-for="g in selectedDayLunchGuests" :key="'lunch-gst-' + g.id" class="slot-person-card guest">
                       <span class="person-avatar">👥</span>
                       <div class="person-info">
                         <strong>{{ g.name }}</strong>
-                        <span v-if="g.invitedBy" class="person-host">Invité par {{ getMemberFirstName(g.invitedBy) }}</span>
+                        <span v-if="g.invitedBy" class="person-host">{{ t('absences.day.invitedBy', { name: getMemberFirstName(g.invitedBy) }) }}</span>
                         <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-ghost" title="Modifier">
+                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-ghost" :title="t('common.edit')">
                           <Edit3 :size="15" />
                         </button>
-                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-ghost danger" title="Supprimer">
+                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-ghost danger" :title="t('common.delete')">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -921,7 +920,7 @@
                 </div>
 
                 <div v-if="selectedDayLunchPresence.exceptionalPresences.length === 0 && selectedDayLunchAbsents.length === 0 && selectedDayLunchGuests.length === 0" class="slot-empty-note">
-                  ✨ Aucun changement par rapport à la présence habituelle ({{ selectedDayLunchPresence.headcount }} à table).
+                  ✨ {{ t('absences.day.noChangeAtTable', { n: selectedDayLunchPresence.headcount }) }}
                 </div>
               </div>
             </div>
@@ -931,7 +930,7 @@
               <div class="day-slot-detail-header">
                 <div class="slot-name-group">
                   <Sunset :size="18" class="slot-icon slot-icon-dinner" />
-                  <strong>Dîner (Soir)</strong>
+                  <strong>{{ t('absences.slots.dinnerFull') }}</strong>
                 </div>
                 <span class="day-slot-headcount-badge">
                   {{ getSelectedDaySlotHeadcount('dinner') }}
@@ -941,21 +940,21 @@
               <div class="day-slot-items">
                 <!-- Présences exceptionnelles -->
                 <div v-if="selectedDayDinnerPresence.exceptionalPresences.length > 0" class="slot-section">
-                  <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayDinnerPresence.exceptionalPresences.length }}) :</span>
+                  <span class="slot-section-title text-success">{{ t('absences.day.exceptionalPresences', { n: selectedDayDinnerPresence.exceptionalPresences.length }) }}</span>
                   <div class="slot-person-cards">
                     <div v-for="pres in selectedDayDinnerPresence.exceptionalPresences" :key="'dinner-pres-' + pres.id" class="slot-person-card presence">
                       <UserAvatar :avatar="pres.avatar || getMemberAvatar(pres)" :name="pres.firstName || getMemberFirstName(pres)" size="sm" />
                       <div class="person-info">
                         <strong>{{ pres.firstName || getMemberFirstName(pres) }}</strong>
-                        <span class="presence-badge-text">🟢 Présence confirmée</span>
-                        <span v-if="pres.declaredBy && pres.declaredBy !== (pres.memberId || pres.id)" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
+                        <span class="presence-badge-text">🟢 {{ t('absences.today.presenceConfirmed') }}</span>
+                        <span v-if="pres.declaredBy && pres.declaredBy !== (pres.memberId || pres.id)" class="person-host">{{ t('absences.day.reportedBy', { name: getMemberFirstName(pres.declaredBy) }) }}</span>
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-ghost" title="Modifier">
+                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-ghost" :title="t('common.edit')">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-ghost danger" title="Supprimer">
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-ghost danger" :title="t('common.delete')">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -965,33 +964,33 @@
 
                 <!-- Absents -->
                 <div v-if="selectedDayDinnerAbsents.length > 0" class="slot-section">
-                  <span class="slot-section-title text-amber">Membres absents ({{ selectedDayDinnerAbsents.length }}) :</span>
+                  <span class="slot-section-title text-amber">{{ t('absences.day.absentMembers', { n: selectedDayDinnerAbsents.length }) }}</span>
                   <div class="slot-person-cards">
                     <div v-for="abs in selectedDayDinnerAbsents" :key="'dinner-abs-' + abs.id" class="slot-person-card absence">
                       <UserAvatar :avatar="abs.avatar || getMemberAvatar(abs)" :name="abs.firstName || getMemberFirstName(abs)" size="sm" />
                       <div class="person-info">
                         <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
-                        <span v-if="getLongAbsenceForRecord(abs)" class="person-long-absence-badge" :title="`Absence longue du ${formatDisplayDate(getLongAbsenceForRecord(abs).startDate)} au ${formatDisplayDate(getLongAbsenceForRecord(abs).endDate)}`">
+                        <span v-if="getLongAbsenceForRecord(abs)" class="person-long-absence-badge" :title="t('absences.day.longAbsenceRange', { start: formatDisplayDate(getLongAbsenceForRecord(abs).startDate), end: formatDisplayDate(getLongAbsenceForRecord(abs).endDate) })">
                           <CalendarRange :size="12" />
-                          <span>Absence longue</span>
+                          <span>{{ t('absences.day.longAbsence') }}</span>
                         </span>
-                        <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
+                        <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">{{ t('absences.day.reportedBy', { name: getMemberFirstName(abs.declaredBy) }) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
                         <template v-if="getLongAbsenceForRecord(abs)">
-                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-ghost text-amber" title="Modifier toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-ghost text-amber" :title="t('absences.day.editWholeLong')">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-ghost danger" title="Supprimer toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-ghost danger" :title="t('absences.day.deleteWholeLong')">
                             <Trash2 :size="15" />
                           </button>
                         </template>
                         <template v-else>
-                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-ghost" title="Modifier">
+                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-ghost" :title="t('common.edit')">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-ghost danger" title="Supprimer">
+                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-ghost danger" :title="t('common.delete')">
                             <Trash2 :size="15" />
                           </button>
                         </template>
@@ -1002,20 +1001,20 @@
 
                 <!-- Invités -->
                 <div v-if="selectedDayDinnerGuests.length > 0" class="slot-section">
-                  <span class="slot-section-title text-purple">Invités présents ({{ selectedDayDinnerGuests.length }}) :</span>
+                  <span class="slot-section-title text-purple">{{ t('absences.day.presentGuests', { n: selectedDayDinnerGuests.length }) }}</span>
                   <div class="slot-person-cards">
                     <div v-for="g in selectedDayDinnerGuests" :key="'dinner-gst-' + g.id" class="slot-person-card guest">
                       <span class="person-avatar">👥</span>
                       <div class="person-info">
                         <strong>{{ g.name }}</strong>
-                        <span v-if="g.invitedBy" class="person-host">Invité par {{ getMemberFirstName(g.invitedBy) }}</span>
+                        <span v-if="g.invitedBy" class="person-host">{{ t('absences.day.invitedBy', { name: getMemberFirstName(g.invitedBy) }) }}</span>
                         <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-ghost" title="Modifier">
+                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-ghost" :title="t('common.edit')">
                           <Edit3 :size="15" />
                         </button>
-                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-ghost danger" title="Supprimer">
+                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-ghost danger" :title="t('common.delete')">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -1024,7 +1023,7 @@
                 </div>
 
                 <div v-if="selectedDayDinnerPresence.exceptionalPresences.length === 0 && selectedDayDinnerAbsents.length === 0 && selectedDayDinnerGuests.length === 0" class="slot-empty-note">
-                  ✨ Aucun changement par rapport à la présence habituelle ({{ selectedDayDinnerPresence.headcount }} à table).
+                  ✨ {{ t('absences.day.noChangeAtTable', { n: selectedDayDinnerPresence.headcount }) }}
                 </div>
               </div>
             </div>
@@ -1034,7 +1033,7 @@
               <div class="day-slot-detail-header">
                 <div class="slot-name-group">
                   <BedDouble :size="18" class="slot-icon slot-icon-night" />
-                  <strong>Nuit (Couchage)</strong>
+                  <strong>{{ t('absences.slots.nightFull') }}</strong>
                 </div>
                 <span class="day-slot-headcount-badge">
                   {{ getSelectedDaySlotHeadcount('night') }}
@@ -1044,21 +1043,21 @@
               <div class="day-slot-items">
                 <!-- Présences exceptionnelles -->
                 <div v-if="selectedDayNightPresence.exceptionalPresences.length > 0" class="slot-section">
-                  <span class="slot-section-title text-success">Présences exceptionnelles ({{ selectedDayNightPresence.exceptionalPresences.length }}) :</span>
+                  <span class="slot-section-title text-success">{{ t('absences.day.exceptionalPresences', { n: selectedDayNightPresence.exceptionalPresences.length }) }}</span>
                   <div class="slot-person-cards">
                     <div v-for="pres in selectedDayNightPresence.exceptionalPresences" :key="'night-pres-' + pres.id" class="slot-person-card presence">
                       <UserAvatar :avatar="pres.avatar || getMemberAvatar(pres)" :name="pres.firstName || getMemberFirstName(pres)" size="sm" />
                       <div class="person-info">
                         <strong>{{ pres.firstName || getMemberFirstName(pres) }}</strong>
-                        <span class="presence-badge-text">🟢 Présence confirmée</span>
-                        <span v-if="pres.declaredBy && pres.declaredBy !== (pres.memberId || pres.id)" class="person-host">Signalé par {{ getMemberFirstName(pres.declaredBy) }}</span>
+                        <span class="presence-badge-text">🟢 {{ t('absences.today.presenceConfirmed') }}</span>
+                        <span v-if="pres.declaredBy && pres.declaredBy !== (pres.memberId || pres.id)" class="person-host">{{ t('absences.day.reportedBy', { name: getMemberFirstName(pres.declaredBy) }) }}</span>
                         <span v-if="pres.note" class="person-note">💬 {{ pres.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-ghost" title="Modifier">
+                        <button v-if="canEdit(pres)" @click="openEditModalFromDay(pres)" class="btn-icon-ghost" :title="t('common.edit')">
                           <Edit3 :size="15" />
                         </button>
-                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-ghost danger" title="Supprimer">
+                        <button v-if="canEdit(pres)" @click="handleDelete(pres)" class="btn-icon-ghost danger" :title="t('common.delete')">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -1068,33 +1067,33 @@
 
                 <!-- Absents -->
                 <div v-if="selectedDayNightAbsents.length > 0" class="slot-section">
-                  <span class="slot-section-title text-amber">Membres absents ({{ selectedDayNightAbsents.length }}) :</span>
+                  <span class="slot-section-title text-amber">{{ t('absences.day.absentMembers', { n: selectedDayNightAbsents.length }) }}</span>
                   <div class="slot-person-cards">
                     <div v-for="abs in selectedDayNightAbsents" :key="'night-abs-' + abs.id" class="slot-person-card absence">
                       <UserAvatar :avatar="abs.avatar || getMemberAvatar(abs)" :name="abs.firstName || getMemberFirstName(abs)" size="sm" />
                       <div class="person-info">
                         <strong>{{ abs.firstName || getMemberFirstName(abs) }}</strong>
-                        <span v-if="getLongAbsenceForRecord(abs)" class="person-long-absence-badge" :title="`Absence longue du ${formatDisplayDate(getLongAbsenceForRecord(abs).startDate)} au ${formatDisplayDate(getLongAbsenceForRecord(abs).endDate)}`">
+                        <span v-if="getLongAbsenceForRecord(abs)" class="person-long-absence-badge" :title="t('absences.day.longAbsenceRange', { start: formatDisplayDate(getLongAbsenceForRecord(abs).startDate), end: formatDisplayDate(getLongAbsenceForRecord(abs).endDate) })">
                           <CalendarRange :size="12" />
-                          <span>Absence longue</span>
+                          <span>{{ t('absences.day.longAbsence') }}</span>
                         </span>
-                        <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">Signalé par {{ getMemberFirstName(abs.declaredBy) }}</span>
+                        <span v-if="abs.declaredBy && abs.declaredBy !== (abs.memberId || abs.id)" class="person-host">{{ t('absences.day.reportedBy', { name: getMemberFirstName(abs.declaredBy) }) }}</span>
                         <span v-if="abs.note" class="person-note">💬 {{ abs.note }}</span>
                       </div>
                       <div class="person-actions">
                         <template v-if="getLongAbsenceForRecord(abs)">
-                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-ghost text-amber" title="Modifier toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="openEditLongAbsenceFromDay(getLongAbsenceForRecord(abs))" class="btn-icon-ghost text-amber" :title="t('absences.day.editWholeLong')">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-ghost danger" title="Supprimer toute l'absence longue">
+                          <button v-if="canEdit(abs)" @click="handleDeleteLongAbsence(getLongAbsenceForRecord(abs))" class="btn-icon-ghost danger" :title="t('absences.day.deleteWholeLong')">
                             <Trash2 :size="15" />
                           </button>
                         </template>
                         <template v-else>
-                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-ghost" title="Modifier">
+                          <button v-if="canEdit(abs)" @click="openEditModalFromDay(abs)" class="btn-icon-ghost" :title="t('common.edit')">
                             <Edit3 :size="15" />
                           </button>
-                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-ghost danger" title="Supprimer">
+                          <button v-if="canEdit(abs)" @click="handleDelete(abs)" class="btn-icon-ghost danger" :title="t('common.delete')">
                             <Trash2 :size="15" />
                           </button>
                         </template>
@@ -1105,20 +1104,20 @@
 
                 <!-- Invités -->
                 <div v-if="selectedDayNightGuests.length > 0" class="slot-section">
-                  <span class="slot-section-title text-purple">Invités qui dorment ({{ selectedDayNightGuests.length }}) :</span>
+                  <span class="slot-section-title text-purple">{{ t('absences.day.sleepingGuests', { n: selectedDayNightGuests.length }) }}</span>
                   <div class="slot-person-cards">
                     <div v-for="g in selectedDayNightGuests" :key="'night-gst-' + g.id" class="slot-person-card guest">
                       <span class="person-avatar">👥</span>
                       <div class="person-info">
                         <strong>{{ g.name }}</strong>
-                        <span v-if="g.invitedBy" class="person-host">Invité par {{ getMemberFirstName(g.invitedBy) }}</span>
+                        <span v-if="g.invitedBy" class="person-host">{{ t('absences.day.invitedBy', { name: getMemberFirstName(g.invitedBy) }) }}</span>
                         <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
                       </div>
                       <div class="person-actions">
-                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-ghost" title="Modifier">
+                        <button @click="openEditGuestModalFromDay(g)" class="btn-icon-ghost" :title="t('common.edit')">
                           <Edit3 :size="15" />
                         </button>
-                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-ghost danger" title="Supprimer">
+                        <button @click="handleDeleteGuest(g.id)" class="btn-icon-ghost danger" :title="t('common.delete')">
                           <Trash2 :size="15" />
                         </button>
                       </div>
@@ -1127,7 +1126,7 @@
                 </div>
 
                 <div v-if="selectedDayNightPresence.exceptionalPresences.length === 0 && selectedDayNightAbsents.length === 0 && selectedDayNightGuests.length === 0" class="slot-empty-note">
-                  Aucun changement par rapport à la présence habituelle ({{ selectedDayNightPresence.headcount }} dorment à la maison).
+                  {{ t('absences.day.noChangeSleeping', { n: selectedDayNightPresence.headcount }) }}
                 </div>
               </div>
             </div>
@@ -1136,9 +1135,9 @@
 
         <div class="modal-footer flex-between">
           <button type="button" @click="showDayDetailModal = false" class="btn btn-secondary">
-            Fermer
+            {{ t('common.close') }}
           </button>
-          <span class="day-detail-summary-hint">Cliquez sur une action ci-dessus pour ajouter ou modifier.</span>
+          <span class="day-detail-summary-hint">{{ t('absences.day.summaryHint') }}</span>
         </div>
       </div>
     </div>
@@ -1149,7 +1148,7 @@
         <div class="modal-header">
           <div class="modal-title-with-icon">
             <CalendarRange :size="22" class="text-amber" />
-            <h3>{{ editingLongAbsenceId ? 'Modifier l\'Absence Longue' : 'Absence Longue' }}</h3>
+            <h3>{{ editingLongAbsenceId ? t('absences.long.editTitle') : t('absences.long.title') }}</h3>
           </div>
           <button @click="showLongAbsenceModal = false" class="btn-close">&times;</button>
         </div>
@@ -1163,7 +1162,7 @@
             @click="activeLongAbsenceTab = 'form'"
           >
             <Plus :size="16" />
-            <span>Déclarer une absence</span>
+            <span>{{ t('absences.long.declareTab') }}</span>
           </button>
           <button 
             type="button" 
@@ -1172,17 +1171,17 @@
             @click="activeLongAbsenceTab = 'list'"
           >
             <Calendar :size="16" />
-            <span>Absences déclarées ({{ store.longAbsences.length }})</span>
+            <span>{{ t('absences.long.listTab', { n: store.longAbsences.length }) }}</span>
           </button>
         </div>
 
         <!-- Editing banner -->
         <div v-if="editingLongAbsenceId" class="editing-banner">
           <div class="editing-banner-text">
-            <span>✏️ Vous modifiez une absence longue existante.</span>
+            <span>✏️ {{ t('absences.long.editingBanner') }}</span>
           </div>
           <button type="button" class="btn-cancel-edit" @click="cancelEditLongAbsence">
-            Annuler la modification
+            {{ t('absences.long.cancelEdit') }}
           </button>
         </div>
 
@@ -1190,21 +1189,21 @@
         <form v-if="activeLongAbsenceTab === 'form' || editingLongAbsenceId" @submit.prevent="handleLongAbsenceSubmit" class="long-absence-form">
           <!-- Membre concerné -->
           <div class="form-group">
-            <label class="form-label">Membre concerné</label>
+            <label class="form-label">{{ t('absences.form.member') }}</label>
             <select v-model="longAbsenceForm.memberId" class="form-select" required>
               <option v-for="m in store.members" :key="m.id" :value="m.id">
-                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ m.id === authStore.user?.id ? '• Moi' : '' }}
+                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ m.id === authStore.user?.id ? `• ${t('absences.me')}` : '' }}
               </option>
             </select>
             <span v-if="longAbsenceForm.memberId !== authStore.user?.id" class="help-subtext text-indigo">
-              👋 Vous déclarez cette absence pour <strong>{{ getMemberName(longAbsenceForm.memberId) }}</strong>. Une alerte sera envoyée à la famille.
+              👋 <i18n-t keypath="absences.long.declaringFor" tag="span"><template #name><strong>{{ getMemberName(longAbsenceForm.memberId) }}</strong></template></i18n-t>
             </span>
           </div>
 
           <!-- Date & Créneau de Début -->
           <div class="form-row-2col">
             <div class="form-group">
-              <label class="form-label">Date de début</label>
+              <label class="form-label">{{ t('absences.long.startDate') }}</label>
               <input 
                 v-model="longAbsenceForm.startDate" 
                 type="date" 
@@ -1216,7 +1215,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">À partir du créneau</label>
+              <label class="form-label">{{ t('absences.long.fromSlot') }}</label>
               <div class="slot-select-pills">
                 <button 
                   type="button" 
@@ -1225,7 +1224,7 @@
                   @click="setStartSlot('lunch')"
                 >
                   <Sun :size="14" />
-                  <span>Midi</span>
+                  <span>{{ t('presence.slots.lunch') }}</span>
                 </button>
                 <button 
                   type="button" 
@@ -1234,7 +1233,7 @@
                   @click="setStartSlot('dinner')"
                 >
                   <Sunset :size="14" />
-                  <span>Soir</span>
+                  <span>{{ t('presence.slots.dinner') }}</span>
                 </button>
                 <button 
                   type="button" 
@@ -1243,7 +1242,7 @@
                   @click="setStartSlot('night')"
                 >
                   <BedDouble :size="14" />
-                  <span>Nuit</span>
+                  <span>{{ t('presence.slots.night') }}</span>
                 </button>
               </div>
             </div>
@@ -1252,7 +1251,7 @@
           <!-- Date & Créneau de Fin -->
           <div class="form-row-2col">
             <div class="form-group">
-              <label class="form-label">Date de fin</label>
+              <label class="form-label">{{ t('absences.long.endDate') }}</label>
               <input 
                 v-model="longAbsenceForm.endDate" 
                 type="date" 
@@ -1264,7 +1263,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Jusqu'au créneau inclus</label>
+              <label class="form-label">{{ t('absences.long.untilSlot') }}</label>
               <div class="slot-select-pills">
                 <button 
                   type="button" 
@@ -1274,7 +1273,7 @@
                   @click="setEndSlot('lunch')"
                 >
                   <Sun :size="14" />
-                  <span>Midi</span>
+                  <span>{{ t('presence.slots.lunch') }}</span>
                 </button>
                 <button 
                   type="button" 
@@ -1284,7 +1283,7 @@
                   @click="setEndSlot('dinner')"
                 >
                   <Sunset :size="14" />
-                  <span>Soir</span>
+                  <span>{{ t('presence.slots.dinner') }}</span>
                 </button>
                 <button 
                   type="button" 
@@ -1294,7 +1293,7 @@
                   @click="setEndSlot('night')"
                 >
                   <BedDouble :size="14" />
-                  <span>Nuit</span>
+                  <span>{{ t('presence.slots.night') }}</span>
                 </button>
               </div>
             </div>
@@ -1302,11 +1301,11 @@
 
           <!-- Motif / Commentaire -->
           <div class="form-group">
-            <label class="form-label">Motif / Commentaire (optionnel)</label>
+            <label class="form-label">{{ t('absences.form.absenceNote') }}</label>
             <input 
               v-model="longAbsenceForm.note" 
               type="text" 
-              placeholder="Ex: Vacances, déplacement professionnel, week-end..." 
+              :placeholder="t('absences.long.notePlaceholder')" 
               class="form-input" 
             />
           </div>
@@ -1314,23 +1313,23 @@
           <!-- Résumé dynamique -->
           <div class="long-absence-recap-card" v-if="longAbsenceForm.startDate && longAbsenceForm.endDate">
             <div class="recap-header">
-              <span class="recap-badge">Période d'absence</span>
-              <span class="recap-days">{{ longAbsenceDaysCount }} jour{{ longAbsenceDaysCount > 1 ? 's' : '' }}</span>
+              <span class="recap-badge">{{ t('absences.long.period') }}</span>
+              <span class="recap-days">{{ t('absences.long.days', { n: longAbsenceDaysCount }, longAbsenceDaysCount) }}</span>
             </div>
             <div class="recap-body">
               <div class="recap-line">
-                <span class="recap-label">Début :</span>
+                <span class="recap-label">{{ t('absences.long.start') }}</span>
                 <strong>{{ formatDisplayDate(longAbsenceForm.startDate) }}</strong>
-                <span class="slot-tag">créneau {{ formatSlotName(longAbsenceForm.startSlot) }}</span>
+                <span class="slot-tag">{{ t('absences.long.slotTag', { slot: formatSlotName(longAbsenceForm.startSlot) }) }}</span>
               </div>
               <div class="recap-line">
-                <span class="recap-label">Fin :</span>
+                <span class="recap-label">{{ t('absences.long.end') }}</span>
                 <strong>{{ formatDisplayDate(longAbsenceForm.endDate) }}</strong>
-                <span class="slot-tag">créneau {{ formatSlotName(longAbsenceForm.endSlot) }}</span>
+                <span class="slot-tag">{{ t('absences.long.slotTag', { slot: formatSlotName(longAbsenceForm.endSlot) }) }}</span>
               </div>
             </div>
             <p class="recap-hint">
-              💡 Les créneaux d'absence quotidiens (midi, soir, nuit) seront automatiquement enregistrés pour chaque jour de la période.
+              💡 {{ t('absences.long.recapHint') }}
             </p>
           </div>
 
@@ -1340,15 +1339,15 @@
               @click="editingLongAbsenceId ? cancelEditLongAbsence() : showLongAbsenceModal = false" 
               class="btn btn-secondary"
             >
-              Annuler
+              {{ t('common.cancel') }}
             </button>
             <button 
               type="submit" 
               class="btn btn-primary btn-long-absence-submit"
               :disabled="savingLongAbsence"
             >
-              <span v-if="savingLongAbsence">Enregistrement...</span>
-              <span v-else>{{ editingLongAbsenceId ? 'Mettre à jour l\'absence longue' : 'Enregistrer l\'absence longue' }}</span>
+              <span v-if="savingLongAbsence">{{ t('common.saving') }}</span>
+              <span v-else>{{ editingLongAbsenceId ? t('absences.long.update') : t('absences.long.save') }}</span>
             </button>
           </div>
         </form>
@@ -1357,11 +1356,11 @@
         <div v-else class="long-absences-list-tab">
           <div v-if="store.longAbsences.length === 0" class="empty-long-absences">
             <div class="empty-icon">🏖️</div>
-            <h4>Aucune absence longue déclarée</h4>
-            <p>Déclarez des absences sur plusieurs jours en quelques clics (vacances, séjours...).</p>
+            <h4>{{ t('absences.long.emptyTitle') }}</h4>
+            <p>{{ t('absences.long.emptyText') }}</p>
             <button type="button" @click="activeLongAbsenceTab = 'form'" class="btn btn-primary mt-2">
               <Plus :size="16" />
-              <span>Déclarer une absence longue</span>
+              <span>{{ t('absences.long.declareLong') }}</span>
             </button>
           </div>
 
@@ -1377,16 +1376,16 @@
                   <div>
                     <strong>{{ getMemberName(la.memberId) }}</strong>
                     <span v-if="la.declaredBy && la.declaredBy !== la.memberId" class="la-subtext">
-                      Par {{ getMemberFirstName(la.declaredBy) }}
+                      {{ t('absences.long.by', { name: getMemberFirstName(la.declaredBy) }) }}
                     </span>
                   </div>
                 </div>
 
                 <div class="la-actions" v-if="canEditLongAbsence(la)">
-                  <button @click="editLongAbsence(la)" class="btn-icon-ghost text-amber" title="Modifier cette absence longue">
+                  <button @click="editLongAbsence(la)" class="btn-icon-ghost text-amber" :title="t('absences.long.editThis')">
                     <Edit3 :size="15" />
                   </button>
-                  <button @click="handleDeleteLongAbsence(la)" class="btn-icon-ghost danger" title="Supprimer cette absence longue">
+                  <button @click="handleDeleteLongAbsence(la)" class="btn-icon-ghost danger" :title="t('absences.long.deleteThis')">
                     <Trash2 :size="15" />
                   </button>
                 </div>
@@ -1394,9 +1393,9 @@
 
               <div class="la-dates-box">
                 <div class="la-dates-row">
-                  <span class="la-date-point">Du <strong>{{ formatDisplayDate(la.startDate) }}</strong> ({{ formatSlotName(la.startSlot) }})</span>
+                  <i18n-t keypath="absences.long.from" tag="span" class="la-date-point"><template #date><strong>{{ formatDisplayDate(la.startDate) }}</strong></template><template #slot>{{ formatSlotName(la.startSlot) }}</template></i18n-t>
                   <span class="la-arrow">➔</span>
-                  <span class="la-date-point">Au <strong>{{ formatDisplayDate(la.endDate) }}</strong> ({{ formatSlotName(la.endSlot) }})</span>
+                  <i18n-t keypath="absences.long.to" tag="span" class="la-date-point"><template #date><strong>{{ formatDisplayDate(la.endDate) }}</strong></template><template #slot>{{ formatSlotName(la.endSlot) }}</template></i18n-t>
                 </div>
               </div>
 
@@ -1408,11 +1407,11 @@
 
           <div class="modal-footer flex-between">
             <button type="button" @click="showLongAbsenceModal = false" class="btn btn-secondary">
-              Fermer
+              {{ t('common.close') }}
             </button>
             <button type="button" @click="activeLongAbsenceTab = 'form'" class="btn btn-primary">
               <Plus :size="16" />
-              <span>+ Nouvelle absence longue</span>
+              <span>+ {{ t('absences.long.new') }}</span>
             </button>
           </div>
         </div>
@@ -1425,7 +1424,7 @@
         <div class="modal-header">
           <div class="modal-title-with-icon">
             <Plus :size="22" class="text-indigo" />
-            <h3>Que souhaitez-vous déclarer ?</h3>
+            <h3>{{ t('absences.choice.title') }}</h3>
           </div>
           <button @click="showDeclarationChoiceModal = false" class="btn-close">&times;</button>
         </div>
@@ -1442,10 +1441,10 @@
             </div>
             <div class="declaration-option-content">
               <div class="declaration-option-title-row">
-                <strong>Absence</strong>
-                <span class="declaration-badge absence-badge">Journée / Repas</span>
+                <strong>{{ t('absences.choice.absence') }}</strong>
+                <span class="declaration-badge absence-badge">{{ t('absences.choice.absenceBadge') }}</span>
               </div>
-              <p class="declaration-option-desc">Signaler une absence pour un repas (midi, soir) ou pour la nuit.</p>
+              <p class="declaration-option-desc">{{ t('absences.choice.absenceDesc') }}</p>
             </div>
             <ChevronRight :size="18" class="declaration-arrow" />
           </button>
@@ -1461,10 +1460,10 @@
             </div>
             <div class="declaration-option-content">
               <div class="declaration-option-title-row">
-                <strong>Absence longue</strong>
-                <span class="declaration-badge long-absence-badge">Plusieurs jours</span>
+                <strong>{{ t('absences.day.longAbsence') }}</strong>
+                <span class="declaration-badge long-absence-badge">{{ t('absences.choice.longBadge') }}</span>
               </div>
-              <p class="declaration-option-desc">Déclarer une absence sur plusieurs jours avec choix des créneaux (vacances, week-ends...).</p>
+              <p class="declaration-option-desc">{{ t('absences.choice.longDesc') }}</p>
             </div>
             <ChevronRight :size="18" class="declaration-arrow" />
           </button>
@@ -1480,10 +1479,10 @@
             </div>
             <div class="declaration-option-content">
               <div class="declaration-option-title-row">
-                <strong>Invitation</strong>
-                <span class="declaration-badge guest-badge">Invités</span>
+                <strong>{{ t('absences.choice.guest') }}</strong>
+                <span class="declaration-badge guest-badge">{{ t('absences.choice.guestBadge') }}</span>
               </div>
-              <p class="declaration-option-desc">Inviter des personnes pour un repas (déjeuner, dîner) ou pour dormir sur place.</p>
+              <p class="declaration-option-desc">{{ t('absences.choice.guestDesc') }}</p>
             </div>
             <ChevronRight :size="18" class="declaration-arrow" />
           </button>
@@ -1499,10 +1498,10 @@
             </div>
             <div class="declaration-option-content">
               <div class="declaration-option-title-row">
-                <strong>Présence</strong>
-                <span class="declaration-badge presence-badge">Exceptionnelle</span>
+                <strong>{{ t('absences.choice.presence') }}</strong>
+                <span class="declaration-badge presence-badge">{{ t('absences.choice.presenceBadge') }}</span>
               </div>
-              <p class="declaration-option-desc">Confirmer la présence d'un membre habituellement absent.</p>
+              <p class="declaration-option-desc">{{ t('absences.choice.presenceDesc') }}</p>
             </div>
             <ChevronRight :size="18" class="declaration-arrow" />
           </button>
@@ -1510,7 +1509,7 @@
 
         <div class="modal-footer modal-footer-center">
           <button type="button" @click="showDeclarationChoiceModal = false" class="btn btn-secondary">
-            Annuler
+            {{ t('common.cancel') }}
           </button>
         </div>
       </div>
@@ -1521,6 +1520,9 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { formatDate as intlFormatDate, weekdayNames, monthNames as intlMonthNames } from '../i18n/format'
+import { dayLabel, slotLabel, slotInlineLabel, describePresence } from '../i18n/presence'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
@@ -1543,7 +1545,7 @@ import {
 import HouseUser from '../components/icons/HouseUser.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import UsualPresenceEditor from '../components/UsualPresenceEditor.vue'
-import { DAY_LABELS, SLOT_KEYS, SLOT_LABELS, dayKeyFor, describeUsualPresence, normalizeUsualPresenceConfig } from '@shared/presence.js'
+import { SLOT_KEYS, dayKeyFor, normalizeUsualPresenceConfig } from '@shared/presence.js'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -1551,6 +1553,7 @@ import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
+const { t } = useI18n()
 const { confirm } = useConfirm()
 
 const route = useRoute()
@@ -1570,9 +1573,9 @@ const usualAbsenceHint = (member) => {
   const dateStr = form.value?.date || store.todayStr
   const absentSlots = SLOT_KEYS.filter(slot => !store.isMemberUsuallyPresent(member, dateStr, slot))
   if (absentSlots.length === 0) return ''
-  const day = DAY_LABELS[dayKeyFor(dateStr)]
-  if (absentSlots.length === SLOT_KEYS.length) return `(Habituellement absent le ${day})`
-  return `(Habituellement absent le ${day} ${absentSlots.map(s => SLOT_LABELS[s].toLowerCase()).join('/')})`
+  const day = dayLabel(dayKeyFor(dateStr))
+  if (absentSlots.length === SLOT_KEYS.length) return t('absences.usualAbsentHint', { day })
+  return t('absences.usualAbsentHint', { day: `${day} ${absentSlots.map(s => slotInlineLabel(s)).join('/')}` })
 }
 
 // === Carte « Ma présence habituelle » ===
@@ -1605,7 +1608,7 @@ watch(storedUsualPresenceConfig, (cfg) => {
 }, { immediate: true })
 
 const myUsualPresenceSummary = computed(() =>
-  describeUsualPresence(storedUsualPresenceConfig.value, store.todayStr, store.presenceWeekAnchor)
+  describePresence(storedUsualPresenceConfig.value, store.todayStr, store.presenceWeekAnchor)
 )
 
 const toggleUsualPresencePanel = () => {
@@ -1679,12 +1682,10 @@ const todayDate = new Date()
 const currentYear = ref(todayDate.getFullYear())
 const currentMonth = ref(todayDate.getMonth()) // 0-indexed
 
-const monthNames = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-]
+const monthNames = computed(() => intlMonthNames('long', { capitalized: true }))
+const weekdayHeaders = computed(() => weekdayNames('short').map(n => n.replace(/\.$/, '')))
 
-const currentMonthName = computed(() => monthNames[currentMonth.value])
+const currentMonthName = computed(() => monthNames.value[currentMonth.value])
 
 // Calendar View Mode: 'month' or 'week'
 const calendarViewMode = ref('week')
@@ -1762,8 +1763,8 @@ const goToToday = () => {
 
 const weekDays = computed(() => {
   const days = []
-  const dayNames = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
-  const monthNamesList = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
+  const dayNames = weekdayNames('long')
+  const monthNamesList = intlMonthNames('short')
   const base = new Date(currentMonday.value)
   const todayStr = store.todayStr
 
@@ -1796,7 +1797,7 @@ const currentWeekLabel = computed(() => {
   if (weekDays.value.length === 0) return ''
   const first = weekDays.value[0]
   const last = weekDays.value[6]
-  return `Semaine du ${first.dayNum} ${first.monthShort} au ${last.dayNum} ${last.monthShort} ${currentMonday.value.getFullYear()}`
+  return t('calendar.weekLabel', { start: `${first.dayNum} ${first.monthShort}`, end: `${last.dayNum} ${last.monthShort}`, year: currentMonday.value.getFullYear() })
 })
 
 // Days in current month
@@ -1849,17 +1850,17 @@ const getDaySlotHeadcountNumber = (day, slot) => {
 
 // Helpers
 const getMemberName = (idOrMember) => {
-  if (!idOrMember) return 'Membre'
-  if (typeof idOrMember === 'object') return idOrMember.name || idOrMember.firstName || 'Membre'
+  if (!idOrMember) return t('menu.badges.member')
+  if (typeof idOrMember === 'object') return idOrMember.name || idOrMember.firstName || t('menu.badges.member')
   const m = store.members.find(m => Number(m.id) === Number(idOrMember))
-  return m ? m.name : 'Membre'
+  return m ? m.name : t('menu.badges.member')
 }
 
 const getMemberFirstName = (idOrMember) => {
-  if (!idOrMember) return 'Membre'
-  if (typeof idOrMember === 'object') return idOrMember.firstName || (idOrMember.name ? idOrMember.name.split(' ')[0] : 'Membre')
+  if (!idOrMember) return t('menu.badges.member')
+  if (typeof idOrMember === 'object') return idOrMember.firstName || (idOrMember.name ? idOrMember.name.split(' ')[0] : t('menu.badges.member'))
   const m = store.members.find(m => Number(m.id) === Number(idOrMember))
-  return m ? (m.firstName || m.name.split(' ')[0]) : 'Membre'
+  return m ? (m.firstName || m.name.split(' ')[0]) : t('menu.badges.member')
 }
 
 const getMemberAvatar = (idOrMember) => {
@@ -1928,12 +1929,12 @@ const todayNightGuests = computed(() => todayNightPresence.value.guests)
 const getSlotHeadcount = (slot, dateStr = null) => {
   const targetDate = dateStr || store.todayStr
   const p = store.getMealSlotPresence(targetDate, slot)
-  const noun = slot === 'night' ? 'personne(s) qui dorment' : 'à table'
+  const noun = slot === 'night' ? t('absences.headcount.sleeping', { n: p.headcount }, p.headcount) : t('dashboard.atTable', { n: p.headcount })
   const details = []
-  if (p.presentMembersCount > 0) details.push(`${p.presentMembersCount} membre${p.presentMembersCount > 1 ? 's' : ''}`)
-  if (p.guestsCount > 0) details.push(`${p.guestsCount} invité${p.guestsCount > 1 ? 's' : ''}`)
+  if (p.presentMembersCount > 0) details.push(t('absences.headcount.members', { n: p.presentMembersCount }, p.presentMembersCount))
+  if (p.guestsCount > 0) details.push(t('dashboard.guestCount', { n: p.guestsCount }, p.guestsCount))
   const detailsStr = details.length > 0 ? ` (${details.join(' + ')})` : ''
-  return `${p.headcount} ${noun}${detailsStr}`
+  return `${noun}${detailsStr}`
 }
 
 // Dates formatting
@@ -1941,11 +1942,11 @@ const formatDisplayDate = (dStr) => {
   if (!dStr) return ''
   const [y, m, d] = dStr.split('-').map(Number)
   const dt = new Date(y, m - 1, d)
-  return dt.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  return intlFormatDate(dt, { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
 const formatRelativeDate = (dStr) => {
-  if (dStr === store.todayStr) return 'Aujourd\'hui'
+  if (dStr === store.todayStr) return t('common.today')
   
   const [y, m, d] = dStr.split('-').map(Number)
   const dt = new Date(y, m - 1, d)
@@ -1953,9 +1954,9 @@ const formatRelativeDate = (dStr) => {
   const tmrw = new Date()
   tmrw.setDate(tmrw.getDate() + 1)
   const tmrwStr = `${tmrw.getFullYear()}-${String(tmrw.getMonth() + 1).padStart(2, '0')}-${String(tmrw.getDate()).padStart(2, '0')}`
-  if (dStr === tmrwStr) return 'Demain'
+  if (dStr === tmrwStr) return t('common.tomorrow')
 
-  return dt.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+  return intlFormatDate(dt, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 // Absence/Presence Modal actions
@@ -2017,7 +2018,7 @@ const handleSubmit = async () => {
   if (!form.value.lunch && !form.value.dinner && !form.value.night) return
 
   if (!editingId.value && form.value.date < store.todayStr) {
-    alert("Impossible d'enregistrer une présence ou une absence à une date passée.")
+    alert(t('absences.errors.pastDate'))
     return
   }
 
@@ -2036,12 +2037,11 @@ const handleSubmit = async () => {
 const handleDelete = async (idOrObj) => {
   const targetId = typeof idOrObj === 'object' ? (idOrObj.absenceId || idOrObj.record?.id || idOrObj.id) : idOrObj
   const isPres = typeof idOrObj === 'object' ? (idOrObj.record?.type === 'presence' || idOrObj.type === 'presence') : (form.value.type === 'presence')
-  const term = isPres ? 'cette présence exceptionnelle' : 'cette absence'
   const ok = await confirm({
-    title: isPres ? 'Supprimer la présence' : 'Supprimer l\'absence',
-    message: `Voulez-vous vraiment supprimer ${term} ?`,
-    description: 'Cette action est irréversible.',
-    confirmText: 'Supprimer',
+    title: isPres ? t('absences.delete.presenceTitle') : t('absences.delete.absenceTitle'),
+    message: isPres ? t('absences.delete.presenceMessage') : t('absences.delete.absenceMessage'),
+    description: t('common.irreversible'),
+    confirmText: t('common.delete'),
     type: 'danger'
   })
   if (ok) {
@@ -2090,7 +2090,7 @@ const handleGuestSubmit = async () => {
   if (!guestForm.value.lunch && !guestForm.value.dinner && !guestForm.value.night) return
 
   if (!editingGuestId.value && guestForm.value.date < store.todayStr) {
-    alert("Impossible d'ajouter un invité à une date passée.")
+    alert(t('absences.errors.guestPastDate'))
     return
   }
 
@@ -2161,28 +2161,28 @@ const selectedDayNightGuests = computed(() => selectedDayNightPresence.value.gue
 
 const getSelectedDaySlotHeadcount = (slot) => {
   const p = slot === 'lunch' ? selectedDayLunchPresence.value : (slot === 'dinner' ? selectedDayDinnerPresence.value : selectedDayNightPresence.value)
-  const noun = slot === 'night' ? 'couchage(s)' : 'à table'
+  const noun = slot === 'night' ? t('absences.headcount.beds', { n: p.headcount }, p.headcount) : t('dashboard.atTable', { n: p.headcount })
   const details = []
-  if (p.presentMembersCount > 0) details.push(`${p.presentMembersCount} membre${p.presentMembersCount > 1 ? 's' : ''}`)
-  if (p.guestsCount > 0) details.push(`${p.guestsCount} invité${p.guestsCount > 1 ? 's' : ''}`)
+  if (p.presentMembersCount > 0) details.push(t('absences.headcount.members', { n: p.presentMembersCount }, p.presentMembersCount))
+  if (p.guestsCount > 0) details.push(t('dashboard.guestCount', { n: p.guestsCount }, p.guestsCount))
   const detailsStr = details.length > 0 ? ` (${details.join(' + ')})` : ''
-  return `${p.headcount} ${noun}${detailsStr}`
+  return `${noun}${detailsStr}`
 }
 
 const formatFullDisplayDate = (dStr) => {
   if (!dStr) return ''
   const [y, m, d] = dStr.split('-').map(Number)
   const dt = new Date(y, m - 1, d)
-  const formatted = dt.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const formatted = intlFormatDate(dt, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
   return formatted.charAt(0).toUpperCase() + formatted.slice(1)
 }
 
 const handleDeleteGuest = async (id) => {
   const ok = await confirm({
-    title: 'Retirer l\'invité',
-    message: 'Voulez-vous vraiment retirer cet invité ?',
-    description: 'Cette action est irréversible.',
-    confirmText: 'Retirer',
+    title: t('absences.delete.guestTitle'),
+    message: t('absences.delete.guestMessage'),
+    description: t('common.irreversible'),
+    confirmText: t('absences.delete.remove'),
     type: 'danger'
   })
   if (ok) {
@@ -2256,9 +2256,7 @@ const onEndDateChange = () => {
 }
 
 const formatSlotName = (slot) => {
-  if (slot === 'lunch') return 'Midi'
-  if (slot === 'dinner') return 'Soir'
-  if (slot === 'night') return 'Nuit'
+  if (['lunch', 'dinner', 'night'].includes(slot)) return slotLabel(slot)
   return slot || ''
 }
 
@@ -2342,20 +2340,20 @@ const cancelEditLongAbsence = () => {
 
 const handleLongAbsenceSubmit = async () => {
   if (!longAbsenceForm.value.startDate || !longAbsenceForm.value.endDate) {
-    alert("Veuillez sélectionner les dates de début et de fin.")
+    alert(t('absences.errors.datesRequired'))
     return
   }
   if (!editingLongAbsenceId.value && longAbsenceForm.value.startDate < store.todayStr) {
-    alert("La date de début ne peut pas être dans le passé.")
+    alert(t('absences.errors.startInPast'))
     return
   }
   if (longAbsenceForm.value.endDate < longAbsenceForm.value.startDate) {
-    alert("La date de fin ne peut pas précéder la date de début.")
+    alert(t('absences.errors.endBeforeStart'))
     return
   }
   if (longAbsenceForm.value.startDate === longAbsenceForm.value.endDate) {
     if (slotOrder[longAbsenceForm.value.endSlot] < slotOrder[longAbsenceForm.value.startSlot]) {
-      alert("Pour une même journée, le créneau de fin doit être identique ou postérieur au créneau de début.")
+      alert(t('absences.errors.slotOrder'))
       return
     }
   }
@@ -2372,7 +2370,7 @@ const handleLongAbsenceSubmit = async () => {
       showLongAbsenceModal.value = false
       editingLongAbsenceId.value = null
     } else {
-      alert(result?.error || "Erreur lors de l'enregistrement de l'absence longue.")
+      alert(result?.error || t('absences.errors.longSaveFailed'))
     }
   } finally {
     savingLongAbsence.value = false
@@ -2382,10 +2380,10 @@ const handleLongAbsenceSubmit = async () => {
 const handleDeleteLongAbsence = async (la) => {
   const memberName = getMemberFirstName(la.memberId)
   const ok = await confirm({
-    title: "Supprimer l'absence longue",
-    message: `Voulez-vous vraiment supprimer l'absence longue de ${escapeHtml(memberName)} du ${formatDisplayDate(la.startDate)} au ${formatDisplayDate(la.endDate)} ?`,
-    description: "Tous les créneaux quotidiens associés à cette absence longue seront automatiquement supprimés.",
-    confirmText: 'Supprimer',
+    title: t('absences.delete.longTitle'),
+    message: t('absences.delete.longMessage', { name: escapeHtml(memberName), start: formatDisplayDate(la.startDate), end: formatDisplayDate(la.endDate) }),
+    description: t('absences.delete.longDescription'),
+    confirmText: t('common.delete'),
     type: 'danger'
   })
   if (ok) {
@@ -2397,7 +2395,7 @@ const handleDeleteLongAbsence = async (la) => {
           cancelEditLongAbsence()
         }
       } else {
-        alert(res?.error || "Erreur lors de la suppression de l'absence longue.")
+        alert(res?.error || t('absences.errors.longDeleteFailed'))
       }
     } finally {
       savingLongAbsence.value = false

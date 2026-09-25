@@ -10,8 +10,8 @@
         @click="setMode('simple')"
       >
         <CircleDot :size="18" />
-        <strong>Simple</strong>
-        <span>La même chose tous les jours</span>
+        <strong>{{ t('presence.editor.simple') }}</strong>
+        <span>{{ t('presence.editor.simpleDesc') }}</span>
       </button>
       <button
         type="button"
@@ -21,25 +21,25 @@
         @click="setMode('weekly')"
       >
         <CalendarRange :size="18" />
-        <strong>Personnalisée</strong>
-        <span>Par jour et par repas</span>
+        <strong>{{ t('presence.editor.custom') }}</strong>
+        <span>{{ t('presence.editor.customDesc') }}</span>
       </button>
     </div>
 
     <!-- MODE SIMPLE -->
     <div v-if="config.mode === 'simple'" class="form-group simple-block">
-      <label class="form-label">Présence habituelle à la maison</label>
+      <label class="form-label">{{ t('profile.usualPresence') }}</label>
       <select
         class="form-select"
         :value="config.simple"
         :disabled="readonly"
         @change="setSimple($event.target.value)"
       >
-        <option value="present">🟢 Habituellement présent(e) (signale des absences)</option>
-        <option value="absent">⚪ Habituellement absent(e) (signale des présences)</option>
+        <option value="present">🟢 {{ t('presence.editor.usuallyPresentOption') }}</option>
+        <option value="absent">⚪ {{ t('presence.editor.usuallyAbsentOption') }}</option>
       </select>
       <span class="help-subtext">
-        Détermine si {{ subjectLabel }} comptabilisé(e) par défaut aux repas de famille et pour la nuit.
+        {{ subject === 'self' ? t('presence.editor.helpSelf') : t('presence.editor.helpMember') }}
       </span>
     </div>
 
@@ -55,8 +55,8 @@
       >
         <input type="checkbox" :checked="config.alternating" tabindex="-1" class="slot-toggle-check" />
         <span class="alternating-text">
-          <strong>Alterner une semaine sur deux</strong>
-          <span class="help-subtext">Pour une garde alternée ou un rythme qui change chaque semaine.</span>
+          <strong>{{ t('presence.editor.alternate') }}</strong>
+          <span class="help-subtext">{{ t('presence.editor.alternateDesc') }}</span>
         </span>
       </button>
 
@@ -70,15 +70,15 @@
           :class="{ active: activeWeek === w }"
           @click="activeWeek = w"
         >
-          Semaine {{ w }}
-          <span v-if="currentPhase === w" class="week-tab-badge">en cours</span>
+          {{ t('presence.editor.weekTab', { week: w }) }}
+          <span v-if="currentPhase === w" class="week-tab-badge">{{ t('presence.editor.current') }}</span>
         </button>
       </div>
 
       <!-- Grille 7 jours × 3 créneaux.
            Le même DOM sert aux deux mises en page : tableau créneaux × jours sur écran large,
            liste par jour sur mobile (bascule purement CSS, voir la media query plus bas). -->
-      <div class="presence-grid" role="group" :aria-label="`Présence habituelle, semaine ${activeWeek}`">
+      <div class="presence-grid" role="group" :aria-label="t('presence.editor.gridLabel', { week: activeWeek })">
         <span class="grid-corner"></span>
 
         <button
@@ -87,10 +87,10 @@
           type="button"
           class="grid-head grid-head-day"
           :disabled="readonly"
-          :title="`Tout activer ou désactiver le ${DAY_LABELS[day]}`"
+          :title="t('presence.editor.toggleDay', { day: dayLabel(day) })"
           @click="toggleDay(day)"
         >
-          {{ DAY_SHORT_LABELS[day] }}
+          {{ dayShortLabel(day) }}
         </button>
 
         <template v-for="slot in SLOT_KEYS" :key="slot">
@@ -98,11 +98,11 @@
             type="button"
             class="grid-head grid-head-slot"
             :disabled="readonly"
-            :title="`Tout activer ou désactiver : ${SLOT_LABELS[slot]}`"
+            :title="t('presence.editor.toggleSlot', { slot: slotLabel(slot) })"
             @click="toggleSlot(slot)"
           >
             <component :is="SLOT_ICONS[slot]" :size="16" :style="{ color: SLOT_COLORS[slot] }" />
-            <span>{{ SLOT_LABELS[slot] }}</span>
+            <span>{{ slotLabel(slot) }}</span>
           </button>
 
           <button
@@ -113,10 +113,10 @@
             :class="{ on: activeGrid[day][slot] }"
             :disabled="readonly"
             :aria-pressed="activeGrid[day][slot]"
-            :aria-label="`${DAY_LABELS[day]} ${SLOT_LABELS[slot].toLowerCase()} : ${activeGrid[day][slot] ? 'présent' : 'absent'}`"
+            :aria-label="`${dayLabel(day)} ${slotInlineLabel(slot)} : ${activeGrid[day][slot] ? t('presence.editor.cellPresent') : t('presence.editor.cellAbsent')}`"
             @click="toggleCell(day, slot)"
           >
-            <span class="grid-cell-day">{{ DAY_SHORT_LABELS[day] }}</span>
+            <span class="grid-cell-day">{{ dayShortLabel(day) }}</span>
             <Check v-if="activeGrid[day][slot]" :size="15" />
             <Minus v-else :size="15" />
           </button>
@@ -125,12 +125,12 @@
 
       <!-- Préréglages -->
       <div v-if="!readonly" class="presets">
-        <button type="button" class="btn btn-secondary btn-sm" @click="applyPreset('all')">Tout présent</button>
-        <button type="button" class="btn btn-secondary btn-sm" @click="applyPreset('none')">Tout absent</button>
-        <button type="button" class="btn btn-secondary btn-sm" @click="applyPreset('no-weekday-lunch')">Jamais le midi en semaine</button>
-        <button type="button" class="btn btn-secondary btn-sm" @click="applyPreset('weekend')">Week-end seulement</button>
-        <button v-if="config.alternating" type="button" class="btn btn-secondary btn-sm" @click="copyAToB">Copier A → B</button>
-        <button v-if="config.alternating" type="button" class="btn btn-secondary btn-sm" @click="swapWeeks">Inverser A et B</button>
+        <button type="button" class="btn btn-secondary btn-sm" @click="applyPreset('all')">{{ t('presence.editor.presetAll') }}</button>
+        <button type="button" class="btn btn-secondary btn-sm" @click="applyPreset('none')">{{ t('presence.editor.presetNone') }}</button>
+        <button type="button" class="btn btn-secondary btn-sm" @click="applyPreset('no-weekday-lunch')">{{ t('presence.editor.presetNoWeekdayLunch') }}</button>
+        <button type="button" class="btn btn-secondary btn-sm" @click="applyPreset('weekend')">{{ t('presence.editor.presetWeekend') }}</button>
+        <button v-if="config.alternating" type="button" class="btn btn-secondary btn-sm" @click="copyAToB">{{ t('presence.editor.copyAB') }}</button>
+        <button v-if="config.alternating" type="button" class="btn btn-secondary btn-sm" @click="swapWeeks">{{ t('presence.editor.swapAB') }}</button>
       </div>
     </div>
 
@@ -141,17 +141,15 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { BedDouble, CalendarRange, Check, CircleDot, Minus, Sun, Sunset } from '@lucide/vue'
+import { useI18n } from 'vue-i18n'
 import {
   DAY_KEYS,
-  DAY_LABELS,
-  DAY_SHORT_LABELS,
   SLOT_KEYS,
-  SLOT_LABELS,
-  describeUsualPresence,
   fullGrid,
   normalizeUsualPresenceConfig,
   weekPhaseFor
 } from '@shared/presence.js'
+import { dayLabel, dayShortLabel, slotLabel, slotInlineLabel, describePresence } from '../i18n/presence'
 
 const props = defineProps({
   modelValue: { type: Object, default: null },
@@ -166,14 +164,13 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue'])
+const { t } = useI18n()
 
 const SLOT_ICONS = { lunch: Sun, dinner: Sunset, night: BedDouble }
 // Les trois couleurs de créneau sont constantes dans toute l'app (calendrier, repas, présence).
 const SLOT_COLORS = { lunch: '#f59e0b', dinner: '#6366f1', night: '#10b981' }
 
 const config = computed(() => normalizeUsualPresenceConfig(props.modelValue, props.legacyUsualPresence))
-
-const subjectLabel = computed(() => (props.subject === 'self' ? 'vous êtes' : 'ce membre est'))
 
 const activeWeek = ref('A')
 // Une grille B masquée ne doit pas rester sélectionnée quand on désactive l'alternance.
@@ -186,7 +183,7 @@ const currentPhase = computed(() =>
 const activeGrid = computed(() => (activeWeek.value === 'B' ? config.value.weekB : config.value.weekA))
 
 const summary = computed(() =>
-  describeUsualPresence(config.value, props.today, props.weekAnchor || undefined)
+  describePresence(config.value, props.today, props.weekAnchor || undefined)
 )
 
 // Toute modification republie une config complète : le composant est entièrement contrôlé et ne

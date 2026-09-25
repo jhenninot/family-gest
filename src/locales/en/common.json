@@ -7,11 +7,20 @@
   "errors": {
     "server": "Could not connect to the server.",
     "unreachable": "Unable to reach the server",
-    "noActiveFamily": "No active family"
+    "noActiveFamily": "No active family",
+    "retry": "Something went wrong, please try again."
   },
   "logout": "Sign out",
   "cancel": "Cancel",
   "saving": "Saving…",
   "close": "Close",
-  "hide": "Hide"
+  "hide": "Hide",
+  "edit": "Edit",
+  "delete": "Delete",
+  "save": "Save",
+  "today": "Today",
+  "unknown": "Unknown",
+  "irreversible": "This action cannot be undone.",
+  "add": "Add",
+  "tomorrow": "Tomorrow"
 }

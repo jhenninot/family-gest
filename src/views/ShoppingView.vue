@@ -9,14 +9,14 @@
             v-model="newItem.name" 
             type="text" 
             required
-            placeholder="Ajouter un article (ex: Lait, Pommes, Pain...)" 
+            :placeholder="t('shopping.addPlaceholder')" 
             class="form-input quick-input" 
           />
         </div>
 
         <select v-model="newItem.category" class="form-select select-cat">
           <option v-for="cat in availableCategories" :key="cat.id || cat.name" :value="cat.name">
-            {{ cat.icon }} {{ cat.name }}
+            {{ cat.icon }} {{ translateValue('shoppingCategory', cat.name) }}
           </option>
         </select>
 
@@ -25,30 +25,30 @@
           type="number" 
           step="0.5" 
           min="0.5" 
-          placeholder="Qté" 
+          :placeholder="t('shopping.qtyShort')" 
           class="form-input qty-input" 
         />
 
         <label class="urgent-toggle">
           <input type="checkbox" v-model="newItem.urgent" />
-          <span>Urgent 🔥</span>
+          <span>{{ t('shopping.urgent') }} 🔥</span>
         </label>
 
-        <button type="submit" class="btn btn-primary">Ajouter</button>
+        <button type="submit" class="btn btn-primary">{{ t('common.add') }}</button>
       </form>
     </div>
 
     <!-- À acheter — groupés par catégorie -->
     <div class="section-title-bar">
       <h2>
-        À acheter
+        {{ t('shopping.toBuy') }}
         <span class="count-pill">{{ pendingItems.length }}</span>
       </h2>
-      <span class="badge badge-amber" v-if="urgentCount > 0">{{ urgentCount }} Urgent(s) 🔥</span>
+      <span class="badge badge-amber" v-if="urgentCount > 0">{{ t('shopping.urgentCount', { n: urgentCount }, urgentCount) }} 🔥</span>
     </div>
 
     <div v-if="pendingItems.length === 0" class="glass-card empty-state">
-      ✨ La liste de courses est vide ! Tout est sous contrôle.
+      ✨ {{ t('shopping.emptyPending') }}
     </div>
 
     <div v-else class="categories-wrapper">
@@ -59,7 +59,7 @@
       >
         <div class="category-header">
           <span class="category-icon">{{ group.icon }}</span>
-          <span class="category-name">{{ group.name }}</span>
+          <span class="category-name">{{ translateValue('shoppingCategory', group.name) }}</span>
           <span class="category-count">{{ group.items.length }}</span>
         </div>
 
@@ -80,8 +80,8 @@
             <div class="item-info">
               <span class="item-name">{{ item.name }}</span>
               <div class="item-tags">
-                <span class="qty-tag">Qté : {{ item.quantity }}</span>
-                <span v-if="item.urgent" class="badge badge-rose">Urgent 🔥</span>
+                <span class="qty-tag">{{ t('shopping.qty', { n: item.quantity }) }}</span>
+                <span v-if="item.urgent" class="badge badge-rose">{{ t('shopping.urgent') }} 🔥</span>
                 <span v-if="getLinkedMeal(item.mealId)" class="badge badge-purple" :title="getMealTooltip(item.mealId)">
                   🍲 {{ getMealName(item.mealId) }}
                   <span class="meal-badge-date">· {{ formatMealShortDate(getLinkedMeal(item.mealId)) }}</span>
@@ -90,10 +90,10 @@
             </div>
 
             <div class="item-actions">
-              <button @click="openEditModal(item)" class="btn-action edit" title="Modifier">
+              <button @click="openEditModal(item)" class="btn-action edit" :title="t('common.edit')">
                 <Pencil :size="15" />
               </button>
-              <button @click="confirmDelete(item)" class="btn-action delete" title="Supprimer">
+              <button @click="confirmDelete(item)" class="btn-action delete" :title="t('common.delete')">
                 <Trash2 :size="15" />
               </button>
             </div>
@@ -105,13 +105,13 @@
     <!-- Déjà dans le chariot -->
     <div class="section-title-bar margin-top-lg">
       <h2>
-        Déjà dans le chariot
+        {{ t('shopping.inCart') }}
         <span class="count-pill emerald">{{ completedItems.length }}</span>
       </h2>
     </div>
 
     <div v-if="completedItems.length === 0" class="glass-card empty-state">
-      Aucun article n'a encore été coché.
+      {{ t('shopping.emptyCart') }}
     </div>
 
     <div v-else class="glass-card category-block">
@@ -130,7 +130,7 @@
           <div class="item-info">
             <span class="item-name">{{ item.name }}</span>
             <div class="item-tags">
-              <span class="qty-tag">Qté : {{ item.quantity }}</span>
+              <span class="qty-tag">{{ t('shopping.qty', { n: item.quantity }) }}</span>
               <span v-if="getLinkedMeal(item.mealId)" class="badge badge-purple" :title="getMealTooltip(item.mealId)">
                 🍲 {{ getMealName(item.mealId) }}
                 <span class="meal-badge-date">· {{ formatMealShortDate(getLinkedMeal(item.mealId)) }}</span>
@@ -138,7 +138,7 @@
             </div>
           </div>
           <div class="item-actions">
-            <button @click="confirmDelete(item)" class="btn-action delete" title="Supprimer">
+            <button @click="confirmDelete(item)" class="btn-action delete" :title="t('common.delete')">
               <Trash2 :size="15" />
             </button>
           </div>
@@ -150,27 +150,27 @@
     <div v-if="editingItem" class="modal-overlay" @click.self="editingItem = null">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Modifier l'article</h3>
+          <h3>{{ t('shopping.editItem') }}</h3>
           <button @click="editingItem = null" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleEditSave">
           <div class="form-group">
-            <label class="form-label">Nom</label>
+            <label class="form-label">{{ t('shopping.name') }}</label>
             <input v-model="editForm.name" type="text" required class="form-input" />
           </div>
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Catégorie</label>
+              <label class="form-label">{{ t('tasks.form.category') }}</label>
               <select v-model="editForm.category" class="form-select">
                 <option v-for="cat in availableCategories" :key="cat.id || cat.name" :value="cat.name">
-                  {{ cat.icon }} {{ cat.name }}
+                  {{ cat.icon }} {{ translateValue('shoppingCategory', cat.name) }}
                 </option>
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">Quantité</label>
+              <label class="form-label">{{ t('shopping.quantity') }}</label>
               <input v-model.number="editForm.quantity" type="number" step="0.5" min="0.5" class="form-input" />
             </div>
           </div>
@@ -178,13 +178,13 @@
           <div class="form-group">
             <label class="urgent-toggle">
               <input type="checkbox" v-model="editForm.urgent" />
-              <span>Urgent 🔥</span>
+              <span>{{ t('shopping.urgent') }} 🔥</span>
             </label>
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="editingItem = null" class="btn btn-secondary">Annuler</button>
-            <button type="submit" class="btn btn-primary">Enregistrer</button>
+            <button type="button" @click="editingItem = null" class="btn btn-secondary">{{ t('common.cancel') }}</button>
+            <button type="submit" class="btn btn-primary">{{ t('common.save') }}</button>
           </div>
         </form>
       </div>
@@ -195,11 +195,15 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
+import { useI18n } from 'vue-i18n'
+import { formatDate } from '../i18n/format'
+import { translateValue } from '../i18n/values'
 import { ShoppingCart, Plus, Trash2, Pencil } from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 
 const store = useFamilyStore()
+const { t } = useI18n()
 const { confirm } = useConfirm()
 
 const availableCategories = computed(() => {
@@ -255,26 +259,26 @@ const getMealName = (mealId) => {
 // Libellé court du badge : « mar. 24 sept. · midi ».
 const formatMealShortDate = (meal) => {
   if (!meal || !meal.date) return ''
-  const slotLabel = meal.slot === 'dinner' ? 'soir' : 'midi'
+  const slotLabel = meal.slot === 'dinner' ? t('meals.slots.dinnerShort') : t('meals.slots.lunchShort')
   const [year, month, day] = meal.date.split('-').map(Number)
   const d = new Date(year, month - 1, day)
   if (Number.isNaN(d.getTime())) return `${meal.date} · ${slotLabel}`
-  const dayFormatted = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+  const dayFormatted = formatDate(d, { weekday: 'short', day: 'numeric', month: 'short' })
   return `${dayFormatted} · ${slotLabel}`
 }
 
 const getMealTooltip = (mealId) => {
   const meal = getLinkedMeal(mealId)
-  return meal ? `Ingrédient lié au repas : ${meal.dish} — ${formatMealDate(meal)}` : ''
+  return meal ? t('shopping.linkedMealTooltip', { dish: meal.dish, date: formatMealDate(meal) }) : ''
 }
 
 const formatMealDate = (meal) => {
   if (!meal || !meal.date) return ''
-  const slotLabel = meal.slot === 'dinner' ? 'Dîner (Soir)' : 'Déjeuner (Midi)'
+  const slotLabel = meal.slot === 'dinner' ? t('meals.slots.dinnerLong') : t('meals.slots.lunchLong')
   try {
     const parts = meal.date.split('-')
     const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
-    const dayFormatted = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+    const dayFormatted = formatDate(d, { weekday: 'long', day: 'numeric', month: 'long' })
     return `${dayFormatted} • ${slotLabel}`
   } catch {
     return `${meal.date} • ${slotLabel}`
@@ -334,13 +338,13 @@ const handleAddItem = () => {
 const confirmDelete = async (item) => {
   const meal = getLinkedMeal(item.mealId)
   const ok = await confirm({
-    title: 'Supprimer l\'article',
-    message: `Voulez-vous vraiment supprimer « ${escapeHtml(item.name)} » ?`,
-    description: 'Cette action est irréversible.',
+    title: t('shopping.delete.title'),
+    message: t('shopping.delete.message', { name: escapeHtml(item.name) }),
+    description: t('common.irreversible'),
     warning: meal
-      ? `Cet article est prévu pour le plat :<br><strong>🍲 ${escapeHtml(meal.dish)}</strong><br>${escapeHtml(formatMealDate(meal))}`
+      ? `${t('shopping.delete.linkedMeal')}<br><strong>🍲 ${escapeHtml(meal.dish)}</strong><br>${escapeHtml(formatMealDate(meal))}`
       : '',
-    confirmText: 'Supprimer',
+    confirmText: t('common.delete'),
     type: 'danger'
   })
   if (ok) {

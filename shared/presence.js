@@ -39,8 +39,8 @@ export const DAY_SHORT_LABELS = {
   sun: 'Dim'
 }
 
-// Libellés FR des créneaux. Historiquement dupliqués 3× dans server/index.js
-// (notifications d'absence, formatSlotLabel, notifications d'invités) : utiliser ceux-ci.
+// Libellés FR des créneaux (côté serveur et descriptions par défaut ; l'interface utilise ses
+// fichiers de langue). Historiquement dupliqués 3× dans server/index.js : utiliser ceux-ci.
 export const SLOT_LABELS = { lunch: 'Midi', dinner: 'Soir', night: 'Nuit' }
 
 // Lundi de référence par défaut. Valeur fixe et arbitraire : elle rend la parité A/B purement
@@ -182,17 +182,39 @@ export const summarizeUsualPresence = (cfg) => {
   return present * 2 > total ? 'present' : 'absent'
 }
 
-const joinFr = (parts) => {
-  if (parts.length <= 1) return parts.join('')
-  return `${parts.slice(0, -1).join(', ')} et ${parts[parts.length - 1]}`
+// Textes des descriptions ci-dessous, en français par défaut. L'interface passe sa propre fonction
+// de traduction tr(clé, paramètres) (voir src/i18n/presence.js) ; le serveur n'en a pas besoin.
+const FR_DESCRIBE = {
+  and: ' et ',
+  allPresent: 'présent(e) à tous les créneaux',
+  allAbsent: 'absent(e) à tous les créneaux',
+  absentOn: 'absent(e) le {groups}',
+  presentOn: 'présent(e) le {groups}',
+  simpleAbsent: 'Habituellement absent(e) — vous signalez vos présences',
+  simplePresent: 'Habituellement présent(e) — vous signalez vos absences',
+  everyWeek: 'Chaque semaine : {summary}',
+  weekPhase: 'Semaine {phase} : {summary}',
+  weekPhaseCurrent: 'Semaine {phase} (en cours) : {summary}'
+}
+const frTranslate = (key, params = {}) => {
+  let text
+  if (key.startsWith('day.')) text = DAY_LABELS[key.slice(4)]
+  else if (key.startsWith('slot.')) text = SLOT_LABELS[key.slice(5)].toLowerCase()
+  else text = FR_DESCRIBE[key]
+  return text.replace(/\{(\w+)\}/g, (_, name) => params[name] ?? '')
 }
 
-// Décrit une grille en français : « tous les créneaux », « aucun créneau », ou la liste des
-// absences groupée par jour (« absent le mercredi soir et nuit, le samedi midi »).
-export const describeGrid = (grid) => {
+const joinWithAnd = (parts, tr) => {
+  if (parts.length <= 1) return parts.join('')
+  return `${parts.slice(0, -1).join(', ')}${tr('and')}${parts[parts.length - 1]}`
+}
+
+// Décrit une grille : « tous les créneaux », « aucun créneau », ou la liste des absences groupée
+// par jour (« absent le mercredi soir et nuit, samedi midi »).
+export const describeGrid = (grid, tr = frTranslate) => {
   const present = countPresentSlots(grid)
-  if (present === TOTAL_SLOTS_PER_WEEK) return 'présent(e) à tous les créneaux'
-  if (present === 0) return 'absent(e) à tous les créneaux'
+  if (present === TOTAL_SLOTS_PER_WEEK) return tr('allPresent')
+  if (present === 0) return tr('allAbsent')
 
   // On décrit le plus court des deux : les absences ou les présences.
   const describeMissing = present * 2 >= TOTAL_SLOTS_PER_WEEK
@@ -201,29 +223,26 @@ export const describeGrid = (grid) => {
     const slots = SLOT_KEYS.filter(s => Boolean(grid?.[day]?.[s]) !== describeMissing)
     if (slots.length === 0) continue
     const label = slots.length === SLOT_KEYS.length
-      ? DAY_LABELS[day]
-      : `${DAY_LABELS[day]} ${joinFr(slots.map(s => SLOT_LABELS[s].toLowerCase()))}`
+      ? tr(`day.${day}`)
+      : `${tr(`day.${day}`)} ${joinWithAnd(slots.map(s => tr(`slot.${s}`)), tr)}`
     groups.push(label)
   }
   // Les groupes sont séparés par des virgules et jamais par « et » : un groupe contient déjà
   // son propre « et » entre créneaux (« mercredi soir et nuit »), et enchaîner les deux
   // donnerait « mercredi soir et nuit et samedi midi ».
-  const verb = describeMissing ? 'absent(e)' : 'présent(e)'
-  return `${verb} le ${groups.join(', ')}`
+  return tr(describeMissing ? 'absentOn' : 'presentOn', { groups: groups.join(', ') })
 }
 
 // Résumé d'une ligne pour l'UI : personne ne relit 42 cases à cocher.
-export const describeUsualPresence = (cfg, dateStr = null, anchor = DEFAULT_WEEK_ANCHOR) => {
+export const describeUsualPresence = (cfg, dateStr = null, anchor = DEFAULT_WEEK_ANCHOR, tr = frTranslate) => {
   if (cfg.mode !== 'weekly') {
-    return cfg.simple === 'absent'
-      ? 'Habituellement absent(e) — vous signalez vos présences'
-      : 'Habituellement présent(e) — vous signalez vos absences'
+    return tr(cfg.simple === 'absent' ? 'simpleAbsent' : 'simplePresent')
   }
   if (!cfg.alternating) {
-    const s = describeGrid(cfg.weekA)
-    return `Chaque semaine : ${s}`
+    return tr('everyWeek', { summary: describeGrid(cfg.weekA, tr) })
   }
   const currentPhase = dateStr ? weekPhaseFor(dateStr, anchor) : null
-  const mark = (p) => (currentPhase === p ? ' (en cours)' : '')
-  return `Semaine A${mark('A')} : ${describeGrid(cfg.weekA)} · Semaine B${mark('B')} : ${describeGrid(cfg.weekB)}`
+  const phaseText = (phase, grid) =>
+    tr(currentPhase === phase ? 'weekPhaseCurrent' : 'weekPhase', { phase, summary: describeGrid(grid, tr) })
+  return `${phaseText('A', cfg.weekA)} · ${phaseText('B', cfg.weekB)}`
 }

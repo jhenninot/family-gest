@@ -12,5 +12,37 @@
     "oncle_tante": "Oncle / Tante",
     "baby_sitter": "Baby-sitter",
     "autre": "Autre"
+  },
+  "taskCategory": {
+    "maison": "Maison",
+    "cuisine": "Cuisine",
+    "jardin": "Jardin",
+    "chambre": "Chambre",
+    "autre": "Autre"
+  },
+  "taskPriority": {
+    "basse": "Basse",
+    "moyenne": "Moyenne",
+    "haute": "Haute"
+  },
+  "shoppingCategory": {
+    "frais": "Frais",
+    "epicerie": "Épicerie",
+    "fruits_legumes": "Fruits & Légumes",
+    "boulangerie": "Boulangerie",
+    "boissons": "Boissons",
+    "maison": "Maison",
+    "autre": "Autre",
+    "surgeles": "Surgelés"
+  },
+  "eventCategory": {
+    "fete": "Fête",
+    "sante": "Santé",
+    "famille": "Famille",
+    "scolaire": "Scolaire",
+    "loisirs": "Loisirs"
+  },
+  "location": {
+    "maison": "Maison"
   }
 }
