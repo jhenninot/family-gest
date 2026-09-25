@@ -91,6 +91,24 @@ for (const root of ROOTS) {
     }
   }
 
+  // Composants Vue : fonctions de traduction utilisées sans être importées (un gabarit qui
+  // référence un identifiant inconnu ne casse pas le build, il affiche simplement du vide).
+  if (root.name === 'interface') {
+    const helpers = ['translateValue', 'FAMILY_ROLE_VALUES', 'TASK_CATEGORY_VALUES', 'TASK_PRIORITY_VALUES', 'EVENT_CATEGORY_VALUES']
+    for (const file of walk('src', /\.vue$/)) {
+      const src = fs.readFileSync(file, 'utf8')
+      const script = (src.match(/<script[\s\S]*?<\/script>/) || [''])[0]
+      for (const name of helpers) {
+        if (new RegExp(`\\b${name}\\b`).test(src) && !new RegExp(`import\\s*\\{[^}]*\\b${name}\\b`).test(script)) {
+          report(`${file} : ${name} utilisé sans import`)
+        }
+      }
+      if (/\bt\(\s*['`]/.test(src) && !/const\s*\{[^}]*\bt\b[^}]*\}\s*=\s*useI18n\(/.test(script)) {
+        report(`${file} : t() utilisé sans const { t } = useI18n()`)
+      }
+    }
+  }
+
   const count = Object.keys(ref).length
   console.log(`  ${count} textes de référence, ${languages.length} langues (${languages.join(', ')}), ${used.size} clés littérales utilisées dans le code`)
   if (problems === before) console.log('  ✓ aucun problème')

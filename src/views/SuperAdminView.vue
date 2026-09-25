@@ -5,23 +5,23 @@
       <div class="header-content">
         <div class="header-badge">
           <ShieldAlert :size="16" />
-          <span>Plateforme Globale</span>
+          <span>{{ t('superAdmin.header.badge') }}</span>
         </div>
-        <h1 class="page-title">Console Super Administrateur</h1>
-        <p class="page-subtitle">Gestion centralisée des familles, quotas, utilisateurs et SMTP global.</p>
+        <h1 class="page-title">{{ t('superAdmin.header.title') }}</h1>
+        <p class="page-subtitle">{{ t('superAdmin.header.subtitle') }}</p>
       </div>
       <div class="header-actions">
         <button @click="openImportFamilyModal()" class="btn btn-secondary">
           <Upload :size="18" />
-          <span>Importer des données</span>
+          <span>{{ t('superAdmin.header.import') }}</span>
         </button>
         <button @click="openCreateFamilyModal" class="btn btn-primary">
           <Plus :size="18" />
-          <span>Créer une famille</span>
+          <span>{{ t('superAdmin.header.createFamily') }}</span>
         </button>
         <button @click="goToDashboard" class="btn btn-secondary">
           <ArrowLeft :size="18" />
-          <span>Retour à l'espace familial</span>
+          <span>{{ t('superAdmin.header.back') }}</span>
         </button>
       </div>
     </div>
@@ -34,7 +34,7 @@
         @click="activeTab = 'families'"
       >
         <Home :size="18" />
-        <span>Familles ({{ families.length }})</span>
+        <span>{{ t('superAdmin.tabs.families', { n: families.length }) }}</span>
       </button>
       <button 
         class="tab-btn" 
@@ -42,7 +42,7 @@
         @click="activeTab = 'users'"
       >
         <Users :size="18" />
-        <span>Utilisateurs ({{ users.length }})</span>
+        <span>{{ t('superAdmin.tabs.users', { n: users.length }) }}</span>
       </button>
       <button
         class="tab-btn"
@@ -50,7 +50,7 @@
         @click="activeTab = 'smtp'"
       >
         <Globe :size="18" />
-        <span>Configuration Globale & SMTP</span>
+        <span>{{ t('superAdmin.tabs.smtp') }}</span>
       </button>
       <button
         class="tab-btn"
@@ -58,7 +58,7 @@
         @click="activeTab = 'alerts'"
       >
         <Bell :size="18" />
-        <span>Journal des alertes</span>
+        <span>{{ t('superAdmin.tabs.alerts') }}</span>
       </button>
     </div>
 
@@ -66,50 +66,50 @@
     <div v-if="activeTab === 'families'" class="tab-content">
       <div v-if="loadingFamilies" class="loading-state">
         <div class="spinner"></div>
-        <p>Chargement des familles...</p>
+        <p>{{ t('superAdmin.families.loading') }}</p>
       </div>
 
       <div v-else class="families-list-container glass-card">
         <table class="data-table">
           <thead>
             <tr>
-              <th>Nom</th>
-              <th>Slug (URL)</th>
-              <th>Membres / Quota</th>
-              <th>Statut</th>
-              <th>Actions</th>
+              <th>{{ t('superAdmin.families.cols.name') }}</th>
+              <th>{{ t('superAdmin.families.cols.slug') }}</th>
+              <th>{{ t('superAdmin.families.cols.members') }}</th>
+              <th>{{ t('superAdmin.families.cols.status') }}</th>
+              <th>{{ t('superAdmin.families.cols.actions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="fam in families" :key="fam._id">
-              <td class="cell-primary" data-label="Famille">
+              <td class="cell-primary" :data-label="t('superAdmin.families.labels.family')">
                 <strong>{{ fam.name }}</strong>
               </td>
-              <td class="cell-slug" data-label="Identifiant">
+              <td class="cell-slug" :data-label="t('superAdmin.families.labels.slug')">
                 <code>/{{ fam.slug }}</code>
               </td>
-              <td data-label="Membres">
+              <td :data-label="t('superAdmin.families.labels.members')">
                 <span class="quota-pill">
-                  {{ fam.memberCount || 0 }} / {{ fam.maxMembers }} membres
+                  {{ t('superAdmin.families.quota', { n: fam.memberCount || 0, max: fam.maxMembers }) }}
                 </span>
               </td>
-              <td data-label="Statut">
+              <td :data-label="t('superAdmin.families.labels.status')">
                 <span class="status-pill" :class="{ active: fam.isActive, inactive: !fam.isActive }">
-                  {{ fam.isActive ? 'Active' : 'Désactivée' }}
+                  {{ fam.isActive ? t('superAdmin.families.active') : t('superAdmin.families.inactive') }}
                 </span>
               </td>
-              <td class="cell-actions" data-label="Actions">
+              <td class="cell-actions" :data-label="t('superAdmin.families.cols.actions')">
                 <button 
                   @click="openAddAdminModal(fam)" 
                   class="btn-icon btn-icon-sm text-indigo" 
-                  title="Ajouter un administrateur familial"
+                  :title="t('superAdmin.families.addAdmin')"
                 >
                   <UserPlus :size="16" />
                 </button>
                 <button 
                   @click="openEditFamilyModal(fam)" 
                   class="btn-icon btn-icon-sm text-indigo" 
-                  title="Modifier la famille (Nom, Identifiant URL, Quota)"
+                  :title="t('superAdmin.families.edit')"
                 >
                   <Edit2 :size="16" />
                 </button>
@@ -117,21 +117,21 @@
                   @click="toggleFamilyActive(fam)" 
                   class="btn-icon btn-icon-sm" 
                   :class="{ 'text-danger': fam.isActive, 'text-success': !fam.isActive }"
-                  :title="fam.isActive ? 'Désactiver la famille' : 'Activer la famille'"
+                  :title="fam.isActive ? t('superAdmin.families.deactivate') : t('superAdmin.families.activate')"
                 >
                   <Power :size="16" />
                 </button>
                 <button 
                   @click="openImportFamilyModal(fam)" 
                   class="btn-icon btn-icon-sm text-amber" 
-                  title="Importer des données dans cette famille"
+                  :title="t('superAdmin.families.importInto')"
                 >
                   <Upload :size="16" />
                 </button>
                 <button 
                   @click="switchAndGo(fam.slug)" 
                   class="btn-icon btn-icon-sm text-primary" 
-                  title="Ouvrir cette famille"
+                  :title="t('superAdmin.families.open')"
                 >
                   <ExternalLink :size="16" />
                 </button>
@@ -146,23 +146,23 @@
     <div v-if="activeTab === 'users'" class="tab-content">
       <div v-if="loadingUsers" class="loading-state">
         <div class="spinner"></div>
-        <p>Chargement des utilisateurs...</p>
+        <p>{{ t('superAdmin.users.loading') }}</p>
       </div>
 
       <div v-else class="users-list-container glass-card">
         <table class="data-table">
           <thead>
             <tr>
-              <th>Utilisateur</th>
-              <th>Email</th>
-              <th>Rôle Global</th>
-              <th>Familles associées</th>
-              <th>Actions</th>
+              <th>{{ t('superAdmin.users.cols.user') }}</th>
+              <th>{{ t('superAdmin.users.cols.email') }}</th>
+              <th>{{ t('superAdmin.users.cols.globalRole') }}</th>
+              <th>{{ t('superAdmin.users.cols.families') }}</th>
+              <th>{{ t('superAdmin.families.cols.actions') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="u in users" :key="u.id || u._id">
-              <td data-label="Utilisateur">
+              <td :data-label="t('superAdmin.users.cols.user')">
                 <div class="user-cell">
                   <UserAvatar :avatar="u.avatar" :name="u.firstName" size="sm" />
                   <div>
@@ -170,16 +170,16 @@
                   </div>
                 </div>
               </td>
-              <td class="cell-email" data-label="Email">{{ u.email }}</td>
-              <td data-label="Rôle Global">
+              <td class="cell-email" :data-label="t('superAdmin.users.cols.email')">{{ u.email }}</td>
+              <td :data-label="t('superAdmin.users.cols.globalRole')">
                 <span v-if="u.isSuperAdmin" class="role-pill super-admin-role">
-                  <ShieldAlert :size="14" /> Super Admin
+                  <ShieldAlert :size="14" /> {{ t('superAdmin.users.superAdmin') }}
                 </span>
                 <span v-else class="role-pill standard-user-role">
-                  Utilisateur
+                  {{ t('superAdmin.users.standardUser') }}
                 </span>
               </td>
-              <td data-label="Familles">
+              <td :data-label="t('superAdmin.users.labels.families')">
                 <div class="family-tags">
                   <span 
                     v-for="f in u.families" 
@@ -188,27 +188,27 @@
                     :class="{ 'admin-tag': f.isAdmin }"
                   >
                     <ShieldCheck v-if="f.isAdmin" :size="12" class="tag-icon" />
-                    {{ f.name }} <small>({{ f.role }})</small>
+                    {{ f.name }} <small>({{ translateValue('role', f.role) }})</small>
                     <button 
                       v-if="!u.isSuperAdmin"
                       type="button"
                       @click="toggleUserFamilyAdmin(u, f)" 
                       class="tag-toggle-btn"
-                      :title="f.isAdmin ? 'Rétrograder en membre standard' : 'Nommer administrateur de cette famille'"
+                      :title="f.isAdmin ? t('superAdmin.users.demoteTitle') : t('superAdmin.users.promoteTitle')"
                     >
-                      {{ f.isAdmin ? '👑 Retirer admin' : '⭐ Nommer admin' }}
+                      {{ f.isAdmin ? '👑 ' + t('superAdmin.users.demote') : '⭐ ' + t('superAdmin.users.promote') }}
                     </button>
                   </span>
                   <span v-if="!u.families || u.families.length === 0" class="text-muted">
-                    Aucune
+                    {{ t('superAdmin.users.noFamily') }}
                   </span>
                 </div>
               </td>
-              <td class="cell-actions" data-label="Actions">
+              <td class="cell-actions" :data-label="t('superAdmin.families.cols.actions')">
                 <button 
                   @click="openManageUserModal(u)" 
                   class="btn-icon btn-icon-sm text-indigo" 
-                  title="Gérer l'utilisateur"
+                  :title="t('superAdmin.users.manage')"
                 >
                   <Settings :size="16" />
                 </button>
@@ -223,9 +223,9 @@
     <div v-if="activeTab === 'smtp'" class="tab-content">
       <div class="smtp-container glass-card">
         <div class="smtp-intro">
-          <h3>Paramétrage Global de la Plateforme</h3>
+          <h3>{{ t('superAdmin.smtp.title') }}</h3>
           <p>
-            Configurez l'adresse web publique principale de FamilyGest et l'unique serveur SMTP utilisé pour l'envoi de tous les emails (invitations, notifications) de toutes les familles.
+            {{ t('superAdmin.smtp.intro') }}
           </p>
         </div>
 
@@ -233,25 +233,25 @@
           <!-- Section URL Publique de la plateforme -->
           <div class="form-group margin-bottom-lg">
             <label class="form-label">
-              <strong>URL publique de l'application / du serveur (Base URL)</strong>
+              <strong>{{ t('superAdmin.smtp.serverUrl') }}</strong>
             </label>
             <input
               v-model="smtpConfig.serverUrl"
               type="text"
-              placeholder="Ex: https://famille.mondomaine.fr ou http://192.168.1.50:5000"
+              :placeholder="t('superAdmin.smtp.serverUrlPlaceholder')"
               class="form-input"
               required
             />
             <span class="help-subtext">
-              Exemple : <code>https://famille.mondomaine.fr</code> ou <code>http://localhost:5000</code>. Sans barre oblique finale. Cette adresse sera insérée dans tous les emails d'invitation et de notification pour que les membres de chaque famille puissent accéder à l'application.
+              <i18n-t keypath="superAdmin.smtp.serverUrlHelp" tag="span"><template #example1><code>https://famille.mondomaine.fr</code></template><template #example2><code>http://localhost:5000</code></template></i18n-t>
             </span>
           </div>
 
           <div class="separator-divider"></div>
-          <h4 class="sub-section-title margin-top-md">Serveur SMTP de la Plateforme</h4>
+          <h4 class="sub-section-title margin-top-md">{{ t('superAdmin.smtp.serverTitle') }}</h4>
 
           <div class="form-group margin-bottom-lg">
-            <label class="form-label">Fournisseur</label>
+            <label class="form-label">{{ t('superAdmin.smtp.provider') }}</label>
             <div class="smtp-preset-buttons">
               <button
                 type="button"
@@ -299,37 +299,37 @@
                 class="smtp-preset-btn"
                 :class="{ active: smtpConfig.providerPreset === 'custom' }"
               >
-                Custom
+                {{ t('superAdmin.smtp.custom') }}
               </button>
             </div>
             <span v-if="smtpConfig.providerPreset === 'resend'" class="help-subtext">
-              Resend : créez une clé API sur <code>resend.com</code> après avoir vérifié votre domaine d'envoi (SPF/DKIM). Le nom d'utilisateur SMTP est littéralement <code>resend</code> ; le mot de passe SMTP est cette clé API (<code>re_xxxxxxxxx</code>).
+              <i18n-t keypath="superAdmin.smtp.help.resend" tag="span"><template #site><code>resend.com</code></template><template #user><code>resend</code></template><template #key><code>re_xxxxxxxxx</code></template></i18n-t>
             </span>
             <span v-if="smtpConfig.providerPreset === 'brevo-smtp'" class="help-subtext">
-              Brevo (SMTP) : gratuit jusqu'à 300 emails/jour, sans carte bancaire. Vérifiez votre domaine d'envoi (SPF/DKIM) sur <code>brevo.com</code>, puis générez une <strong>clé SMTP</strong> (pas la clé API — ce sont deux identifiants distincts) dans Paramètres SMTP &amp; API. Le nom d'utilisateur SMTP est l'adresse email de votre compte Brevo ; le mot de passe SMTP est la clé SMTP générée.
+              <i18n-t keypath="superAdmin.smtp.help.brevoSmtp" tag="span"><template #site><code>brevo.com</code></template><template #smtpKey><strong>{{ t('superAdmin.smtp.help.smtpKey') }}</strong></template></i18n-t>
             </span>
             <span v-if="smtpConfig.providerPreset === 'brevo-api'" class="help-subtext">
-              Brevo (API) : utilise directement votre <strong>clé API</strong> Brevo (<code>xkeysib-...</code>, section SMTP &amp; API &gt; Clés API) après vérification de votre domaine d'envoi (SPF/DKIM) — aucun identifiant SMTP séparé n'est nécessaire dans ce mode, les emails sont envoyés via l'API REST de Brevo.
+              <i18n-t keypath="superAdmin.smtp.help.brevoApi" tag="span"><template #apiKey><strong>{{ t('superAdmin.smtp.help.apiKey') }}</strong></template><template #prefix><code>xkeysib-...</code></template></i18n-t>
             </span>
           </div>
 
           <div class="grid-2" v-if="smtpConfig.providerPreset !== 'brevo-api'">
             <div class="form-group">
-              <label class="form-label">Hôte SMTP (Host)</label>
+              <label class="form-label">{{ t('superAdmin.smtp.host') }}</label>
               <input
                 v-model="smtpConfig.host"
                 type="text"
-                placeholder="Ex: smtp.sendgrid.net ou mail.mondomaine.com"
+                :placeholder="t('superAdmin.smtp.hostPlaceholder')"
                 class="form-input"
                 required
               />
             </div>
             <div class="form-group">
-              <label class="form-label">Port</label>
+              <label class="form-label">{{ t('superAdmin.smtp.port') }}</label>
               <input
                 v-model.number="smtpConfig.port"
                 type="number"
-                placeholder="Ex: 587 ou 465"
+                :placeholder="t('superAdmin.smtp.portPlaceholder')"
                 class="form-input"
                 required
               />
@@ -338,26 +338,26 @@
 
           <div class="grid-2" v-if="smtpConfig.providerPreset !== 'brevo-api'">
             <div class="form-group">
-              <label class="form-label">Nom d'utilisateur (Login SMTP)</label>
+              <label class="form-label">{{ t('superAdmin.smtp.user') }}</label>
               <input
                 v-model="smtpConfig.user"
                 type="text"
-                placeholder="Ex: apikey ou notification@mondomaine.com"
+                :placeholder="t('superAdmin.smtp.userPlaceholder')"
                 class="form-input"
               />
             </div>
             <div class="form-group">
-              <label class="form-label">Mot de passe SMTP</label>
+              <label class="form-label">{{ t('superAdmin.smtp.password') }}</label>
               <input
                 v-model="smtpConfig.password"
                 type="password"
-                placeholder="Mot de passe ou clé API"
+                :placeholder="t('superAdmin.smtp.passwordPlaceholder')"
                 class="form-input"
               />
             </div>
           </div>
           <div class="form-group margin-bottom-lg" v-else>
-            <label class="form-label">Clé API Brevo</label>
+            <label class="form-label">{{ t('superAdmin.smtp.brevoKey') }}</label>
             <input
               v-model="smtpConfig.password"
               type="password"
@@ -369,11 +369,11 @@
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Email Expéditeur ("From")</label>
+              <label class="form-label">{{ t('superAdmin.smtp.from') }}</label>
               <input
                 v-model="smtpConfig.from"
                 type="email"
-                placeholder="Ex: no-reply@mondomaine.com"
+                :placeholder="t('superAdmin.smtp.fromPlaceholder')"
                 class="form-input"
                 required
               />
@@ -382,20 +382,20 @@
               <label class="checkbox-container">
                 <input v-model="smtpConfig.secure" type="checkbox" />
                 <span class="checkmark"></span>
-                <span>Connexion SSL/TLS directe (port 465)</span>
+                <span>{{ t('superAdmin.smtp.secure') }}</span>
               </label>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Email de destination pour le test</label>
+            <label class="form-label">{{ t('superAdmin.smtp.testRecipient') }}</label>
             <input 
               v-model="testRecipient" 
               type="email" 
-              placeholder="votre-email@exemple.fr" 
+              :placeholder="t('superAdmin.smtp.testRecipientPlaceholder')" 
               class="form-input" 
             />
-            <span class="help-subtext">Un email de test sera envoyé à cette adresse pour vérifier la délivrabilité.</span>
+            <span class="help-subtext">{{ t('superAdmin.smtp.testRecipientHelp') }}</span>
           </div>
 
           <div v-if="smtpMessage" class="alert-box" :class="smtpSuccess ? 'alert-success' : 'alert-error'">
@@ -410,7 +410,7 @@
               :disabled="testingSmtp || savingSmtp"
             >
               <Send :size="16" />
-              <span>{{ testingSmtp ? 'Test en cours...' : 'Tester la connexion SMTP' }}</span>
+              <span>{{ testingSmtp ? t('superAdmin.smtp.testing') : t('superAdmin.smtp.test') }}</span>
             </button>
             <button
               type="submit"
@@ -418,7 +418,7 @@
               :disabled="savingSmtp || testingSmtp"
             >
               <Check :size="16" />
-              <span>{{ savingSmtp ? 'Enregistrement...' : 'Enregistrer la configuration' }}</span>
+              <span>{{ savingSmtp ? t('common.saving') : t('superAdmin.smtp.save') }}</span>
             </button>
           </div>
         </form>
@@ -426,16 +426,16 @@
 
       <div class="smtp-container glass-card margin-top-lg">
         <div class="smtp-intro">
-          <h3 class="section-title"><Clock :size="20" /> Récapitulatif quotidien</h3>
+          <h3 class="section-title"><Clock :size="20" /> {{ t('superAdmin.digest.title') }}</h3>
           <p class="section-subtitle">
-            Heure d'envoi du récapitulatif quotidien (repas & présences, tâches en attente, événements du jour, liste de courses) reçu par chaque utilisateur ayant activé cette option dans son profil.
+            {{ t('superAdmin.digest.intro') }}
           </p>
         </div>
 
         <form @submit.prevent="saveDigestSchedule" class="smtp-form">
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Heure (0-23)</label>
+              <label class="form-label">{{ t('superAdmin.digest.hour') }}</label>
               <input
                 type="number"
                 v-model.number="digestSchedule.digestHour"
@@ -445,7 +445,7 @@
               />
             </div>
             <div class="form-group">
-              <label class="form-label">Minute (0-59)</label>
+              <label class="form-label">{{ t('superAdmin.digest.minute') }}</label>
               <input
                 type="number"
                 v-model.number="digestSchedule.digestMinute"
@@ -466,14 +466,14 @@
               class="btn btn-secondary"
               :disabled="sendingDigestNow"
               @click="sendDigestNow"
-              title="Envoie immédiatement le récapitulatif quotidien aux utilisateurs y ayant souscrit, sans attendre l'heure planifiée"
+              :title="t('superAdmin.digest.sendNowTitle')"
             >
               <Send :size="16" />
-              <span>{{ sendingDigestNow ? 'Envoi en cours...' : 'Envoyer maintenant' }}</span>
+              <span>{{ sendingDigestNow ? t('superAdmin.sending') : t('superAdmin.digest.sendNow') }}</span>
             </button>
             <button type="submit" class="btn btn-primary" :disabled="savingDigestSchedule">
               <Check :size="16" />
-              <span>{{ savingDigestSchedule ? 'Enregistrement...' : 'Enregistrer l\'heure d\'envoi' }}</span>
+              <span>{{ savingDigestSchedule ? t('common.saving') : t('superAdmin.digest.save') }}</span>
             </button>
           </div>
         </form>
@@ -481,15 +481,15 @@
 
       <div class="smtp-container glass-card margin-top-lg">
         <div class="smtp-intro">
-          <h3 class="section-title"><ShieldCheck :size="20" /> Mentions légales & politique de confidentialité</h3>
+          <h3 class="section-title"><ShieldCheck :size="20" /> {{ t('superAdmin.legal.title') }}</h3>
           <p class="section-subtitle">
-            Contenu affiché publiquement sur <code>/mentions-legales</code> et <code>/confidentialite</code> (accessible sans connexion, lié depuis l'écran de connexion et le profil utilisateur). Complétez les champs entre crochets avant d'ouvrir la plateforme à d'autres foyers.
+            <i18n-t keypath="superAdmin.legal.intro" tag="span"><template #legalUrl><code>/mentions-legales</code></template><template #privacyUrl><code>/confidentialite</code></template></i18n-t>
           </p>
         </div>
 
         <form @submit.prevent="saveLegal" class="smtp-form">
           <div class="form-group">
-            <label class="form-label">Mentions légales</label>
+            <label class="form-label">{{ t('superAdmin.legal.notice') }}</label>
             <textarea
               v-model="legalContent.legalNotice"
               class="form-input legal-textarea"
@@ -498,7 +498,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Politique de confidentialité</label>
+            <label class="form-label">{{ t('superAdmin.legal.privacy') }}</label>
             <textarea
               v-model="legalContent.privacyPolicy"
               class="form-input legal-textarea"
@@ -513,7 +513,7 @@
           <div class="smtp-actions">
             <button type="submit" class="btn btn-primary" :disabled="savingLegal">
               <Check :size="16" />
-              <span>{{ savingLegal ? 'Enregistrement...' : 'Enregistrer le contenu légal' }}</span>
+              <span>{{ savingLegal ? t('common.saving') : t('superAdmin.legal.save') }}</span>
             </button>
           </div>
         </form>
@@ -525,76 +525,76 @@
       <div class="alert-filters glass-card">
         <div class="grid-4">
           <div class="form-group">
-            <label class="form-label">Famille</label>
+            <label class="form-label">{{ t('superAdmin.alerts.family') }}</label>
             <select v-model="alertFilters.familyId" class="form-input">
-              <option value="">Toutes les familles</option>
+              <option value="">{{ t('superAdmin.alerts.allFamilies') }}</option>
               <option v-for="f in alertMeta.families" :key="f._id" :value="f._id">{{ f.name }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Type d'action</label>
+            <label class="form-label">{{ t('superAdmin.alerts.actionType') }}</label>
             <select v-model="alertFilters.action" class="form-input">
-              <option value="">Toutes les actions</option>
-              <option v-for="a in alertMeta.actions" :key="a.code" :value="a.code">{{ a.label }}</option>
+              <option value="">{{ t('superAdmin.alerts.allActions') }}</option>
+              <option v-for="a in alertMeta.actions" :key="a.code" :value="a.code">{{ alertActionLabel(a.code, a.label) }}</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Depuis le</label>
+            <label class="form-label">{{ t('superAdmin.alerts.from') }}</label>
             <input v-model="alertFilters.from" type="date" class="form-input" />
           </div>
           <div class="form-group">
-            <label class="form-label">Jusqu'au</label>
+            <label class="form-label">{{ t('superAdmin.alerts.to') }}</label>
             <input v-model="alertFilters.to" type="date" class="form-input" />
           </div>
         </div>
         <div class="alert-filters-actions">
           <button type="button" class="btn btn-secondary" @click="resetAlertFilters">
             <RotateCcw :size="16" />
-            <span>Réinitialiser</span>
+            <span>{{ t('superAdmin.alerts.reset') }}</span>
           </button>
           <button type="button" class="btn btn-primary" @click="fetchAlertLogs(1)">
             <Filter :size="16" />
-            <span>Filtrer</span>
+            <span>{{ t('superAdmin.alerts.filter') }}</span>
           </button>
         </div>
       </div>
 
       <div v-if="loadingAlertLogs" class="loading-state">
         <div class="spinner"></div>
-        <p>Chargement du journal des alertes...</p>
+        <p>{{ t('superAdmin.alerts.loading') }}</p>
       </div>
 
       <div v-else-if="alertLogs.length === 0" class="empty-state glass-card">
         <Bell :size="32" />
-        <p>Aucune alerte trouvée pour ces critères.</p>
+        <p>{{ t('superAdmin.alerts.empty') }}</p>
       </div>
 
       <div v-else class="alert-log-list-container glass-card">
         <table class="data-table">
           <thead>
             <tr>
-              <th>Date / Heure</th>
-              <th>Famille</th>
-              <th>Utilisateur</th>
-              <th>Action</th>
-              <th>Canaux</th>
-              <th>Détails</th>
+              <th>{{ t('superAdmin.alerts.cols.date') }}</th>
+              <th>{{ t('superAdmin.alerts.cols.family') }}</th>
+              <th>{{ t('superAdmin.alerts.cols.user') }}</th>
+              <th>{{ t('superAdmin.alerts.cols.action') }}</th>
+              <th>{{ t('superAdmin.alerts.cols.channels') }}</th>
+              <th>{{ t('superAdmin.alerts.cols.details') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="log in alertLogs" :key="log._id">
-              <td data-label="Date / Heure">
+              <td :data-label="t('superAdmin.alerts.cols.date')">
                 <div class="alert-datetime">
                   <strong>{{ formatAlertDate(log.createdAt) }}</strong>
                   <span class="text-muted">{{ formatAlertTime(log.createdAt) }}</span>
                 </div>
               </td>
-              <td data-label="Famille">{{ log.familyName || '—' }}</td>
-              <td data-label="Utilisateur">{{ log.actorName || 'Système' }}</td>
-              <td data-label="Action">
-                <span class="role-pill standard-user-role">{{ log.actionLabel }}</span>
+              <td :data-label="t('superAdmin.alerts.cols.family')">{{ log.familyName || '—' }}</td>
+              <td :data-label="t('superAdmin.alerts.cols.user')">{{ log.actorName || t('superAdmin.alerts.system') }}</td>
+              <td :data-label="t('superAdmin.alerts.cols.action')">
+                <span class="role-pill standard-user-role">{{ alertActionLabel(log.action, log.actionLabel) }}</span>
               </td>
-              <td data-label="Canaux">
+              <td :data-label="t('superAdmin.alerts.cols.channels')">
                 <div class="channel-pills">
                   <span
                     v-for="(ch, idx) in log.channels"
@@ -607,11 +607,11 @@
                   <span v-if="!log.channels || log.channels.length === 0" class="text-muted">—</span>
                 </div>
               </td>
-              <td class="cell-actions" data-label="Détails">
+              <td class="cell-actions" :data-label="t('superAdmin.alerts.cols.details')">
                 <button
                   @click="selectedAlertLog = log"
                   class="btn-icon btn-icon-sm text-indigo"
-                  title="Voir les destinataires"
+                  :title="t('superAdmin.alerts.viewRecipients')"
                 >
                   <Eye :size="16" />
                 </button>
@@ -622,7 +622,7 @@
 
         <div class="alert-pagination">
           <span class="text-muted">
-            {{ alertPagination.total }} alerte(s) · page {{ alertPagination.page }} / {{ alertPagination.totalPages }}
+            {{ t('superAdmin.alerts.pagination', { total: alertPagination.total, page: alertPagination.page, pages: alertPagination.totalPages }, alertPagination.total) }}
           </span>
           <div class="alert-pagination-actions">
             <button
@@ -648,27 +648,27 @@
     <div v-if="selectedAlertLog" class="modal-overlay" @click.self="selectedAlertLog = null">
       <div class="modal-content glass-card">
         <div class="modal-header">
-          <h3>{{ selectedAlertLog.actionLabel }}</h3>
+          <h3>{{ alertActionLabel(selectedAlertLog.action, selectedAlertLog.actionLabel) }}</h3>
           <button @click="selectedAlertLog = null" class="btn-close">&times;</button>
         </div>
         <p class="modal-subtitle">{{ selectedAlertLog.title }}</p>
         <div class="alert-detail-meta">
-          <span><strong>Famille :</strong> {{ selectedAlertLog.familyName || '—' }}</span>
-          <span><strong>Déclenché par :</strong> {{ selectedAlertLog.actorName || 'Système' }}</span>
-          <span><strong>Le :</strong> {{ formatAlertDate(selectedAlertLog.createdAt) }} à {{ formatAlertTime(selectedAlertLog.createdAt) }}</span>
+          <span><strong>{{ t('superAdmin.alerts.detail.family') }}</strong> {{ selectedAlertLog.familyName || '—' }}</span>
+          <span><strong>{{ t('superAdmin.alerts.detail.by') }}</strong> {{ selectedAlertLog.actorName || t('superAdmin.alerts.system') }}</span>
+          <span><strong>{{ t('superAdmin.alerts.detail.on') }}</strong> {{ t('superAdmin.alerts.detail.dateAt', { date: formatAlertDate(selectedAlertLog.createdAt), time: formatAlertTime(selectedAlertLog.createdAt) }) }}</span>
         </div>
         <div v-for="(ch, idx) in selectedAlertLog.channels" :key="idx" class="alert-channel-block">
           <h4>
-            {{ ch.type === 'push' ? '📱 Notification push' : '✉️ Email' }}
+            {{ ch.type === 'push' ? '📱 ' + t('superAdmin.alerts.channelPush') : '✉️ ' + t('superAdmin.alerts.channelEmail') }}
             <span class="channel-pill" :class="`channel-${ch.status}`">{{ alertChannelStatusLabel(ch.status) }}</span>
           </h4>
           <p v-if="ch.reason" class="text-muted alert-channel-reason">{{ alertReasonLabel(ch.reason) }}</p>
           <ul v-if="ch.recipients && ch.recipients.length > 0" class="alert-recipient-list">
             <li v-for="(r, rIdx) in ch.recipients" :key="rIdx">
-              {{ r.name || r.email || 'Membre' }} <span v-if="r.email" class="text-muted">({{ r.email }})</span>
+              {{ r.name || r.email || t('superAdmin.alerts.member') }} <span v-if="r.email" class="text-muted">({{ r.email }})</span>
             </li>
           </ul>
-          <p v-else class="text-muted">Aucun destinataire.</p>
+          <p v-else class="text-muted">{{ t('superAdmin.alerts.noRecipient') }}</p>
         </div>
       </div>
     </div>
@@ -677,44 +677,44 @@
     <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
       <div class="modal-content glass-card">
         <div class="modal-header">
-          <h3>Créer une nouvelle famille</h3>
+          <h3>{{ t('superAdmin.createFamily.title') }}</h3>
           <button @click="showCreateModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleCreateFamily" class="modal-form">
           <div class="form-group">
-            <label class="form-label">Nom de la famille</label>
+            <label class="form-label">{{ t('superAdmin.familyForm.name') }}</label>
             <input 
               v-model="newFamily.name" 
               @input="onFamilyNameChange" 
               type="text" 
-              placeholder="Ex: Famille Dupont" 
+              :placeholder="t('superAdmin.familyForm.namePlaceholder')" 
               class="form-input" 
               required 
             />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Identifiant URL (Slug)</label>
+            <label class="form-label">{{ t('superAdmin.familyForm.slug') }}</label>
             <div class="slug-input-wrapper">
               <span class="slug-prefix">family-gest/</span>
               <input 
                 v-model="newFamily.slug" 
                 @input="checkSlugAvailability" 
                 type="text" 
-                placeholder="famille-dupont" 
+                :placeholder="t('superAdmin.familyForm.slugPlaceholder')" 
                 class="form-input slug-input" 
                 required 
               />
             </div>
             <div v-if="slugStatus.checked" class="slug-status" :class="{ available: slugStatus.available, unavailable: !slugStatus.available }">
-              <span v-if="slugStatus.available">✓ Identifiant disponible</span>
-              <span v-else>✗ {{ slugStatus.message || 'Identifiant déjà utilisé' }}</span>
+              <span v-if="slugStatus.available">✓ {{ t('superAdmin.familyForm.slugAvailable') }}</span>
+              <span v-else>✗ {{ slugStatus.message || t('superAdmin.familyForm.slugTaken') }}</span>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Quota maximum de membres</label>
+            <label class="form-label">{{ t('superAdmin.familyForm.quota') }}</label>
             <input 
               v-model.number="newFamily.maxMembers" 
               type="number" 
@@ -726,24 +726,24 @@
           </div>
 
           <div class="separator-divider"></div>
-          <h4 class="sub-section-title">Administrateur initial de la famille</h4>
+          <h4 class="sub-section-title">{{ t('superAdmin.createFamily.initialAdmin') }}</h4>
 
           <div class="form-group">
-            <label class="form-label">Adresse Email de l'administrateur</label>
+            <label class="form-label">{{ t('superAdmin.createFamily.adminEmail') }}</label>
             <input 
               v-model="newFamily.adminEmail" 
               @blur="checkAdminEmail" 
               type="email" 
-              placeholder="admin@famille.fr" 
+              :placeholder="t('superAdmin.createFamily.adminEmailPlaceholder')" 
               class="form-input" 
               required 
             />
             <div v-if="adminUserCheck.checked" class="user-check-info">
               <span v-if="adminUserCheck.exists" class="text-info">
-                ℹ️ Compte existant détecté ({{ adminUserCheck.user.firstName }} {{ adminUserCheck.user.lastName }}). La famille lui sera rattachée.
+                ℹ️ {{ t('superAdmin.createFamily.existingAccount', { name: `${adminUserCheck.user.firstName} ${adminUserCheck.user.lastName}` }) }}
               </span>
               <span v-else class="text-muted">
-                ℹ️ Nouveau compte : une invitation pour créer son mot de passe lui sera envoyée.
+                ℹ️ {{ t('superAdmin.createFamily.newAccount') }}
               </span>
             </div>
           </div>
@@ -751,11 +751,11 @@
           <!-- Si nouveau compte -->
           <div v-if="adminUserCheck.checked && !adminUserCheck.exists" class="grid-2">
             <div class="form-group">
-              <label class="form-label">Prénom</label>
+              <label class="form-label">{{ t('superAdmin.firstName') }}</label>
               <input v-model="newFamily.adminFirstName" type="text" class="form-input" required />
             </div>
             <div class="form-group">
-              <label class="form-label">Nom</label>
+              <label class="form-label">{{ t('superAdmin.lastName') }}</label>
               <input v-model="newFamily.adminLastName" type="text" class="form-input" required />
             </div>
           </div>
@@ -765,13 +765,13 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="showCreateModal = false" class="btn btn-secondary">Annuler</button>
+            <button type="button" @click="showCreateModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
             <button 
               type="submit" 
               class="btn btn-primary" 
               :disabled="submittingFamily || (slugStatus.checked && !slugStatus.available)"
             >
-              {{ submittingFamily ? 'Création...' : 'Créer l\'espace familial' }}
+              {{ submittingFamily ? t('superAdmin.createFamily.creating') : t('superAdmin.createFamily.submit') }}
             </button>
           </div>
         </form>
@@ -783,19 +783,19 @@
       <div class="modal-content glass-card">
         <div class="modal-header">
           <div>
-            <h3>Modifier la famille</h3>
-            <p class="modal-subtitle">Famille : <strong>{{ selectedFamily?.name }}</strong></p>
+            <h3>{{ t('superAdmin.editFamily.title') }}</h3>
+            <p class="modal-subtitle">{{ t('superAdmin.familyLabel') }} <strong>{{ selectedFamily?.name }}</strong></p>
           </div>
           <button @click="showEditFamilyModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleSaveEditFamily" class="modal-form">
           <div class="form-group">
-            <label class="form-label">Nom de la famille</label>
+            <label class="form-label">{{ t('superAdmin.familyForm.name') }}</label>
             <input 
               v-model="editFamilyForm.name" 
               type="text" 
-              placeholder="Ex: Famille Toto" 
+              :placeholder="t('superAdmin.familyForm.namePlaceholder')" 
               class="form-input" 
               required 
             />
@@ -803,14 +803,14 @@
 
           <div class="form-group">
             <div class="label-with-action">
-              <label class="form-label">Identifiant URL (Slug)</label>
+              <label class="form-label">{{ t('superAdmin.familyForm.slug') }}</label>
               <button 
                 type="button" 
                 @click="generateSlugFromEditName" 
                 class="btn-link-action"
-                title="Générer automatiquement un identifiant à partir du nom"
+                :title="t('superAdmin.editFamily.generateTitle')"
               >
-                🪄 Générer depuis le nom
+                🪄 {{ t('superAdmin.editFamily.generate') }}
               </button>
             </div>
             <div class="slug-input-wrapper">
@@ -819,22 +819,22 @@
                 v-model="editFamilyForm.slug" 
                 @input="checkEditSlugAvailability" 
                 type="text" 
-                placeholder="famille-toto" 
+                :placeholder="t('superAdmin.familyForm.slugPlaceholder')" 
                 class="form-input slug-input" 
                 required 
               />
             </div>
             <div v-if="editSlugStatus.checked" class="slug-status" :class="{ available: editSlugStatus.available, unavailable: !editSlugStatus.available }">
-              <span v-if="editSlugStatus.available">✓ Identifiant disponible</span>
-              <span v-else>✗ {{ editSlugStatus.message || 'Identifiant déjà utilisé' }}</span>
+              <span v-if="editSlugStatus.available">✓ {{ t('superAdmin.familyForm.slugAvailable') }}</span>
+              <span v-else>✗ {{ editSlugStatus.message || t('superAdmin.familyForm.slugTaken') }}</span>
             </div>
             <span class="help-subtext">
-              ⚠️ Attention : La modification de l'identifiant modifie l'adresse URL d'accès à cette famille (<code>/{{ editFamilyForm.slug || '...' }}</code>).
+              ⚠️ <i18n-t keypath="superAdmin.editFamily.slugWarning" tag="span"><template #url><code>/{{ editFamilyForm.slug || '...' }}</code></template></i18n-t>
             </span>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Quota maximum de membres</label>
+            <label class="form-label">{{ t('superAdmin.familyForm.quota') }}</label>
             <input 
               v-model.number="editFamilyForm.maxMembers" 
               type="number" 
@@ -850,13 +850,13 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="showEditFamilyModal = false" class="btn btn-secondary">Annuler</button>
+            <button type="button" @click="showEditFamilyModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
             <button 
               type="submit" 
               class="btn btn-primary" 
               :disabled="savingFamily || (editSlugStatus.checked && !editSlugStatus.available)"
             >
-              {{ savingFamily ? 'Enregistrement...' : 'Enregistrer les modifications' }}
+              {{ savingFamily ? t('common.saving') : t('superAdmin.editFamily.submit') }}
             </button>
           </div>
         </form>
@@ -868,29 +868,29 @@
       <div class="modal-content glass-card">
         <div class="modal-header">
           <div>
-            <h3>Ajouter un administrateur familial</h3>
-            <p class="modal-subtitle">Famille : <strong>{{ selectedFamilyForAdmin?.name }}</strong></p>
+            <h3>{{ t('superAdmin.families.addAdmin') }}</h3>
+            <p class="modal-subtitle">{{ t('superAdmin.familyLabel') }} <strong>{{ selectedFamilyForAdmin?.name }}</strong></p>
           </div>
           <button @click="showAddAdminModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleAddAdminToFamily" class="modal-form">
           <div class="form-group">
-            <label class="form-label">Adresse Email du futur administrateur</label>
+            <label class="form-label">{{ t('superAdmin.addAdmin.email') }}</label>
             <input 
               v-model="newAdmin.email" 
               @blur="checkNewAdminEmail" 
               type="email" 
-              placeholder="admin@exemple.fr" 
+              :placeholder="t('superAdmin.addAdmin.emailPlaceholder')" 
               class="form-input" 
               required 
             />
             <div v-if="newAdminUserCheck.checked" class="user-check-info">
               <span v-if="newAdminUserCheck.exists" class="text-info">
-                ℹ️ Compte existant détecté ({{ newAdminUserCheck.user?.firstName }} {{ newAdminUserCheck.user?.lastName }}). Un email d'invitation lui sera envoyé pour rejoindre cette famille en tant qu'administrateur.
+                ℹ️ {{ t('superAdmin.addAdmin.existingAccount', { name: `${newAdminUserCheck.user?.firstName} ${newAdminUserCheck.user?.lastName}` }) }}
               </span>
               <span v-else class="text-muted">
-                ℹ️ Nouveau compte : une invitation pour créer son mot de passe et rejoindre la famille en tant qu'administrateur lui sera envoyée.
+                ℹ️ {{ t('superAdmin.addAdmin.newAccount') }}
               </span>
             </div>
           </div>
@@ -898,11 +898,11 @@
           <!-- Si nouveau compte -->
           <div v-if="newAdminUserCheck.checked && !newAdminUserCheck.exists" class="grid-2">
             <div class="form-group">
-              <label class="form-label">Prénom</label>
+              <label class="form-label">{{ t('superAdmin.firstName') }}</label>
               <input v-model="newAdmin.firstName" type="text" class="form-input" required />
             </div>
             <div class="form-group">
-              <label class="form-label">Nom</label>
+              <label class="form-label">{{ t('superAdmin.lastName') }}</label>
               <input v-model="newAdmin.lastName" type="text" class="form-input" required />
             </div>
           </div>
@@ -916,14 +916,14 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="showAddAdminModal = false" class="btn btn-secondary">Annuler</button>
+            <button type="button" @click="showAddAdminModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
             <button 
               type="submit" 
               class="btn btn-primary" 
               :disabled="submittingAdmin"
             >
               <Send :size="15" />
-              <span>{{ submittingAdmin ? 'Envoi en cours...' : 'Envoyer l\'invitation administrateur' }}</span>
+              <span>{{ submittingAdmin ? t('superAdmin.sending') : t('superAdmin.addAdmin.submit') }}</span>
             </button>
           </div>
         </form>
@@ -935,7 +935,7 @@
       <div class="modal-content glass-card modal-lg">
         <div class="modal-header">
           <div>
-            <h3>Gestion du compte utilisateur</h3>
+            <h3>{{ t('superAdmin.userModal.title') }}</h3>
             <p class="modal-subtitle">
               {{ selectedUser?.firstName }} {{ selectedUser?.lastName }} &bull; {{ selectedUser?.email }}
             </p>
@@ -955,35 +955,35 @@
           <!-- Section 1: Informations Générales & Statut Global -->
           <div class="card-section">
             <h4 class="sub-section-title">
-              <Users :size="16" /> Informations Générales & Statut Global
+              <Users :size="16" /> {{ t('superAdmin.userModal.general') }}
             </h4>
             <form @submit.prevent="handleUpdateUserProfile" class="modal-form">
               <div class="grid-2">
                 <div class="form-group">
-                  <label class="form-label">Prénom</label>
+                  <label class="form-label">{{ t('superAdmin.firstName') }}</label>
                   <input v-model="userForm.firstName" type="text" class="form-input" required />
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Nom</label>
+                  <label class="form-label">{{ t('superAdmin.lastName') }}</label>
                   <input v-model="userForm.lastName" type="text" class="form-input" required />
                 </div>
               </div>
               <div class="form-group">
-                <label class="form-label">Adresse Email</label>
+                <label class="form-label">{{ t('superAdmin.userModal.email') }}</label>
                 <input v-model="userForm.email" type="email" class="form-input" required />
               </div>
               <div class="form-group checkbox-group">
                 <label class="checkbox-label">
                   <input v-model="userForm.isSuperAdmin" type="checkbox" />
                   <span>
-                    <strong>Super Administrateur Global de la plateforme</strong>
-                    <small class="help-text">Donne accès à cette console super admin et au contrôle global de toutes les familles.</small>
+                    <strong>{{ t('superAdmin.userModal.superAdmin') }}</strong>
+                    <small class="help-text">{{ t('superAdmin.userModal.superAdminHelp') }}</small>
                   </span>
                 </label>
               </div>
               <div class="form-actions-right">
                 <button type="submit" class="btn btn-primary btn-sm" :disabled="savingUser">
-                  {{ savingUser ? 'Enregistrement...' : 'Mettre à jour le profil' }}
+                  {{ savingUser ? t('common.saving') : t('superAdmin.userModal.updateProfile') }}
                 </button>
               </div>
             </form>
@@ -994,10 +994,10 @@
           <!-- Section 2: Familles Associées & Rôles Familiaux -->
           <div class="card-section">
             <h4 class="sub-section-title">
-              <Home :size="16" /> Familles associées
+              <Home :size="16" /> {{ t('superAdmin.userModal.families') }}
             </h4>
             <div v-if="!selectedUser?.families || selectedUser.families.length === 0" class="empty-state-text">
-              Cet utilisateur n'appartient actuellement à aucune famille.
+              {{ t('superAdmin.userModal.noFamily') }}
             </div>
             <div v-else class="user-families-list">
               <div 
@@ -1013,14 +1013,14 @@
                   <input 
                     v-model="f.role" 
                     type="text" 
-                    placeholder="Rôle (ex: Parent)" 
+                    :placeholder="t('superAdmin.userModal.rolePlaceholder')" 
                     class="form-input form-input-sm"
                   />
                 </div>
                 <div class="family-admin-col">
                   <label class="admin-checkbox-label">
                     <input v-model="f.isAdmin" type="checkbox" />
-                    <span>Admin Familial</span>
+                    <span>{{ t('superAdmin.userModal.familyAdmin') }}</span>
                   </label>
                 </div>
                 <div class="family-actions-col">
@@ -1028,16 +1028,16 @@
                     type="button" 
                     @click="handleUpdateFamilyRole(f)" 
                     class="btn btn-sm btn-secondary" 
-                    title="Enregistrer pour cette famille"
+                    :title="t('superAdmin.userModal.saveForFamily')"
                   >
                     <Check :size="14" />
-                    <span>Sauvegarder</span>
+                    <span>{{ t('common.save') }}</span>
                   </button>
                   <button 
                     type="button" 
                     @click="handleRemoveFromFamily(f)" 
                     class="btn btn-sm btn-danger-outline"
-                    title="Retirer de cette famille"
+                    :title="t('superAdmin.userModal.removeFromFamily')"
                   >
                     <UserMinus :size="14" />
                   </button>
@@ -1047,11 +1047,11 @@
 
             <!-- Ajouter à une nouvelle famille -->
             <div class="add-to-family-box margin-top-md">
-              <h5 class="sub-box-title">Rattacher à une nouvelle famille</h5>
+              <h5 class="sub-box-title">{{ t('superAdmin.userModal.attachTitle') }}</h5>
               <form @submit.prevent="handleAttachFamily" class="attach-family-form">
                 <div class="form-group flex-1">
                   <select v-model="newFamilyAttach.familyId" class="form-select form-input-sm" required>
-                    <option value="" disabled>Sélectionner une famille...</option>
+                    <option value="" disabled>{{ t('superAdmin.userModal.selectFamily') }}</option>
                     <option v-for="fam in unassignedFamilies" :key="fam._id" :value="fam._id">
                       {{ fam.name }} ({{ fam.memberCount || 0 }}/{{ fam.maxMembers }})
                     </option>
@@ -1061,14 +1061,14 @@
                   <input 
                     v-model="newFamilyAttach.role" 
                     type="text" 
-                    placeholder="Rôle (ex: Membre)" 
+                    :placeholder="t('superAdmin.userModal.attachRolePlaceholder')" 
                     class="form-input form-input-sm" 
                   />
                 </div>
                 <div class="form-group flex-checkbox">
                   <label class="admin-checkbox-label">
                     <input v-model="newFamilyAttach.isAdmin" type="checkbox" />
-                    <span>Admin</span>
+                    <span>{{ t('menu.badges.admin') }}</span>
                   </label>
                 </div>
                 <button 
@@ -1077,7 +1077,7 @@
                   :disabled="!newFamilyAttach.familyId || attachingFamily"
                 >
                   <Plus :size="14" />
-                  <span>Rattacher</span>
+                  <span>{{ t('superAdmin.userModal.attach') }}</span>
                 </button>
               </form>
             </div>
@@ -1088,13 +1088,13 @@
           <!-- Section 3: Zone Danger - Suppression de compte -->
           <div class="card-section danger-zone">
             <h4 class="sub-section-title text-danger">
-              <Trash2 :size="16" /> Zone de danger
+              <Trash2 :size="16" /> {{ t('superAdmin.userModal.dangerZone') }}
             </h4>
             <div class="danger-zone-content">
               <div>
-                <strong>Supprimer définitivement ce compte utilisateur</strong>
+                <strong>{{ t('superAdmin.userModal.deleteTitle') }}</strong>
                 <p class="text-sm text-muted">
-                  Supprime le compte, retire l'utilisateur de toutes ses familles et efface ses invitations en attente. Cette action est irréversible.
+                  {{ t('superAdmin.userModal.deleteText') }}
                 </p>
               </div>
               <button 
@@ -1104,14 +1104,14 @@
                 :disabled="deletingUser"
               >
                 <Trash2 :size="14" />
-                <span>{{ deletingUser ? 'Suppression...' : 'Supprimer le compte' }}</span>
+                <span>{{ deletingUser ? t('superAdmin.userModal.deleting') : t('superAdmin.userModal.delete') }}</span>
               </button>
             </div>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" @click="showUserModal = false" class="btn btn-secondary">Fermer</button>
+          <button type="button" @click="showUserModal = false" class="btn btn-secondary">{{ t('common.close') }}</button>
         </div>
       </div>
     </div>
@@ -1121,26 +1121,26 @@
       <div class="modal-content glass-card modal-md">
         <div class="modal-header">
           <div>
-            <h3>Importer les données d'une famille</h3>
-            <p class="modal-subtitle">Restaurez un export JSON provenant de la version mono-famille ou d'une sauvegarde.</p>
+            <h3>{{ t('superAdmin.import.title') }}</h3>
+            <p class="modal-subtitle">{{ t('superAdmin.import.subtitle') }}</p>
           </div>
           <button @click="showImportModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleExecuteImport" class="modal-body">
           <div class="form-group">
-            <label class="form-label">Famille de destination *</label>
+            <label class="form-label">{{ t('superAdmin.import.target') }} *</label>
             <select v-model="importTargetFamilyId" class="form-select" required>
-              <option value="" disabled>-- Choisir la famille cible --</option>
+              <option value="" disabled>-- {{ t('superAdmin.import.chooseTarget') }} --</option>
               <option v-for="fam in families" :key="fam._id" :value="fam._id">
                 {{ fam.name }} (/{{ fam.slug }})
               </option>
             </select>
-            <span class="help-text">Les données importées seront rattachées à cette famille.</span>
+            <span class="help-text">{{ t('superAdmin.import.targetHelp') }}</span>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Fichier JSON d'exportation *</label>
+            <label class="form-label">{{ t('superAdmin.import.file') }} *</label>
             <input 
               type="file" 
               accept=".json,application/json" 
@@ -1149,7 +1149,7 @@
               required 
             />
             <div v-if="importFileName" class="text-sm font-semibold text-indigo margin-top-xs">
-              📄 Fichier sélectionné : {{ importFileName }}
+              📄 {{ t('superAdmin.import.selectedFile', { name: importFileName }) }}
             </div>
           </div>
 
@@ -1157,9 +1157,9 @@
           <div class="alert-box alert-warning">
             <AlertTriangle :size="20" class="flex-shrink-0" />
             <div>
-              <strong>Attention : Écrasement des données</strong>
+              <strong>{{ t('superAdmin.import.warningTitle') }}</strong>
               <p class="margin-top-xs text-sm">
-                L'importation va écraser et remplacer <strong>toutes les données existantes</strong> de cette famille (tâches, liste de courses, catégories, absences, invités, raccourcis, événements et membres).
+                <i18n-t keypath="superAdmin.import.warningText" tag="span"><template #all><strong>{{ t('superAdmin.import.allData') }}</strong></template></i18n-t>
               </p>
             </div>
           </div>
@@ -1173,7 +1173,7 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="showImportModal = false" class="btn btn-secondary">Annuler</button>
+            <button type="button" @click="showImportModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
             <button 
               type="submit" 
               class="btn btn-primary" 
@@ -1181,7 +1181,7 @@
             >
               <Upload v-if="!importing" :size="16" />
               <Loader2 v-else :size="16" class="spin" />
-              <span>{{ importing ? 'Importation en cours...' : 'Écraser et Importer les données' }}</span>
+              <span>{{ importing ? t('superAdmin.import.importing') : t('superAdmin.import.submit') }}</span>
             </button>
           </div>
         </form>
@@ -1193,10 +1193,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
+import { intlLocale } from '../i18n/format'
+import { translateValue } from '../i18n/values'
 import UserAvatar from '../components/UserAvatar.vue'
 import { 
   ShieldAlert, 
@@ -1228,6 +1231,7 @@ import {
   Clock
 } from '@lucide/vue'
 
+const { t, te } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
@@ -1414,12 +1418,12 @@ const handleFileSelected = (event) => {
       const parsed = JSON.parse(e.target.result)
       importFileContent.value = parsed
     } catch (err) {
-      importError.value = 'Le fichier sélectionné n\'est pas un JSON valide : ' + err.message
+      importError.value = t('superAdmin.import.invalidJson', { message: err.message })
       importFileContent.value = null
     }
   }
   reader.onerror = () => {
-    importError.value = 'Erreur lors de la lecture du fichier.'
+    importError.value = t('superAdmin.import.readError')
     importFileContent.value = null
   }
   reader.readAsText(file)
@@ -1444,17 +1448,17 @@ const handleExecuteImport = async () => {
 
     const result = await res.json()
     if (res.ok && result.success) {
-      importSuccess.value = result.message || 'Données importées avec succès !'
+      importSuccess.value = result.message || t('superAdmin.import.success')
       await fetchFamilies()
       await fetchUsers()
       setTimeout(() => {
         showImportModal.value = false
       }, 1800)
     } else {
-      importError.value = result.error || 'Erreur lors de l\'importation des données'
+      importError.value = result.error || t('superAdmin.import.error')
     }
   } catch (err) {
-    importError.value = 'Erreur réseau : ' + err.message
+    importError.value = t('superAdmin.errors.networkWithMessage', { message: err.message })
   } finally {
     importing.value = false
   }
@@ -1542,10 +1546,10 @@ const saveDigestSchedule = async () => {
     const data = await res.json()
     if (res.ok) {
       digestScheduleSuccess.value = true
-      digestScheduleMessage.value = '✓ Heure du récapitulatif quotidien enregistrée avec succès !'
+      digestScheduleMessage.value = '✓ ' + t('superAdmin.digest.saved')
     } else {
       digestScheduleSuccess.value = false
-      digestScheduleMessage.value = data.error || 'Erreur lors de l\'enregistrement'
+      digestScheduleMessage.value = data.error || t('superAdmin.errors.save')
     }
   } catch (err) {
     digestScheduleSuccess.value = false
@@ -1583,10 +1587,10 @@ const saveLegal = async () => {
     const data = await res.json()
     if (res.ok) {
       legalSuccess.value = true
-      legalMessage.value = '✓ Contenu légal enregistré avec succès !'
+      legalMessage.value = '✓ ' + t('superAdmin.legal.saved')
     } else {
       legalSuccess.value = false
-      legalMessage.value = data.error || 'Erreur lors de l\'enregistrement'
+      legalMessage.value = data.error || t('superAdmin.errors.save')
     }
   } catch (err) {
     legalSuccess.value = false
@@ -1598,9 +1602,9 @@ const saveLegal = async () => {
 
 const sendDigestNow = async () => {
   const ok = await confirm({
-    title: 'Envoyer le récapitulatif quotidien maintenant ?',
-    message: 'Un email/push sera envoyé immédiatement à tous les utilisateurs ayant activé le récapitulatif quotidien, quelle que soit l\'heure planifiée.',
-    confirmText: 'Envoyer maintenant',
+    title: t('superAdmin.digest.confirmTitle'),
+    message: t('superAdmin.digest.confirmMessage'),
+    confirmText: t('superAdmin.digest.sendNow'),
     type: 'primary'
   })
   if (!ok) return
@@ -1615,10 +1619,10 @@ const sendDigestNow = async () => {
     const data = await res.json()
     if (res.ok) {
       digestScheduleSuccess.value = true
-      digestScheduleMessage.value = data.message || '✓ Envoi déclenché.'
+      digestScheduleMessage.value = data.message || '✓ ' + t('superAdmin.digest.triggered')
     } else {
       digestScheduleSuccess.value = false
-      digestScheduleMessage.value = data.error || 'Erreur lors du déclenchement de l\'envoi'
+      digestScheduleMessage.value = data.error || t('superAdmin.digest.triggerError')
     }
   } catch (err) {
     digestScheduleSuccess.value = false
@@ -1677,28 +1681,29 @@ const resetAlertFilters = () => {
 
 const formatAlertDate = (dateStr) => {
   if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return new Date(dateStr).toLocaleDateString(intlLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 const formatAlertTime = (dateStr) => {
   if (!dateStr) return ''
-  return new Date(dateStr).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return new Date(dateStr).toLocaleTimeString(intlLocale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 const alertChannelStatusLabel = (status) => {
-  if (status === 'sent') return 'Envoyée'
-  if (status === 'skipped') return 'Non envoyée'
-  return 'Erreur'
+  if (status === 'sent') return t('superAdmin.alerts.status.sent')
+  if (status === 'skipped') return t('superAdmin.alerts.status.skipped')
+  return t('superAdmin.alerts.status.error')
+}
+
+// Libellé d'un type d'alerte : traduit d'après son code, sinon libellé enregistré par le serveur
+const alertActionLabel = (code, fallback) => {
+  const key = `superAdmin.alertActions.${String(code || '').replace(/\./g, '_')}`
+  return code && te(key) ? t(key) : fallback
 }
 
 const alertReasonLabel = (reason) => {
-  const labels = {
-    SMTP_NOT_CONFIGURED: 'SMTP non configuré',
-    PUSH_NOT_CONFIGURED: 'Notifications push non configurées',
-    NO_ELIGIBLE_MEMBERS: 'Aucun membre éligible (notifications désactivées)',
-    NO_SUBSCRIPTIONS: 'Aucun appareil inscrit aux notifications push'
-  }
-  return labels[reason] || reason
+  const key = `superAdmin.alerts.reasons.${reason}`
+  return te(key) ? t(key) : reason
 }
 
 onMounted(() => {
@@ -1813,7 +1818,7 @@ const handleCreateFamily = async () => {
     })
     const data = await res.json()
     if (!res.ok) {
-      createError.value = data.error || 'Erreur lors de la création de la famille'
+      createError.value = data.error || t('superAdmin.createFamily.error')
       return
     }
     showCreateModal.value = false
@@ -1855,7 +1860,7 @@ const checkEditSlugAvailability = () => {
       const data = await res.json()
       editSlugStatus.checked = true
       editSlugStatus.available = data.available
-      editSlugStatus.message = data.reason || (data.available ? '' : 'Identifiant déjà utilisé')
+      editSlugStatus.message = data.reason || (data.available ? '' : t('superAdmin.familyForm.slugTaken'))
     } catch (err) {
       console.error(err)
     }
@@ -1887,7 +1892,7 @@ const handleSaveEditFamily = async () => {
     })
     const data = await res.json()
     if (!res.ok) {
-      throw new Error(data.error || 'Erreur lors de la modification de la famille')
+      throw new Error(data.error || t('superAdmin.editFamily.error'))
     }
 
     showEditFamilyModal.value = false
@@ -1966,17 +1971,17 @@ const handleAddAdminToFamily = async () => {
     })
     const data = await res.json()
     if (!res.ok) {
-      addAdminError.value = data.error || 'Erreur lors de l\'envoi de l\'invitation'
+      addAdminError.value = data.error || t('superAdmin.addAdmin.error')
       return
     }
-    addAdminSuccess.value = `✓ Invitation envoyée avec succès à ${newAdmin.email} !`
+    addAdminSuccess.value = '✓ ' + t('superAdmin.addAdmin.success', { email: newAdmin.email })
     await fetchFamilies()
     await fetchUsers()
     setTimeout(() => {
       showAddAdminModal.value = false
     }, 1800)
   } catch (err) {
-    addAdminError.value = err.message || 'Erreur réseau'
+    addAdminError.value = err.message || t('superAdmin.errors.network')
   } finally {
     submittingAdmin.value = false
   }
@@ -1985,14 +1990,15 @@ const handleAddAdminToFamily = async () => {
 const toggleUserFamilyAdmin = async (u, f) => {
   const newAdminStatus = !f.isAdmin
   const familyId = f.familyId || f._id || f.id
+  const params = { name: `<strong>${escapeHtml(u.firstName)} ${escapeHtml(u.lastName)}</strong>`, family: escapeHtml(f.name) }
   const actionText = newAdminStatus
-    ? `Nommer <strong>${escapeHtml(u.firstName)} ${escapeHtml(u.lastName)}</strong> administrateur de la famille "${escapeHtml(f.name)}" ?`
-    : `Retirer les droits d'administrateur de <strong>${escapeHtml(u.firstName)} ${escapeHtml(u.lastName)}</strong> pour la famille "${escapeHtml(f.name)}" ?`
+    ? t('superAdmin.adminRights.promoteMessage', params)
+    : t('superAdmin.adminRights.demoteMessage', params)
   const ok = await confirm({
-    title: 'Droits administrateur familial',
+    title: t('superAdmin.adminRights.title'),
     message: actionText,
     type: 'warning',
-    confirmText: newAdminStatus ? 'Nommer administrateur' : 'Retirer les droits'
+    confirmText: newAdminStatus ? t('superAdmin.adminRights.promote') : t('superAdmin.adminRights.demote')
   })
   if (!ok) return
 
@@ -2013,7 +2019,7 @@ const toggleUserFamilyAdmin = async (u, f) => {
       await fetchFamilies()
     } else {
       const err = await res.json()
-      alert(err.error || 'Erreur lors de la modification des droits')
+      alert(err.error || t('superAdmin.adminRights.error'))
     }
   } catch (err) {
     console.error('Erreur toggleUserFamilyAdmin', err)
@@ -2052,17 +2058,17 @@ const handleUpdateUserProfile = async () => {
     })
     const data = await res.json()
     if (!res.ok) {
-      userModalError.value = data.error || 'Erreur lors de la mise à jour du profil'
+      userModalError.value = data.error || t('superAdmin.userModal.updateError')
       return
     }
-    userModalSuccess.value = '✓ Informations de l\'utilisateur mises à jour avec succès !'
+    userModalSuccess.value = '✓ ' + t('superAdmin.userModal.updated')
     selectedUser.value.firstName = userForm.firstName
     selectedUser.value.lastName = userForm.lastName
     selectedUser.value.email = userForm.email
     selectedUser.value.isSuperAdmin = userForm.isSuperAdmin
     await fetchUsers()
   } catch (err) {
-    userModalError.value = err.message || 'Erreur réseau'
+    userModalError.value = err.message || t('superAdmin.errors.network')
   } finally {
     savingUser.value = false
   }
@@ -2088,23 +2094,23 @@ const handleUpdateFamilyRole = async (f) => {
     })
     const data = await res.json()
     if (!res.ok) {
-      userModalError.value = data.error || 'Erreur lors de la modification du rôle'
+      userModalError.value = data.error || t('superAdmin.userModal.roleError')
       return
     }
-    userModalSuccess.value = `✓ Rôle pour "${f.name}" mis à jour avec succès !`
+    userModalSuccess.value = '✓ ' + t('superAdmin.userModal.roleUpdated', { family: f.name })
     await fetchUsers()
     await fetchFamilies()
   } catch (err) {
-    userModalError.value = err.message || 'Erreur réseau'
+    userModalError.value = err.message || t('superAdmin.errors.network')
   }
 }
 
 const handleRemoveFromFamily = async (f) => {
   if (!selectedUser.value) return
   const ok = await confirm({
-    title: 'Retirer de la famille',
-    message: `Êtes-vous sûr de vouloir retirer <strong>${escapeHtml(selectedUser.value.firstName)} ${escapeHtml(selectedUser.value.lastName || '')}</strong> de la famille "${escapeHtml(f.name)}" ?`,
-    confirmText: 'Retirer',
+    title: t('superAdmin.userModal.removeTitle'),
+    message: t('superAdmin.userModal.removeMessage', { name: `<strong>${escapeHtml(selectedUser.value.firstName)} ${escapeHtml(selectedUser.value.lastName || '')}</strong>`, family: escapeHtml(f.name) }),
+    confirmText: t('superAdmin.userModal.remove'),
     type: 'danger'
   })
   if (!ok) return
@@ -2121,17 +2127,17 @@ const handleRemoveFromFamily = async (f) => {
     })
     const data = await res.json()
     if (!res.ok) {
-      userModalError.value = data.error || 'Erreur lors du retrait de la famille'
+      userModalError.value = data.error || t('superAdmin.userModal.removeError')
       return
     }
-    userModalSuccess.value = `✓ Retiré de la famille "${f.name}" avec succès !`
+    userModalSuccess.value = '✓ ' + t('superAdmin.userModal.removed', { family: f.name })
     selectedUser.value.families = selectedUser.value.families.filter(
       item => (item.familyId || item._id || item.id) !== familyId
     )
     await fetchUsers()
     await fetchFamilies()
   } catch (err) {
-    userModalError.value = err.message || 'Erreur réseau'
+    userModalError.value = err.message || t('superAdmin.errors.network')
   }
 }
 
@@ -2156,10 +2162,10 @@ const handleAttachFamily = async () => {
     })
     const data = await res.json()
     if (!res.ok) {
-      userModalError.value = data.error || 'Erreur lors du rattachement'
+      userModalError.value = data.error || t('superAdmin.userModal.attachError')
       return
     }
-    userModalSuccess.value = '✓ Utilisateur rattaché à la famille avec succès !'
+    userModalSuccess.value = '✓ ' + t('superAdmin.userModal.attached')
     await fetchUsers()
     await fetchFamilies()
     const updated = users.value.find(u => (u.id || u._id) === userId)
@@ -2170,7 +2176,7 @@ const handleAttachFamily = async () => {
     newFamilyAttach.role = 'Membre'
     newFamilyAttach.isAdmin = false
   } catch (err) {
-    userModalError.value = err.message || 'Erreur réseau'
+    userModalError.value = err.message || t('superAdmin.errors.network')
   } finally {
     attachingFamily.value = false
   }
@@ -2180,10 +2186,10 @@ const handleDeleteUser = async () => {
   if (!selectedUser.value) return
   const fullName = `${selectedUser.value.firstName} ${selectedUser.value.lastName}`
   const ok = await confirm({
-    title: 'Supprimer définitivement le compte',
-    message: `Êtes-vous ABSOLUMENT certain de vouloir supprimer le compte de <strong>${escapeHtml(fullName)}</strong> ?`,
-    warning: 'Cette action est irréversible et supprimera définitivement tous ses accès et données associées.',
-    confirmText: 'Supprimer le compte',
+    title: t('superAdmin.userModal.deleteConfirmTitle'),
+    message: t('superAdmin.userModal.deleteConfirmMessage', { name: `<strong>${escapeHtml(fullName)}</strong>` }),
+    warning: t('superAdmin.userModal.deleteConfirmWarning'),
+    confirmText: t('superAdmin.userModal.delete'),
     type: 'danger'
   })
   if (!ok) return
@@ -2199,26 +2205,26 @@ const handleDeleteUser = async () => {
     })
     const data = await res.json()
     if (!res.ok) {
-      userModalError.value = data.error || 'Erreur lors de la suppression du compte'
+      userModalError.value = data.error || t('superAdmin.userModal.deleteError')
       return
     }
     showUserModal.value = false
     await fetchUsers()
     await fetchFamilies()
   } catch (err) {
-    userModalError.value = err.message || 'Erreur réseau'
+    userModalError.value = err.message || t('superAdmin.errors.network')
   } finally {
     deletingUser.value = false
   }
 }
 
 const toggleFamilyActive = async (fam) => {
-  const action = fam.isActive ? 'désactiver' : 'activer'
+  const name = `<strong>${escapeHtml(fam.name)}</strong>`
   const ok = await confirm({
-    title: `${fam.isActive ? 'Désactiver' : 'Activer'} la famille`,
-    message: `Êtes-vous sûr de vouloir ${action} la famille <strong>« ${escapeHtml(fam.name)} »</strong> ?`,
-    warning: fam.isActive ? 'Les membres de cette famille ne pourront plus y accéder tant qu\'elle est désactivée.' : undefined,
-    confirmText: fam.isActive ? 'Désactiver' : 'Activer',
+    title: fam.isActive ? t('superAdmin.families.deactivate') : t('superAdmin.families.activate'),
+    message: fam.isActive ? t('superAdmin.families.deactivateMessage', { name }) : t('superAdmin.families.activateMessage', { name }),
+    warning: fam.isActive ? t('superAdmin.families.deactivateWarning') : undefined,
+    confirmText: fam.isActive ? t('superAdmin.families.deactivateShort') : t('superAdmin.families.activateShort'),
     type: fam.isActive ? 'warning' : 'primary'
   })
   if (!ok) return
@@ -2266,10 +2272,10 @@ const saveGlobalSmtp = async () => {
     const data = await res.json()
     if (res.ok) {
       smtpSuccess.value = true
-      smtpMessage.value = '✓ Paramètres de la plateforme et SMTP enregistrés avec succès !'
+      smtpMessage.value = '✓ ' + t('superAdmin.smtp.saved')
     } else {
       smtpSuccess.value = false
-      smtpMessage.value = data.error || 'Erreur lors de l\'enregistrement'
+      smtpMessage.value = data.error || t('superAdmin.errors.save')
     }
   } catch (err) {
     smtpSuccess.value = false
@@ -2299,14 +2305,14 @@ const testGlobalSmtp = async () => {
     const data = await res.json()
     if (res.ok && data.success) {
       smtpSuccess.value = true
-      smtpMessage.value = `✓ ${data.message || 'Test réussi ! Connexion au serveur SMTP globale validée.'}`
+      smtpMessage.value = `✓ ${data.message || t('superAdmin.smtp.testSuccess')}`
     } else {
       smtpSuccess.value = false
-      smtpMessage.value = `Échec du test : ${data.error || 'Impossible de se connecter'}`
+      smtpMessage.value = t('superAdmin.smtp.testFailed', { error: data.error || t('superAdmin.smtp.cannotConnect') })
     }
   } catch (err) {
     smtpSuccess.value = false
-    smtpMessage.value = `Erreur réseau : ${err.message}`
+    smtpMessage.value = t('superAdmin.errors.networkWithMessage', { message: err.message })
   } finally {
     testingSmtp.value = false
   }

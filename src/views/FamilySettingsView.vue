@@ -4,10 +4,10 @@
     <div class="view-header">
       <div>
         <h1 class="page-title">
-          <Settings :size="28" class="title-icon" /> Administration du Système
+          <Settings :size="28" class="title-icon" /> {{ t('familySettings.title') }}
         </h1>
         <p class="page-subtitle">
-          Gérez les membres, les catégories de courses et les raccourcis de votre espace familial.
+          {{ t('familySettings.subtitle') }}
         </p>
       </div>
 
@@ -18,11 +18,11 @@
           @click="handleExportData" 
           class="btn btn-secondary btn-header-export"
           :disabled="exporting"
-          title="Exporter l'ensemble des données de la famille au format JSON"
+          :title="t('familySettings.export.buttonTitle')"
         >
           <Download v-if="!exporting" :size="18" />
           <Loader2 v-else :size="18" class="spin" />
-          <span>{{ exporting ? 'Exportation...' : 'Exporter les données (JSON)' }}</span>
+          <span>{{ exporting ? t('familySettings.export.exporting') : t('familySettings.export.button') }}</span>
         </button>
 
         <button 
@@ -31,10 +31,10 @@
           @click="openAddMemberModal" 
           class="btn btn-primary btn-header-add-member"
           :disabled="isQuotaReached"
-          :title="isQuotaReached ? 'Quota maximum de membres atteint' : 'Inviter un membre'"
+          :title="isQuotaReached ? t('familySettings.members.quotaReached') : t('familySettings.members.invite')"
         >
           <UserPlus :size="18" />
-          <span>+ Inviter un Membre ({{ store.members.length }} / {{ store.currentFamilyQuota?.maxMembers || 10 }})</span>
+          <span>+ {{ t('familySettings.members.inviteWithQuota', { n: store.members.length, max: store.currentFamilyQuota?.maxMembers || 10 }) }}</span>
         </button>
       </div>
     </div>
@@ -43,7 +43,7 @@
     <div v-if="!store.isFamilyAdmin" class="alert-box danger">
       <ShieldAlert :size="20" />
       <div>
-        <strong>Accès Restreint :</strong> Seul un utilisateur disposant du rôle <strong>Administrateur de cette famille</strong> est autorisé à modifier ces paramètres.
+        <i18n-t keypath="familySettings.restricted.text" tag="span"><template #label><strong>{{ t('familySettings.restricted.label') }}</strong></template><template #role><strong>{{ t('familySettings.restricted.role') }}</strong></template></i18n-t>
       </div>
     </div>
 
@@ -53,10 +53,10 @@
         <div class="members-admin-header">
           <div class="section-title-group">
             <h2 class="section-title">
-              <Users :size="20" class="title-icon-members" /> Gestion des membres
+              <Users :size="20" class="title-icon-members" /> {{ t('familySettings.members.title') }}
             </h2>
             <p class="section-subtitle">
-              Consultez, modifiez ou retirez les membres de votre famille.
+              {{ t('familySettings.members.subtitle') }}
             </p>
           </div>
           <button
@@ -64,10 +64,10 @@
             @click="openAddMemberModal"
             class="btn btn-primary btn-header-add-member"
             :disabled="isQuotaReached"
-            :title="isQuotaReached ? 'Quota maximum de membres atteint' : 'Inviter un membre'"
+            :title="isQuotaReached ? t('familySettings.members.quotaReached') : t('familySettings.members.invite')"
           >
             <UserPlus :size="16" />
-            <span>Inviter un membre</span>
+            <span>{{ t('familySettings.members.invite') }}</span>
           </button>
         </div>
 
@@ -78,30 +78,30 @@
             class="member-card"
             :class="{ clickable: !member.isPending, 'is-pending-card': member.isPending }"
             @click="!member.isPending && openEditMemberModal(member)"
-            :title="member.isPending ? 'Invitation en attente d\'activation' : 'Cliquez pour modifier les informations de ce membre'"
+            :title="member.isPending ? t('familySettings.members.pendingTitle') : t('familySettings.members.clickToEdit')"
           >
             <div class="member-card-top">
               <UserAvatar :avatar="member.avatar" :name="member.name" size="md" :border-color="member.color" />
               <div class="member-card-name">
                 <strong>{{ member.name }}</strong>
-                <span v-if="member.isAdmin && !member.isPending" class="admin-badge-mini" title="Administrateur">
-                  <ShieldCheck :size="12" /> Admin
+                <span v-if="member.isAdmin && !member.isPending" class="admin-badge-mini" :title="translateValue('role', 'Administrateur')">
+                  <ShieldCheck :size="12" /> {{ t('menu.badges.admin') }}
                 </span>
-                <span v-if="member.isPending" class="pending-badge-mini" title="Invitation envoyée, en attente d'activation par l'utilisateur">
-                  ⏳ En attente
+                <span v-if="member.isPending" class="pending-badge-mini" :title="t('familySettings.members.pendingBadgeTitle')">
+                  ⏳ {{ t('familySettings.members.pending') }}
                 </span>
               </div>
             </div>
             <div class="member-card-bottom">
               <div class="member-card-sub">
-                <span class="member-role-text">{{ member.role }}</span>
+                <span class="member-role-text">{{ translateValue('role', member.role) }}</span>
                 <span v-if="member.email" class="member-email-sub">{{ member.email }}</span>
               </div>
               <div class="member-actions" v-if="!member.isPending">
                 <button
                   @click.stop="openEditMemberModal(member)"
                   class="btn-icon-chip"
-                  title="Modifier ce membre"
+                  :title="t('familySettings.members.editThis')"
                 >
                   <Pencil :size="14" />
                 </button>
@@ -110,7 +110,7 @@
                   @click.stop="handleToggleAdmin(member)"
                   class="btn-icon-chip"
                   :class="{ 'is-admin': member.isAdmin }"
-                  :title="member.isAdmin ? 'Rétrograder en membre standard' : 'Nommer administrateur'"
+                  :title="member.isAdmin ? t('familySettings.members.demote') : t('familySettings.members.promote')"
                 >
                   <ShieldCheck v-if="member.isAdmin" :size="14" />
                   <Shield v-else :size="14" />
@@ -119,7 +119,7 @@
                 <button
                   @click.stop="handleDeleteMember(member)"
                   class="btn-icon-chip danger"
-                  title="Supprimer ce membre (Administrateur)"
+                  :title="t('familySettings.members.deleteThis')"
                 >
                   <Trash2 :size="14" />
                 </button>
@@ -127,7 +127,7 @@
             </div>
           </div>
           <div v-if="store.members.length === 0" class="empty-state">
-            👥 Aucun membre trouvé dans cette famille.
+            👥 {{ t('familySettings.members.empty') }}
           </div>
         </div>
       </div>
@@ -137,10 +137,10 @@
         <div class="export-config-header">
           <div class="section-title-group">
             <h2 class="section-title">
-              <Download :size="20" class="title-icon-export" /> Sauvegarde et Export des données
+              <Download :size="20" class="title-icon-export" /> {{ t('familySettings.export.title') }}
             </h2>
             <p class="section-subtitle">
-              Exportez l'ensemble des données de votre famille (utilisateurs avec mots de passe, liste de courses, catégories ordonnées, tâches, absences, invités, raccourcis et événements) au format JSON pour sauvegarde ou pour importation.
+              {{ t('familySettings.export.subtitle') }}
             </p>
           </div>
           <button 
@@ -151,7 +151,7 @@
           >
             <Download v-if="!exporting" :size="16" />
             <Loader2 v-else :size="16" class="spin" />
-            <span>{{ exporting ? 'Exportation en cours...' : 'Télécharger l\'export (JSON)' }}</span>
+            <span>{{ exporting ? t('familySettings.export.exportingLong') : t('familySettings.export.download') }}</span>
           </button>
         </div>
       </div>
@@ -161,49 +161,44 @@
         <div class="mcp-connector-header">
           <div class="section-title-group">
             <h2 class="section-title">
-              <Bot :size="20" class="title-icon-mcp" /> Connecteur MCP (Claude)
+              <Bot :size="20" class="title-icon-mcp" /> {{ t('familySettings.mcp.title') }}
             </h2>
             <p class="section-subtitle">
-              Générez une URL privée permettant de piloter les événements, présences, invités, courses,
-              tâches et repas de cette famille directement depuis Claude, sans mot de passe. Cette URL
-              donne un accès complet aux données de la famille : ne la partagez qu'avec des personnes
-              de confiance et révoquez-la si elle a pu fuiter.
+              {{ t('familySettings.mcp.subtitle') }}
             </p>
           </div>
         </div>
 
         <div class="mcp-connector-body margin-top-md">
           <div v-if="mcpLoading" class="mcp-status-line">
-            <Loader2 :size="16" class="spin" /> Chargement du statut du connecteur...
+            <Loader2 :size="16" class="spin" /> {{ t('familySettings.mcp.loading') }}
           </div>
 
           <template v-else>
             <div v-if="mcpConnectorUrl" class="mcp-url-reveal">
               <p class="mcp-url-warning">
-                <KeyRound :size="14" /> Copiez cette URL maintenant : elle ne sera plus jamais affichée en clair.
+                <KeyRound :size="14" /> {{ t('familySettings.mcp.copyNow') }}
               </p>
               <div class="mcp-url-row">
                 <input type="text" readonly :value="mcpConnectorUrl" class="mcp-url-input" @click="$event.target.select()" />
                 <button type="button" class="btn btn-secondary" @click="copyMcpUrl">
-                  <Copy :size="15" /> Copier
+                  <Copy :size="15" /> {{ t('familySettings.mcp.copy') }}
                 </button>
               </div>
             </div>
 
             <div v-else-if="mcpStatus.exists" class="mcp-status-line">
-              ✅ Connecteur actif · se termine par <code>...{{ mcpStatus.tokenPreview }}</code>
-              · créé le {{ formatMcpDate(mcpStatus.createdAt) }}
-              · dernière utilisation : {{ mcpStatus.lastUsedAt ? formatMcpDate(mcpStatus.lastUsedAt) : 'jamais' }}
+              ✅ <i18n-t keypath="familySettings.mcp.active" tag="span"><template #token><code>...{{ mcpStatus.tokenPreview }}</code></template><template #created>{{ formatMcpDate(mcpStatus.createdAt) }}</template><template #lastUsed>{{ mcpStatus.lastUsedAt ? formatMcpDate(mcpStatus.lastUsedAt) : t('familySettings.mcp.never') }}</template></i18n-t>
             </div>
 
             <div v-else class="mcp-status-line">
-              Aucun connecteur MCP actif pour cette famille.
+              {{ t('familySettings.mcp.none') }}
             </div>
 
             <div class="mcp-connector-actions">
               <button type="button" class="btn btn-primary" :disabled="mcpActionLoading" @click="generateMcpConnector">
                 <RefreshCw :size="15" />
-                <span>{{ mcpStatus.exists ? 'Régénérer' : 'Générer' }} l'URL du connecteur</span>
+                <span>{{ mcpStatus.exists ? t('familySettings.mcp.regenerate') : t('familySettings.mcp.generate') }}</span>
               </button>
               <button
                 v-if="mcpStatus.exists"
@@ -212,7 +207,7 @@
                 :disabled="mcpActionLoading"
                 @click="revokeMcpConnector"
               >
-                <Trash2 :size="15" /> Révoquer
+                <Trash2 :size="15" /> {{ t('familySettings.mcp.revoke') }}
               </button>
             </div>
           </template>
@@ -223,47 +218,43 @@
       <div class="card glass-card mealie-card margin-top-lg">
         <div class="section-title-group">
           <h2 class="section-title">
-            <ChefHat :size="20" class="title-icon-mealie" /> Serveur de recettes Mealie
+            <ChefHat :size="20" class="title-icon-mealie" /> {{ t('familySettings.mealie.title') }}
           </h2>
           <p class="section-subtitle">
-            Reliez votre instance Mealie pour rechercher une recette lors de l'ajout d'un repas : le plat,
-            le lien vers la recette et ses ingrédients sont alors pré-remplis. Le jeton d'API se crée dans
-            Mealie, depuis <em>Profil › Gérer vos jetons d'API</em>. Il est stocké chiffré et n'est jamais
-            transmis aux navigateurs des membres.
+            <i18n-t keypath="familySettings.mealie.subtitle" tag="span"><template #path><em>{{ t('familySettings.mealie.tokenPath') }}</em></template></i18n-t>
           </p>
         </div>
 
         <div class="margin-top-md">
           <div v-if="mealieLoading" class="mcp-status-line">
-            <Loader2 :size="16" class="spin" /> Chargement de la configuration Mealie...
+            <Loader2 :size="16" class="spin" /> {{ t('familySettings.mealie.loading') }}
           </div>
 
           <form v-else @submit.prevent="saveMealieConfig">
             <div v-if="mealieStatus.configured" class="mcp-status-line mealie-status">
-              ✅ Connecté à <code>{{ mealieStatus.baseUrl }}</code>
-              · jeton se terminant par <code>...{{ mealieStatus.tokenPreview }}</code>
-              <span v-if="mealieConnectedAs">· compte « {{ mealieConnectedAs }} »</span>
+              ✅ <i18n-t keypath="familySettings.mealie.connected" tag="span"><template #url><code>{{ mealieStatus.baseUrl }}</code></template><template #token><code>...{{ mealieStatus.tokenPreview }}</code></template></i18n-t>
+              <span v-if="mealieConnectedAs"> · {{ t('familySettings.mealie.account', { name: mealieConnectedAs }) }}</span>
             </div>
 
             <div class="mealie-form-grid">
               <div class="form-group">
-                <label class="form-label">URL du serveur Mealie</label>
+                <label class="form-label">{{ t('familySettings.mealie.url') }}</label>
                 <input
                   v-model="mealieForm.baseUrl"
                   type="url"
                   required
-                  placeholder="https://mealie.exemple.fr"
+                  :placeholder="t('familySettings.mealie.urlPlaceholder')"
                   class="form-input"
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">Jeton d'API</label>
+                <label class="form-label">{{ t('familySettings.mealie.token') }}</label>
                 <input
                   v-model="mealieForm.apiToken"
                   type="password"
                   autocomplete="off"
                   :required="!mealieStatus.configured"
-                  :placeholder="mealieStatus.configured ? 'Laisser vide pour conserver le jeton actuel' : 'Jeton généré dans Mealie'"
+                  :placeholder="mealieStatus.configured ? t('familySettings.mealie.tokenKeep') : t('familySettings.mealie.tokenPlaceholder')"
                   class="form-input"
                 />
               </div>
@@ -275,7 +266,7 @@
               <button type="submit" class="btn btn-primary" :disabled="mealieSaving">
                 <Loader2 v-if="mealieSaving" :size="15" class="spin" />
                 <Plug v-else :size="15" />
-                <span>{{ mealieSaving ? 'Vérification de la connexion...' : 'Tester et enregistrer' }}</span>
+                <span>{{ mealieSaving ? t('familySettings.mealie.checking') : t('familySettings.mealie.testAndSave') }}</span>
               </button>
               <button
                 v-if="mealieStatus.configured"
@@ -284,7 +275,7 @@
                 :disabled="mealieSaving"
                 @click="removeMealieConfig"
               >
-                <Trash2 :size="15" /> Déconnecter
+                <Trash2 :size="15" /> {{ t('familySettings.mealie.disconnect') }}
               </button>
             </div>
           </form>
@@ -296,10 +287,10 @@
         <div class="shopping-cats-header">
           <div class="section-title-group">
             <h2 class="section-title">
-              <ShoppingCart :size="20" class="title-icon-shopping" /> Catégories de courses
+              <ShoppingCart :size="20" class="title-icon-shopping" /> {{ t('familySettings.categories.title') }}
             </h2>
             <p class="section-subtitle">
-              Personnalisez les rayons de courses et réorganisez leur ordre d'affichage par simple glisser-déposer. Le rang numérique détermine l'ordre d'apparition dans la liste de courses.
+              {{ t('familySettings.categories.subtitle') }}
             </p>
           </div>
           <button 
@@ -308,14 +299,14 @@
             class="btn btn-primary btn-add-category"
           >
             <Plus :size="16" />
-            <span>Nouvelle Catégorie</span>
+            <span>{{ t('familySettings.categories.new') }}</span>
           </button>
         </div>
 
         <!-- Categories List with Drag and Drop -->
         <div class="categories-dnd-list margin-top-md">
           <div v-if="!store.shoppingCategories || store.shoppingCategories.length === 0" class="empty-cats-notice">
-            Aucune catégorie configurée. Cliquez sur « + Nouvelle Catégorie » pour en ajouter.
+            {{ t('familySettings.categories.empty') }}
           </div>
 
           <div
@@ -334,7 +325,7 @@
             @dragend="handleDragEnd"
           >
             <!-- Drag handle -->
-            <div class="drag-handle-wrapper" title="Glisser pour réorganiser l'ordre">
+            <div class="drag-handle-wrapper" :title="t('familySettings.categories.dragTitle')">
               <svg class="drag-handle-svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="9" cy="5" r="2"/>
                 <circle cx="9" cy="12" r="2"/>
@@ -346,15 +337,15 @@
             </div>
 
             <!-- Rank Badge -->
-            <div class="cat-rank-badge" title="Rang d'affichage">
-              Rang #{{ cat.rank }}
+            <div class="cat-rank-badge" :title="t('familySettings.categories.rankTitle')">
+              {{ t('familySettings.categories.rank', { n: cat.rank }) }}
             </div>
 
             <!-- Icon -->
             <span class="cat-icon-tag">{{ cat.icon }}</span>
 
             <!-- Name -->
-            <span class="cat-name-text">{{ cat.name }}</span>
+            <span class="cat-name-text">{{ translateValue('shoppingCategory', cat.name) }}</span>
 
             <!-- Quick move buttons (accessible alternative) -->
             <div class="cat-arrows-wrapper">
@@ -363,7 +354,7 @@
                 class="btn-arrow-move" 
                 :disabled="index === 0" 
                 @click="moveCategory(index, -1)" 
-                title="Monter le rang"
+                :title="t('familySettings.categories.moveUp')"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="18 15 12 9 6 15"></polyline>
@@ -374,7 +365,7 @@
                 class="btn-arrow-move" 
                 :disabled="index === sortedCategories.length - 1" 
                 @click="moveCategory(index, 1)" 
-                title="Descendre le rang"
+                :title="t('familySettings.categories.moveDown')"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="6 9 12 15 18 9"></polyline>
@@ -388,7 +379,7 @@
                 type="button" 
                 @click="openEditCategoryModal(cat)" 
                 class="btn-cat-action edit" 
-                title="Modifier la catégorie"
+                :title="t('familySettings.categories.edit')"
               >
                 <Pencil :size="15" />
               </button>
@@ -396,7 +387,7 @@
                 type="button" 
                 @click="confirmDeleteCategory(cat)" 
                 class="btn-cat-action delete" 
-                title="Supprimer la catégorie"
+                :title="t('familySettings.categories.delete')"
               >
                 <Trash2 :size="15" />
               </button>
@@ -405,7 +396,7 @@
         </div>
 
         <div class="dnd-hint-footer margin-top-sm">
-          💡 <em>Astuce : Attrapez une catégorie par sa poignée ⠿ et glissez-la vers le haut ou vers le bas pour ajuster immédiatement son rang numérique d'affichage.</em>
+          💡 <em>{{ t('familySettings.categories.tip') }}</em>
         </div>
       </div>
 
@@ -414,10 +405,10 @@
         <div class="shortcuts-admin-header">
           <div class="section-title-group">
             <h2 class="section-title">
-              <Globe :size="20" class="title-icon-shortcuts" /> Raccourcis Web & Applications
+              <Globe :size="20" class="title-icon-shortcuts" /> {{ t('familySettings.shortcuts.title') }}
             </h2>
             <p class="section-subtitle">
-              Configurez des liens rapides (ex: Pronote, ÉcoleDirecte, Drive, Domotique...) affichés dans la barre de navigation de tous les membres de la famille.
+              {{ t('familySettings.shortcuts.subtitle') }}
             </p>
           </div>
           <button 
@@ -426,14 +417,14 @@
             class="btn btn-primary btn-add-shortcut"
           >
             <Plus :size="16" />
-            <span>Nouveau Raccourci</span>
+            <span>{{ t('familySettings.shortcuts.new') }}</span>
           </button>
         </div>
 
         <!-- Shortcuts Grid or Empty State -->
         <div class="shortcuts-admin-body margin-top-md">
           <div v-if="!store.shortcuts || store.shortcuts.length === 0" class="empty-shortcuts-notice">
-            Aucun raccourci configuré. Cliquez sur « + Nouveau Raccourci » pour ajouter un accès direct à un site web ou une application pour votre famille.
+            {{ t('familySettings.shortcuts.empty') }}
           </div>
 
           <div v-else class="shortcuts-admin-grid">
@@ -445,7 +436,7 @@
               <span class="shortcut-item-emoji">{{ shortcut.icon || '🌐' }}</span>
               <div class="shortcut-item-details">
                 <span class="shortcut-item-title">{{ shortcut.title }}</span>
-                <a :href="shortcut.url" target="_blank" rel="noopener noreferrer" class="shortcut-item-url" :title="`Ouvrir ${shortcut.url}`">
+                <a :href="shortcut.url" target="_blank" rel="noopener noreferrer" class="shortcut-item-url" :title="t('familySettings.shortcuts.open', { url: shortcut.url })">
                   <span class="url-text">{{ shortcut.url }}</span>
                   <ExternalLink :size="12" />
                 </a>
@@ -455,7 +446,7 @@
                   type="button" 
                   @click="openEditShortcutModal(shortcut)" 
                   class="btn-sc-action edit" 
-                  title="Modifier le raccourci"
+                  :title="t('familySettings.shortcuts.edit')"
                 >
                   <Pencil :size="15" />
                 </button>
@@ -463,7 +454,7 @@
                   type="button" 
                   @click="confirmDeleteShortcut(shortcut)" 
                   class="btn-sc-action delete" 
-                  title="Supprimer le raccourci"
+                  :title="t('familySettings.shortcuts.delete')"
                 >
                   <Trash2 :size="15" />
                 </button>
@@ -479,50 +470,50 @@
     <div v-if="showAddMemberModal" class="modal-overlay" @click.self="showAddMemberModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Inviter un Membre dans la Famille</h3>
+          <h3>{{ t('familySettings.addMember.title') }}</h3>
           <button @click="showAddMemberModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleAddMember">
           <div class="form-group">
-            <label class="form-label">Adresse Email du membre</label>
+            <label class="form-label">{{ t('familySettings.addMember.email') }}</label>
             <input 
               v-model="newMember.email" 
               @blur="checkMemberEmail" 
               type="email" 
               required 
-              placeholder="ex: membre@exemple.fr"
+              :placeholder="t('familySettings.addMember.emailPlaceholder')"
               class="form-input" 
             />
             <div v-if="memberCheck.checked" class="email-check-info margin-top-xs">
               <span v-if="memberCheck.exists" class="text-info font-semibold">
-                ℹ️ Compte existant détecté ({{ memberCheck.user?.firstName }} {{ memberCheck.user?.lastName }}). Une invitation lui sera envoyée pour rattacher votre famille à son compte.
+                ℹ️ {{ t('familySettings.addMember.existing', { name: `${memberCheck.user?.firstName} ${memberCheck.user?.lastName}` }) }}
               </span>
               <span v-else class="text-muted font-semibold">
-                ℹ️ Nouveau compte : une invitation contenant un lien d'activation sécurisé lui permettra de créer son mot de passe.
+                ℹ️ {{ t('familySettings.addMember.newAccount') }}
               </span>
             </div>
           </div>
 
           <div v-if="!memberCheck.checked || !memberCheck.exists" class="grid-2">
             <div class="form-group">
-              <label class="form-label">Prénom</label>
+              <label class="form-label">{{ t('invitation.firstName') }}</label>
               <input 
                 v-model="newMember.firstName" 
                 type="text" 
                 required 
-                placeholder="ex: Lucas..."
+                :placeholder="t('familySettings.addMember.firstNamePlaceholder')"
                 class="form-input" 
               />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Nom de famille</label>
+              <label class="form-label">{{ t('profile.lastName') }}</label>
               <input 
                 v-model="newMember.lastName" 
                 type="text" 
                 required 
-                placeholder="ex: Martin..."
+                :placeholder="t('familySettings.addMember.lastNamePlaceholder')"
                 class="form-input" 
               />
             </div>
@@ -530,40 +521,40 @@
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Rôle familial</label>
+              <label class="form-label">{{ t('profile.role') }}</label>
               <select v-model="newMember.role" class="form-select">
                 <option v-for="r in FAMILY_ROLE_VALUES" :key="r" :value="r">{{ translateValue('role', r) }}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Statut d'Accès</label>
+              <label class="form-label">{{ t('familySettings.addMember.access') }}</label>
               <label class="admin-checkbox-card">
                 <input type="checkbox" v-model="newMember.isAdmin" class="custom-checkbox" />
                 <span class="checkbox-text">
                   <ShieldCheck :size="16" class="text-indigo" />
-                  <strong>Administrateur de cette famille</strong>
+                  <strong>{{ t('familySettings.restricted.role') }}</strong>
                 </span>
               </label>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Présence habituelle à la maison</label>
+            <label class="form-label">{{ t('profile.usualPresence') }}</label>
             <select v-model="newMember.usualPresence" class="form-select">
-              <option value="present">🟢 Habituellement présent(e) (signale des absences)</option>
-              <option value="absent">⚪ Habituellement absent(e) (signale des présences)</option>
+              <option value="present">🟢 {{ t('presence.editor.usuallyPresentOption') }}</option>
+              <option value="absent">⚪ {{ t('presence.editor.usuallyAbsentOption') }}</option>
             </select>
             <!-- Volontairement limité au réglage simple : l'invitation ne transporte pas de
                  grille détaillée (FamilyInvitation n'a aucun champ de présence). -->
             <span class="help-subtext">
-              Le réglage détaillé (par jour et par repas) sera possible une fois l'invitation acceptée.
+              {{ t('familySettings.addMember.detailedLater') }}
             </span>
           </div>
 
           <div v-if="!memberCheck.checked || !memberCheck.exists">
             <div class="form-group">
-              <label class="form-label">Avatar ou Photo</label>
+              <label class="form-label">{{ t('invitation.avatar') }}</label>
               <AvatarPicker 
                 v-model="newMember.avatar" 
                 :color="newMember.color" 
@@ -572,7 +563,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Couleur de profil</label>
+              <label class="form-label">{{ t('invitation.color') }}</label>
               <div class="color-picker-options">
                 <button 
                   v-for="c in colorOptions" 
@@ -588,9 +579,9 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="showAddMemberModal = false" class="btn btn-secondary">Annuler</button>
+            <button type="button" @click="showAddMemberModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
             <button type="submit" class="btn btn-primary" :disabled="addingMember">
-              {{ addingMember ? 'Envoi en cours...' : 'Envoyer l\'invitation' }}
+              {{ addingMember ? t('familySettings.addMember.sending') : t('familySettings.addMember.send') }}
             </button>
           </div>
         </form>
@@ -601,14 +592,14 @@
     <div v-if="showEditMemberModal" class="modal-overlay" @click.self="showEditMemberModal = false">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Modifier le Membre : {{ editingMember?.name }}</h3>
+          <h3>{{ t('familySettings.editMember.title', { name: editingMember?.name }) }}</h3>
           <button @click="showEditMemberModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleSaveEditMember">
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Prénom</label>
+              <label class="form-label">{{ t('invitation.firstName') }}</label>
               <input
                 v-model="editMemberForm.firstName"
                 type="text"
@@ -618,7 +609,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Nom de famille</label>
+              <label class="form-label">{{ t('profile.lastName') }}</label>
               <input
                 v-model="editMemberForm.lastName"
                 type="text"
@@ -630,7 +621,7 @@
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Adresse Email (Login)</label>
+              <label class="form-label">{{ t('login.emailLabel') }}</label>
               <input
                 v-model="editMemberForm.email"
                 type="email"
@@ -640,11 +631,11 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Nouveau Mot de passe (Optionnel)</label>
+              <label class="form-label">{{ t('profile.newPassword') }}</label>
               <input
                 v-model="editMemberForm.password"
                 type="password"
-                placeholder="Laisser vide pour ne pas changer"
+                :placeholder="t('profile.newPasswordPlaceholder')"
                 class="form-input"
               />
               <PasswordStrengthIndicator v-if="editMemberForm.password" :password="editMemberForm.password" />
@@ -653,26 +644,26 @@
 
           <div class="grid-3">
             <div class="form-group">
-              <label class="form-label">Rôle familial</label>
+              <label class="form-label">{{ t('profile.role') }}</label>
               <select v-model="editMemberForm.role" class="form-select">
                 <option v-for="r in FAMILY_ROLE_VALUES" :key="r" :value="r">{{ translateValue('role', r) }}</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Administrateur</label>
+              <label class="form-label">{{ translateValue('role', 'Administrateur') }}</label>
               <label class="admin-checkbox-card">
                 <input type="checkbox" v-model="editMemberForm.isAdmin" class="custom-checkbox" />
                 <span class="checkbox-text">
                   <ShieldCheck :size="16" class="text-indigo" />
-                  <strong>Admin</strong>
+                  <strong>{{ t('menu.badges.admin') }}</strong>
                 </span>
               </label>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Présence habituelle à la maison</label>
+            <label class="form-label">{{ t('profile.usualPresence') }}</label>
             <UsualPresenceEditor
               v-model="editMemberForm.usualPresenceConfig"
               :legacy-usual-presence="editMemberForm.usualPresence"
@@ -684,17 +675,16 @@
                  sert réellement, pour éviter de le déplacer par inadvertance. -->
             <div v-if="editMemberForm.usualPresenceConfig?.alternating" class="anchor-row">
               <span class="help-subtext">
-                Semaine en cours : <strong>Semaine {{ store.getWeekPhase(store.todayStr) }}</strong>.
-                L'alternance est commune à toute la famille.
+                <i18n-t keypath="absences.usual.currentWeek" tag="span"><template #week><strong>{{ t('presence.editor.weekTab', { week: store.getWeekPhase(store.todayStr) }) }}</strong></template></i18n-t>
               </span>
               <button type="button" class="btn btn-secondary btn-sm" @click="declareCurrentWeekAsA">
-                Déclarer la semaine en cours comme Semaine A
+                {{ t('absences.usual.declareCurrentAsA') }}
               </button>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Avatar ou Photo</label>
+            <label class="form-label">{{ t('invitation.avatar') }}</label>
             <AvatarPicker
               v-model="editMemberForm.avatar"
               :color="editMemberForm.color"
@@ -703,7 +693,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Couleur de profil</label>
+            <label class="form-label">{{ t('invitation.color') }}</label>
             <div class="color-picker-options">
               <button
                 v-for="c in colorOptions"
@@ -723,17 +713,17 @@
               @click="handleResendWelcomeEmail(editMemberForm.id)"
               class="btn btn-secondary btn-resend-welcome"
               :disabled="resendingEmail"
-              title="Envoyer un email avec un nouveau lien d'activation valable 2 heures"
+              :title="t('familySettings.editMember.resendTitle')"
             >
               <Mail :size="15" />
-              <span>{{ resendingEmail ? 'Envoi...' : 'Renvoyer l\'email de bienvenue' }}</span>
+              <span>{{ resendingEmail ? t('familySettings.editMember.resending') : t('familySettings.editMember.resend') }}</span>
             </button>
 
             <div class="modal-actions-right">
-              <button type="button" @click="showEditMemberModal = false" class="btn btn-secondary">Annuler</button>
+              <button type="button" @click="showEditMemberModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
               <button type="submit" class="btn btn-primary" :disabled="savingEdit">
-                <span v-if="!savingEdit">Enregistrer les modifications</span>
-                <span v-else>Enregistrement...</span>
+                <span v-if="!savingEdit">{{ t('profile.save') }}</span>
+                <span v-else>{{ t('common.saving') }}</span>
               </button>
             </div>
           </div>
@@ -745,25 +735,25 @@
     <div v-if="showCatModal" class="modal-overlay" @click.self="showCatModal = false">
       <div class="modal-content modal-cat-content">
         <div class="modal-header">
-          <h3>{{ isEditingCat ? 'Modifier la Catégorie' : 'Ajouter une Catégorie de courses' }}</h3>
+          <h3>{{ isEditingCat ? t('familySettings.categories.edit') : t('familySettings.categories.addTitle') }}</h3>
           <button @click="showCatModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleSaveCategory">
           <div class="form-group">
-            <label class="form-label">Nom de la catégorie *</label>
+            <label class="form-label">{{ t('familySettings.categories.name') }} *</label>
             <input 
               v-model="catForm.name" 
               type="text" 
               required 
-              placeholder="ex: Boucherie, Surgelés, Bio..."
+              :placeholder="t('familySettings.categories.namePlaceholder')"
               class="form-input" 
               autofocus
             />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Icône / Emoji :</label>
+            <label class="form-label">{{ t('familySettings.iconLabel') }}</label>
             <div class="cat-icon-selector">
               <input 
                 v-model="catForm.icon" 
@@ -772,7 +762,7 @@
                 class="form-input icon-preview-input" 
                 placeholder="🛒" 
               />
-              <span class="icon-help">Sélectionnez ci-dessous ou saisissez un emoji :</span>
+              <span class="icon-help">{{ t('familySettings.iconHelp') }}</span>
             </div>
             
             <div class="emoji-preset-grid">
@@ -790,9 +780,9 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="showCatModal = false" class="btn btn-secondary">Annuler</button>
+            <button type="button" @click="showCatModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
             <button type="submit" class="btn btn-primary">
-              {{ isEditingCat ? 'Enregistrer les modifications' : 'Créer la catégorie' }}
+              {{ isEditingCat ? t('profile.save') : t('familySettings.categories.create') }}
             </button>
           </div>
         </form>
@@ -803,16 +793,16 @@
     <div v-if="catToDelete" class="modal-overlay" @click.self="catToDelete = null">
       <div class="modal-content modal-sm">
         <div class="modal-header">
-          <h3>Supprimer la catégorie</h3>
+          <h3>{{ t('familySettings.categories.delete') }}</h3>
           <button @click="catToDelete = null" class="btn-close">&times;</button>
         </div>
         <p class="confirm-text">
-          Voulez-vous vraiment supprimer la catégorie <strong>« {{ catToDelete.icon }} {{ catToDelete.name }} »</strong> ?<br>
-          Les articles de courses existants seront conservés.
+          <i18n-t keypath="familySettings.categories.deleteConfirm" tag="span"><template #name><strong>« {{ catToDelete.icon }} {{ translateValue('shoppingCategory', catToDelete.name) }} »</strong></template></i18n-t><br>
+          {{ t('familySettings.categories.itemsKept') }}
         </p>
         <div class="modal-footer">
-          <button type="button" @click="catToDelete = null" class="btn btn-secondary">Annuler</button>
-          <button type="button" @click="executeDeleteCategory" class="btn btn-danger">Supprimer</button>
+          <button type="button" @click="catToDelete = null" class="btn btn-secondary">{{ t('common.cancel') }}</button>
+          <button type="button" @click="executeDeleteCategory" class="btn btn-danger">{{ t('common.delete') }}</button>
         </div>
       </div>
     </div>
@@ -821,25 +811,25 @@
     <div v-if="showShortcutModal" class="modal-overlay" @click.self="showShortcutModal = false">
       <div class="modal-content modal-shortcut-content">
         <div class="modal-header">
-          <h3>{{ editingShortcutId ? 'Modifier le Raccourci' : 'Ajouter un Raccourci' }}</h3>
+          <h3>{{ editingShortcutId ? t('familySettings.shortcuts.edit') : t('familySettings.shortcuts.addTitle') }}</h3>
           <button @click="showShortcutModal = false" class="btn-close">&times;</button>
         </div>
 
         <form @submit.prevent="handleSaveShortcut">
           <div class="form-group">
-            <label class="form-label">Titre du raccourci *</label>
+            <label class="form-label">{{ t('familySettings.shortcuts.name') }} *</label>
             <input 
               v-model="shortcutForm.title" 
               type="text" 
               required 
-              placeholder="ex: Pronote, ÉcoleDirecte, Synology, Google Drive..."
+              :placeholder="t('familySettings.shortcuts.namePlaceholder')"
               class="form-input" 
               autofocus
             />
           </div>
 
           <div class="form-group">
-            <label class="form-label">Adresse URL (lien complet) *</label>
+            <label class="form-label">{{ t('familySettings.shortcuts.url') }} *</label>
             <input 
               v-model="shortcutForm.url" 
               type="url" 
@@ -850,7 +840,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Icône / Emoji :</label>
+            <label class="form-label">{{ t('familySettings.iconLabel') }}</label>
             <div class="cat-icon-selector">
               <input 
                 v-model="shortcutForm.icon" 
@@ -859,7 +849,7 @@
                 class="form-input icon-preview-input" 
                 placeholder="🌐" 
               />
-              <span class="icon-help">Sélectionnez ci-dessous ou saisissez un emoji :</span>
+              <span class="icon-help">{{ t('familySettings.iconHelp') }}</span>
             </div>
             
             <div class="emoji-preset-grid">
@@ -877,10 +867,10 @@
           </div>
 
           <div class="modal-footer">
-            <button type="button" @click="showShortcutModal = false" class="btn btn-secondary">Annuler</button>
+            <button type="button" @click="showShortcutModal = false" class="btn btn-secondary">{{ t('common.cancel') }}</button>
             <button type="submit" class="btn btn-primary" :disabled="savingShortcut">
               <Loader2 v-if="savingShortcut" :size="16" class="spin" />
-              <span>{{ editingShortcutId ? 'Enregistrer les modifications' : 'Créer le raccourci' }}</span>
+              <span>{{ editingShortcutId ? t('profile.save') : t('familySettings.shortcuts.create') }}</span>
             </button>
           </div>
         </form>
@@ -909,10 +899,13 @@ import {
 } from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
+import { useI18n } from 'vue-i18n'
+import { intlLocale } from '../i18n/format'
 import { FAMILY_ROLE_VALUES, translateValue } from '../i18n/values'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
+const { t } = useI18n()
 const { confirm } = useConfirm()
 
 // --- Catégories de courses ---
@@ -1098,10 +1091,10 @@ const handleSaveShortcut = async () => {
 
 const confirmDeleteShortcut = async (shortcut) => {
   const ok = await confirm({
-    title: 'Supprimer le raccourci',
-    message: `Voulez-vous vraiment supprimer le raccourci <strong>« ${escapeHtml(shortcut.title)} »</strong> ?`,
-    description: 'Cette action est irréversible et retirera le raccourci pour tous les membres de la famille.',
-    confirmText: 'Supprimer',
+    title: t('familySettings.shortcuts.delete'),
+    message: t('familySettings.shortcuts.deleteMessage', { title: escapeHtml(shortcut.title) }),
+    description: t('familySettings.shortcuts.deleteDescription'),
+    confirmText: t('common.delete'),
     type: 'danger'
   })
   if (ok) {
@@ -1182,11 +1175,11 @@ const handleAddMember = async () => {
     if (result.success) {
       showAddMemberModal.value = false
       alert(memberCheck.value.exists
-        ? `✅ L'utilisateur ${newMember.value.firstName || ''} a été invité à rejoindre votre famille !`
-        : `✅ Une invitation a été envoyée par email à ${newMember.value.email} !`
+        ? `✅ ${t('familySettings.addMember.existingInvited', { name: newMember.value.firstName || '' })}`
+        : `✅ ${t('familySettings.addMember.emailSent', { email: newMember.value.email })}`
       )
     } else {
-      alert(result.error || "Erreur lors de l'invitation du membre")
+      alert(result.error || t('familySettings.addMember.error'))
     }
   } finally {
     addingMember.value = false
@@ -1220,9 +1213,9 @@ const handleResendWelcomeEmail = async (memberId) => {
   resendingEmail.value = false
 
   if (res.success) {
-    alert(`✉️ ${res.message || 'Email de bienvenue envoyé avec succès !'}`)
+    alert(`✉️ ${t('familySettings.editMember.resent')}`)
   } else {
-    alert(`⚠️ ${res.error || 'Erreur lors de l\'envoi de l\'email'}`)
+    alert(`⚠️ ${res.error || t('familySettings.editMember.resendError')}`)
   }
 }
 
@@ -1267,7 +1260,7 @@ const handleSaveEditMember = async () => {
   if (editingMember.value && editingMember.value.isAdmin && !editMemberForm.value.isAdmin) {
     const adminCount = store.members.filter(m => m.isAdmin).length
     if (adminCount <= 1) {
-      alert('Impossible de retirer le statut administrateur : il s\'agit du dernier administrateur du système.')
+      alert(t('familySettings.members.lastAdminDemote'))
       return
     }
   }
@@ -1279,10 +1272,10 @@ const handleSaveEditMember = async () => {
       showEditMemberModal.value = false
       await store.fetchAllData()
     } else {
-      alert(res.error || 'Erreur lors de la modification du membre')
+      alert(res.error || t('familySettings.editMember.error'))
     }
   } catch (err) {
-    alert(err.message || 'Erreur lors de l\'enregistrement')
+    alert(err.message || t('familySettings.editMember.saveError'))
   } finally {
     savingEdit.value = false
   }
@@ -1292,15 +1285,16 @@ const handleToggleAdmin = async (member) => {
   if (member.isAdmin) {
     const adminCount = store.members.filter(m => m.isAdmin).length
     if (adminCount <= 1) {
-      alert('Impossible de retirer le statut administrateur : il s\'agit du dernier administrateur du système.')
+      alert(t('familySettings.members.lastAdminDemote'))
       return
     }
   }
-  const action = member.isAdmin ? 'retirer les droits d\'administrateur à' : 'nommer administrateur'
   const ok = await confirm({
-    title: member.isAdmin ? 'Retirer les droits administrateur' : 'Nommer administrateur',
-    message: `Voulez-vous ${action} <strong>${escapeHtml(member.name)}</strong> ?`,
-    confirmText: 'Confirmer',
+    title: member.isAdmin ? t('familySettings.members.demoteTitle') : t('familySettings.members.promote'),
+    message: member.isAdmin
+      ? t('familySettings.members.demoteMessage', { name: escapeHtml(member.name) })
+      : t('familySettings.members.promoteMessage', { name: escapeHtml(member.name) }),
+    confirmText: t('confirm.confirm'),
     type: member.isAdmin ? 'warning' : 'primary'
   })
   if (ok) {
@@ -1312,15 +1306,15 @@ const handleDeleteMember = async (member) => {
   if (member.isAdmin) {
     const adminCount = store.members.filter(m => m.isAdmin).length
     if (adminCount <= 1) {
-      alert('Impossible de supprimer cet administrateur : il s\'agit du dernier administrateur du système.')
+      alert(t('familySettings.members.lastAdminDelete'))
       return
     }
   }
   const ok = await confirm({
-    title: 'Retirer un membre',
-    message: `Voulez-vous vraiment supprimer <strong>${escapeHtml(member.name)}</strong> de la famille ?`,
-    description: 'Cette action retirera le membre de cet espace familial ainsi que ses accès.',
-    confirmText: 'Retirer de la famille',
+    title: t('familySettings.members.removeTitle'),
+    message: t('familySettings.members.removeMessage', { name: escapeHtml(member.name) }),
+    description: t('familySettings.members.removeDescription'),
+    confirmText: t('familySettings.members.removeConfirm'),
     type: 'danger'
   })
   if (ok) {
@@ -1349,7 +1343,7 @@ const handleExportData = async () => {
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      throw new Error(err.error || 'Erreur lors de l\'export des données')
+      throw new Error(err.error || t('profile.gdpr.exportError'))
     }
     const data = await res.json()
     const jsonStr = JSON.stringify(data, null, 2)
@@ -1364,7 +1358,7 @@ const handleExportData = async () => {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   } catch (err) {
-    alert(`Erreur : ${err.message}`)
+    alert(t('common.errorPrefix', { message: err.message }))
   } finally {
     exporting.value = false
   }
@@ -1378,14 +1372,14 @@ const mcpConnectorUrl = ref('')
 
 const formatMcpDate = (isoDate) => {
   if (!isoDate) return ''
-  return new Date(isoDate).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
+  return new Date(isoDate).toLocaleString(intlLocale(), { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 const fetchMcpConnectorStatus = async () => {
   mcpLoading.value = true
   try {
     const res = await fetch('/api/family-settings/mcp-connector', { headers: getSettingsHeaders() })
-    if (!res.ok) throw new Error('Erreur lors de la récupération du statut du connecteur')
+    if (!res.ok) throw new Error(t('familySettings.mcp.errors.status'))
     mcpStatus.value = await res.json()
   } catch (err) {
     console.error(err)
@@ -1397,9 +1391,9 @@ const fetchMcpConnectorStatus = async () => {
 const generateMcpConnector = async () => {
   if (mcpStatus.value.exists) {
     const ok = await confirm({
-      title: 'Régénérer le connecteur MCP ?',
-      message: 'L\'URL actuelle cessera immédiatement de fonctionner. Toute intégration Claude déjà configurée avec l\'ancienne URL devra être mise à jour.',
-      confirmText: 'Régénérer',
+      title: t('familySettings.mcp.regenerateTitle'),
+      message: t('familySettings.mcp.regenerateMessage'),
+      confirmText: t('familySettings.mcp.regenerateConfirm'),
       type: 'danger'
     })
     if (!ok) return
@@ -1410,13 +1404,13 @@ const generateMcpConnector = async () => {
     const res = await fetch('/api/family-settings/mcp-connector', { method: 'POST', headers: getSettingsHeaders() })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      throw new Error(err.error || 'Erreur lors de la génération du connecteur')
+      throw new Error(err.error || t('familySettings.mcp.errors.generate'))
     }
     const data = await res.json()
     mcpConnectorUrl.value = data.url
     mcpStatus.value = { exists: true, tokenPreview: data.tokenPreview, createdAt: data.createdAt, lastUsedAt: null, requestCount: 0 }
   } catch (err) {
-    alert(`Erreur : ${err.message}`)
+    alert(t('common.errorPrefix', { message: err.message }))
   } finally {
     mcpActionLoading.value = false
   }
@@ -1424,9 +1418,9 @@ const generateMcpConnector = async () => {
 
 const revokeMcpConnector = async () => {
   const ok = await confirm({
-    title: 'Révoquer le connecteur MCP ?',
-    message: 'L\'URL du connecteur cessera immédiatement de fonctionner pour toute intégration Claude configurée.',
-    confirmText: 'Révoquer',
+    title: t('familySettings.mcp.revokeTitle'),
+    message: t('familySettings.mcp.revokeMessage'),
+    confirmText: t('familySettings.mcp.revoke'),
     type: 'danger'
   })
   if (!ok) return
@@ -1434,11 +1428,11 @@ const revokeMcpConnector = async () => {
   mcpActionLoading.value = true
   try {
     const res = await fetch('/api/family-settings/mcp-connector', { method: 'DELETE', headers: getSettingsHeaders() })
-    if (!res.ok) throw new Error('Erreur lors de la révocation du connecteur')
+    if (!res.ok) throw new Error(t('familySettings.mcp.errors.revoke'))
     mcpConnectorUrl.value = ''
     mcpStatus.value = { exists: false }
   } catch (err) {
-    alert(`Erreur : ${err.message}`)
+    alert(t('common.errorPrefix', { message: err.message }))
   } finally {
     mcpActionLoading.value = false
   }
@@ -1469,7 +1463,7 @@ const fetchMealieConfig = async () => {
   mealieLoading.value = true
   try {
     const res = await fetch('/api/family-settings/mealie', { headers: getSettingsHeaders() })
-    if (!res.ok) throw new Error('Erreur lors de la récupération de la configuration Mealie')
+    if (!res.ok) throw new Error(t('familySettings.mealie.errors.load'))
     mealieStatus.value = await res.json()
     mealieForm.value = { baseUrl: mealieStatus.value.baseUrl || '', apiToken: '' }
   } catch (err) {
@@ -1492,7 +1486,7 @@ const saveMealieConfig = async () => {
       })
     })
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(data.error || 'Erreur lors de l\'enregistrement de la configuration Mealie')
+    if (!res.ok) throw new Error(data.error || t('familySettings.mealie.errors.save'))
     mealieStatus.value = data
     mealieConnectedAs.value = data.mealieUser || ''
     mealieForm.value = { baseUrl: data.baseUrl, apiToken: '' }
@@ -1506,9 +1500,9 @@ const saveMealieConfig = async () => {
 
 const removeMealieConfig = async () => {
   const ok = await confirm({
-    title: 'Déconnecter Mealie ?',
-    message: 'La recherche de recettes Mealie ne sera plus proposée lors de l\'ajout d\'un repas. Les liens de recettes déjà enregistrés sur les repas sont conservés.',
-    confirmText: 'Déconnecter',
+    title: t('familySettings.mealie.disconnectTitle'),
+    message: t('familySettings.mealie.disconnectMessage'),
+    confirmText: t('familySettings.mealie.disconnect'),
     type: 'danger'
   })
   if (!ok) return
@@ -1516,14 +1510,14 @@ const removeMealieConfig = async () => {
   mealieSaving.value = true
   try {
     const res = await fetch('/api/family-settings/mealie', { method: 'DELETE', headers: getSettingsHeaders() })
-    if (!res.ok) throw new Error('Erreur lors de la suppression de la configuration Mealie')
+    if (!res.ok) throw new Error(t('familySettings.mealie.errors.delete'))
     mealieStatus.value = { configured: false }
     mealieConnectedAs.value = ''
     mealieForm.value = { baseUrl: '', apiToken: '' }
     mealieError.value = ''
     setFamilyMealieEnabled(false)
   } catch (err) {
-    alert(`Erreur : ${err.message}`)
+    alert(t('common.errorPrefix', { message: err.message }))
   } finally {
     mealieSaving.value = false
   }

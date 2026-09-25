@@ -24,7 +24,16 @@
     "demote": "Demote to standard member",
     "promote": "Make administrator",
     "deleteThis": "Remove this member (administrator)",
-    "empty": "No members found in this family."
+    "empty": "No members found in this family.",
+    "lastAdminDemote": "Cannot remove the administrator status: this is the last administrator.",
+    "lastAdminDelete": "Cannot delete this administrator: this is the last administrator.",
+    "demoteTitle": "Remove administrator rights",
+    "demoteMessage": "Do you want to remove the administrator rights of <strong>{name}</strong>?",
+    "promoteMessage": "Do you want to make <strong>{name}</strong> an administrator?",
+    "removeTitle": "Remove a member",
+    "removeMessage": "Do you really want to remove <strong>{name}</strong> from the family?",
+    "removeDescription": "This removes the member from this family space along with their access.",
+    "removeConfirm": "Remove from the family"
   },
   "restricted": {
     "text": "{label} Only a user with the {role} role can change these settings.",
@@ -42,7 +51,17 @@
     "none": "No active MCP connector for this family.",
     "regenerate": "Regenerate the connector URL",
     "generate": "Generate the connector URL",
-    "revoke": "Revoke"
+    "revoke": "Revoke",
+    "regenerateTitle": "Regenerate the MCP connector?",
+    "regenerateMessage": "The current URL will stop working immediately. Any Claude integration already set up with the old URL will need to be updated.",
+    "regenerateConfirm": "Regenerate",
+    "revokeTitle": "Revoke the MCP connector?",
+    "revokeMessage": "The connector URL will stop working immediately for every configured Claude integration.",
+    "errors": {
+      "status": "Error while fetching the connector status",
+      "generate": "Error while generating the connector",
+      "revoke": "Error while revoking the connector"
+    }
   },
   "mealie": {
     "title": "Mealie recipe server",
@@ -58,7 +77,14 @@
     "tokenPlaceholder": "Token generated in Mealie",
     "checking": "Checking the connection…",
     "testAndSave": "Test and save",
-    "disconnect": "Disconnect"
+    "disconnect": "Disconnect",
+    "disconnectTitle": "Disconnect Mealie?",
+    "disconnectMessage": "Mealie recipe search will no longer be offered when adding a meal. Recipe links already saved on meals are kept.",
+    "errors": {
+      "load": "Error while fetching the Mealie configuration",
+      "save": "Error while saving the Mealie configuration",
+      "delete": "Error while removing the Mealie configuration"
+    }
   },
   "categories": {
     "title": "Shopping categories",
@@ -94,7 +120,9 @@
     "name": "Shortcut title",
     "namePlaceholder": "e.g. School portal, Synology, Google Drive…",
     "url": "URL (full link)",
-    "create": "Create the shortcut"
+    "create": "Create the shortcut",
+    "deleteMessage": "Do you really want to delete the shortcut <strong>“{title}”</strong>?",
+    "deleteDescription": "This action cannot be undone and removes the shortcut for every family member."
   },
   "addMember": {
     "title": "Invite a member to the family",
@@ -107,12 +135,19 @@
     "access": "Access level",
     "detailedLater": "The detailed setting (by day and by meal) will be available once the invitation is accepted.",
     "sending": "Sending…",
-    "send": "Send the invitation"
+    "send": "Send the invitation",
+    "existingInvited": "{name} has been invited to join your family!",
+    "emailSent": "An invitation has been sent by email to {email}!",
+    "error": "Error while inviting the member"
   },
   "editMember": {
     "title": "Edit member: {name}",
     "resendTitle": "Send an email with a new activation link valid for 2 hours",
     "resending": "Sending…",
-    "resend": "Resend the welcome email"
+    "resend": "Resend the welcome email",
+    "resent": "Welcome email sent!",
+    "resendError": "Error while sending the email",
+    "error": "Error while updating the member",
+    "saveError": "Error while saving"
   }
 }

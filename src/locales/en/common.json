@@ -22,5 +22,6 @@
   "unknown": "Unknown",
   "irreversible": "This action cannot be undone.",
   "add": "Add",
-  "tomorrow": "Tomorrow"
+  "tomorrow": "Tomorrow",
+  "errorPrefix": "Error: {message}"
 }

@@ -24,7 +24,16 @@
     "demote": "Pasar a miembro estándar",
     "promote": "Nombrar administrador/a",
     "deleteThis": "Eliminar este miembro (administrador)",
-    "empty": "No hay ningún miembro en esta familia."
+    "empty": "No hay ningún miembro en esta familia.",
+    "lastAdminDemote": "No se puede quitar el estado de administrador: es el último administrador.",
+    "lastAdminDelete": "No se puede eliminar a este administrador: es el último administrador.",
+    "demoteTitle": "Quitar los derechos de administrador",
+    "demoteMessage": "¿Quieres quitar los derechos de administrador a <strong>{name}</strong>?",
+    "promoteMessage": "¿Quieres nombrar administrador/a a <strong>{name}</strong>?",
+    "removeTitle": "Quitar a un miembro",
+    "removeMessage": "¿Seguro que quieres quitar a <strong>{name}</strong> de la familia?",
+    "removeDescription": "Esta acción quitará al miembro de este espacio familiar junto con sus accesos.",
+    "removeConfirm": "Quitar de la familia"
   },
   "restricted": {
     "text": "{label} Solo un usuario con el rol {role} puede modificar estos ajustes.",
@@ -42,7 +51,17 @@
     "none": "Ningún conector MCP activo para esta familia.",
     "regenerate": "Regenerar la URL del conector",
     "generate": "Generar la URL del conector",
-    "revoke": "Revocar"
+    "revoke": "Revocar",
+    "regenerateTitle": "¿Regenerar el conector MCP?",
+    "regenerateMessage": "La URL actual dejará de funcionar de inmediato. Cualquier integración de Claude configurada con la URL anterior deberá actualizarse.",
+    "regenerateConfirm": "Regenerar",
+    "revokeTitle": "¿Revocar el conector MCP?",
+    "revokeMessage": "La URL del conector dejará de funcionar de inmediato para toda integración de Claude configurada.",
+    "errors": {
+      "status": "Error al obtener el estado del conector",
+      "generate": "Error al generar el conector",
+      "revoke": "Error al revocar el conector"
+    }
   },
   "mealie": {
     "title": "Servidor de recetas Mealie",
@@ -58,7 +77,14 @@
     "tokenPlaceholder": "Token generado en Mealie",
     "checking": "Verificando la conexión…",
     "testAndSave": "Probar y guardar",
-    "disconnect": "Desconectar"
+    "disconnect": "Desconectar",
+    "disconnectTitle": "¿Desconectar Mealie?",
+    "disconnectMessage": "La búsqueda de recetas de Mealie dejará de ofrecerse al añadir una comida. Los enlaces a recetas ya guardados en las comidas se conservan.",
+    "errors": {
+      "load": "Error al obtener la configuración de Mealie",
+      "save": "Error al guardar la configuración de Mealie",
+      "delete": "Error al eliminar la configuración de Mealie"
+    }
   },
   "categories": {
     "title": "Categorías de la compra",
@@ -94,7 +120,9 @@
     "name": "Título del acceso directo",
     "namePlaceholder": "p. ej. Portal escolar, Synology, Google Drive…",
     "url": "Dirección URL (enlace completo)",
-    "create": "Crear el acceso directo"
+    "create": "Crear el acceso directo",
+    "deleteMessage": "¿Seguro que quieres eliminar el acceso directo <strong>«{title}»</strong>?",
+    "deleteDescription": "Esta acción es irreversible y quitará el acceso directo a todos los miembros de la familia."
   },
   "addMember": {
     "title": "Invitar a un miembro a la familia",
@@ -107,12 +135,19 @@
     "access": "Nivel de acceso",
     "detailedLater": "El ajuste detallado (por día y por comida) estará disponible cuando se acepte la invitación.",
     "sending": "Enviando…",
-    "send": "Enviar la invitación"
+    "send": "Enviar la invitación",
+    "existingInvited": "¡{name} ha sido invitado/a a unirse a tu familia!",
+    "emailSent": "¡Se ha enviado una invitación por correo a {email}!",
+    "error": "Error al invitar al miembro"
   },
   "editMember": {
     "title": "Editar al miembro: {name}",
     "resendTitle": "Enviar un correo con un nuevo enlace de activación válido durante 2 horas",
     "resending": "Enviando…",
-    "resend": "Reenviar el correo de bienvenida"
+    "resend": "Reenviar el correo de bienvenida",
+    "resent": "¡Correo de bienvenida enviado!",
+    "resendError": "Error al enviar el correo",
+    "error": "Error al modificar al miembro",
+    "saveError": "Error al guardar"
   }
 }

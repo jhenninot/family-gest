@@ -24,7 +24,16 @@
     "demote": "Rétrograder en membre standard",
     "promote": "Nommer administrateur",
     "deleteThis": "Supprimer ce membre (administrateur)",
-    "empty": "Aucun membre trouvé dans cette famille."
+    "empty": "Aucun membre trouvé dans cette famille.",
+    "lastAdminDemote": "Impossible de retirer le statut administrateur : il s'agit du dernier administrateur du système.",
+    "lastAdminDelete": "Impossible de supprimer cet administrateur : il s'agit du dernier administrateur du système.",
+    "demoteTitle": "Retirer les droits administrateur",
+    "demoteMessage": "Voulez-vous retirer les droits d'administrateur à <strong>{name}</strong> ?",
+    "promoteMessage": "Voulez-vous nommer administrateur <strong>{name}</strong> ?",
+    "removeTitle": "Retirer un membre",
+    "removeMessage": "Voulez-vous vraiment supprimer <strong>{name}</strong> de la famille ?",
+    "removeDescription": "Cette action retirera le membre de cet espace familial ainsi que ses accès.",
+    "removeConfirm": "Retirer de la famille"
   },
   "restricted": {
     "text": "{label} Seul un utilisateur disposant du rôle {role} est autorisé à modifier ces paramètres.",
@@ -42,7 +51,17 @@
     "none": "Aucun connecteur MCP actif pour cette famille.",
     "regenerate": "Régénérer l'URL du connecteur",
     "generate": "Générer l'URL du connecteur",
-    "revoke": "Révoquer"
+    "revoke": "Révoquer",
+    "regenerateTitle": "Régénérer le connecteur MCP ?",
+    "regenerateMessage": "L'URL actuelle cessera immédiatement de fonctionner. Toute intégration Claude déjà configurée avec l'ancienne URL devra être mise à jour.",
+    "regenerateConfirm": "Régénérer",
+    "revokeTitle": "Révoquer le connecteur MCP ?",
+    "revokeMessage": "L'URL du connecteur cessera immédiatement de fonctionner pour toute intégration Claude configurée.",
+    "errors": {
+      "status": "Erreur lors de la récupération du statut du connecteur",
+      "generate": "Erreur lors de la génération du connecteur",
+      "revoke": "Erreur lors de la révocation du connecteur"
+    }
   },
   "mealie": {
     "title": "Serveur de recettes Mealie",
@@ -58,7 +77,14 @@
     "tokenPlaceholder": "Jeton généré dans Mealie",
     "checking": "Vérification de la connexion…",
     "testAndSave": "Tester et enregistrer",
-    "disconnect": "Déconnecter"
+    "disconnect": "Déconnecter",
+    "disconnectTitle": "Déconnecter Mealie ?",
+    "disconnectMessage": "La recherche de recettes Mealie ne sera plus proposée lors de l'ajout d'un repas. Les liens de recettes déjà enregistrés sur les repas sont conservés.",
+    "errors": {
+      "load": "Erreur lors de la récupération de la configuration Mealie",
+      "save": "Erreur lors de l'enregistrement de la configuration Mealie",
+      "delete": "Erreur lors de la suppression de la configuration Mealie"
+    }
   },
   "categories": {
     "title": "Catégories de courses",
@@ -94,7 +120,9 @@
     "name": "Titre du raccourci",
     "namePlaceholder": "ex : Pronote, ÉcoleDirecte, Synology, Google Drive…",
     "url": "Adresse URL (lien complet)",
-    "create": "Créer le raccourci"
+    "create": "Créer le raccourci",
+    "deleteMessage": "Voulez-vous vraiment supprimer le raccourci <strong>« {title} »</strong> ?",
+    "deleteDescription": "Cette action est irréversible et retirera le raccourci pour tous les membres de la famille."
   },
   "addMember": {
     "title": "Inviter un membre dans la famille",
@@ -107,12 +135,19 @@
     "access": "Statut d'accès",
     "detailedLater": "Le réglage détaillé (par jour et par repas) sera possible une fois l'invitation acceptée.",
     "sending": "Envoi en cours…",
-    "send": "Envoyer l'invitation"
+    "send": "Envoyer l'invitation",
+    "existingInvited": "L'utilisateur {name} a été invité à rejoindre votre famille !",
+    "emailSent": "Une invitation a été envoyée par email à {email} !",
+    "error": "Erreur lors de l'invitation du membre"
   },
   "editMember": {
     "title": "Modifier le membre : {name}",
     "resendTitle": "Envoyer un email avec un nouveau lien d'activation valable 2 heures",
     "resending": "Envoi…",
-    "resend": "Renvoyer l'email de bienvenue"
+    "resend": "Renvoyer l'email de bienvenue",
+    "resent": "Email de bienvenue envoyé avec succès !",
+    "resendError": "Erreur lors de l'envoi de l'email",
+    "error": "Erreur lors de la modification du membre",
+    "saveError": "Erreur lors de l'enregistrement"
   }
 }
