@@ -247,6 +247,7 @@
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { FAMILY_ROLE_VALUES, translateValue } from '../i18n/values'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { ShieldCheck, Shield, Mail, Bell, BellOff, Download, Trash2, AlertTriangle, CalendarCheck } from '@lucide/vue'

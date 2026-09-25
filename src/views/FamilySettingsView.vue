@@ -909,6 +909,7 @@ import {
 } from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
+import { FAMILY_ROLE_VALUES, translateValue } from '../i18n/values'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
