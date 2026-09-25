@@ -5,8 +5,11 @@ import { t, te } from './index.js'
 // Une valeur connue a une clé values.<type>.<valeur normalisée> ; une valeur saisie librement
 // par l'utilisateur (catégorie personnalisée…) s'affiche telle quelle.
 export const valueKey = (value) => String(value ?? '')
-  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+
+// Rôles familiaux proposés dans les formulaires (valeurs enregistrées en base)
+export const FAMILY_ROLE_VALUES = ['Papa', 'Maman', 'Fils', 'Fille', 'Grand-Parent', 'Oncle / Tante', 'Baby-Sitter', 'Autre']
 
 export function translateValue(kind, value) {
   if (value === null || value === undefined || value === '') return value

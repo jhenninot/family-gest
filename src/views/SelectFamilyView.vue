@@ -6,7 +6,7 @@
           <BrandLogo :size="28" />
         </div>
         <h1 class="brand-title">FamilyGest</h1>
-        <p class="brand-subtitle">Choisissez votre espace familial</p>
+        <p class="brand-subtitle">{{ t('selectFamily.subtitle') }}</p>
       </div>
 
       <div class="user-badge glass-panel">
@@ -15,14 +15,14 @@
           <span class="user-name">{{ authStore.user?.firstName }} {{ authStore.user?.lastName }}</span>
           <span class="user-email">{{ authStore.user?.email }}</span>
         </div>
-        <button @click="handleLogout" class="btn-logout" title="Se déconnecter">
+        <button @click="handleLogout" class="btn-logout" :title="t('common.logout')">
           <LogOut :size="18" />
         </button>
       </div>
 
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
-        <p>Chargement de vos familles...</p>
+        <p>{{ t('selectFamily.loading') }}</p>
       </div>
 
       <div v-else class="families-section">
@@ -32,18 +32,18 @@
             <ShieldAlert :size="24" />
           </div>
           <div class="banner-text">
-            <h4>Console Super Administrateur</h4>
-            <p>Gérez toutes les familles, quotas et configuration SMTP globale</p>
+            <h4>{{ t('selectFamily.superAdminTitle') }}</h4>
+            <p>{{ t('selectFamily.superAdminDesc') }}</p>
           </div>
           <button @click="goToSuperAdmin" class="btn-super-admin">
-            Ouvrir la console
+            {{ t('selectFamily.openConsole') }}
           </button>
         </div>
 
         <div v-if="families.length === 0 && !authStore.isSuperAdmin" class="empty-families glass-card">
           <Users :size="48" class="empty-icon" />
-          <h3>Aucune famille associée</h3>
-          <p>Vous n'avez pas encore rejoint d'espace familial. Attendez une invitation par email de votre administrateur.</p>
+          <h3>{{ t('selectFamily.emptyTitle') }}</h3>
+          <p>{{ t('selectFamily.emptyText') }}</p>
         </div>
 
         <div v-else class="families-grid">
@@ -67,10 +67,10 @@
               <span class="role-pill" :class="{ 'admin-role': fam.role === 'admin' || fam.isAdmin }">
                 <ShieldCheck v-if="fam.role === 'admin' || fam.isAdmin" :size="14" />
                 <User v-else :size="14" />
-                {{ fam.role === 'admin' || fam.isAdmin ? 'Administrateur' : (fam.role || 'Membre') }}
+                {{ fam.role === 'admin' || fam.isAdmin ? translateValue('role', 'Administrateur') : translateValue('role', fam.role || 'Membre') }}
               </span>
               <button class="btn-access">
-                Accéder
+                {{ t('selectFamily.access') }}
                 <ArrowRight :size="16" />
               </button>
             </div>
@@ -84,6 +84,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { translateValue } from '../i18n/values'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { LogOut, ShieldAlert, ShieldCheck, User, Users, ArrowRight } from '@lucide/vue'
@@ -91,6 +93,7 @@ import UserAvatar from '../components/UserAvatar.vue'
 import BrandLogo from '../components/BrandLogo.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
 

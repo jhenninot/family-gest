@@ -5,14 +5,14 @@
         <div class="logo-badge">
           <BrandLogo :size="24" />
         </div>
-        <h1 class="legal-title">{{ route.meta.title }}</h1>
+        <h1 class="legal-title">{{ t(route.meta.titleKey) }}</h1>
       </div>
 
-      <div v-if="loading" class="legal-loading">Chargement...</div>
+      <div v-if="loading" class="legal-loading">{{ t('common.loading') }}</div>
       <pre v-else class="legal-content">{{ content }}</pre>
 
       <div class="legal-footer">
-        <router-link to="/login" class="btn btn-secondary">Retour à la connexion</router-link>
+        <router-link to="/login" class="btn btn-secondary">{{ t('legal.backToLogin') }}</router-link>
       </div>
     </div>
   </div>
@@ -21,9 +21,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import BrandLogo from '../components/BrandLogo.vue'
 
 const route = useRoute()
+const { t } = useI18n()
 const loading = ref(true)
 const legalNotice = ref('')
 const privacyPolicy = ref('')
@@ -39,7 +41,7 @@ onMounted(async () => {
     legalNotice.value = data.legalNotice || ''
     privacyPolicy.value = data.privacyPolicy || ''
   } catch (err) {
-    legalNotice.value = privacyPolicy.value = 'Impossible de charger ce contenu pour le moment.'
+    legalNotice.value = privacyPolicy.value = t('legal.loadError')
   } finally {
     loading.value = false
   }

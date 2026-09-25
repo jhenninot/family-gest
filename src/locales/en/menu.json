@@ -1,0 +1,32 @@
+{
+  "userMenu": "User menu",
+  "userMenuWithName": "User menu ({name})",
+  "familySpaces": "Family spaces",
+  "allFamiliesTitle": "See all my families",
+  "allFamilies": "All",
+  "superAdminConsole": "Super admin console",
+  "profile": "My profile",
+  "profileSubtitle": "Details & avatar",
+  "administration": "Administration",
+  "administrationSubtitle": "Members, roles & settings",
+  "refreshing": "Updating…",
+  "refresh": "Refresh the app",
+  "refreshSubtitle": "Clear the cache and force the update",
+  "logout": "Sign out",
+  "logoutSubtitle": "End my session",
+  "defaultUserName": "User",
+  "badges": {
+    "superAdmin": "Super admin",
+    "admin": "Admin",
+    "member": "Member"
+  },
+  "theme": {
+    "title": "Theme",
+    "autoTitle": "Automatic: follows the device's dark mode",
+    "light": "Light",
+    "dark": "Dark",
+    "autoSubtitle": "Follows the device",
+    "alwaysDark": "Always dark",
+    "alwaysLight": "Always light"
+  }
+}

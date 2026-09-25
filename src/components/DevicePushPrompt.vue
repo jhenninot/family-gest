@@ -6,8 +6,8 @@
         <button 
           @click="handleRemindLater" 
           class="push-close-btn" 
-          aria-label="Fermer"
-          title="Fermer pour l'instant"
+          :aria-label="t('common.close')"
+          :title="t('pushPrompt.closeForNow')"
         >
           <X :size="16" />
         </button>
@@ -18,9 +18,9 @@
             <Bell :size="22" class="badge-bell" />
           </div>
           <div class="push-header-text">
-            <h3 class="push-modal-title">Notifications sur cet appareil</h3>
+            <h3 class="push-modal-title">{{ t('profile.device.title') }}</h3>
             <p class="push-modal-desc">
-              Souhaitez-vous recevoir des alertes instantanées (nouvelle tâche, absence, invité aux repas, agenda) sur ce navigateur ?
+              {{ t('pushPrompt.question') }}
             </p>
           </div>
         </div>
@@ -39,8 +39,8 @@
             :disabled="loading"
           >
             <BellRing v-if="!loading" :size="18" />
-            <span v-if="!loading">Recevoir les notifications sur cet appareil</span>
-            <span v-else>Activation en cours...</span>
+            <span v-if="!loading">{{ t('pushPrompt.accept') }}</span>
+            <span v-else>{{ t('pushPrompt.activating') }}</span>
           </button>
 
           <!-- Option 2 : Ne pas les recevoir pour le moment -->
@@ -50,7 +50,7 @@
             :disabled="loading"
           >
             <Clock :size="16" />
-            <span>Ne pas les recevoir pour le moment</span>
+            <span>{{ t('pushPrompt.later') }}</span>
           </button>
 
           <!-- Option 3 : Ne jamais recevoir sur cet appareil -->
@@ -60,7 +60,7 @@
             :disabled="loading"
           >
             <BellOff :size="15" />
-            <span>Ne jamais recevoir les notifications sur cet appareil</span>
+            <span>{{ t('pushPrompt.never') }}</span>
           </button>
         </div>
       </div>
@@ -71,6 +71,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/authStore'
 import { Bell, BellRing, BellOff, Clock, X } from '@lucide/vue'
 import { 
@@ -80,6 +81,7 @@ import {
 } from '../utils/pushNotifications'
 
 const route = useRoute()
+const { t } = useI18n()
 const authStore = useAuthStore()
 
 const showPrompt = ref(false)
@@ -116,22 +118,22 @@ const handleAccept = async () => {
       showPrompt.value = false
     } else {
       if (res.reason === 'denied') {
-        errorMessage.value = 'Les notifications ont été bloquées dans votre navigateur. Vous pouvez les autoriser dans les paramètres du site.'
+        errorMessage.value = t('pushPrompt.errors.denied')
         setTimeout(() => {
           showPrompt.value = false
         }, 3500)
       } else if (res.reason === 'unsupported') {
-        errorMessage.value = 'Ce navigateur ne prend pas en charge les notifications Push.'
+        errorMessage.value = t('pushPrompt.errors.unsupported')
         setTimeout(() => {
           showPrompt.value = false
         }, 2500)
       } else {
-        errorMessage.value = res.error || 'Impossible d\'activer les notifications sur cet appareil.'
+        errorMessage.value = res.error || t('pushPrompt.errors.failed')
       }
     }
   } catch (err) {
     loading.value = false
-    errorMessage.value = 'Une erreur est survenue lors de l\'activation.'
+    errorMessage.value = t('pushPrompt.errors.unexpected')
   }
 }
 

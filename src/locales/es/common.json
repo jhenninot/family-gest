@@ -1,6 +1,17 @@
 {
   "language": {
     "title": "Idioma",
-    "subtitle": "Idioma de la aplicación y de los correos"
-  }
+    "subtitle": "Aplicación y correos"
+  },
+  "loading": "Cargando…",
+  "errors": {
+    "server": "Error de conexión con el servidor.",
+    "unreachable": "No se puede contactar con el servidor",
+    "noActiveFamily": "Ninguna familia activa"
+  },
+  "logout": "Cerrar sesión",
+  "cancel": "Cancelar",
+  "saving": "Guardando…",
+  "close": "Cerrar",
+  "hide": "Ocultar"
 }

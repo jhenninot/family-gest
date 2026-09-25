@@ -1,0 +1,16 @@
+{
+  "role": {
+    "administrateur": "Administrador/a",
+    "membre": "Miembro",
+    "parent": "Padre/Madre",
+    "enfant": "Hijo/a",
+    "papa": "Papá",
+    "maman": "Mamá",
+    "fils": "Hijo",
+    "fille": "Hija",
+    "grand_parent": "Abuelo/a",
+    "oncle_tante": "Tío / Tía",
+    "baby_sitter": "Niñero/a",
+    "autre": "Otro"
+  }
+}

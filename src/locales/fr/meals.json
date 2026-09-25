@@ -1,0 +1,13 @@
+{
+  "next": {
+    "thisLunch": "ce midi",
+    "tonight": "ce soir",
+    "tomorrowLunch": "demain midi"
+  },
+  "mealie": {
+    "errors": {
+      "search": "Erreur lors de la recherche Mealie",
+      "recipe": "Erreur lors de la récupération de la recette Mealie"
+    }
+  }
+}

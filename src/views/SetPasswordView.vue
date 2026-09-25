@@ -6,13 +6,13 @@
           <BrandLogo :size="28" />
         </div>
         <h1 class="login-title">FamilyGest</h1>
-        <p class="login-subtitle">Activation de votre compte familial</p>
+        <p class="login-subtitle">{{ t('setPassword.subtitle') }}</p>
       </div>
 
       <!-- Loading verification state -->
       <div v-if="verifying" class="state-container">
         <Loader2 :size="32" class="spin text-primary" />
-        <p class="state-text">Vérification de votre lien d'invitation...</p>
+        <p class="state-text">{{ t('setPassword.verifying') }}</p>
       </div>
 
       <!-- Error / Expired token state -->
@@ -20,16 +20,16 @@
         <div class="error-badge-icon">
           <AlertCircle :size="32" />
         </div>
-        <h2 class="error-title">Lien invalide ou expiré</h2>
+        <h2 class="error-title">{{ t('setPassword.invalidTitle') }}</h2>
         <p class="error-description">
           {{ tokenError }}
         </p>
         <div class="tip-box">
           <Clock :size="16" />
-          <span>Pour des raisons de sécurité, les liens d'invitation ont une durée de validité de 2 heures.</span>
+          <span>{{ t('setPassword.validityTip') }}</span>
         </div>
         <router-link to="/login" class="btn btn-secondary btn-block margin-top-md">
-          Retour à la page de connexion
+          {{ t('setPassword.backToLogin') }}
         </router-link>
       </div>
 
@@ -38,11 +38,11 @@
         <div class="success-badge-icon">
           <CheckCircle2 :size="36" />
         </div>
-        <h2 class="success-title">Bienvenue {{ memberUser?.firstName }} !</h2>
+        <h2 class="success-title">{{ t('setPassword.successTitle', { name: memberUser?.firstName }) }}</h2>
         <p class="success-description">
-          Votre mot de passe a été enregistré avec succès. Vous êtes maintenant connecté(e).
+          {{ t('setPassword.successText') }}
         </p>
-        <p class="state-sub">Redirection vers votre tableau de bord...</p>
+        <p class="state-sub">{{ t('setPassword.redirecting') }}</p>
       </div>
 
       <!-- Password form state -->
@@ -50,13 +50,13 @@
         <div class="welcome-user-box">
           <UserAvatar :avatar="memberUser?.avatar" :name="memberUser?.firstName" size="lg" />
           <div class="user-details-col">
-            <span class="user-greeting">Bienvenue, <strong>{{ memberUser?.firstName }} {{ memberUser?.lastName }}</strong></span>
+            <i18n-t keypath="setPassword.greeting" tag="span" class="user-greeting"><template #name><strong>{{ memberUser?.firstName }} {{ memberUser?.lastName }}</strong></template></i18n-t>
             <span class="user-email-sub">{{ memberUser?.email }}</span>
           </div>
         </div>
 
         <p class="form-instructions">
-          Veuillez choisir votre mot de passe personnel pour finaliser l'activation de votre compte :
+          {{ t('setPassword.instructions') }}
         </p>
 
         <!-- Form error alert -->
@@ -67,14 +67,14 @@
 
         <form @submit.prevent="handleSetPassword" class="login-form">
           <div class="form-group">
-            <label class="form-label">Nouveau mot de passe</label>
+            <label class="form-label">{{ t('setPassword.newPassword') }}</label>
             <div class="input-with-icon">
               <Lock :size="18" class="input-icon" />
               <input 
                 :type="showPassword ? 'text' : 'password'" 
                 v-model="password" 
                 required 
-                placeholder="10 car. min, Maj, min, chiffre, spécial" 
+                :placeholder="t('password.placeholder')" 
                 class="form-input" 
                 autocomplete="new-password"
                 minlength="10"
@@ -93,14 +93,14 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Confirmer le mot de passe</label>
+            <label class="form-label">{{ t('setPassword.confirmPassword') }}</label>
             <div class="input-with-icon">
               <Lock :size="18" class="input-icon" />
               <input 
                 :type="showConfirmPassword ? 'text' : 'password'" 
                 v-model="confirmPassword" 
                 required 
-                placeholder="Retapez le même mot de passe" 
+                :placeholder="t('setPassword.confirmPlaceholder')" 
                 class="form-input" 
                 autocomplete="new-password"
                 minlength="10"
@@ -132,10 +132,10 @@
               <div class="notif-text-col">
                 <span class="notif-label-title">
                   <Bell :size="15" class="notif-bell-icon" />
-                  Notifications Web (PWA)
+                  {{ t('setPassword.pushTitle') }}
                 </span>
                 <span class="notif-label-desc">
-                  Alertes directes sur cet appareil (tâches, absences, invités, agenda)
+                  {{ t('setPassword.pushDesc') }}
                 </span>
               </div>
             </label>
@@ -153,24 +153,24 @@
               <div class="notif-text-col">
                 <span class="notif-label-title">
                   <Mail :size="15" class="notif-mail-icon" />
-                  Notifications par Email
+                  {{ t('setPassword.emailTitle') }}
                 </span>
                 <span class="notif-label-desc">
-                  Recevoir un récapitulatif par email pour chaque nouveauté
+                  {{ t('setPassword.emailDesc') }}
                 </span>
               </div>
             </label>
           </div>
 
           <button type="submit" class="btn btn-primary btn-block" :disabled="submitting">
-            <span v-if="!submitting">Enregistrer et accéder à FamilyGest</span>
-            <span v-else>Enregistrement en cours...</span>
+            <span v-if="!submitting">{{ t('setPassword.submit') }}</span>
+            <span v-else>{{ t('setPassword.submitting') }}</span>
           </button>
         </form>
       </div>
 
       <div class="login-footer">
-        <span>Portail sécurisé FamilyGest &bull; Espace Familial</span>
+        <span>{{ t('setPassword.footer') }}</span>
       </div>
     </div>
   </div>
@@ -179,6 +179,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { signupLanguage } from '../i18n'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
@@ -200,6 +202,7 @@ import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValid
 import { subscribeUserToPush } from '../utils/pushNotifications'
 
 const route = useRoute()
+const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
@@ -229,7 +232,7 @@ onMounted(async () => {
 
   if (!token.value) {
     verifying.value = false
-    tokenError.value = 'Aucun jeton de sécurité n\'a été fourni dans le lien. Veuillez utiliser le lien reçu par email.'
+    tokenError.value = t('setPassword.errors.noToken')
     return
   }
 
@@ -240,10 +243,10 @@ onMounted(async () => {
     if (res.ok && data.valid) {
       memberUser.value = data.user
     } else {
-      tokenError.value = data.error || 'Ce lien d\'invitation est invalide ou a expiré (durée de validité : 2 heures).'
+      tokenError.value = data.error || t('setPassword.errors.invalidToken')
     }
   } catch (err) {
-    tokenError.value = 'Impossible de joindre le serveur pour vérifier votre lien.'
+    tokenError.value = t('setPassword.errors.verifyUnreachable')
   } finally {
     verifying.value = false
   }
@@ -258,7 +261,7 @@ const handleSetPassword = async () => {
   }
 
   if (password.value !== confirmPassword.value) {
-    formError.value = 'Les deux mots de passe ne correspondent pas.'
+    formError.value = t('password.errors.mismatch')
     return
   }
 
@@ -271,6 +274,7 @@ const handleSetPassword = async () => {
       body: JSON.stringify({
         token: token.value,
         password: password.value,
+        language: signupLanguage(),
         notificationPreferences: {
           push: enableNotifications.value,
           email: enableEmailNotifications.value
@@ -281,7 +285,7 @@ const handleSetPassword = async () => {
     const data = await res.json()
 
     if (!res.ok) {
-      formError.value = data.error || 'Erreur lors de la définition du mot de passe.'
+      formError.value = data.error || t('setPassword.errors.saveFailed')
       return
     }
 
@@ -303,7 +307,7 @@ const handleSetPassword = async () => {
       router.push('/')
     }, 1800)
   } catch (err) {
-    formError.value = 'Erreur de connexion au serveur.'
+    formError.value = t('common.errors.server')
   } finally {
     submitting.value = false
   }

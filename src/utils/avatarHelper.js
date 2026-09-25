@@ -3,63 +3,66 @@
  * Compatible iOS / Android / Mac / PC
  */
 
+import { t } from '../i18n'
+
+// Libellés (infobulle, texte alternatif) : avatar.presets.<id>
 export const PRESET_3D_AVATARS = [
   // --- 15 ANS (ADOS) ---
-  { id: 'teen-boy-asian', label: 'Ado garçon (Asiatique)', path: '/avatars/3d/teen-boy-asian.webp' },
-  { id: 'teen-girl-fair-blonde', label: 'Ado fille (Blonde)', path: '/avatars/3d/teen-girl-fair-blonde.webp' },
-  { id: 'teen-boy-black', label: 'Ado garçon (Noir)', path: '/avatars/3d/teen-boy-black.webp' },
-  { id: 'teen-boy-fair-blond', label: 'Ado garçon (Blond)', path: '/avatars/3d/teen-boy-fair-blond.webp' },
-  { id: 'teen-girl-black-braids', label: 'Ado fille (Tresses)', path: '/avatars/3d/teen-girl-black-braids.webp' },
-  { id: 'teen-girl-asian-bob', label: 'Ado fille (Carré asiatique)', path: '/avatars/3d/teen-girl-asian-bob.webp' },
-  { id: 'teen-girl-fair-brunette', label: 'Ado fille (Châtain bouclée)', path: '/avatars/3d/teen-girl-fair-brunette.webp' },
-  { id: 'teen-boy-fair-brown', label: 'Ado garçon (Châtain)', path: '/avatars/3d/teen-boy-fair-brown.webp' },
+  { id: 'teen-boy-asian', path: '/avatars/3d/teen-boy-asian.webp' },
+  { id: 'teen-girl-fair-blonde', path: '/avatars/3d/teen-girl-fair-blonde.webp' },
+  { id: 'teen-boy-black', path: '/avatars/3d/teen-boy-black.webp' },
+  { id: 'teen-boy-fair-blond', path: '/avatars/3d/teen-boy-fair-blond.webp' },
+  { id: 'teen-girl-black-braids', path: '/avatars/3d/teen-girl-black-braids.webp' },
+  { id: 'teen-girl-asian-bob', path: '/avatars/3d/teen-girl-asian-bob.webp' },
+  { id: 'teen-girl-fair-brunette', path: '/avatars/3d/teen-girl-fair-brunette.webp' },
+  { id: 'teen-boy-fair-brown', path: '/avatars/3d/teen-boy-fair-brown.webp' },
 
   // --- 25 ANS (JEUNES ADULTES) ---
-  { id: 'young-man-black-afro', label: 'Jeune homme (Afro)', path: '/avatars/3d/young-man-black-afro.webp' },
-  { id: 'young-woman-fair-ginger', label: 'Jeune femme (Rousse)', path: '/avatars/3d/young-woman-fair-ginger.webp' },
-  { id: 'young-man-asian', label: 'Jeune homme (Asiatique)', path: '/avatars/3d/young-man-asian.webp' },
-  { id: 'young-woman-black-puff', label: 'Jeune femme (Chignon afro)', path: '/avatars/3d/young-woman-black-puff.webp' },
-  { id: 'young-woman-fair-brunette', label: 'Jeune femme (Brune)', path: '/avatars/3d/young-woman-fair-brunette.webp' },
-  { id: 'young-man-fair-brown', label: 'Jeune homme (Châtain)', path: '/avatars/3d/young-man-fair-brown.webp' },
-  { id: 'young-woman-fair-blonde', label: 'Jeune femme (Blonde)', path: '/avatars/3d/young-woman-fair-blonde.webp' },
-  { id: 'young-man-fair-blond', label: 'Jeune homme (Blond)', path: '/avatars/3d/young-man-fair-blond.webp' },
-  { id: 'young-woman-asian-long', label: 'Jeune femme (Asiatique)', path: '/avatars/3d/young-woman-asian-long.webp' },
+  { id: 'young-man-black-afro', path: '/avatars/3d/young-man-black-afro.webp' },
+  { id: 'young-woman-fair-ginger', path: '/avatars/3d/young-woman-fair-ginger.webp' },
+  { id: 'young-man-asian', path: '/avatars/3d/young-man-asian.webp' },
+  { id: 'young-woman-black-puff', path: '/avatars/3d/young-woman-black-puff.webp' },
+  { id: 'young-woman-fair-brunette', path: '/avatars/3d/young-woman-fair-brunette.webp' },
+  { id: 'young-man-fair-brown', path: '/avatars/3d/young-man-fair-brown.webp' },
+  { id: 'young-woman-fair-blonde', path: '/avatars/3d/young-woman-fair-blonde.webp' },
+  { id: 'young-man-fair-blond', path: '/avatars/3d/young-man-fair-blond.webp' },
+  { id: 'young-woman-asian-long', path: '/avatars/3d/young-woman-asian-long.webp' },
 
   // --- 40 ANS (ADULTES) ---
-  { id: 'adult-woman-asian-ponytail', label: 'Femme 40 ans (Asiatique chic)', path: '/avatars/3d/adult-woman-asian-ponytail.webp' },
-  { id: 'adult-woman-fair-chestnut', label: 'Femme 40 ans (Châtain)', path: '/avatars/3d/adult-woman-fair-chestnut.webp' },
-  { id: 'adult-woman-black-twists', label: 'Femme 40 ans (Tresses)', path: '/avatars/3d/adult-woman-black-twists.webp' },
-  { id: 'adult-man-fair-glasses', label: 'Homme 40 ans (Lunettes & barbe)', path: '/avatars/3d/adult-man-fair-glasses.webp' },
-  { id: 'adult-man-black-beard', label: 'Homme 40 ans (Noir, barbe)', path: '/avatars/3d/adult-man-black-beard.webp' },
-  { id: 'adult-man-asian', label: 'Homme 40 ans (Asiatique)', path: '/avatars/3d/adult-man-asian.webp' },
-  { id: 'adult-man-fair-bald', label: 'Homme 40 ans (Chauve & barbe)', path: '/avatars/3d/adult-man-fair-bald.webp' },
-  { id: 'adult-woman-fair-blonde', label: 'Femme 40 ans (Blonde)', path: '/avatars/3d/adult-woman-fair-blonde.webp' },
-  { id: 'adult-man-fair-curly', label: 'Homme 40 ans (Bouclé)', path: '/avatars/3d/adult-man-fair-curly.webp' },
+  { id: 'adult-woman-asian-ponytail', path: '/avatars/3d/adult-woman-asian-ponytail.webp' },
+  { id: 'adult-woman-fair-chestnut', path: '/avatars/3d/adult-woman-fair-chestnut.webp' },
+  { id: 'adult-woman-black-twists', path: '/avatars/3d/adult-woman-black-twists.webp' },
+  { id: 'adult-man-fair-glasses', path: '/avatars/3d/adult-man-fair-glasses.webp' },
+  { id: 'adult-man-black-beard', path: '/avatars/3d/adult-man-black-beard.webp' },
+  { id: 'adult-man-asian', path: '/avatars/3d/adult-man-asian.webp' },
+  { id: 'adult-man-fair-bald', path: '/avatars/3d/adult-man-fair-bald.webp' },
+  { id: 'adult-woman-fair-blonde', path: '/avatars/3d/adult-woman-fair-blonde.webp' },
+  { id: 'adult-man-fair-curly', path: '/avatars/3d/adult-man-fair-curly.webp' },
 
   // --- 50 ANS (MATURES) ---
-  { id: 'mature-woman-fair-auburn', label: 'Femme 50 ans (Auburn)', path: '/avatars/3d/mature-woman-fair-auburn.webp' },
-  { id: 'mature-woman-black-bun', label: 'Femme 50 ans (Chignon tressé)', path: '/avatars/3d/mature-woman-black-bun.webp' },
-  { id: 'mature-woman-asian-bob', label: 'Femme 50 ans (Asiatique)', path: '/avatars/3d/mature-woman-asian-bob.webp' },
-  { id: 'mature-man-asian', label: 'Homme 50 ans (Asiatique)', path: '/avatars/3d/mature-man-asian.webp' },
-  { id: 'mature-man-fair-grey', label: 'Homme 50 ans (Poivre & sel)', path: '/avatars/3d/mature-man-fair-grey.webp' },
-  { id: 'mature-man-asian-glasses', label: 'Homme 50 ans (Lunettes)', path: '/avatars/3d/mature-man-asian-glasses.webp' },
-  { id: 'mature-man-black-grey', label: 'Homme 50 ans (Noir, barbe argentée)', path: '/avatars/3d/mature-man-black-grey.webp' },
-  { id: 'mature-man-fair-silver', label: 'Homme 50 ans (Argenté)', path: '/avatars/3d/mature-man-fair-silver.webp' },
-  { id: 'mature-woman-black-short', label: 'Femme 50 ans (Courte argentée)', path: '/avatars/3d/mature-woman-black-short.webp' },
+  { id: 'mature-woman-fair-auburn', path: '/avatars/3d/mature-woman-fair-auburn.webp' },
+  { id: 'mature-woman-black-bun', path: '/avatars/3d/mature-woman-black-bun.webp' },
+  { id: 'mature-woman-asian-bob', path: '/avatars/3d/mature-woman-asian-bob.webp' },
+  { id: 'mature-man-asian', path: '/avatars/3d/mature-man-asian.webp' },
+  { id: 'mature-man-fair-grey', path: '/avatars/3d/mature-man-fair-grey.webp' },
+  { id: 'mature-man-asian-glasses', path: '/avatars/3d/mature-man-asian-glasses.webp' },
+  { id: 'mature-man-black-grey', path: '/avatars/3d/mature-man-black-grey.webp' },
+  { id: 'mature-man-fair-silver', path: '/avatars/3d/mature-man-fair-silver.webp' },
+  { id: 'mature-woman-black-short', path: '/avatars/3d/mature-woman-black-short.webp' },
 
   // --- 60 ANS (SENIORS) ---
-  { id: 'senior-woman-asian-glasses', label: 'Femme 60 ans (Asiatique)', path: '/avatars/3d/senior-woman-asian-glasses.webp' },
-  { id: 'senior-man-fair-beard', label: 'Homme 60 ans (Barbe blanche)', path: '/avatars/3d/senior-man-fair-beard.webp' },
-  { id: 'senior-woman-black-curls', label: 'Femme 60 ans (Boucles argentées)', path: '/avatars/3d/senior-woman-black-curls.webp' },
-  { id: 'senior-man-black-goatee', label: 'Homme 60 ans (Bouc argenté)', path: '/avatars/3d/senior-man-black-goatee.webp' },
-  { id: 'senior-man-asian', label: 'Homme 60 ans (Asiatique)', path: '/avatars/3d/senior-man-asian.webp' },
-  { id: 'senior-woman-fair-glasses', label: 'Femme 60 ans (Lunettes rondes)', path: '/avatars/3d/senior-woman-fair-glasses.webp' },
-  { id: 'senior-man-fair-glasses', label: 'Homme 60 ans (Lunettes)', path: '/avatars/3d/senior-man-fair-glasses.webp' },
+  { id: 'senior-woman-asian-glasses', path: '/avatars/3d/senior-woman-asian-glasses.webp' },
+  { id: 'senior-man-fair-beard', path: '/avatars/3d/senior-man-fair-beard.webp' },
+  { id: 'senior-woman-black-curls', path: '/avatars/3d/senior-woman-black-curls.webp' },
+  { id: 'senior-man-black-goatee', path: '/avatars/3d/senior-man-black-goatee.webp' },
+  { id: 'senior-man-asian', path: '/avatars/3d/senior-man-asian.webp' },
+  { id: 'senior-woman-fair-glasses', path: '/avatars/3d/senior-woman-fair-glasses.webp' },
+  { id: 'senior-man-fair-glasses', path: '/avatars/3d/senior-man-fair-glasses.webp' },
 
   // --- FAMILLE & COMPAGNIE ---
-  { id: 'baby', label: 'Bébé', path: '/avatars/3d/baby.webp' },
-  { id: 'cat', label: 'Chat', path: '/avatars/3d/cat.webp' },
-  { id: 'dog', label: 'Chien', path: '/avatars/3d/dog.webp' }
+  { id: 'baby', path: '/avatars/3d/baby.webp' },
+  { id: 'cat', path: '/avatars/3d/cat.webp' },
+  { id: 'dog', path: '/avatars/3d/dog.webp' }
 ]
 
 export const DEFAULT_AVATAR = '/avatars/3d/adult-man-fair-glasses.webp'
@@ -104,11 +107,11 @@ export function getAvatarTextFallback(avatar, defaultEmoji = '👤') {
 export function processUploadedImage(file, targetSize = 256) {
   return new Promise((resolve, reject) => {
     if (!file) {
-      return reject(new Error('Aucun fichier sélectionné'))
+      return reject(new Error(t('avatar.errors.noFile')))
     }
 
     if (!file.type.startsWith('image/')) {
-      return reject(new Error('Le fichier sélectionné n\'est pas une image valide.'))
+      return reject(new Error(t('avatar.errors.notImage')))
     }
 
     const reader = new FileReader()
@@ -123,7 +126,7 @@ export function processUploadedImage(file, targetSize = 256) {
           const ctx = canvas.getContext('2d')
 
           if (!ctx) {
-            return reject(new Error('Impossible d\'initialiser le contexte graphique canvas.'))
+            return reject(new Error(t('avatar.errors.canvas')))
           }
 
           // Lissage haute qualité
@@ -159,14 +162,14 @@ export function processUploadedImage(file, targetSize = 256) {
       }
 
       img.onerror = () => {
-        reject(new Error('Impossible de lire l\'image sélectionnée.'))
+        reject(new Error(t('avatar.errors.readImage')))
       }
 
       img.src = e.target.result
     }
 
     reader.onerror = () => {
-      reject(new Error('Erreur lors de la lecture du fichier.'))
+      reject(new Error(t('avatar.errors.readFile')))
     }
 
     reader.readAsDataURL(file)

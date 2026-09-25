@@ -8,8 +8,8 @@
           @click="toggleUserMenu" 
           class="top-icon-btn profile-btn" 
           :class="{ 'menu-open': isUserMenuOpen }"
-          :title="`Menu utilisateur (${displayName})`"
-          aria-label="Menu utilisateur"
+          :title="t('menu.userMenuWithName', { name: displayName })"
+          :aria-label="t('menu.userMenu')"
           :aria-expanded="isUserMenuOpen"
         >
           <UserAvatar 
@@ -43,14 +43,14 @@
               <div class="user-dropdown-divider"></div>
 
               <div class="user-dropdown-section-header">
-                <span class="dropdown-section-title">Espaces Familiaux</span>
+                <span class="dropdown-section-title">{{ t('menu.familySpaces') }}</span>
                 <button 
                   @click="goToSelectFamily" 
                   class="dropdown-mini-btn"
-                  title="Voir toutes mes familles"
+                  :title="t('menu.allFamiliesTitle')"
                 >
                   <Grid :size="12" />
-                  <span>Toutes</span>
+                  <span>{{ t('menu.allFamilies') }}</span>
                 </button>
               </div>
 
@@ -71,7 +71,7 @@
                   </div>
                   <div class="mobile-family-item-right">
                     <span v-if="authStore.isSuperAdmin || fam.isAdmin" class="mobile-family-role-badge">
-                      {{ authStore.isSuperAdmin ? 'Super Admin' : 'Admin' }}
+                      {{ authStore.isSuperAdmin ? t('menu.badges.superAdmin') : t('menu.badges.admin') }}
                     </span>
                     <span v-if="currentSlug === fam.slug" class="mobile-family-check">✓</span>
                   </div>
@@ -80,7 +80,7 @@
 
               <button v-if="authStore.isSuperAdmin" @click="goToSuperAdmin" class="dropdown-super-admin-btn">
                 <ShieldAlert :size="13" />
-                <span>Console Super Admin</span>
+                <span>{{ t('menu.superAdminConsole') }}</span>
               </button>
             </div>
 
@@ -93,8 +93,8 @@
                   <User :size="16" />
                 </div>
                 <div class="item-label-group">
-                  <span class="item-title">Mon Profil</span>
-                  <span class="item-subtitle">Informations & avatar</span>
+                  <span class="item-title">{{ t('menu.profile') }}</span>
+                  <span class="item-subtitle">{{ t('menu.profileSubtitle') }}</span>
                 </div>
               </button>
 
@@ -109,8 +109,8 @@
                   <Settings :size="16" />
                 </div>
                 <div class="item-label-group">
-                  <span class="item-title">Administration</span>
-                  <span class="item-subtitle">Membres, rôles & paramètres</span>
+                  <span class="item-title">{{ t('menu.administration') }}</span>
+                  <span class="item-subtitle">{{ t('menu.administrationSubtitle') }}</span>
                 </div>
               </button>
 
@@ -121,10 +121,10 @@
                   <Sun v-else :size="16" />
                 </div>
                 <div class="item-label-group">
-                  <span class="item-title">Thème</span>
+                  <span class="item-title">{{ t('menu.theme.title') }}</span>
                   <span class="item-subtitle">{{ themeSubtitle }}</span>
                 </div>
-                <div class="theme-switch" role="radiogroup" aria-label="Thème">
+                <div class="theme-switch" role="radiogroup" :aria-label="t('menu.theme.title')">
                   <button
                     v-for="option in themeOptions"
                     :key="option.value"
@@ -173,8 +173,8 @@
                   <RefreshCw :size="16" :class="{ 'spin-icon': isRefreshing }" />
                 </div>
                 <div class="item-label-group">
-                  <span class="item-title">{{ isRefreshing ? 'Mise à jour en cours...' : 'Rafraîchir l\'application' }}</span>
-                  <span class="item-subtitle">Vider le cache et forcer la mise à jour</span>
+                  <span class="item-title">{{ isRefreshing ? t('menu.refreshing') : t('menu.refresh') }}</span>
+                  <span class="item-subtitle">{{ t('menu.refreshSubtitle') }}</span>
                 </div>
               </button>
 
@@ -185,8 +185,8 @@
                   <LogOut :size="16" />
                 </div>
                 <div class="item-label-group">
-                  <span class="item-title">Déconnexion</span>
-                  <span class="item-subtitle">Fermer ma session</span>
+                  <span class="item-title">{{ t('menu.logout') }}</span>
+                  <span class="item-subtitle">{{ t('menu.logoutSubtitle') }}</span>
                 </div>
               </button>
             </div>
@@ -275,17 +275,17 @@ const isAuthPage = computed(() => {
 
 const displayName = computed(() => {
   const u = authStore.user
-  if (!u) return 'Utilisateur'
+  if (!u) return t('menu.defaultUserName')
   if (u.name) return u.name
   if (u.firstName && u.lastName) return `${u.firstName} ${u.lastName}`
   if (u.firstName) return u.firstName
-  return 'Utilisateur'
+  return t('menu.defaultUserName')
 })
 
 const userBadgeText = computed(() => {
-  if (authStore.isSuperAdmin) return 'Super Admin'
-  if (familyStore.currentFamilyIsAdmin) return 'Admin'
-  return 'Membre'
+  if (authStore.isSuperAdmin) return t('menu.badges.superAdmin')
+  if (familyStore.currentFamilyIsAdmin) return t('menu.badges.admin')
+  return t('menu.badges.member')
 })
 
 const families = computed(() => {
@@ -355,15 +355,15 @@ const openProfileFromMenu = () => {
   showProfileModal.value = true
 }
 
-const themeOptions = [
-  { value: 'auto', icon: SunMoon, title: 'Automatique : suit le mode nuit de l\'appareil' },
-  { value: 'light', icon: Sun, title: 'Clair' },
-  { value: 'dark', icon: Moon, title: 'Sombre' }
-]
+const themeOptions = computed(() => [
+  { value: 'auto', icon: SunMoon, title: t('menu.theme.autoTitle') },
+  { value: 'light', icon: Sun, title: t('menu.theme.light') },
+  { value: 'dark', icon: Moon, title: t('menu.theme.dark') }
+])
 
 const themeSubtitle = computed(() => {
-  if (familyStore.themePreference === 'auto') return 'Suit l\'appareil'
-  return familyStore.themePreference === 'dark' ? 'Toujours sombre' : 'Toujours clair'
+  if (familyStore.themePreference === 'auto') return t('menu.theme.autoSubtitle')
+  return familyStore.themePreference === 'dark' ? t('menu.theme.alwaysDark') : t('menu.theme.alwaysLight')
 })
 
 const logoutFromMenu = () => {

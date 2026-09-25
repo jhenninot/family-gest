@@ -1,0 +1,14 @@
+{
+  "dashboard": "Panel",
+  "presence": "Presencia",
+  "presenceBadge": "{n} persona presente en la próxima comida ({meal}) | {n} personas presentes en la próxima comida ({meal})",
+  "meals": "Comidas",
+  "mealsBadge": "{n} plato previsto esta semana | {n} platos previstos esta semana",
+  "shopping": "Lista de la compra",
+  "tasks": "Tareas",
+  "calendar": "Calendario",
+  "eventsBadge": "Eventos en los próximos 7 días",
+  "shortcuts": "Accesos directos",
+  "openShortcut": "Abrir {title} ({url})",
+  "defaultFamilyName": "Espacio familiar"
+}

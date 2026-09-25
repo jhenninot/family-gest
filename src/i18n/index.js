@@ -44,7 +44,15 @@ export const i18n = createI18n({
   fallbackLocale: DEFAULT_LOCALE,
   messages: { [DEFAULT_LOCALE]: buildMessages(Object.entries(frModules)) },
   missingWarn: false,
-  fallbackWarn: false
+  fallbackWarn: false,
+  // Pluriels « singulier | pluriel » : en français, 0 et 1 sont au singulier (« 0 tâche »),
+  // en anglais et en espagnol 0 est au pluriel (« 0 tasks », « 0 tareas »).
+  pluralRules: {
+    fr: (choice, choicesLength) => {
+      if (choicesLength === 2) return Math.abs(choice) >= 2 ? 1 : 0
+      return Math.min(Math.abs(choice), choicesLength - 1)
+    }
+  }
 })
 
 const loadedLocales = new Set([DEFAULT_LOCALE])
@@ -100,6 +108,10 @@ export async function setLocale(value) {
   }
   return locale
 }
+
+// Langue à enregistrer sur un compte qui vient d'être créé (undefined tant que le multilingue
+// n'est pas activé : le serveur garde alors la langue non choisie)
+export const signupLanguage = () => (isI18nActive() ? currentLocale.value : undefined)
 
 // Raccourcis pour le code hors composants (stores, utilitaires)
 export const t = (...args) => i18n.global.t(...args)

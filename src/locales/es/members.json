@@ -1,0 +1,6 @@
+{
+  "errors": {
+    "deleteFailed": "Error al eliminar al miembro",
+    "adminToggleFailed": "Error al cambiar el estado de administrador"
+  }
+}

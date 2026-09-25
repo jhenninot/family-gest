@@ -1,0 +1,16 @@
+{
+  "closeForNow": "Cerrar por ahora",
+  "question": "¿Quieres recibir alertas instantáneas (nueva tarea, ausencia, invitado a comer, agenda) en este navegador?",
+  "accept": "Recibir notificaciones en este dispositivo",
+  "activating": "Activando…",
+  "later": "Ahora no",
+  "never": "No recibir nunca notificaciones en este dispositivo",
+  "errors": {
+    "denied": "Las notificaciones se han bloqueado en tu navegador. Puedes permitirlas en los ajustes del sitio.",
+    "unsupported": "Este navegador no admite notificaciones push.",
+    "failed": "No se pueden activar las notificaciones en este dispositivo.",
+    "unexpected": "Se ha producido un error al activarlas.",
+    "vapid": "No se puede obtener la clave VAPID",
+    "register": "Error del servidor al registrar"
+  }
+}

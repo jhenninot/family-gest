@@ -2,14 +2,14 @@
   <div v-if="modelValue" class="modal-overlay" @click.self="close">
     <div class="modal-content profile-modal-content">
       <div class="modal-header">
-        <h3>Modifier Mes Informations</h3>
+        <h3>{{ t('profile.title') }}</h3>
         <button type="button" @click="close" class="btn-close">&times;</button>
       </div>
 
       <form @submit.prevent="handleSaveProfile">
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">Prénom</label>
+            <label class="form-label">{{ t('invitation.firstName') }}</label>
             <input 
               v-model="editProfile.firstName" 
               type="text" 
@@ -19,7 +19,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Nom de famille</label>
+            <label class="form-label">{{ t('profile.lastName') }}</label>
             <input 
               v-model="editProfile.lastName" 
               type="text" 
@@ -31,7 +31,7 @@
 
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">Adresse Email (Login)</label>
+            <label class="form-label">{{ t('login.emailLabel') }}</label>
             <input 
               v-model="editProfile.email" 
               type="email" 
@@ -41,11 +41,11 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Nouveau Mot de passe (Optionnel)</label>
+            <label class="form-label">{{ t('profile.newPassword') }}</label>
             <input 
               v-model="editProfile.password" 
               type="password" 
-              placeholder="Laisser vide pour ne pas changer"
+              :placeholder="t('profile.newPasswordPlaceholder')"
               class="form-input" 
             />
             <PasswordStrengthIndicator v-if="editProfile.password" :password="editProfile.password" />
@@ -54,27 +54,20 @@
 
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">Rôle familial</label>
+            <label class="form-label">{{ t('profile.role') }}</label>
             <select v-model="editProfile.role" class="form-select">
-              <option value="Papa">Papa</option>
-              <option value="Maman">Maman</option>
-              <option value="Fils">Fils</option>
-              <option value="Fille">Fille</option>
-              <option value="Grand-Parent">Grand-Parent</option>
-              <option value="Oncle / Tante">Oncle / Tante</option>
-              <option value="Baby-Sitter">Baby-Sitter</option>
-              <option value="Autre">Autre</option>
+              <option v-for="r in FAMILY_ROLE_VALUES" :key="r" :value="r">{{ translateValue('role', r) }}</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Statut dans cette famille</label>
+            <label class="form-label">{{ t('profile.statusInFamily') }}</label>
             <div class="admin-status-box" :class="{ 'is-admin': store.isFamilyAdmin }">
               <ShieldCheck v-if="store.isFamilyAdmin" :size="16" />
               <Shield v-else :size="16" />
-              <span>{{ store.isFamilyAdmin ? 'Administrateur de la famille' : 'Membre Standard' }}</span>
+              <span>{{ store.isFamilyAdmin ? t('profile.familyAdmin') : t('profile.standardMember') }}</span>
             </div>
-            <span class="help-subtext">* Ce statut administrateur ne s'applique qu'à cet espace familial.</span>
+            <span class="help-subtext">* {{ t('profile.adminStatusHint') }}</span>
           </div>
         </div>
 
@@ -82,7 +75,7 @@
              le compte) : elle se règle depuis la page Présence de la famille concernée, et non
              ici où le profil est commun à toutes les familles. -->
         <div class="form-group">
-          <label class="form-label">Présence habituelle à la maison</label>
+          <label class="form-label">{{ t('profile.usualPresence') }}</label>
           <p class="presence-recap">{{ usualPresenceSummary }}</p>
           <button
             v-if="store.currentFamily?.slug"
@@ -90,17 +83,16 @@
             class="btn btn-secondary btn-sm"
             @click="goToUsualPresence"
           >
-            <CalendarCheck :size="16" /> Régler ma présence habituelle
+            <CalendarCheck :size="16" /> {{ t('profile.setUsualPresence') }}
           </button>
           <span class="help-subtext">
-            Détermine si vous êtes comptabilisé(e) par défaut aux repas de famille et pour la nuit.
-            Ce réglage est propre à chaque famille.
+            {{ t('profile.usualPresenceHint') }}
           </span>
         </div>
 
         <!-- Sélecteur d'Avatar & Import de Photo -->
         <div class="form-group">
-          <label class="form-label">Avatar ou Photo de profil</label>
+          <label class="form-label">{{ t('profile.avatar') }}</label>
           <AvatarPicker 
             v-model="editProfile.avatar" 
             :color="editProfile.color" 
@@ -109,7 +101,7 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Couleur de profil</label>
+          <label class="form-label">{{ t('invitation.color') }}</label>
           <div class="color-picker-options">
             <button 
               v-for="c in colorOptions" 
@@ -145,19 +137,19 @@
               <BellOff v-else :size="18" />
             </div>
             <div class="notif-toggle-details">
-              <span class="notif-toggle-title">Notifications sur cet appareil</span>
+              <span class="notif-toggle-title">{{ t('profile.device.title') }}</span>
               <span class="notif-toggle-subtitle">
                 <template v-if="devicePushStatus === 'denied'">
-                  Bloquées par votre navigateur (à autoriser dans les réglages du site)
+                  {{ t('profile.device.denied') }}
                 </template>
                 <template v-else-if="devicePushStatus === 'unsupported'">
-                  Non disponibles sur ce navigateur
+                  {{ t('profile.device.unsupported') }}
                 </template>
                 <template v-else-if="editProfile.deviceSubscribed">
-                  Actives sur ce navigateur (alertes directes)
+                  {{ t('profile.device.active') }}
                 </template>
                 <template v-else>
-                  Inactives sur ce navigateur (cliquez pour activer)
+                  {{ t('profile.device.inactive') }}
                 </template>
               </span>
             </div>
@@ -169,18 +161,18 @@
 
         <!-- Préférences de notification granulaires : 5 catégories x 2 canaux -->
         <div class="form-group notif-profile-group">
-          <span class="notif-grid-label">Que voulez-vous recevoir, et par quel canal ?</span>
+          <span class="notif-grid-label">{{ t('profile.notif.question') }}</span>
           <p v-if="devicePushStatus === 'denied' || devicePushStatus === 'unsupported'" class="notif-push-hint">
-            Les notifications push nécessitent que les notifications soient activées sur cet appareil (ci-dessus).
+            {{ t('profile.notif.pushNeedsDevice') }}
           </p>
           <div class="notif-prefs-grid">
             <div class="notif-prefs-header">
               <span></span>
-              <span class="notif-prefs-col-label"><Bell :size="14" /> Push</span>
-              <span class="notif-prefs-col-label"><Mail :size="14" /> Email</span>
+              <span class="notif-prefs-col-label"><Bell :size="14" /> {{ t('profile.notif.push') }}</span>
+              <span class="notif-prefs-col-label"><Mail :size="14" /> {{ t('profile.notif.email') }}</span>
             </div>
             <div v-for="cat in NOTIFICATION_CATEGORIES" :key="cat.key" class="notif-prefs-row">
-              <span class="notif-prefs-row-label">{{ cat.label }}</span>
+              <span class="notif-prefs-row-label">{{ t(`profile.notif.categories.${cat.key}`) }}</span>
               <label class="notif-prefs-checkbox" :class="{ 'is-disabled': devicePushStatus === 'denied' || devicePushStatus === 'unsupported' }">
                 <input
                   type="checkbox"
@@ -196,54 +188,53 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" @click="close" class="btn btn-secondary">Annuler</button>
+          <button type="button" @click="close" class="btn btn-secondary">{{ t('common.cancel') }}</button>
           <button type="submit" class="btn btn-primary" :disabled="saving">
-            <span v-if="!saving">Enregistrer les modifications</span>
-            <span v-else>Enregistrement...</span>
+            <span v-if="!saving">{{ t('profile.save') }}</span>
+            <span v-else>{{ t('common.saving') }}</span>
           </button>
         </div>
       </form>
 
       <!-- Confidentialité & RGPD : accès/portabilité et droit à l'effacement, en self-service -->
       <div class="gdpr-section">
-        <span class="notif-grid-label">Confidentialité &amp; données personnelles</span>
+        <span class="notif-grid-label">{{ t('profile.gdpr.title') }}</span>
 
         <div class="gdpr-legal-links">
-          <a href="/mentions-legales" target="_blank" rel="noopener">Mentions légales</a>
+          <a href="/mentions-legales" target="_blank" rel="noopener">{{ t('legal.notice') }}</a>
           <span aria-hidden="true">&bull;</span>
-          <a href="/confidentialite" target="_blank" rel="noopener">Politique de confidentialité</a>
+          <a href="/confidentialite" target="_blank" rel="noopener">{{ t('legal.privacy') }}</a>
         </div>
 
         <button type="button" class="btn-gdpr-action" :disabled="exporting" @click="handleExportData">
           <Download :size="16" />
-          <span>{{ exporting ? 'Export en cours...' : 'Exporter mes données (JSON)' }}</span>
+          <span>{{ exporting ? t('profile.gdpr.exporting') : t('profile.gdpr.export') }}</span>
         </button>
 
         <div v-if="!showDeleteConfirm" class="gdpr-danger-zone">
           <button type="button" class="btn-gdpr-danger" @click="showDeleteConfirm = true">
             <Trash2 :size="16" />
-            <span>Supprimer définitivement mon compte</span>
+            <span>{{ t('profile.gdpr.delete') }}</span>
           </button>
         </div>
 
         <div v-else class="gdpr-delete-confirm">
           <p class="gdpr-warning-text">
             <AlertTriangle :size="15" />
-            Cette action est <strong>définitive et irréversible</strong> : votre compte et vos
-            appartenances aux familles seront supprimés. Confirmez avec votre mot de passe.
+            <i18n-t keypath="profile.gdpr.deleteWarning" tag="span"><template #strong><strong>{{ t('profile.gdpr.deleteWarningStrong') }}</strong></template></i18n-t>
           </p>
           <input
             v-model="deletePassword"
             type="password"
-            placeholder="Votre mot de passe"
+            :placeholder="t('profile.gdpr.passwordPlaceholder')"
             class="form-input"
             @keyup.enter="handleDeleteAccount"
           />
           <span v-if="deleteError" class="gdpr-error-text">{{ deleteError }}</span>
           <div class="gdpr-confirm-actions">
-            <button type="button" class="btn btn-secondary" @click="cancelDelete">Annuler</button>
+            <button type="button" class="btn btn-secondary" @click="cancelDelete">{{ t('common.cancel') }}</button>
             <button type="button" class="btn-gdpr-danger" :disabled="deleting" @click="handleDeleteAccount">
-              {{ deleting ? 'Suppression...' : 'Confirmer la suppression' }}
+              {{ deleting ? t('profile.gdpr.deleting') : t('profile.gdpr.confirmDelete') }}
             </button>
           </div>
         </div>
@@ -255,6 +246,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { ShieldCheck, Shield, Mail, Bell, BellOff, Download, Trash2, AlertTriangle, CalendarCheck } from '@lucide/vue'
@@ -283,6 +275,7 @@ const emit = defineEmits(['update:modelValue'])
 const authStore = useAuthStore()
 const store = useFamilyStore()
 const router = useRouter()
+const { t } = useI18n()
 
 const saving = ref(false)
 const exporting = ref(false)
@@ -299,7 +292,7 @@ const colorOptions = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#0
 // commun à toutes les familles, le réglage ne l'est pas.
 const usualPresenceSummary = computed(() => {
   const member = store.members.find(m => m.id === authStore.user?.id)
-  if (!member) return 'Sélectionnez une famille pour régler votre présence habituelle.'
+  if (!member) return t('profile.selectFamilyForPresence')
   return describeUsualPresence(
     normalizeUsualPresenceConfig(member.usualPresenceConfig, member.usualPresence),
     store.todayStr,
@@ -314,13 +307,14 @@ const goToUsualPresence = () => {
   router.push({ name: 'family-absences', params: { familySlug: slug }, query: { presence: '1' } })
 }
 
+// Libellés : profile.notif.categories.<key>
 const NOTIFICATION_CATEGORIES = [
-  { key: 'presence', label: 'Présences, absences & invités aux repas' },
-  { key: 'meals', label: 'Repas' },
-  { key: 'tasks', label: 'Tâches' },
-  { key: 'taskReminders', label: 'Rappels de tâches à échéance' },
-  { key: 'events', label: 'Événements' },
-  { key: 'digest', label: 'Récapitulatif quotidien' }
+  { key: 'presence' },
+  { key: 'meals' },
+  { key: 'tasks' },
+  { key: 'taskReminders' },
+  { key: 'events' },
+  { key: 'digest' }
 ]
 
 const defaultNotificationPreferences = () => ({
@@ -364,7 +358,7 @@ const handleExportData = async () => {
   exporting.value = false
 
   if (!res.success) {
-    alert(res.error || 'Erreur lors de l\'export de vos données')
+    alert(res.error || t('profile.gdpr.exportError'))
     return
   }
 
@@ -372,14 +366,14 @@ const handleExportData = async () => {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `familygest-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`
+  link.download = `${t('profile.gdpr.exportFilePrefix')}-${new Date().toISOString().slice(0, 10)}.json`
   link.click()
   URL.revokeObjectURL(url)
 }
 
 const handleDeleteAccount = async () => {
   if (!deletePassword.value) {
-    deleteError.value = 'Veuillez saisir votre mot de passe'
+    deleteError.value = t('profile.gdpr.passwordRequired')
     return
   }
 
@@ -389,7 +383,7 @@ const handleDeleteAccount = async () => {
   deleting.value = false
 
   if (!res.success) {
-    deleteError.value = res.error || 'Erreur lors de la suppression du compte'
+    deleteError.value = res.error || t('profile.gdpr.deleteError')
     return
   }
 
@@ -475,7 +469,7 @@ const handleSaveProfile = async () => {
     close()
     await store.fetchAllData()
   } else {
-    alert(res.error || 'Erreur lors de la mise à jour du profil')
+    alert(res.error || t('profile.saveError'))
   }
 }
 </script>

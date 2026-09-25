@@ -1,25 +1,26 @@
 import { ref } from 'vue'
+import { t } from '../i18n'
 
 const isVisible = ref(false)
 const modalOptions = ref({
-  title: 'Confirmation',
+  title: '',
   message: '',
   description: '',
   warning: '',
-  confirmText: 'Confirmer',
-  cancelText: 'Annuler',
+  confirmText: '',
+  cancelText: '',
   type: 'danger', // 'danger' | 'warning' | 'primary'
   resolve: null
 })
 
 export function useConfirm() {
   const confirm = ({
-    title = 'Confirmation',
-    message = 'Êtes-vous sûr de vouloir continuer ?',
+    title = t('confirm.title'),
+    message = t('confirm.message'),
     description = '',
     warning = '',
-    confirmText = 'Confirmer',
-    cancelText = 'Annuler',
+    confirmText = t('confirm.confirm'),
+    cancelText = t('common.cancel'),
     type = 'danger'
   } = {}) => {
     return new Promise((resolve) => {

@@ -1,0 +1,16 @@
+{
+  "subtitle": "Inicia sesión para acceder al espacio familiar",
+  "emailLabel": "Correo electrónico",
+  "emailPlaceholder": "ej.: nombre{'@'}familia.es",
+  "passwordLabel": "Contraseña",
+  "submit": "Iniciar sesión",
+  "submitting": "Iniciando sesión…",
+  "refreshTitle": "Vaciar la caché y forzar la recarga de la última versión",
+  "refreshing": "Actualizando…",
+  "refresh": "Vaciar caché y actualizar la aplicación",
+  "footer": "Portal seguro FamilyGest • Todos los derechos reservados",
+  "errors": {
+    "failed": "Error al iniciar sesión",
+    "unreachable": "No se puede contactar con el servidor de autenticación"
+  }
+}

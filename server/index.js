@@ -1319,7 +1319,7 @@ app.get('/api/auth/verify-token', async (req, res) => {
 // POST /api/auth/set-password (Définition du mot de passe avec token d'activation)
 app.post('/api/auth/set-password', authRateLimiter, async (req, res) => {
   try {
-    const { token, password, notificationPreferences } = req.body
+    const { token, password, notificationPreferences, language } = req.body
     if (!token || !password) {
       return res.status(400).json({ error: 'Token et mot de passe requis' })
     }
@@ -1349,6 +1349,9 @@ app.post('/api/auth/set-password', authRateLimiter, async (req, res) => {
     if (notificationPreferences && typeof notificationPreferences === 'object') {
       applyUniformNotificationPreference(user, notificationPreferences.push, notificationPreferences.email)
     }
+    // Langue affichée pendant l'activation du compte, si l'utilisateur n'en a pas encore choisi
+    const signupLanguage = normalizeLanguage(language)
+    if (signupLanguage && !user.language) user.language = signupLanguage
     await user.save()
 
     const jwtToken = generateToken(user.id, user.email, user.isAdmin)

@@ -14,31 +14,31 @@
       <span class="criterion-item" :class="{ valid: criteria.length }">
         <Check v-if="criteria.length" :size="12" class="icon-check" />
         <span v-else class="icon-bullet">&bull;</span>
-        10 car. min
+        {{ t('password.criteria.length') }}
       </span>
 
       <span class="criterion-item" :class="{ valid: criteria.hasUpper }">
         <Check v-if="criteria.hasUpper" :size="12" class="icon-check" />
         <span v-else class="icon-bullet">&bull;</span>
-        1 majuscule
+        {{ t('password.criteria.upper') }}
       </span>
 
       <span class="criterion-item" :class="{ valid: criteria.hasLower }">
         <Check v-if="criteria.hasLower" :size="12" class="icon-check" />
         <span v-else class="icon-bullet">&bull;</span>
-        1 minuscule
+        {{ t('password.criteria.lower') }}
       </span>
 
       <span class="criterion-item" :class="{ valid: criteria.hasNumber }">
         <Check v-if="criteria.hasNumber" :size="12" class="icon-check" />
         <span v-else class="icon-bullet">&bull;</span>
-        1 chiffre
+        {{ t('password.criteria.number') }}
       </span>
 
       <span class="criterion-item" :class="{ valid: criteria.hasSpecial }">
         <Check v-if="criteria.hasSpecial" :size="12" class="icon-check" />
         <span v-else class="icon-bullet">&bull;</span>
-        1 spécial (!@#$)
+        {{ t('password.criteria.special') }}
       </span>
     </div>
   </div>
@@ -47,6 +47,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Check } from '@lucide/vue'
+import { useI18n } from 'vue-i18n'
 import { checkPasswordCriteria } from '../utils/passwordValidator'
 
 const props = defineProps({
@@ -55,6 +56,8 @@ const props = defineProps({
     default: ''
   }
 })
+
+const { t } = useI18n()
 
 const criteria = computed(() => checkPasswordCriteria(props.password))
 

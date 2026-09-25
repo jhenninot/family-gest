@@ -1,0 +1,10 @@
+{
+  "subtitle": "Choisissez votre espace familial",
+  "loading": "Chargement de vos familles…",
+  "superAdminTitle": "Console super administrateur",
+  "superAdminDesc": "Gérez toutes les familles, les quotas et la configuration SMTP globale",
+  "openConsole": "Ouvrir la console",
+  "emptyTitle": "Aucune famille associée",
+  "emptyText": "Vous n'avez pas encore rejoint d'espace familial. Attendez une invitation par email de votre administrateur.",
+  "access": "Accéder"
+}

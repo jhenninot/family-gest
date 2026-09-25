@@ -1,0 +1,13 @@
+{
+  "next": {
+    "thisLunch": "lunch today",
+    "tonight": "tonight",
+    "tomorrowLunch": "lunch tomorrow"
+  },
+  "mealie": {
+    "errors": {
+      "search": "Error while searching Mealie",
+      "recipe": "Error while fetching the Mealie recipe"
+    }
+  }
+}

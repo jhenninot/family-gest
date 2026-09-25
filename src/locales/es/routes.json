@@ -1,0 +1,14 @@
+{
+  "login": "Iniciar sesión",
+  "setPassword": "Definir mi contraseña",
+  "invitation": "Invitación familiar",
+  "selectFamily": "Mis familias",
+  "superAdmin": "Superadministración",
+  "dashboard": "Panel",
+  "tasks": "Tareas",
+  "calendar": "Calendario familiar",
+  "absences": "Presencia",
+  "meals": "Comidas de la semana",
+  "shopping": "Lista de la compra",
+  "familySettings": "Administración de la familia"
+}

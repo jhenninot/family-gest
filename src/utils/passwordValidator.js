@@ -3,6 +3,8 @@
  * Règle : 10 caractères minimum, au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial.
  */
 
+import { t } from '../i18n'
+
 export const checkPasswordCriteria = (password = '') => {
   const p = password || ''
   return {
@@ -21,10 +23,10 @@ export const isPasswordValid = (password = '') => {
 
 export const getPasswordErrorMessage = (password = '') => {
   const c = checkPasswordCriteria(password)
-  if (!c.length) return 'Le mot de passe doit comporter au moins 10 caractères.'
-  if (!c.hasUpper) return 'Le mot de passe doit comporter au moins 1 lettre majuscule (A-Z).'
-  if (!c.hasLower) return 'Le mot de passe doit comporter au moins 1 lettre minuscule (a-z).'
-  if (!c.hasNumber) return 'Le mot de passe doit comporter au moins 1 chiffre (0-9).'
-  if (!c.hasSpecial) return 'Le mot de passe doit comporter au moins 1 caractère spécial (ex: ! @ # $ % * _ -).'
+  if (!c.length) return t('password.errors.length')
+  if (!c.hasUpper) return t('password.errors.upper')
+  if (!c.hasLower) return t('password.errors.lower')
+  if (!c.hasNumber) return t('password.errors.number')
+  if (!c.hasSpecial) return t('password.errors.special')
   return ''
 }

@@ -1,0 +1,54 @@
+{
+  "title": "Modifier mes informations",
+  "lastName": "Nom de famille",
+  "newPassword": "Nouveau mot de passe (optionnel)",
+  "newPasswordPlaceholder": "Laisser vide pour ne pas changer",
+  "role": "Rôle familial",
+  "statusInFamily": "Statut dans cette famille",
+  "familyAdmin": "Administrateur de la famille",
+  "standardMember": "Membre standard",
+  "adminStatusHint": "Ce statut administrateur ne s'applique qu'à cet espace familial.",
+  "usualPresence": "Présence habituelle à la maison",
+  "setUsualPresence": "Régler ma présence habituelle",
+  "usualPresenceHint": "Détermine si vous êtes comptabilisé(e) par défaut aux repas de famille et pour la nuit. Ce réglage est propre à chaque famille.",
+  "selectFamilyForPresence": "Sélectionnez une famille pour régler votre présence habituelle.",
+  "avatar": "Avatar ou photo de profil",
+  "save": "Enregistrer les modifications",
+  "saveError": "Erreur lors de la mise à jour du profil",
+  "device": {
+    "title": "Notifications sur cet appareil",
+    "denied": "Bloquées par votre navigateur (à autoriser dans les réglages du site)",
+    "unsupported": "Non disponibles sur ce navigateur",
+    "active": "Actives sur ce navigateur (alertes directes)",
+    "inactive": "Inactives sur ce navigateur (cliquez pour activer)"
+  },
+  "notif": {
+    "question": "Que voulez-vous recevoir, et par quel canal ?",
+    "pushNeedsDevice": "Les notifications push nécessitent que les notifications soient activées sur cet appareil (ci-dessus).",
+    "push": "Push",
+    "email": "Email",
+    "categories": {
+      "presence": "Présences, absences & invités aux repas",
+      "meals": "Repas",
+      "tasks": "Tâches",
+      "taskReminders": "Rappels de tâches à échéance",
+      "events": "Événements",
+      "digest": "Récapitulatif quotidien"
+    }
+  },
+  "gdpr": {
+    "title": "Confidentialité & données personnelles",
+    "exporting": "Export en cours…",
+    "export": "Exporter mes données (JSON)",
+    "exportError": "Erreur lors de l'export de vos données",
+    "exportFilePrefix": "familygest-mes-donnees",
+    "delete": "Supprimer définitivement mon compte",
+    "deleteWarning": "Cette action est {strong} : votre compte et vos appartenances aux familles seront supprimés. Confirmez avec votre mot de passe.",
+    "deleteWarningStrong": "définitive et irréversible",
+    "passwordPlaceholder": "Votre mot de passe",
+    "passwordRequired": "Veuillez saisir votre mot de passe",
+    "deleting": "Suppression…",
+    "confirmDelete": "Confirmer la suppression",
+    "deleteError": "Erreur lors de la suppression du compte"
+  }
+}

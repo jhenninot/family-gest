@@ -1,4 +1,6 @@
 // Utilitaires d'exportation d'événements vers des agendas externes (Google Agenda, Apple Calendar, Outlook)
+import { t } from '../i18n'
+import { translateValue } from '../i18n/values'
 
 /**
  * Formate une date (YYYY-MM-DD) et une heure (HH:mm) en date ISO compacte pour Google Calendar et iCalendar
@@ -49,11 +51,11 @@ function parseEventDates(dateStr, timeStr, endTimeStr) {
  */
 export function getGoogleCalendarUrl(event) {
   const { start, end } = parseEventDates(event.date, event.time, event.endTime)
-  const title = encodeURIComponent(event.title || 'Événement FamilyGest')
+  const title = encodeURIComponent(event.title || t('calendarExport.defaultTitle'))
   const location = encodeURIComponent(event.location || '')
   
-  let detailsText = 'Événement FamilyGest'
-  if (event.category) detailsText += ` (${event.category})`
+  let detailsText = t('calendarExport.defaultTitle')
+  if (event.category) detailsText += ` (${translateValue('eventCategory', event.category)})`
   const details = encodeURIComponent(detailsText)
 
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`
@@ -77,9 +79,9 @@ export function generateIcsContent(event) {
   const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
 
   const uid = `familygest-${event.id || Date.now()}@familygest.local`
-  const summary = (event.title || 'Événement FamilyGest').replace(/[,;\\]/g, ' ')
+  const summary = (event.title || t('calendarExport.defaultTitle')).replace(/[,;\\]/g, ' ')
   const location = (event.location || '').replace(/[,;\\]/g, ' ')
-  const description = `Événement FamilyGest${event.category ? ' - ' + event.category : ''}`
+  const description = `${t('calendarExport.defaultTitle')}${event.category ? ' - ' + translateValue('eventCategory', event.category) : ''}`
 
   let dateLines = ''
   if (isAllDay) {

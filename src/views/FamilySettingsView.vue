@@ -532,14 +532,7 @@
             <div class="form-group">
               <label class="form-label">Rôle familial</label>
               <select v-model="newMember.role" class="form-select">
-                <option value="Papa">Papa</option>
-                <option value="Maman">Maman</option>
-                <option value="Fils">Fils</option>
-                <option value="Fille">Fille</option>
-                <option value="Grand-Parent">Grand-Parent</option>
-                <option value="Oncle / Tante">Oncle / Tante</option>
-                <option value="Baby-Sitter">Baby-Sitter</option>
-                <option value="Autre">Autre</option>
+                <option v-for="r in FAMILY_ROLE_VALUES" :key="r" :value="r">{{ translateValue('role', r) }}</option>
               </select>
             </div>
 
@@ -662,14 +655,7 @@
             <div class="form-group">
               <label class="form-label">Rôle familial</label>
               <select v-model="editMemberForm.role" class="form-select">
-                <option value="Papa">Papa</option>
-                <option value="Maman">Maman</option>
-                <option value="Fils">Fils</option>
-                <option value="Fille">Fille</option>
-                <option value="Grand-Parent">Grand-Parent</option>
-                <option value="Oncle / Tante">Oncle / Tante</option>
-                <option value="Baby-Sitter">Baby-Sitter</option>
-                <option value="Autre">Autre</option>
+                <option v-for="r in FAMILY_ROLE_VALUES" :key="r" :value="r">{{ translateValue('role', r) }}</option>
               </select>
             </div>
 

@@ -3,13 +3,13 @@
     <button 
       class="family-switcher-btn" 
       @click="toggleDropdown" 
-      :title="currentFamilyName ? `Espace actif : ${currentFamilyName}` : 'Changer d\'espace familial'"
+      :title="currentFamilyName ? t('familySwitcher.activeSpace', { name: currentFamilyName }) : t('familySwitcher.change')"
     >
       <div class="family-icon">🏡</div>
       <div class="family-text">
-        <span class="family-name">{{ currentFamilyName || 'Choisir une famille' }}</span>
+        <span class="family-name">{{ currentFamilyName || t('familySwitcher.choose') }}</span>
         <span class="family-role-badge" v-if="familyStore.currentFamilyRole || authStore.isSuperAdmin">
-          {{ authStore.isSuperAdmin ? 'Super Admin' : (familyStore.currentFamilyIsAdmin ? 'Admin' : 'Membre') }}
+          {{ authStore.isSuperAdmin ? t('menu.badges.superAdmin') : (familyStore.currentFamilyIsAdmin ? t('menu.badges.admin') : t('menu.badges.member')) }}
         </span>
       </div>
       <ChevronDown :size="16" class="arrow-icon" :class="{ rotated: isOpen }" />
@@ -18,7 +18,7 @@
     <transition name="fade-slide">
       <div v-if="isOpen" class="dropdown-menu glass-card">
         <div class="dropdown-header">
-          <span>Mes Espaces Familiaux</span>
+          <span>{{ t('familySwitcher.mySpaces') }}</span>
         </div>
 
         <div class="dropdown-list">
@@ -45,11 +45,11 @@
         <div class="dropdown-footer">
           <button v-if="authStore.isSuperAdmin" @click="goToSuperAdmin" class="dropdown-action-btn super-admin-action">
             <ShieldAlert :size="16" />
-            <span>Console Super Admin</span>
+            <span>{{ t('menu.superAdminConsole') }}</span>
           </button>
           <button @click="goToSelectFamily" class="dropdown-action-btn">
             <Grid :size="16" />
-            <span>Toutes mes familles</span>
+            <span>{{ t('familySwitcher.allMyFamilies') }}</span>
           </button>
         </div>
       </div>
@@ -60,11 +60,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { ChevronDown, ShieldAlert, Grid } from '@lucide/vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const route = useRoute()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()

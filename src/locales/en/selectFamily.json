@@ -1,0 +1,10 @@
+{
+  "subtitle": "Choose your family space",
+  "loading": "Loading your families…",
+  "superAdminTitle": "Super administrator console",
+  "superAdminDesc": "Manage all families, quotas and the global SMTP configuration",
+  "openConsole": "Open the console",
+  "emptyTitle": "No family yet",
+  "emptyText": "You haven't joined a family space yet. Wait for an email invitation from your administrator.",
+  "access": "Open"
+}

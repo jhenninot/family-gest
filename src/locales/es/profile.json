@@ -1,0 +1,54 @@
+{
+  "title": "Editar mis datos",
+  "lastName": "Apellidos",
+  "newPassword": "Nueva contraseña (opcional)",
+  "newPasswordPlaceholder": "Déjala vacía para no cambiarla",
+  "role": "Rol familiar",
+  "statusInFamily": "Estado en esta familia",
+  "familyAdmin": "Administrador/a de la familia",
+  "standardMember": "Miembro estándar",
+  "adminStatusHint": "Este estado de administrador solo se aplica a este espacio familiar.",
+  "usualPresence": "Presencia habitual en casa",
+  "setUsualPresence": "Ajustar mi presencia habitual",
+  "usualPresenceHint": "Determina si se te cuenta por defecto en las comidas familiares y para dormir. Este ajuste es propio de cada familia.",
+  "selectFamilyForPresence": "Selecciona una familia para ajustar tu presencia habitual.",
+  "avatar": "Avatar o foto de perfil",
+  "save": "Guardar los cambios",
+  "saveError": "Error al actualizar el perfil",
+  "device": {
+    "title": "Notificaciones en este dispositivo",
+    "denied": "Bloqueadas por tu navegador (permítelas en los ajustes del sitio)",
+    "unsupported": "No disponibles en este navegador",
+    "active": "Activas en este navegador (alertas directas)",
+    "inactive": "Inactivas en este navegador (haz clic para activarlas)"
+  },
+  "notif": {
+    "question": "¿Qué quieres recibir y por qué canal?",
+    "pushNeedsDevice": "Las notificaciones push requieren que las notificaciones estén activadas en este dispositivo (arriba).",
+    "push": "Push",
+    "email": "Correo",
+    "categories": {
+      "presence": "Presencias, ausencias e invitados a las comidas",
+      "meals": "Comidas",
+      "tasks": "Tareas",
+      "taskReminders": "Recordatorios de tareas con fecha límite",
+      "events": "Eventos",
+      "digest": "Resumen diario"
+    }
+  },
+  "gdpr": {
+    "title": "Privacidad y datos personales",
+    "exporting": "Exportando…",
+    "export": "Exportar mis datos (JSON)",
+    "exportError": "Error al exportar tus datos",
+    "exportFilePrefix": "familygest-mis-datos",
+    "delete": "Eliminar definitivamente mi cuenta",
+    "deleteWarning": "Esta acción es {strong}: se eliminarán tu cuenta y tu pertenencia a las familias. Confirma con tu contraseña.",
+    "deleteWarningStrong": "definitiva e irreversible",
+    "passwordPlaceholder": "Tu contraseña",
+    "passwordRequired": "Introduce tu contraseña",
+    "deleting": "Eliminando…",
+    "confirmDelete": "Confirmar la eliminación",
+    "deleteError": "Error al eliminar la cuenta"
+  }
+}

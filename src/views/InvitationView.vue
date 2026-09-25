@@ -5,25 +5,25 @@
         <div class="icon-circle">
           <BrandLogo :size="32" />
         </div>
-        <h2 class="title">Invitation Familiale</h2>
+        <h2 class="title">{{ t('invitation.title') }}</h2>
         <p v-if="invitationData" class="subtitle">
-          Vous êtes invité(e) à rejoindre la famille <strong>{{ invitationData.family?.name }}</strong>
+          <i18n-t keypath="invitation.invitedTo" tag="span"><template #family><strong>{{ invitationData.family?.name }}</strong></template></i18n-t>
           <br v-if="invitationData.isAdmin" />
           <span v-if="invitationData.isAdmin" class="admin-subtitle-pill">
-            <ShieldCheck :size="14" /> En tant qu'Administrateur
+            <ShieldCheck :size="14" /> {{ t('invitation.asAdmin') }}
           </span>
         </p>
       </div>
 
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
-        <p>Vérification de l'invitation...</p>
+        <p>{{ t('invitation.checking') }}</p>
       </div>
 
       <div v-else-if="error" class="error-state alert-box alert-error">
         <AlertCircle :size="20" />
         <p>{{ error }}</p>
-        <router-link to="/login" class="btn btn-secondary mt-3">Retour à la connexion</router-link>
+        <router-link to="/login" class="btn btn-secondary mt-3">{{ t('legal.backToLogin') }}</router-link>
       </div>
 
       <div v-else-if="invitationData" class="invitation-content">
@@ -31,21 +31,22 @@
         <div v-if="invitationData.userExists || invitationData.isExistingUser" class="existing-user-section">
           <div class="welcome-box">
             <UserAvatar :avatar="invitationData.existingUser?.avatar" :name="invitationData.existingUser?.firstName" size="xxl" />
-            <h3>Ravi de vous revoir, {{ invitationData.existingUser?.firstName }} !</h3>
-            <p>
-              Votre compte existant avec l'adresse <strong>{{ invitationData.email || invitationData.invitation?.email }}</strong> a été invité à rejoindre cet espace familial<span v-if="invitationData.isAdmin"> en tant qu'<strong>administrateur</strong></span>.
-            </p>
+            <h3>{{ t('invitation.welcomeBack', { name: invitationData.existingUser?.firstName }) }}</h3>
+            <i18n-t :keypath="invitationData.isAdmin ? 'invitation.existingAccountAdmin' : 'invitation.existingAccount'" tag="p">
+              <template #email><strong>{{ invitationData.email || invitationData.invitation?.email }}</strong></template>
+              <template #admin><strong>{{ t('invitation.adminWord') }}</strong></template>
+            </i18n-t>
           </div>
 
           <div v-if="authStore.isAuthenticated && authStore.user?.email?.toLowerCase() === (invitationData.email || invitationData.invitation?.email)?.toLowerCase()">
             <button @click="handleAcceptExisting" class="btn btn-primary btn-block" :disabled="accepting">
-              {{ accepting ? 'Adhésion en cours...' : (invitationData.isAdmin ? 'Rejoindre en tant qu\'administrateur' : 'Rejoindre la famille maintenant') }}
+              {{ accepting ? t('invitation.joining') : (invitationData.isAdmin ? t('invitation.joinAsAdmin') : t('invitation.joinNow')) }}
             </button>
           </div>
           <div v-else>
-            <p class="text-muted text-center mb-3">Veuillez vous connecter pour confirmer votre adhésion.</p>
+            <p class="text-muted text-center mb-3">{{ t('invitation.signInToConfirm') }}</p>
             <router-link :to="`/login?redirect=/invitation/${token}`" class="btn btn-primary btn-block">
-              Se connecter pour accepter
+              {{ t('invitation.signInToAccept') }}
             </router-link>
           </div>
         </div>
@@ -53,7 +54,7 @@
         <!-- CAS 2: NOUVEL UTILISATEUR -->
         <form v-else @submit.prevent="handleAcceptNew" class="new-user-form">
           <div class="form-group">
-            <label class="form-label">Adresse Email</label>
+            <label class="form-label">{{ t('invitation.email') }}</label>
             <input 
               :value="invitationData.email || invitationData.invitation?.email" 
               type="email" 
@@ -64,73 +65,66 @@
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Prénom</label>
+              <label class="form-label">{{ t('invitation.firstName') }}</label>
               <input 
                 v-model="formData.firstName" 
                 type="text" 
                 required 
-                placeholder="Votre prénom" 
+                :placeholder="t('invitation.firstNamePlaceholder')" 
                 class="form-input" 
               />
             </div>
             <div class="form-group">
-              <label class="form-label">Nom</label>
+              <label class="form-label">{{ t('invitation.lastName') }}</label>
               <input 
                 v-model="formData.lastName" 
                 type="text" 
                 required 
-                placeholder="Votre nom" 
+                :placeholder="t('invitation.lastNamePlaceholder')" 
                 class="form-input" 
               />
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Rôle familial souhaité</label>
+            <label class="form-label">{{ t('invitation.role') }}</label>
             <select v-model="formData.role" class="form-select">
-              <option v-if="invitationData.isAdmin" value="Administrateur">⭐ Administrateur</option>
-              <option value="Papa">Papa</option>
-              <option value="Maman">Maman</option>
-              <option value="Fils">Fils</option>
-              <option value="Fille">Fille</option>
-              <option value="Grand-Parent">Grand-Parent</option>
-              <option value="Oncle / Tante">Oncle / Tante</option>
-              <option value="Baby-Sitter">Baby-Sitter</option>
-              <option value="Autre">Autre</option>
+              <option v-if="invitationData.isAdmin" value="Administrateur">⭐ {{ translateValue('role', 'Administrateur') }}</option>
+              <option v-for="r in FAMILY_ROLE_VALUES" :key="r" :value="r">{{ translateValue('role', r) }}</option>
             </select>
             <span v-if="invitationData.isAdmin" class="help-subtext-admin">
-              🛡️ Vous disposerez des droits d'administration pour gérer cette famille.
+              🛡️ {{ t('invitation.adminRightsHint') }}
             </span>
           </div>
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label">Mot de passe</label>
+              <label class="form-label">{{ t('invitation.password') }}</label>
               <input 
                 v-model="formData.password" 
                 type="password" 
                 required 
-                placeholder="Mot de passe sécurisé" 
+                :placeholder="t('invitation.passwordPlaceholder')" 
                 class="form-input" 
               />
               <PasswordStrengthIndicator v-if="formData.password" :password="formData.password" />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Confirmer le mot de passe</label>
+              <label class="form-label">{{ t('setPassword.confirmPassword') }}</label>
               <input 
                 v-model="formData.confirmPassword" 
                 type="password" 
                 required 
-                placeholder="Retapez votre mot de passe" 
+                :placeholder="t('setPassword.confirmPlaceholder')" 
                 class="form-input" 
               />
-              <span v-if="passwordMismatch" class="error-subtext">Les mots de passe ne correspondent pas</span>
+              <span v-if="passwordMismatch" class="error-subtext">{{ t('password.errors.mismatch') }}</span>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Avatar ou Photo</label>
+            <label class="form-label">{{ t('invitation.avatar') }}</label>
             <AvatarPicker 
               v-model="formData.avatar" 
               :color="formData.color" 
@@ -139,7 +133,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Couleur de profil</label>
+            <label class="form-label">{{ t('invitation.color') }}</label>
             <div class="color-picker-options">
               <button 
                 v-for="c in colorOptions" 
@@ -162,7 +156,7 @@
             class="btn btn-primary btn-block" 
             :disabled="accepting || passwordMismatch || !isPasswordValid(formData.password)"
           >
-            {{ accepting ? 'Création de votre compte...' : (invitationData?.isAdmin ? 'Créer mon compte et administrer la famille' : 'Créer mon compte et rejoindre la famille') }}
+            {{ accepting ? t('invitation.creating') : (invitationData?.isAdmin ? t('invitation.createAndAdmin') : t('invitation.createAndJoin')) }}
           </button>
         </form>
       </div>
@@ -173,6 +167,9 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { signupLanguage } from '../i18n'
+import { FAMILY_ROLE_VALUES, translateValue } from '../i18n/values'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { AlertCircle, ShieldCheck } from '@lucide/vue'
@@ -184,6 +181,7 @@ import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.v
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
 
 const route = useRoute()
+const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
@@ -219,7 +217,7 @@ onMounted(async () => {
     const res = await fetch(`/api/invitations/${token}`)
     const data = await res.json()
     if (!res.ok) {
-      error.value = data.error || 'Invitation introuvable ou expirée'
+      error.value = data.error || t('invitation.errors.notFound')
       return
     }
     invitationData.value = data
@@ -230,7 +228,7 @@ onMounted(async () => {
       if (inv.lastName) formData.lastName = inv.lastName
     }
   } catch (err) {
-    error.value = 'Erreur lors du contact du serveur'
+    error.value = t('common.errors.server')
   } finally {
     loading.value = false
   }
@@ -249,7 +247,7 @@ const handleAcceptExisting = async () => {
     })
     const data = await res.json()
     if (!res.ok) {
-      error.value = data.error || 'Erreur lors de l\'acceptation'
+      error.value = data.error || t('invitation.errors.acceptFailed')
       return
     }
     await authStore.refreshSession()
@@ -265,7 +263,7 @@ const handleAcceptExisting = async () => {
 const handleAcceptNew = async () => {
   if (passwordMismatch.value) return
   if (!isPasswordValid(formData.password)) {
-    formError.value = getPasswordErrorMessage()
+    formError.value = getPasswordErrorMessage(formData.password)
     return
   }
 
@@ -275,11 +273,11 @@ const handleAcceptNew = async () => {
     const res = await fetch(`/api/invitations/${token}/accept`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
+      body: JSON.stringify({ ...formData, language: signupLanguage() })
     })
     const data = await res.json()
     if (!res.ok) {
-      formError.value = data.error || 'Erreur lors de la finalisation'
+      formError.value = data.error || t('invitation.errors.finalizeFailed')
       return
     }
     authStore.setAuth(data.user, data.token)

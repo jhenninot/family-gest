@@ -1,0 +1,16 @@
+{
+  "closeForNow": "Fermer pour l'instant",
+  "question": "Souhaitez-vous recevoir des alertes instantanées (nouvelle tâche, absence, invité aux repas, agenda) sur ce navigateur ?",
+  "accept": "Recevoir les notifications sur cet appareil",
+  "activating": "Activation en cours…",
+  "later": "Ne pas les recevoir pour le moment",
+  "never": "Ne jamais recevoir les notifications sur cet appareil",
+  "errors": {
+    "denied": "Les notifications ont été bloquées dans votre navigateur. Vous pouvez les autoriser dans les paramètres du site.",
+    "unsupported": "Ce navigateur ne prend pas en charge les notifications push.",
+    "failed": "Impossible d'activer les notifications sur cet appareil.",
+    "unexpected": "Une erreur est survenue lors de l'activation.",
+    "vapid": "Impossible de récupérer la clé VAPID",
+    "register": "Erreur serveur lors de l'enregistrement"
+  }
+}

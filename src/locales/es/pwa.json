@@ -1,0 +1,8 @@
+{
+  "title": "Instalar FamilyGest",
+  "desc": "Instala la aplicación en tu dispositivo para acceder rápidamente a pantalla completa.",
+  "install": "Instalar",
+  "iosStep1": "Pulsa el botón de compartir de Safari",
+  "iosStep2": "Selecciona {option}",
+  "iosStep2Option": "«Añadir a pantalla de inicio»"
+}

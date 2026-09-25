@@ -1,0 +1,54 @@
+{
+  "title": "Edit my details",
+  "lastName": "Last name",
+  "newPassword": "New password (optional)",
+  "newPasswordPlaceholder": "Leave empty to keep the current one",
+  "role": "Family role",
+  "statusInFamily": "Status in this family",
+  "familyAdmin": "Family administrator",
+  "standardMember": "Standard member",
+  "adminStatusHint": "This administrator status only applies to this family space.",
+  "usualPresence": "Usual presence at home",
+  "setUsualPresence": "Set my usual presence",
+  "usualPresenceHint": "Determines whether you are counted by default for family meals and overnight. This setting is specific to each family.",
+  "selectFamilyForPresence": "Select a family to set your usual presence.",
+  "avatar": "Avatar or profile photo",
+  "save": "Save changes",
+  "saveError": "Error while updating the profile",
+  "device": {
+    "title": "Notifications on this device",
+    "denied": "Blocked by your browser (allow them in the site settings)",
+    "unsupported": "Not available in this browser",
+    "active": "Active in this browser (direct alerts)",
+    "inactive": "Inactive in this browser (click to enable)"
+  },
+  "notif": {
+    "question": "What would you like to receive, and how?",
+    "pushNeedsDevice": "Push notifications require notifications to be enabled on this device (above).",
+    "push": "Push",
+    "email": "Email",
+    "categories": {
+      "presence": "Presence, absences & meal guests",
+      "meals": "Meals",
+      "tasks": "Tasks",
+      "taskReminders": "Reminders for tasks due",
+      "events": "Events",
+      "digest": "Daily summary"
+    }
+  },
+  "gdpr": {
+    "title": "Privacy & personal data",
+    "exporting": "Exporting…",
+    "export": "Export my data (JSON)",
+    "exportError": "Error while exporting your data",
+    "exportFilePrefix": "familygest-my-data",
+    "delete": "Permanently delete my account",
+    "deleteWarning": "This action is {strong}: your account and your family memberships will be deleted. Confirm with your password.",
+    "deleteWarningStrong": "permanent and cannot be undone",
+    "passwordPlaceholder": "Your password",
+    "passwordRequired": "Please enter your password",
+    "deleting": "Deleting…",
+    "confirmDelete": "Confirm deletion",
+    "deleteError": "Error while deleting the account"
+  }
+}

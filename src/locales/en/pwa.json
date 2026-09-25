@@ -1,0 +1,8 @@
+{
+  "title": "Install FamilyGest",
+  "desc": "Install the app on your device for quick, full-screen access.",
+  "install": "Install",
+  "iosStep1": "Tap the Safari share button",
+  "iosStep2": "Choose {option}",
+  "iosStep2Option": "“Add to Home Screen”"
+}

@@ -1,0 +1,16 @@
+{
+  "closeForNow": "Close for now",
+  "question": "Would you like to receive instant alerts (new task, absence, meal guest, calendar) in this browser?",
+  "accept": "Receive notifications on this device",
+  "activating": "Enabling…",
+  "later": "Not right now",
+  "never": "Never receive notifications on this device",
+  "errors": {
+    "denied": "Notifications have been blocked in your browser. You can allow them in the site settings.",
+    "unsupported": "This browser does not support push notifications.",
+    "failed": "Unable to enable notifications on this device.",
+    "unexpected": "Something went wrong while enabling notifications.",
+    "vapid": "Unable to fetch the VAPID key",
+    "register": "Server error while registering"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "login": "Sign in",
+  "setPassword": "Set my password",
+  "invitation": "Family invitation",
+  "selectFamily": "My families",
+  "superAdmin": "Super administration",
+  "dashboard": "Dashboard",
+  "tasks": "Tasks",
+  "calendar": "Family calendar",
+  "absences": "Presence",
+  "meals": "Meals of the week",
+  "shopping": "Shopping list",
+  "familySettings": "Family administration"
+}

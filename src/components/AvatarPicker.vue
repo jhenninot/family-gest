@@ -26,7 +26,7 @@
             :disabled="isProcessing"
           >
             <Camera :size="16" />
-            <span>{{ isCustomPhoto ? 'Changer la photo' : 'Importer une photo' }}</span>
+            <span>{{ isCustomPhoto ? t('avatar.changePhoto') : t('avatar.importPhoto') }}</span>
           </button>
 
           <button 
@@ -34,20 +34,20 @@
             type="button" 
             class="btn-reset-avatar" 
             @click="selectPreset(PRESET_3D_AVATARS[0].path)"
-            title="Revenir aux modèles 3D"
+            :title="t('avatar.backToPresetsTitle')"
           >
             <RotateCcw :size="14" />
-            <span>Modèles 3D</span>
+            <span>{{ t('avatar.presetsButton') }}</span>
           </button>
         </div>
 
         <span v-if="errorMsg" class="upload-error-text">{{ errorMsg }}</span>
-        <span v-else class="upload-help-text">Compatible iPhone, Android, Mac & PC (recadrage carré)</span>
+        <span v-else class="upload-help-text">{{ t('avatar.uploadHelp') }}</span>
       </div>
     </div>
 
     <!-- Grille des modèles 3D prédéfinis -->
-    <div class="preset-label">Ou choisissez parmi les modèles 3D :</div>
+    <div class="preset-label">{{ t('avatar.orChoosePreset') }}</div>
     <div class="preset-3d-grid">
       <button 
         v-for="item in PRESET_3D_AVATARS" 
@@ -56,9 +56,9 @@
         class="preset-3d-btn" 
         :class="{ selected: modelValue === item.path }" 
         @click="selectPreset(item.path)"
-        :title="item.label"
+        :title="t(`avatar.presets.${item.id}`)"
       >
-        <img :src="item.path" :alt="item.label" class="preset-3d-img" />
+        <img :src="item.path" :alt="t(`avatar.presets.${item.id}`)" class="preset-3d-img" />
       </button>
     </div>
   </div>
@@ -67,6 +67,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { Camera, RotateCcw } from '@lucide/vue'
+import { useI18n } from 'vue-i18n'
 import UserAvatar from './UserAvatar.vue'
 import { PRESET_3D_AVATARS, processUploadedImage } from '../utils/avatarHelper'
 
@@ -86,6 +87,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue'])
+const { t } = useI18n()
 
 const fileInputRef = ref(null)
 const isProcessing = ref(false)
@@ -115,7 +117,7 @@ const handleFileUpload = async (event) => {
     emit('update:modelValue', dataUrl)
   } catch (err) {
     console.error('Erreur import photo:', err)
-    errorMsg.value = err.message || 'Erreur lors du traitement de l\'image'
+    errorMsg.value = err.message || t('avatar.errors.processing')
   } finally {
     isProcessing.value = false
   }

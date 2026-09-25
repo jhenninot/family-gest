@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useFamilyStore } from './familyStore'
+import { t } from '../i18n'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('familygest_token') || '')
@@ -32,7 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await res.json()
 
       if (!res.ok) {
-        error.value = data.error || 'Erreur lors de la connexion'
+        error.value = data.error || t('login.errors.failed')
         return false
       }
 
@@ -56,7 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return true
     } catch (err) {
-      error.value = 'Impossible de contacter le serveur d\'authentification'
+      error.value = t('login.errors.unreachable')
       return false
     }
   }
@@ -76,7 +77,7 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await res.json()
 
       if (!res.ok) {
-        error.value = data.error || 'Erreur lors de la mise à jour du profil'
+        error.value = data.error || t('profile.saveError')
         return { success: false, error: data.error }
       }
 
@@ -85,7 +86,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('familygest_user', JSON.stringify(user.value))
       return { success: true, user: user.value }
     } catch (err) {
-      error.value = 'Impossible de contacter le serveur'
+      error.value = t('common.errors.unreachable')
       return { success: false, error: err.message }
     }
   }
@@ -147,10 +148,10 @@ export const useAuthStore = defineStore('auth', () => {
         headers: { 'Authorization': `Bearer ${token.value}` }
       })
       const data = await res.json()
-      if (!res.ok) return { success: false, error: data.error || 'Erreur lors de l\'export des données' }
+      if (!res.ok) return { success: false, error: data.error || t('profile.gdpr.exportError') }
       return { success: true, data }
     } catch (err) {
-      return { success: false, error: 'Impossible de contacter le serveur' }
+      return { success: false, error: t('common.errors.unreachable') }
     }
   }
 
@@ -166,11 +167,11 @@ export const useAuthStore = defineStore('auth', () => {
         body: JSON.stringify({ password })
       })
       const data = await res.json()
-      if (!res.ok) return { success: false, error: data.error || 'Erreur lors de la suppression du compte' }
+      if (!res.ok) return { success: false, error: data.error || t('profile.gdpr.deleteError') }
       logout()
       return { success: true }
     } catch (err) {
-      return { success: false, error: 'Impossible de contacter le serveur' }
+      return { success: false, error: t('common.errors.unreachable') }
     }
   }
 

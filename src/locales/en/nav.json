@@ -1,0 +1,14 @@
+{
+  "dashboard": "Dashboard",
+  "presence": "Presence",
+  "presenceBadge": "{n} person present at the next meal ({meal}) | {n} people present at the next meal ({meal})",
+  "meals": "Meals",
+  "mealsBadge": "{n} dish planned this week | {n} dishes planned this week",
+  "shopping": "Shopping list",
+  "tasks": "Tasks",
+  "calendar": "Calendar",
+  "eventsBadge": "Events in the next 7 days",
+  "shortcuts": "Shortcuts",
+  "openShortcut": "Open {title} ({url})",
+  "defaultFamilyName": "Family space"
+}

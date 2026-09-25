@@ -21,17 +21,17 @@
     <nav class="nav-menu">
       <router-link :to="getPath('')" class="nav-item" active-class="active">
         <LayoutDashboard :size="20" />
-        <span>Tableau de bord</span>
+        <span>{{ t('nav.dashboard') }}</span>
       </router-link>
 
       <!-- 1. Présence -->
       <router-link :to="getPath('/absences')" class="nav-item" active-class="active">
         <HouseUser :size="20" />
-        <span>Présence</span>
+        <span>{{ t('nav.presence') }}</span>
         <span 
           v-if="store.members.length > 0" 
           class="badge-count presence" 
-          :title="`${store.nextMealHeadcount} personne${store.nextMealHeadcount > 1 ? 's' : ''} présente${store.nextMealHeadcount > 1 ? 's' : ''} au prochain repas (${store.nextMealInfo.label})`"
+          :title="t('nav.presenceBadge', { n: store.nextMealHeadcount, meal: store.nextMealInfo.label }, store.nextMealHeadcount)"
         >
           {{ store.nextMealHeadcount }}
         </span>
@@ -40,11 +40,11 @@
       <!-- 2. Repas de la semaine -->
       <router-link :to="getPath('/meals')" class="nav-item" active-class="active">
         <Utensils :size="20" />
-        <span>Repas</span>
+        <span>{{ t('nav.meals') }}</span>
         <span 
           v-if="thisWeekMealsCount > 0" 
           class="badge-count warning"
-          :title="`${thisWeekMealsCount} plat(s) prévu(s) cette semaine`"
+          :title="t('nav.mealsBadge', { n: thisWeekMealsCount }, thisWeekMealsCount)"
         >
           {{ thisWeekMealsCount }}
         </span>
@@ -53,22 +53,22 @@
       <!-- 3. Liste de courses -->
       <router-link :to="getPath('/shopping')" class="nav-item" active-class="active">
         <ShoppingCart :size="20" />
-        <span>Liste de courses</span>
+        <span>{{ t('nav.shopping') }}</span>
         <span v-if="store.pendingShoppingCount > 0" class="badge-count warning">{{ store.pendingShoppingCount }}</span>
       </router-link>
 
       <!-- 3. Tâches -->
       <router-link :to="getPath('/tasks')" class="nav-item" active-class="active">
         <CheckSquare :size="20" />
-        <span>Tâches</span>
+        <span>{{ t('nav.tasks') }}</span>
         <span v-if="store.pendingTasksCount > 0" class="badge-count">{{ store.pendingTasksCount }}</span>
       </router-link>
 
       <!-- 4. Evénements du calendrier -->
       <router-link :to="getPath('/calendar')" class="nav-item" active-class="active">
         <Calendar :size="20" />
-        <span>Calendrier</span>
-        <span v-if="upcomingEventsCount > 0" class="badge-count info" title="Événements dans les 7 prochains jours">{{ upcomingEventsCount }}</span>
+        <span>{{ t('nav.calendar') }}</span>
+        <span v-if="upcomingEventsCount > 0" class="badge-count info" :title="t('nav.eventsBadge')">{{ upcomingEventsCount }}</span>
       </router-link>
     </nav>
 
@@ -77,7 +77,7 @@
       <div class="shortcuts-header">
         <div class="shortcuts-header-title">
           <Globe :size="15" class="shortcuts-title-icon" />
-          <span>Raccourcis</span>
+          <span>{{ t('nav.shortcuts') }}</span>
         </div>
       </div>
 
@@ -93,7 +93,7 @@
             target="_blank" 
             rel="noopener noreferrer" 
             class="shortcut-nav-link"
-            :title="`Ouvrir ${item.title} (${item.url})`"
+            :title="t('nav.openShortcut', { title: item.title, url: item.url })"
           >
             <span class="shortcut-emoji">{{ item.icon || '🌐' }}</span>
             <span class="shortcut-text">{{ item.title }}</span>
@@ -108,6 +108,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { 
@@ -125,6 +126,7 @@ import FamilySwitcher from './FamilySwitcher.vue'
 import BrandLogo from './BrandLogo.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const route = useRoute()
 const authStore = useAuthStore()
 const store = useFamilyStore()
@@ -136,7 +138,7 @@ const currentFamilyName = computed(() => {
   if (store.currentFamily?.name) return store.currentFamily.name
   const list = store.userFamilies.length > 0 ? store.userFamilies : (authStore.families || [])
   const match = list.find(f => f.slug === currentSlug.value)
-  return match?.name || store.currentFamily?.name || 'Espace Familial'
+  return match?.name || store.currentFamily?.name || t('nav.defaultFamilyName')
 })
 const getPath = (sub) => currentSlug.value ? `/${currentSlug.value}${sub}` : (sub || '/')
 

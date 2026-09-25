@@ -6,7 +6,7 @@
           <BrandLogo :size="28" />
         </div>
         <h1 class="login-title">FamilyGest</h1>
-        <p class="login-subtitle">Connectez-vous pour accéder à l'espace familial</p>
+        <p class="login-subtitle">{{ t('login.subtitle') }}</p>
       </div>
 
       <!-- Error alert -->
@@ -18,14 +18,14 @@
       <!-- Login Form -->
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
-          <label class="form-label">Adresse Email (Login)</label>
+          <label class="form-label">{{ t('login.emailLabel') }}</label>
           <div class="input-with-icon">
             <Mail :size="18" class="input-icon" />
             <input 
               v-model="email" 
               type="email" 
               required 
-              placeholder="ex: nom@famille.fr" 
+              :placeholder="t('login.emailPlaceholder')" 
               class="form-input" 
               autocomplete="email"
             />
@@ -33,7 +33,7 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Mot de passe</label>
+          <label class="form-label">{{ t('login.passwordLabel') }}</label>
           <div class="input-with-icon">
             <Lock :size="18" class="input-icon" />
             <input 
@@ -48,8 +48,8 @@
         </div>
 
         <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
-          <span v-if="!loading">Se connecter</span>
-          <span v-else>Connexion en cours...</span>
+          <span v-if="!loading">{{ t('login.submit') }}</span>
+          <span v-else>{{ t('login.submitting') }}</span>
         </button>
       </form>
 
@@ -59,16 +59,16 @@
           @click="handleForceRefresh" 
           class="btn-refresh-login" 
           :disabled="isRefreshing"
-          title="Vider le cache et forcer le rechargement de la dernière version"
+          :title="t('login.refreshTitle')"
         >
           <RefreshCw :size="13" :class="{ 'spin-icon': isRefreshing }" />
-          <span>{{ isRefreshing ? 'Mise à jour...' : 'Vider le cache & rafraîchir l\'application' }}</span>
+          <span>{{ isRefreshing ? t('login.refreshing') : t('login.refresh') }}</span>
         </button>
-        <span>Portail sécurisé FamilyGest &bull; Tous droits réservés</span>
+        <span>{{ t('login.footer') }}</span>
         <div class="legal-links">
-          <router-link to="/mentions-legales">Mentions légales</router-link>
+          <router-link to="/mentions-legales">{{ t('legal.notice') }}</router-link>
           <span aria-hidden="true">&bull;</span>
-          <router-link to="/confidentialite">Politique de confidentialité</router-link>
+          <router-link to="/confidentialite">{{ t('legal.privacy') }}</router-link>
         </div>
       </div>
     </div>
@@ -78,6 +78,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { Mail, Lock, AlertCircle, RefreshCw } from '@lucide/vue'
@@ -85,6 +86,7 @@ import { forceAppRefresh } from '../utils/cacheHelper'
 import BrandLogo from '../components/BrandLogo.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
 

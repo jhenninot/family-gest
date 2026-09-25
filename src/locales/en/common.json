@@ -1,6 +1,17 @@
 {
   "language": {
     "title": "Language",
-    "subtitle": "Language of the app and emails"
-  }
+    "subtitle": "App and emails"
+  },
+  "loading": "Loading…",
+  "errors": {
+    "server": "Could not connect to the server.",
+    "unreachable": "Unable to reach the server",
+    "noActiveFamily": "No active family"
+  },
+  "logout": "Sign out",
+  "cancel": "Cancel",
+  "saving": "Saving…",
+  "close": "Close",
+  "hide": "Hide"
 }

@@ -12,7 +12,7 @@
       <div class="modal-content modal-sm confirm-modal-box">
         <div class="modal-header">
           <h3>{{ modalOptions.title }}</h3>
-          <button @click="handleCancel" class="btn-close" aria-label="Fermer">&times;</button>
+          <button @click="handleCancel" class="btn-close" :aria-label="t('common.close')">&times;</button>
         </div>
 
         <div class="confirm-body">
@@ -26,7 +26,7 @@
           <div v-if="modalOptions.warning" class="confirm-warning-box">
             <div class="warning-icon">⚠️</div>
             <div class="warning-content">
-              <span class="warning-title">Attention</span>
+              <span class="warning-title">{{ t('confirm.warningTitle') }}</span>
               <p class="warning-desc" v-html="modalOptions.warning"></p>
             </div>
           </div>
@@ -34,7 +34,7 @@
 
         <div class="modal-footer">
           <button type="button" @click="handleCancel" class="btn btn-secondary">
-            {{ modalOptions.cancelText || 'Annuler' }}
+            {{ modalOptions.cancelText || t('common.cancel') }}
           </button>
           <button 
             type="button" 
@@ -43,7 +43,7 @@
             :class="confirmBtnClass"
             autofocus
           >
-            {{ modalOptions.confirmText || 'Confirmer' }}
+            {{ modalOptions.confirmText || t('confirm.confirm') }}
           </button>
         </div>
       </div>
@@ -54,6 +54,9 @@
 <script setup>
 import { computed, ref, watch, nextTick } from 'vue'
 import { useConfirm } from '../composables/useConfirm'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const { isVisible, modalOptions, handleConfirm, handleCancel } = useConfirm()
 const overlayRef = ref(null)

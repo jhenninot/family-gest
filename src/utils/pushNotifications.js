@@ -1,4 +1,5 @@
 // Utilitaires de gestion des notifications Web Push pour FamilyGest
+import { t } from '../i18n'
 
 /**
  * Convertit une clé VAPID base64 URL-safe en Uint8Array pour le PushManager
@@ -42,7 +43,7 @@ export function getNotificationPermission() {
 export async function getVapidPublicKey() {
   try {
     const res = await fetch('/api/push/vapid-public-key')
-    if (!res.ok) throw new Error('Impossible de récupérer la clé VAPID')
+    if (!res.ok) throw new Error(t('pushPrompt.errors.vapid'))
     const data = await res.json()
     return data.publicKey
   } catch (err) {
@@ -184,7 +185,7 @@ export async function subscribeUserToPush(customToken = null) {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}))
-      throw new Error(errData.error || 'Erreur serveur lors de l\'enregistrement')
+      throw new Error(errData.error || t('pushPrompt.errors.register'))
     }
 
     // Mémoriser le choix accordé sur cet appareil

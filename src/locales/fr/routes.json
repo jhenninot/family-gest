@@ -1,0 +1,14 @@
+{
+  "login": "Connexion",
+  "setPassword": "Définir mon mot de passe",
+  "invitation": "Invitation familiale",
+  "selectFamily": "Mes familles",
+  "superAdmin": "Super administration",
+  "dashboard": "Tableau de bord",
+  "tasks": "Tâches",
+  "calendar": "Calendrier familial",
+  "absences": "Présence",
+  "meals": "Repas de la semaine",
+  "shopping": "Liste de courses",
+  "familySettings": "Administration de la famille"
+}

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useAuthStore } from './authStore'
+import { t } from '../i18n'
 import { themePreference as themePreferenceRef, isDarkMode as isDarkModeRef, setThemePreference } from '../utils/theme.js'
 import {
   DEFAULT_WEEK_ANCHOR,
@@ -392,22 +393,22 @@ export const useFamilyStore = defineStore('family', () => {
 
     let targetDate = current
     let slot = 'lunch'
-    let label = 'ce midi'
+    let label = t('meals.next.thisLunch')
     let isTomorrow = false
 
     if (hours >= 14 && hours < 21) {
       slot = 'dinner'
-      label = 'ce soir'
+      label = t('meals.next.tonight')
     } else if (hours >= 21) {
       const tomorrow = new Date(current)
       tomorrow.setDate(tomorrow.getDate() + 1)
       targetDate = tomorrow
       slot = 'lunch'
-      label = 'demain midi'
+      label = t('meals.next.tomorrowLunch')
       isTomorrow = true
     } else {
       slot = 'lunch'
-      label = 'ce midi'
+      label = t('meals.next.thisLunch')
     }
 
     const year = targetDate.getFullYear()
@@ -459,7 +460,7 @@ export const useFamilyStore = defineStore('family', () => {
         members.value = members.value.filter(m => m.id !== id)
         return { success: true }
       } else {
-        alert(data.error || 'Erreur lors de la suppression du membre')
+        alert(data.error || t('members.errors.deleteFailed'))
         return { success: false, error: data.error }
       }
     } catch (err) {
@@ -479,7 +480,7 @@ export const useFamilyStore = defineStore('family', () => {
         if (index !== -1) members.value[index] = data
         return { success: true }
       } else {
-        alert(data.error || 'Erreur lors de la modification du statut administrateur')
+        alert(data.error || t('members.errors.adminToggleFailed'))
         return { success: false, error: data.error }
       }
     } catch (err) {
@@ -533,7 +534,7 @@ export const useFamilyStore = defineStore('family', () => {
   const updateFamilyPresenceAnchor = async (dateStr) => {
     try {
       const slug = currentFamily.value?.slug
-      if (!slug) return { success: false, error: 'Aucune famille active' }
+      if (!slug) return { success: false, error: t('common.errors.noActiveFamily') }
       const res = await fetch(`/api/families/${slug}/presence-anchor`, {
         method: 'PUT',
         headers: getHeaders(),
@@ -1185,14 +1186,14 @@ export const useFamilyStore = defineStore('family', () => {
   const searchMealieRecipes = async (search, { signal } = {}) => {
     const res = await fetch(`/api/mealie/recipes?search=${encodeURIComponent(search)}`, { headers: getHeaders(), signal })
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(data.error || 'Erreur lors de la recherche Mealie')
+    if (!res.ok) throw new Error(data.error || t('meals.mealie.errors.search'))
     return data.recipes || []
   }
 
   const getMealieRecipe = async (slug) => {
     const res = await fetch(`/api/mealie/recipes/${encodeURIComponent(slug)}`, { headers: getHeaders() })
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(data.error || 'Erreur lors de la récupération de la recette Mealie')
+    if (!res.ok) throw new Error(data.error || t('meals.mealie.errors.recipe'))
     return data
   }
 

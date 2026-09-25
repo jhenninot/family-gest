@@ -1,0 +1,16 @@
+{
+  "subtitle": "Sign in to access your family space",
+  "emailLabel": "Email address",
+  "emailPlaceholder": "e.g. name{'@'}family.com",
+  "passwordLabel": "Password",
+  "submit": "Sign in",
+  "submitting": "Signing in…",
+  "refreshTitle": "Clear the cache and force reloading the latest version",
+  "refreshing": "Updating…",
+  "refresh": "Clear cache & refresh the app",
+  "footer": "FamilyGest secure portal • All rights reserved",
+  "errors": {
+    "failed": "Sign-in error",
+    "unreachable": "Unable to reach the authentication server"
+  }
+}

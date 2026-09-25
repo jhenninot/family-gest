@@ -8,9 +8,9 @@
         </div>
 
         <div class="pwa-prompt-info">
-          <h4 class="pwa-prompt-title">Installer FamilyGest</h4>
+          <h4 class="pwa-prompt-title">{{ t('pwa.title') }}</h4>
           <p class="pwa-prompt-desc">
-            Installez l'application sur votre appareil pour un accès rapide en plein écran.
+            {{ t('pwa.desc') }}
           </p>
         </div>
 
@@ -22,7 +22,7 @@
             class="pwa-btn pwa-btn-primary"
           >
             <Download :size="16" />
-            <span>Installer</span>
+            <span>{{ t('pwa.install') }}</span>
           </button>
 
           <!-- Bouton Guide pour iOS Safari -->
@@ -32,15 +32,15 @@
             class="pwa-btn pwa-btn-primary"
           >
             <Share :size="16" />
-            <span>{{ showIosGuide ? 'Fermer' : 'Installer' }}</span>
+            <span>{{ showIosGuide ? t('common.close') : t('pwa.install') }}</span>
           </button>
 
           <!-- Bouton fermer / masquer -->
           <button 
             @click="dismissPrompt" 
             class="pwa-btn pwa-btn-close" 
-            aria-label="Fermer"
-            title="Masquer"
+            :aria-label="t('common.close')"
+            :title="t('common.hide')"
           >
             <X :size="16" />
           </button>
@@ -50,11 +50,11 @@
         <div v-if="showIosGuide" class="pwa-ios-instructions">
           <div class="ios-step">
             <span class="step-num">1</span>
-            <span class="step-text">Appuyez sur le bouton de partage Safari <Share :size="15" class="inline-icon" /></span>
+            <span class="step-text">{{ t('pwa.iosStep1') }} <Share :size="15" class="inline-icon" /></span>
           </div>
           <div class="ios-step">
             <span class="step-num">2</span>
-            <span class="step-text">Sélectionnez <strong>« Sur l'écran d'accueil »</strong> <PlusSquare :size="15" class="inline-icon" /></span>
+            <span class="step-text"><i18n-t keypath="pwa.iosStep2" tag="span"><template #option><strong>{{ t('pwa.iosStep2Option') }}</strong></template></i18n-t> <PlusSquare :size="15" class="inline-icon" /></span>
           </div>
         </div>
       </div>
@@ -65,6 +65,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Download, X, Share, PlusSquare } from '@lucide/vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const showPrompt = ref(false)
 const deferredPrompt = ref(null)

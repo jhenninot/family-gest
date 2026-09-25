@@ -1,6 +1,17 @@
 {
   "language": {
     "title": "Langue",
-    "subtitle": "Langue de l'application et des emails"
-  }
+    "subtitle": "Application et emails"
+  },
+  "loading": "Chargement…",
+  "errors": {
+    "server": "Erreur de connexion au serveur.",
+    "unreachable": "Impossible de contacter le serveur",
+    "noActiveFamily": "Aucune famille active"
+  },
+  "logout": "Se déconnecter",
+  "cancel": "Annuler",
+  "saving": "Enregistrement…",
+  "close": "Fermer",
+  "hide": "Masquer"
 }

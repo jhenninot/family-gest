@@ -10,31 +10,31 @@ const routes = [
     path: '/login',
     name: 'login',
     component: LoginView,
-    meta: { title: 'Connexion', public: true }
+    meta: { titleKey: 'routes.login', public: true }
   },
   {
     path: '/set-password',
     name: 'set-password',
     component: () => import('../views/SetPasswordView.vue'),
-    meta: { title: 'Définir mon mot de passe', public: true }
+    meta: { titleKey: 'routes.setPassword', public: true }
   },
   {
     path: '/invitation/:token',
     name: 'invitation',
     component: () => import('../views/InvitationView.vue'),
-    meta: { title: 'Invitation Familiale', public: true }
+    meta: { titleKey: 'routes.invitation', public: true }
   },
   {
     path: '/mentions-legales',
     name: 'legal-notice',
     component: () => import('../views/LegalDocView.vue'),
-    meta: { title: 'Mentions légales', public: true, field: 'legalNotice' }
+    meta: { titleKey: 'legal.notice', public: true, field: 'legalNotice' }
   },
   {
     path: '/confidentialite',
     name: 'privacy-policy',
     component: () => import('../views/LegalDocView.vue'),
-    meta: { title: 'Politique de confidentialité', public: true, field: 'privacyPolicy' }
+    meta: { titleKey: 'legal.privacy', public: true, field: 'privacyPolicy' }
   },
 
   // Special workspace selection & Super Admin
@@ -42,13 +42,13 @@ const routes = [
     path: '/select-family',
     name: 'select-family',
     component: () => import('../views/SelectFamilyView.vue'),
-    meta: { title: 'Mes Familles', requiresAuth: true }
+    meta: { titleKey: 'routes.selectFamily', requiresAuth: true }
   },
   {
     path: '/super-admin',
     name: 'super-admin',
     component: () => import('../views/SuperAdminView.vue'),
-    meta: { title: 'Super Administration', requiresAuth: true, requiresSuperAdmin: true }
+    meta: { titleKey: 'routes.superAdmin', requiresAuth: true, requiresSuperAdmin: true }
   },
 
   // Family scoped routes
@@ -56,50 +56,50 @@ const routes = [
     path: '/:familySlug',
     name: 'family-dashboard',
     component: DashboardView,
-    meta: { title: 'Tableau de bord', requiresAuth: true }
+    meta: { titleKey: 'routes.dashboard', requiresAuth: true }
   },
   {
     path: '/:familySlug/dashboard',
     name: 'family-dashboard-explicit',
     component: DashboardView,
-    meta: { title: 'Tableau de bord', requiresAuth: true }
+    meta: { titleKey: 'routes.dashboard', requiresAuth: true }
   },
   {
     path: '/:familySlug/tasks',
     name: 'family-tasks',
     component: () => import('../views/TasksView.vue'),
-    meta: { title: 'Tâches', requiresAuth: true }
+    meta: { titleKey: 'routes.tasks', requiresAuth: true }
   },
   {
     path: '/:familySlug/calendar',
     name: 'family-calendar',
     component: () => import('../views/CalendarView.vue'),
-    meta: { title: 'Calendrier familial', requiresAuth: true }
+    meta: { titleKey: 'routes.calendar', requiresAuth: true }
   },
   {
     path: '/:familySlug/absences',
     name: 'family-absences',
     component: () => import('../views/AbsencesView.vue'),
-    meta: { title: 'Présence', requiresAuth: true }
+    meta: { titleKey: 'routes.absences', requiresAuth: true }
   },
   {
     path: '/:familySlug/meals',
     name: 'family-meals',
     component: () => import('../views/MealsView.vue'),
-    meta: { title: 'Repas de la semaine', requiresAuth: true }
+    meta: { titleKey: 'routes.meals', requiresAuth: true }
   },
   {
     path: '/:familySlug/shopping',
     name: 'family-shopping',
     component: () => import('../views/ShoppingView.vue'),
-    meta: { title: 'Liste de courses', requiresAuth: true }
+    meta: { titleKey: 'routes.shopping', requiresAuth: true }
   },
   {
     path: '/:familySlug/settings/email',
     name: 'family-settings',
     alias: ['/:familySlug/settings', '/:familySlug/admin'],
     component: () => import('../views/FamilySettingsView.vue'),
-    meta: { title: 'Administration de la famille', requiresAuth: true, requiresAdmin: true }
+    meta: { titleKey: 'routes.familySettings', requiresAuth: true, requiresAdmin: true }
   },
 
   // Root and legacy shortcuts (redirected via beforeEach)

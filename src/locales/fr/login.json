@@ -1,0 +1,16 @@
+{
+  "subtitle": "Connectez-vous pour accéder à l'espace familial",
+  "emailLabel": "Adresse email",
+  "emailPlaceholder": "ex : nom{'@'}famille.fr",
+  "passwordLabel": "Mot de passe",
+  "submit": "Se connecter",
+  "submitting": "Connexion en cours…",
+  "refreshTitle": "Vider le cache et forcer le rechargement de la dernière version",
+  "refreshing": "Mise à jour…",
+  "refresh": "Vider le cache & rafraîchir l'application",
+  "footer": "Portail sécurisé FamilyGest • Tous droits réservés",
+  "errors": {
+    "failed": "Erreur lors de la connexion",
+    "unreachable": "Impossible de contacter le serveur d'authentification"
+  }
+}

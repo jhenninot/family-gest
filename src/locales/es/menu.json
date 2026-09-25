@@ -1,0 +1,32 @@
+{
+  "userMenu": "Menú de usuario",
+  "userMenuWithName": "Menú de usuario ({name})",
+  "familySpaces": "Espacios familiares",
+  "allFamiliesTitle": "Ver todas mis familias",
+  "allFamilies": "Todas",
+  "superAdminConsole": "Consola de superadmin",
+  "profile": "Mi perfil",
+  "profileSubtitle": "Datos y avatar",
+  "administration": "Administración",
+  "administrationSubtitle": "Miembros, roles y ajustes",
+  "refreshing": "Actualizando…",
+  "refresh": "Actualizar la aplicación",
+  "refreshSubtitle": "Vaciar la caché y forzar la actualización",
+  "logout": "Cerrar sesión",
+  "logoutSubtitle": "Salir de mi sesión",
+  "defaultUserName": "Usuario",
+  "badges": {
+    "superAdmin": "Superadmin",
+    "admin": "Admin",
+    "member": "Miembro"
+  },
+  "theme": {
+    "title": "Tema",
+    "autoTitle": "Automático: sigue el modo oscuro del dispositivo",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "autoSubtitle": "Sigue el dispositivo",
+    "alwaysDark": "Siempre oscuro",
+    "alwaysLight": "Siempre claro"
+  }
+}
