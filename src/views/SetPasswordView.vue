@@ -171,6 +171,7 @@
 
       <div class="login-footer">
         <span>{{ t('setPassword.footer') }}</span>
+        <div class="language-row"><LanguageSwitcher /></div>
       </div>
     </div>
   </div>
@@ -196,6 +197,7 @@ import {
   Mail
 } from '@lucide/vue'
 import BrandLogo from '../components/BrandLogo.vue'
+import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
@@ -697,5 +699,12 @@ const handleSetPassword = async () => {
   text-align: center;
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+/* Choix de la langue avant connexion */
+.language-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
 }
 </style>

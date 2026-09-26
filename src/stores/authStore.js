@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useFamilyStore } from './familyStore'
-import { t } from '../i18n'
+import { t, detectLocale, isI18nActive } from '../i18n'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('familygest_token') || '')
@@ -55,6 +55,7 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
 
+      adoptDeviceLanguage()
       return true
     } catch (err) {
       error.value = t('login.errors.unreachable')
@@ -107,6 +108,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Compte sans langue choisie (créé avant le multilingue, ou par un administrateur) : on lui
+  // enregistre la langue de l'appareil, pour que ses emails et notifications la suivent aussi.
+  // Appelé seulement après une réponse fraîche du serveur, jamais sur le profil en cache.
+  const adoptDeviceLanguage = () => {
+    if (user.value && !user.value.language && isI18nActive()) {
+      updateProfile({ language: detectLocale() })
+    }
+  }
+
   const setToken = (newToken) => {
     if (newToken && newToken !== token.value) {
       token.value = newToken
@@ -129,6 +139,7 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = data.user
         localStorage.setItem('familygest_token', data.token)
         localStorage.setItem('familygest_user', JSON.stringify(data.user))
+        adoptDeviceLanguage()
         return true
       } else if (res.status === 401) {
         logout()

@@ -28,6 +28,8 @@ npm run generate-icons
 
 There is no test suite and no lint script configured in either `package.json`. Don't invent `npm test`/`npm run lint` commands.
 
+`npm run i18n:check` validates the translation files (missing/extra keys, vue-i18n syntax, placeholder parity, unknown literal keys, Vue components using `t()`/`translateValue` without importing them). Run it after touching any user-facing text.
+
 Docker: `Dockerfile` builds the Vite frontend then bundles it into the Express server image (`server/` + compiled `dist/`) as a single container; `compose.yaml` runs that image alongside a `mongo:7.0` container. See `DOCKGE.md` for the deployment guide and `Migration.md` for the multi-family design spec this codebase implements.
 
 ## Architecture
@@ -61,6 +63,15 @@ Email delivery is a single global configuration (see `Migration.md` §4): the pl
 - `src/stores/familyStore.js` (Pinia) — everything family-scoped: current family/role/admin flag, member quota, and all the collections (members, tasks, events, shopping, absences, meals, shortcuts). Also owns the dark/light theme toggle (`data-theme` attribute + `localStorage`). `getHeaders()` here is the canonical way API calls attach the JWT and `X-Family-Slug`.
 - Views under `src/views/` map 1:1 to the family-scoped routes above, plus `SelectFamilyView` (multi-family picker), `SuperAdminView`, `InvitationView`/`SetPasswordView` (onboarding), `LoginView`.
 - PWA: configured via `vite-plugin-pwa` in `vite.config.js` (manifest, Workbox runtime caching for Google Fonts); `public/sw-push.js` is a separate importScripts service worker file handling Web Push display, wired in via `workbox.importScripts`. `src/utils/pushNotifications.js` and `src/components/DevicePushPrompt.vue` handle subscription on the client; VAPID keys/subscriptions are managed server-side via `PushConfig`/`PushSubscription` models and the `/api/push/*` routes.
+
+### Internationalisation (fr / en / es)
+
+- One language per account (`User.language`, `null` = not chosen yet → French for emails; the UI then uses the device language and stores it on the account at the next login). `LANGUAGE_SELECTOR_ENABLED` in `src/i18n/index.js` is the global switch.
+- Frontend: vue-i18n (Composition API), messages in `src/locales/<lang>/<namespace>.json`, French is the reference and fallback. Never hard-code user-facing text: use `t('ns.key')` / `<i18n-t>`. Dates via `src/i18n/format.js` (`intlLocale()`), never `'fr-FR'`.
+- Values stored in French in the database (roles, task priorities/categories, event and default shopping categories) are **not** migrated: display them with `translateValue(kind, value)` (`src/i18n/values.js`, keys `values.<kind>.<normalized>`).
+- `src/i18n/apiLanguage.js` wraps `fetch` to send the UI language in an `X-Lang` header on every `/api/` call. Server side, `languageMiddleware` (`server/i18n/index.js`) exposes `req.lang` and `req.t(key, params)`; API errors and confirmations must use `req.t('errors.…')` / `req.t('messages.…')`, with texts in `server/locales/<lang>/*.json` (same syntax as vue-i18n, checked by `i18n:check`). Helpers without `req` throw `TranslatableError(key)` and routes answer with `localizeError(req, err)`.
+- Emails and push notifications are written per recipient: `sendNotificationEmail` / `sendPushNotification` / `dispatchFamilyAlert` accept each text either as a string or as a function `(t) => string`, resolved with the recipient's language. The alert log (Super Admin journal) stays in French.
+- The frontend must never branch on the text of a server message (use explicit fields such as `deleted: true`).
 
 ### Alert logging
 

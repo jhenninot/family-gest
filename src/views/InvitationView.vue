@@ -160,6 +160,7 @@
           </button>
         </form>
       </div>
+      <div class="language-row"><LanguageSwitcher /></div>
     </div>
   </div>
 </template>
@@ -174,6 +175,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { AlertCircle, ShieldCheck } from '@lucide/vue'
 import BrandLogo from '../components/BrandLogo.vue'
+import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import AvatarPicker from '../components/AvatarPicker.vue'
 import { DEFAULT_AVATAR } from '../utils/avatarHelper'
@@ -507,5 +509,12 @@ const handleAcceptNew = async () => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Choix de la langue avant connexion */
+.language-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
 }
 </style>

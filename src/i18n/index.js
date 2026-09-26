@@ -7,10 +7,10 @@ export const SUPPORTED_LOCALES = ['fr', 'en', 'es']
 export const DEFAULT_LOCALE = 'fr'
 export const LOCALE_LABELS = { fr: 'Français', en: 'English', es: 'Español' }
 
-// Tant que toutes les traductions ne sont pas terminées, l'interface reste en français pour tout
-// le monde et le sélecteur de langue est masqué. Pour prévisualiser les autres langues sur un
-// appareil : localStorage.setItem('familygest_i18n_preview', '1') puis recharger.
-export const LANGUAGE_SELECTOR_ENABLED = false
+// Interrupteur général du multilingue. À false, l'interface repasse en français pour tout le monde
+// et le sélecteur de langue est masqué ; on peut alors prévisualiser les autres langues sur un
+// appareil avec localStorage.setItem('familygest_i18n_preview', '1') puis en rechargeant.
+export const LANGUAGE_SELECTOR_ENABLED = true
 
 const LOCALE_STORAGE_KEY = 'familygest_lang'
 const PREVIEW_STORAGE_KEY = 'familygest_i18n_preview'

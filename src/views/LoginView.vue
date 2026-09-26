@@ -65,6 +65,7 @@
           <span>{{ isRefreshing ? t('login.refreshing') : t('login.refresh') }}</span>
         </button>
         <span>{{ t('login.footer') }}</span>
+        <div class="language-row"><LanguageSwitcher /></div>
         <div class="legal-links">
           <router-link to="/mentions-legales">{{ t('legal.notice') }}</router-link>
           <span aria-hidden="true">&bull;</span>
@@ -84,6 +85,7 @@ import { useFamilyStore } from '../stores/familyStore'
 import { Mail, Lock, AlertCircle, RefreshCw } from '@lucide/vue'
 import { forceAppRefresh } from '../utils/cacheHelper'
 import BrandLogo from '../components/BrandLogo.vue'
+import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -273,5 +275,12 @@ const handleLogin = async () => {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Choix de la langue avant connexion */
+.language-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
 }
 </style>
