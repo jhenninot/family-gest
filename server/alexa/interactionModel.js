@@ -50,6 +50,175 @@ const MEAL_SLOT_VALUES = [
   { id: 'ALL_DAY', name: { value: 'toute la journée', synonyms: ['la journée', 'toute la journée et la nuit'] } }
 ]
 
+// Formulations supplémentaires (synonymes), ajoutées aux phrases de base de chaque intention
+const EXTRA_SAMPLES = {
+  AddEventIntent: [
+    'ajoute un rendez-vous {title} {date} [à {time}]',
+    'ajoute un événement {title} [{date}] [à {time}]',
+    'ajoute {title} au calendrier [{date}] [à {time}]',
+    'crée un événement {title} [{date}] [à {time}]',
+    'crée un rendez-vous {title} {date} [à {time}]',
+    'programme {title} {date} [à {time}]',
+    'planifie {title} {date} [à {time}]',
+    "inscris {title} [dans l'agenda] {date} [à {time}]",
+    "note dans l'agenda {title} {date} [à {time}]",
+    'mets {title} au calendrier [{date}] [à {time}]',
+    'on a {title} {date} [à {time}]',
+    'il y a {title} {date} [à {time}]',
+    '{title} le {date} [à {time}]'
+  ],
+  AddShoppingIntent: [
+    'achète {items}',
+    'rajoute {items} aux courses',
+    'ajoute {items} à la liste des courses',
+    'ajoute aux courses {items}',
+    'note {items} sur la liste [de courses]',
+    'note {items} pour les courses',
+    "on n'a plus de {items}",
+    "il n'y a plus de {items}",
+    'pense à acheter {items}',
+    'il faudrait acheter {items}',
+    'il faut racheter {items}',
+    'racheter {items}',
+    'à acheter {items}',
+    'liste de courses {items}'
+  ],
+  AddMealIntent: [
+    'au {mealSlot} [{date}] on mange {dish}',
+    '{date} au {mealSlot} on mange {dish}',
+    'on fait {dish} [{date}] au {mealSlot}',
+    'on fait {dish} au {mealSlot} [{date}]',
+    'on fait {dish} {date} {mealSlot}',
+    'je fais {dish} au {mealSlot} [{date}]',
+    'je fais {dish} {date} {mealSlot}',
+    'mets au menu {dish} [{date}] [au] [{mealSlot}]',
+    "le menu du {mealSlot} [{date}] c'est {dish}",
+    'planifie {dish} pour le {mealSlot} [{date}]',
+    'ajoute le plat {dish} [au] {mealSlot} [{date}]'
+  ],
+  AbsenceIntent: [
+    '{member} sera absent [{date}] [le] {slotOne} [et {slotTwo}]',
+    '{member} sera absente [{date}] [le] {slotOne} [et {slotTwo}]',
+    '{member} sera absent {date}',
+    '{member} sera absente {date}',
+    "{member} n'est pas là {date}",
+    '{member} ne mangera pas à la maison [{date}] [le] {slotOne} [et {slotTwo}]',
+    '{member} ne sera pas à la maison [{date}] [le] {slotOne} [et {slotTwo}]',
+    '{member} ne mange pas avec nous [{date}] [le] {slotOne} [et {slotTwo}]',
+    '{member} ne rentre pas manger [{date}] [le] {slotOne}',
+    '{member} mange dehors [{date}] [le] {slotOne}',
+    "{member} mange à l'extérieur [{date}] [le] {slotOne}",
+    'déclare une absence pour {member} [{date}] [le] {slotOne} [et {slotTwo}]',
+    'note une absence pour {member} [{date}] [le] {slotOne} [et {slotTwo}]'
+  ],
+  AbsenceNightIntent: [
+    '{member} ne rentre pas dormir [{date}]',
+    '{member} ne dort pas là [{date}]',
+    '{member} dort chez des amis [{date}]',
+    '{member} dort chez un copain [{date}]',
+    '{member} dort chez une copine [{date}]',
+    '{member} passe la nuit dehors [{date}]',
+    '{member} passe la nuit ailleurs [{date}]'
+  ],
+  PresenceIntent: [
+    '{member} sera à la maison [{date}] [le] {slotOne} [et {slotTwo}]',
+    '{member} mange avec nous [{date}] [le] {slotOne} [et {slotTwo}]',
+    '{member} rentre manger [{date}] [le] {slotOne}',
+    '{member} sera présent {date}',
+    '{member} sera présente {date}',
+    '{member} est là {date}',
+    'déclare une présence pour {member} [{date}] [le] {slotOne} [et {slotTwo}]'
+  ],
+  PresenceNightIntent: [
+    '{member} dort ici [{date}]',
+    '{member} passe la nuit à la maison [{date}]'
+  ],
+  AddGuestIntent: [
+    '{guests} vient manger [au] {slotOne} [{date}]',
+    '{guests} vient manger {date} [le] {slotOne}',
+    '{guests} viennent manger [au] {slotOne} [{date}]',
+    '{guests} viennent manger {date} [le] {slotOne}',
+    '{guests} mangent avec nous [{date}] [le] {slotOne}',
+    'invite {guests} à {slotOne} [et {slotTwo}] [{date}]',
+    'invite {guests} au {slotOne} [{date}]',
+    'on a {guests} à {slotOne} [{date}]',
+    'ajoute {guests} comme invité [{date}] [au] {slotOne}',
+    'ajoute {guests} aux invités [{date}] [au] {slotOne}'
+  ],
+  WhoIsHomeIntent: [
+    'combien serons-nous [{date}] [{mealSlot}]',
+    'on est combien [{date}] [{mealSlot}]',
+    'combien de personnes mangent [à la maison] [{date}] [{mealSlot}]',
+    'qui est à la maison [{date}] [{mealSlot}]',
+    'qui sera à la maison [{date}] [{mealSlot}]',
+    'qui vient manger [{date}] [{mealSlot}]',
+    'pour combien je cuisine [{date}] [{mealSlot}]',
+    'je fais à manger pour combien [{date}] [{mealSlot}]',
+    'combien de couverts faut-il [{date}] [{mealSlot}]'
+  ],
+  WhoSleepsIntent: ['qui dort ici [{date}]', 'qui passe la nuit à la maison [{date}]'],
+  TasksIntent: [
+    'quelles sont mes tâches',
+    "qu'est-ce qu'il y a comme tâches",
+    'y a-t-il des tâches [en cours]',
+    'est-ce qu\'il reste des tâches',
+    'quelles tâches sont en retard',
+    'les tâches à faire',
+    'la liste des choses à faire',
+    "qu'est-ce que je dois faire",
+    "ce qu'il reste à faire",
+    'quelles tâches a {member} à faire',
+    "qu'est-ce qu'il reste à faire pour {member}",
+    '{member} a des tâches',
+    '{member} doit faire quoi',
+    'les tâches pour {member}'
+  ],
+  MealsIntent: [
+    "qu'est-ce qu'on a au menu [{date}] [{mealSlot}]",
+    "qu'y a-t-il au menu [{date}] [{mealSlot}]",
+    "c'est quoi le menu [{date}] [{mealSlot}]",
+    "c'est quoi le repas [{date}] [{mealSlot}]",
+    "qu'est-ce qu'il y a à manger [{date}] [{mealSlot}]",
+    "qu'est-ce qu'on mange de bon [{date}] [{mealSlot}]",
+    'que mange-t-on [{date}] [{mealSlot}]',
+    'quel est le plat du {mealSlot} [{date}]',
+    'quel plat est prévu [{date}] [{mealSlot}]',
+    "ce qu'on a prévu de manger [{date}]",
+    'le menu de la semaine',
+    'les repas de la semaine',
+    'quel est le menu de la semaine'
+  ],
+  'AMAZON.HelpIntent': ['comment ça marche', 'que sais-tu faire', "qu'est-ce que tu sais faire"]
+}
+
+// Après « Alexa, demande à … », on emploie l'infinitif : « … d'ajouter du lait », « … de mettre des
+// lasagnes au dîner ». Chaque phrase d'action à l'impératif reçoit donc sa forme indirecte.
+const INDIRECT_FORMS = {
+  ajoute: "d'ajouter", rajoute: 'de rajouter', mets: 'de mettre', note: 'de noter', 'prévois': 'de prévoir',
+  'achète': "d'acheter", 'crée': 'de créer', programme: 'de programmer', planifie: 'de planifier',
+  invite: "d'inviter", inscris: "d'inscrire", 'déclare': 'de déclarer', prends: 'de prendre'
+}
+const withIndirectForms = (samples) => {
+  const out = new Set(samples)
+  for (const sample of samples) {
+    const [first, ...rest] = sample.split(' ')
+    if (INDIRECT_FORMS[first]) out.add([INDIRECT_FORMS[first], ...rest].join(' '))
+  }
+  return [...out]
+}
+
+// Complète les intentions (synonymes + formes indirectes) ; une phrase déjà utilisée par une autre
+// intention est écartée, Amazon refusant les doublons entre intentions.
+const enrichIntents = (intents) => {
+  const used = new Set()
+  return intents.map(intent => {
+    const samples = withIndirectForms([...intent.samples, ...expand(EXTRA_SAMPLES[intent.name] || [])])
+      .filter(sample => !used.has(sample))
+    samples.forEach(sample => used.add(sample))
+    return { ...intent, samples }
+  })
+}
+
 export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME, members = [] } = {}) => {
   const memberValues = members.map(m => ({
     id: String(m.id),
@@ -277,7 +446,7 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
 
   return {
     interactionModel: {
-      languageModel: { invocationName, intents, types },
+      languageModel: { invocationName, intents: enrichIntents(intents), types },
       dialog: {
         intents: [
           dialogIntent('AddEventIntent', [['title', 'EventTitle', 'Elicit.Event.Title'], ['date', 'AMAZON.DATE', 'Elicit.Event.Date'], ['time', 'AMAZON.TIME', null]]),
