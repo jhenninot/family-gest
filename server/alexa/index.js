@@ -3,6 +3,7 @@ import { normalizeLanguage } from '../i18n/index.js'
 import { alexaAuth, alexaRateLimiter } from './auth.js'
 import { createAlexaApi } from './actions.js'
 import { buildSkill } from './handlers.js'
+import { logger } from '../logging/logger.js'
 
 // Point d'accès de la skill Alexa privée d'une famille : POST /api/alexa/:familySlug/:token
 // (adresse à renseigner dans la console développeur Amazon, section Endpoint › HTTPS).
@@ -29,7 +30,7 @@ export const mountAlexaSkill = (app, ctx) => {
       // les clés contenant un point (ex. « Alexa.Presentation.APL » dans supportedInterfaces).
       const envelope = JSON.parse(rawBody)
       const { type, intent, dialogState } = envelope.request || {}
-      console.log(`[Alexa] ${req.params.familySlug} : ${type}${intent ? ` ${intent.name}` : ''}${dialogState ? ` (${dialogState})` : ''}`)
+      logger.debug(`[Alexa] ${type}${intent ? ` ${intent.name}` : ''}${dialogState ? ` (${dialogState})` : ''}`, { source: 'Alexa', family: req.params.familySlug })
       const lang = normalizeLanguage(envelope.request?.locale)
       const skill = buildSkill(createAlexaApi(req, ctx, lang))
       res.json(await skill.invoke(envelope))

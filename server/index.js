@@ -1,3 +1,4 @@
+import './logging/install.js'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -50,6 +51,7 @@ import { migrateUsualPresenceGrid } from './scripts/migrate-usual-presence-grid.
 import { startDigestScheduler, mountDigestAdminRoutes } from './digest/index.js'
 import { escapeHtml } from './digest/templates.js'
 import { t, normalizeLanguage, languageMiddleware, TranslatableError, localizeError, translator, localize, DEFAULT_LANGUAGE, formatDateOnly, readableDate, translateValue } from './i18n/index.js'
+import { LEVELS as LOG_LEVELS, DEBUG_DURATION_MS, configureLogger, getLogSettings, queryLogs, httpLogMiddleware, logger } from './logging/logger.js'
 import { normalizeUsualPresenceConfig, summarizeUsualPresence, mondayOf, DEFAULT_WEEK_ANCHOR } from '../shared/presence.js'
 
 dotenv.config()
@@ -89,6 +91,9 @@ app.use(express.json({
 
 // Langue des réponses (req.t) : voir server/i18n/index.js
 app.use(languageMiddleware)
+
+// Journal technique : erreurs 5xx de l'API, et toutes les requêtes en niveau debug
+app.use(httpLogMiddleware)
 
 // Neutralise l'injection d'opérateurs Mongo ($ne, $gt...) glissés dans le corps, la query ou les
 // paramètres d'URL d'une requête — défense en profondeur en complément du casting explicite déjà
@@ -2629,6 +2634,56 @@ app.get('/api/super-admin/alert-logs', requireAuth, requireSuperAdmin, async (re
       logs,
       pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) }
     })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// === JOURNAL TECHNIQUE (console Super Admin, voir server/logging/logger.js) ===
+
+const logQueryFromRequest = (req) => ({
+  minLevel: LOG_LEVELS.includes(req.query.level) ? req.query.level : 'debug',
+  source: String(req.query.source || ''),
+  family: String(req.query.family || ''),
+  search: String(req.query.q || '').slice(0, 200),
+  before: req.query.before ? String(req.query.before) : null
+})
+
+// GET /api/super-admin/server-logs (dernières lignes filtrées, les plus récentes d'abord)
+app.get('/api/super-admin/server-logs', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const result = await queryLogs({ ...logQueryFromRequest(req), limit: req.query.limit || 200 })
+    res.json({ ...result, settings: getLogSettings() })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/super-admin/server-logs/download (fichier texte, 5 000 lignes au plus, ordre chronologique)
+app.get('/api/super-admin/server-logs/download', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const { entries } = await queryLogs({ ...logQueryFromRequest(req), limit: 5000 })
+    const text = entries.reverse()
+      .map(e => `${new Date(e.at).toISOString()} ${e.level.toUpperCase().padEnd(8)} [${e.source}]${e.family ? ` {${e.family}}` : ''} ${e.message}`)
+      .join('\n')
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+    res.setHeader('Content-Disposition', `attachment; filename="familygest-journal-${new Date().toISOString().slice(0, 10)}.txt"`)
+    res.send(text + '\n')
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PUT /api/super-admin/server-logs/settings (niveau minimal journalisé ; debug s'arrête seul après 24 h)
+app.put('/api/super-admin/server-logs/settings', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const level = String(req.body?.level || '')
+    if (!LOG_LEVELS.includes(level)) return res.status(400).json({ error: req.t('errors.invalidLogLevel') })
+    const debugUntil = level === 'debug' ? new Date(Date.now() + DEBUG_DURATION_MS) : null
+    await GlobalConfig.findOneAndUpdate({}, { logLevel: level, logDebugUntil: debugUntil }, { upsert: true })
+    configureLogger({ level, debugUntil })
+    logger.warn(`Niveau du journal technique : ${level}${debugUntil ? ` (jusqu'au ${debugUntil.toISOString()})` : ''}`, { source: 'system' })
+    res.json({ settings: getLogSettings() })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -5879,6 +5934,9 @@ if (fs.existsSync(distPath)) {
 // Start server
 const startServer = async () => {
   await connectDB()
+  // Niveau du journal technique choisi par le Super Admin (info par défaut)
+  const logConfig = await GlobalConfig.findOne().select('logLevel logDebugUntil').lean()
+  configureLogger({ level: logConfig?.logLevel || 'info', debugUntil: logConfig?.logDebugUntil })
   await seedDatabaseIfEmpty()
   await migrateToMultiFamily()
   await migrateNotificationPreferences()

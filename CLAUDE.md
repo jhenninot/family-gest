@@ -74,6 +74,10 @@ Email delivery is a single global configuration (see `Migration.md` §4): the pl
 - Emails and push notifications are written per recipient: `sendNotificationEmail` / `sendPushNotification` / `dispatchFamilyAlert` accept each text either as a string or as a function `(t) => string`, resolved with the recipient's language. The alert log (Super Admin journal) stays in French.
 - The frontend must never branch on the text of a server message (use explicit fields such as `deleted: true`).
 
+### Server log (« Journal technique »)
+
+`server/logging/logger.js` (installed first thing by `server/logging/install.js`, the first import of `index.js`) captures every `console.debug/log/info/warn/error` call, plus `logger.debug/info/warn/error/critical(message, { source, family })` for explicit calls. Source is inferred from the `[Alexa]`/`[Digest]`… prefix. Entries at or above the level chosen by the super admin (`GlobalConfig.logLevel`; `debug` reverts to `info` after 24 h via `logDebugUntil`) are kept in a 2 000-line memory ring and batch-written to `ServerLog` (TTL: 24 h for debug/info, 30 days for warn and above). Secrets (Alexa/MCP URL tokens, bearer tokens, passwords) are masked before storage. `httpLogMiddleware` logs API 5xx as errors and every API request at debug level; unhandled rejections/exceptions and MongoDB disconnections are logged as critical. Routes: `/api/super-admin/server-logs` (+ `/download`, `/settings`), UI in `src/components/ServerLogsPanel.vue`. Use `console.debug` for verbose traces (shown only in debug mode); never log user-entered content.
+
 ### Alert logging
 
 `server/models/AlertLog.js` + `server/constants/alertActions.js` record every push/email notification sent (invitations, reminders, etc.) for audit purposes, surfaced in the Super Admin console via `/api/super-admin/alert-logs`.

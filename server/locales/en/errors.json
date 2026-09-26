@@ -1,4 +1,5 @@
 {
+  "invalidLogLevel": "Unknown log level",
   "familyNotFound": "Family not found",
   "userNotFound": "User not found",
   "memberNotInFamily": "Member not found in this family",

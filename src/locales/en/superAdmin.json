@@ -12,7 +12,8 @@
     "families": "Families ({n})",
     "users": "Users ({n})",
     "smtp": "Global settings & SMTP",
-    "alerts": "Alert log"
+    "alerts": "Alert log",
+    "logs": "Server log"
   },
   "families": {
     "loading": "Loading families…",
@@ -167,6 +168,45 @@
       "PUSH_NOT_CONFIGURED": "Push notifications not configured",
       "NO_ELIGIBLE_MEMBERS": "No eligible member (notifications disabled)",
       "NO_SUBSCRIPTIONS": "No device subscribed to push notifications"
+    }
+  },
+  "logs": {
+    "levelLabel": "Recorded level",
+    "minLevel": "Minimum level shown",
+    "levels": {
+      "debug": "Debug",
+      "info": "Info",
+      "warn": "Warning",
+      "error": "Error",
+      "critical": "Critical"
+    },
+    "levelHints": {
+      "debug": "everything, including each request (24 h max)",
+      "info": "normal operation (recommended)",
+      "warn": "warnings and errors",
+      "error": "errors only",
+      "critical": "severe failures only"
+    },
+    "debugUntil": "Debug mode on until {time}, then automatically back to Info.",
+    "retention": "Retention: 24 hours for Debug and Info, 30 days for warnings, errors and critical incidents. Secrets (tokens, passwords) are masked.",
+    "source": "Source",
+    "allSources": "All sources",
+    "family": "Family",
+    "allFamilies": "All families",
+    "search": "Search",
+    "searchPlaceholder": "Message text…",
+    "autoRefresh": "Refresh every 5 seconds",
+    "refresh": "Refresh",
+    "download": "Download",
+    "more": "Older lines",
+    "count": "{n} line shown | {n} lines shown",
+    "empty": "No lines for these filters.",
+    "fromMemory": "The database is not responding: only the latest lines kept in memory are shown.",
+    "loadError": "Could not load the log: {message}",
+    "sources": {
+      "system": "System",
+      "database": "Database",
+      "http": "API requests"
     }
   },
   "firstName": "First name",

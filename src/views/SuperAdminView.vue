@@ -60,6 +60,19 @@
         <Bell :size="18" />
         <span>{{ t('superAdmin.tabs.alerts') }}</span>
       </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'logs' }"
+        @click="activeTab = 'logs'"
+      >
+        <ScrollText :size="18" />
+        <span>{{ t('superAdmin.tabs.logs') }}</span>
+      </button>
+    </div>
+
+    <!-- Journal technique du serveur -->
+    <div v-if="activeTab === 'logs'" class="tab-content">
+      <ServerLogsPanel />
     </div>
 
     <!-- TAB 1: FAMILIES -->
@@ -1201,6 +1214,7 @@ import { escapeHtml } from '../utils/escapeHtml'
 import { intlLocale } from '../i18n/format'
 import { translateValue } from '../i18n/values'
 import UserAvatar from '../components/UserAvatar.vue'
+import ServerLogsPanel from '../components/ServerLogsPanel.vue'
 import { 
   ShieldAlert, 
   Home, 
@@ -1228,7 +1242,8 @@ import {
   ChevronRight,
   RotateCcw,
   Filter,
-  Clock
+  Clock,
+  ScrollText
 } from '@lucide/vue'
 
 const { t, te } = useI18n()

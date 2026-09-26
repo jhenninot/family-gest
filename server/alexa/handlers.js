@@ -222,7 +222,7 @@ export const buildHandlers = (api) => {
       // Nouvelle demande : guidée si le titre n'a pas été dit d'emblée
       let flow = attrs.eventFlow
       // Trace (sans les valeurs) pour diagnostiquer le dialogue dans les journaux du serveur
-      console.log(`[Alexa] Événement : état ${dialogState || '-'}, étape ${flow?.step || '-'}, reçu ${EVENT_SLOTS.filter(n => incoming[n].value).join(', ') || 'rien'}`)
+      console.debug(`[Alexa] Événement : état ${dialogState || '-'}, étape ${flow?.step || '-'}, reçu ${EVENT_SLOTS.filter(n => incoming[n].value).join(', ') || 'rien'}`)
       if (!flow || dialogState === 'STARTED') {
         flow = { guided: !incoming.title.value || GENERIC_EVENT_TITLE.test(incoming.title.value.trim()), asked: {}, title: '', date: '', time: '', endTime: '', memberId: null, memberName: '' }
       }

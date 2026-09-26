@@ -28,6 +28,7 @@ Dernière mise à jour : [date — à compléter]
 - Données de compte : nom, prénom, email, mot de passe (chiffré), avatar (emoji ou photo importée), couleur de profil, rôle familial, préférences de notification.
 - Données d'activité familiale : tâches, événements de calendrier, listes de courses, présences/absences, invités aux repas, points de récompense — rattachées à votre foyer.
 - Données techniques : abonnements aux notifications push (navigateur), journal des alertes envoyées (email/push), conservé 90 jours puis supprimé automatiquement.
+- Journal technique du serveur (erreurs et fonctionnement, sans le contenu saisi) : 24 heures pour les informations courantes, 30 jours pour les erreurs, puis suppression automatique.
 
 3. Finalités
 Ces données sont utilisées exclusivement pour vous authentifier, faire fonctionner les outils de gestion familiale (tâches, calendrier, courses, présences, repas), et vous envoyer les notifications et le récapitulatif quotidien que vous avez choisi de recevoir.
@@ -117,6 +118,16 @@ const globalConfigSchema = new mongoose.Schema({
   // du dernier récapitulatif déjà envoyé.
   lastDigestRunDate: {
     type: String,
+    default: null
+  },
+  // Journal technique (server/logging/logger.js) : niveau minimal gardé, et fin du mode debug
+  logLevel: {
+    type: String,
+    enum: ['debug', 'info', 'warn', 'error', 'critical'],
+    default: 'info'
+  },
+  logDebugUntil: {
+    type: Date,
     default: null
   },
   // Contenu légal (RGPD) édité par le Super Administrateur, affiché publiquement sur

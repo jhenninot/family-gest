@@ -1,4 +1,5 @@
 {
+  "invalidLogLevel": "Nivel de registro desconocido",
   "familyNotFound": "Familia no encontrada",
   "userNotFound": "Usuario no encontrado",
   "memberNotInFamily": "Miembro no encontrado en esta familia",

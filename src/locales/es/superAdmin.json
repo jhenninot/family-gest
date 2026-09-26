@@ -12,7 +12,8 @@
     "families": "Familias ({n})",
     "users": "Usuarios ({n})",
     "smtp": "Configuración global y SMTP",
-    "alerts": "Registro de alertas"
+    "alerts": "Registro de alertas",
+    "logs": "Registro técnico"
   },
   "families": {
     "loading": "Cargando familias…",
@@ -167,6 +168,45 @@
       "PUSH_NOT_CONFIGURED": "Notificaciones push no configuradas",
       "NO_ELIGIBLE_MEMBERS": "Ningún miembro elegible (notificaciones desactivadas)",
       "NO_SUBSCRIPTIONS": "Ningún dispositivo suscrito a las notificaciones push"
+    }
+  },
+  "logs": {
+    "levelLabel": "Nivel registrado",
+    "minLevel": "Nivel mínimo mostrado",
+    "levels": {
+      "debug": "Debug",
+      "info": "Info",
+      "warn": "Aviso",
+      "error": "Error",
+      "critical": "Crítico"
+    },
+    "levelHints": {
+      "debug": "todo, incluida cada petición (24 h como máximo)",
+      "info": "funcionamiento normal (recomendado)",
+      "warn": "avisos y errores",
+      "error": "solo errores",
+      "critical": "solo fallos graves"
+    },
+    "debugUntil": "Modo debug activo hasta el {time}, después vuelve automáticamente a Info.",
+    "retention": "Conservación: 24 horas para Debug e Info, 30 días para avisos, errores e incidentes críticos. Los secretos (tokens, contraseñas) se ocultan.",
+    "source": "Origen",
+    "allSources": "Todos los orígenes",
+    "family": "Familia",
+    "allFamilies": "Todas las familias",
+    "search": "Búsqueda",
+    "searchPlaceholder": "Texto del mensaje…",
+    "autoRefresh": "Actualizar cada 5 segundos",
+    "refresh": "Actualizar",
+    "download": "Descargar",
+    "more": "Líneas más antiguas",
+    "count": "{n} línea mostrada | {n} líneas mostradas",
+    "empty": "Ninguna línea para estos filtros.",
+    "fromMemory": "La base de datos no responde: solo se muestran las últimas líneas guardadas en memoria.",
+    "loadError": "No se pudo cargar el registro: {message}",
+    "sources": {
+      "system": "Sistema",
+      "database": "Base de datos",
+      "http": "Peticiones API"
     }
   },
   "firstName": "Nombre",

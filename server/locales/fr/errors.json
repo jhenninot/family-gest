@@ -1,4 +1,5 @@
 {
+  "invalidLogLevel": "Niveau de journal inconnu",
   "familyNotFound": "Famille introuvable",
   "userNotFound": "Utilisateur non trouvé",
   "memberNotInFamily": "Membre non trouvé dans cette famille",

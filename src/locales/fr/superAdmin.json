@@ -12,7 +12,8 @@
     "families": "Familles ({n})",
     "users": "Utilisateurs ({n})",
     "smtp": "Configuration Globale & SMTP",
-    "alerts": "Journal des alertes"
+    "alerts": "Journal des alertes",
+    "logs": "Journal technique"
   },
   "families": {
     "loading": "Chargement des familles…",
@@ -167,6 +168,45 @@
       "PUSH_NOT_CONFIGURED": "Notifications push non configurées",
       "NO_ELIGIBLE_MEMBERS": "Aucun membre éligible (notifications désactivées)",
       "NO_SUBSCRIPTIONS": "Aucun appareil inscrit aux notifications push"
+    }
+  },
+  "logs": {
+    "levelLabel": "Niveau enregistré",
+    "minLevel": "Niveau minimal affiché",
+    "levels": {
+      "debug": "Debug",
+      "info": "Info",
+      "warn": "Avertissement",
+      "error": "Erreur",
+      "critical": "Critique"
+    },
+    "levelHints": {
+      "debug": "tout, dont chaque requête (24 h maximum)",
+      "info": "fonctionnement normal (recommandé)",
+      "warn": "avertissements et erreurs",
+      "error": "erreurs seulement",
+      "critical": "pannes graves seulement"
+    },
+    "debugUntil": "Mode debug actif jusqu'au {time}, puis retour automatique au niveau Info.",
+    "retention": "Conservation : 24 heures pour Debug et Info, 30 jours pour les avertissements, erreurs et incidents critiques. Les secrets (jetons, mots de passe) sont masqués.",
+    "source": "Source",
+    "allSources": "Toutes les sources",
+    "family": "Famille",
+    "allFamilies": "Toutes les familles",
+    "search": "Recherche",
+    "searchPlaceholder": "Texte du message…",
+    "autoRefresh": "Actualiser toutes les 5 secondes",
+    "refresh": "Actualiser",
+    "download": "Télécharger",
+    "more": "Lignes plus anciennes",
+    "count": "{n} ligne affichée | {n} lignes affichées",
+    "empty": "Aucune ligne pour ces filtres.",
+    "fromMemory": "La base de données ne répond pas : seules les dernières lignes gardées en mémoire sont affichées.",
+    "loadError": "Chargement du journal impossible : {message}",
+    "sources": {
+      "system": "Système",
+      "database": "Base de données",
+      "http": "Requêtes API"
     }
   },
   "firstName": "Prénom",
