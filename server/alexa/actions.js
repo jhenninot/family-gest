@@ -92,8 +92,8 @@ export const createAlexaApi = (req, ctx, lang) => {
 
     // --- Ajouts ---
 
-    async addEvent ({ title, date, time }) {
-      const { event } = await ctx.createEventOrSeries({ familyId, body: { title, date, time: time || '' }, declaredBy: actorId, lang })
+    async addEvent ({ title, date, time, endTime = '', memberIds = [] }) {
+      const { event } = await ctx.createEventOrSeries({ familyId, body: { title, date, time: time || '', endTime: endTime || '', memberIds }, declaredBy: actorId, lang })
       notify({
         action: ctx.ALERT_ACTIONS.EVENT_CREATED,
         title: (tr) => tr('notify.event.createdTitle', { title: event.title }),

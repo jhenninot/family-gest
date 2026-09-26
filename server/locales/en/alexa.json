@@ -27,7 +27,17 @@
   "event": {
     "askTitle": "What is the event?",
     "askPreciseDate": "Which day exactly?",
-    "done": "Done: {title}, {when}."
+    "done": "Done: {title}, {when}.",
+    "fromTo": "{date} from {start} to {end}",
+    "guide": {
+      "title": "What is the title of the event?",
+      "date": "Which day?",
+      "time": "What time does it start? Say “all day” if it has no time.",
+      "endTime": "What time does it end? Say “I don't know” if there is no end time.",
+      "member": "Who is this event for? Say a first name, or “the whole family”.",
+      "badTime": "I didn't understand the time.",
+      "endBeforeStart": "The end time must be after the start time."
+    }
   },
   "shopping": {
     "askItems": "What should I add to the shopping list?",

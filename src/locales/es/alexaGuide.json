@@ -50,7 +50,7 @@
     },
     "usage": {
       "title": "Qué puede decir (en francés)",
-      "event": "«Alexa, demande à {name} d’ajouter dentiste mardi à 15 heures» (añadir un evento)",
+      "event": "«Alexa, demande à {name} d’ajouter dentiste mardi à 15 heures» (añadir un evento) — o simplemente «… d’ajouter un événement» (añadir un evento): Alexa pide el título, el día, las horas de inicio y fin, y la persona",
       "shopping": "«Alexa, demande à {name} d’acheter du lait et des œufs» (compra) — evite «à ma liste de courses», que suele captar la lista de compra de Amazon",
       "meal": "«Alexa, demande à {name} de mettre des lasagnes au dîner de jeudi» (planificar un plato)",
       "absence": "«Alexa, demande à {name} : Paul ne sera pas là demain midi» (ausencia, siempre con un nombre); «… Léa sera là ce soir» para una presencia",

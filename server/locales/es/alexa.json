@@ -27,7 +27,17 @@
   "event": {
     "askTitle": "¿Cuál es el evento?",
     "askPreciseDate": "¿Qué día exactamente?",
-    "done": "Anotado: {title}, {when}."
+    "done": "Anotado: {title}, {when}.",
+    "fromTo": "{date} de {start} a {end}",
+    "guide": {
+      "title": "¿Cuál es el título del evento?",
+      "date": "¿Qué día?",
+      "time": "¿A qué hora empieza? Diga «todo el día» si no tiene hora.",
+      "endTime": "¿A qué hora termina? Diga «no sé» si no hay hora de fin.",
+      "member": "¿Para quién es este evento? Diga un nombre, o «toda la familia».",
+      "badTime": "No he entendido la hora.",
+      "endBeforeStart": "La hora de fin debe ser posterior a la de inicio."
+    }
   },
   "shopping": {
     "askItems": "¿Qué hay que añadir a la lista de la compra?",

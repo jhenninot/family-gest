@@ -27,7 +27,17 @@
   "event": {
     "askTitle": "Quel est l'événement ?",
     "askPreciseDate": "Pour quel jour exactement ?",
-    "done": "C'est noté : {title}, {when}."
+    "done": "C'est noté : {title}, {when}.",
+    "fromTo": "{date} de {start} à {end}",
+    "guide": {
+      "title": "Quel est le titre de l'événement ?",
+      "date": "Pour quel jour ?",
+      "time": "À quelle heure commence-t-il ? Dites « toute la journée » s'il n'a pas d'heure.",
+      "endTime": "À quelle heure se termine-t-il ? Dites « je ne sais pas » s'il n'y a pas d'heure de fin.",
+      "member": "Pour qui est cet événement ? Dites un prénom, ou « toute la famille ».",
+      "badTime": "Je n'ai pas compris l'heure.",
+      "endBeforeStart": "L'heure de fin doit être après l'heure de début."
+    }
   },
   "shopping": {
     "askItems": "Que faut-il ajouter à la liste de courses ?",

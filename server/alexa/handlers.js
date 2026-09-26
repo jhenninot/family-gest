@@ -5,7 +5,7 @@ import { parseAlexaDate, parseAlexaTime, parseMealSlot, slotsToFlags, splitSpoke
 // Dialogue de la skill Alexa. Toutes les écritures passent par `api` (voir actions.js), ce qui
 // permet de tester ces gestionnaires sans base de données.
 //
-// api = { t, today(), members(), addEvent(), addShoppingItems(), addMeal(), declarePresence(), addGuests(),
+// api = { t, today(), members(), addEvent(), upcomingEvents(), addShoppingItems(), addMeal(), declarePresence(), addGuests(),
 //         whoIsHome(), pendingTasks(), plannedMeals() }
 
 // Valeur entendue et identifiant résolu (valeurs du modèle ou entités dynamiques) d'un créneau
@@ -31,7 +31,13 @@ const spokenTime = (t, time) => {
 // Fin d'une action : la conversation continue si la skill a été ouverte (« Alexa, ouvre… »),
 // sinon Alexa se tait après avoir confirmé.
 const finish = (handlerInput, api, speech) => {
-  const { launched } = handlerInput.attributesManager.getSessionAttributes()
+  const attrs = handlerInput.attributesManager.getSessionAttributes()
+  const { launched } = attrs
+  // Un ajout d'événement guidé laissé en plan ne doit pas reprendre au prochain « non »
+  if (attrs.eventFlow) {
+    delete attrs.eventFlow
+    handlerInput.attributesManager.setSessionAttributes(attrs)
+  }
   const rb = handlerInput.responseBuilder
   if (launched) {
     const more = api.t('alexa.anythingElse')
@@ -118,22 +124,120 @@ export const buildHandlers = (api) => {
     }
   }
 
+  // --- Ajout d'un événement ---
+  // En une phrase (« ajoute dentiste mardi à 15 heures ») l'événement est créé aussitôt. Sans titre
+  // (« ajoute un événement »), Alexa guide : titre, jour, heure de début, heure de fin, personne ;
+  // les trois dernières peuvent être passées (« toute la journée », « je ne sais pas », « toute la
+  // famille »). L'avancement est gardé dans la session (eventFlow).
+  const EVENT_SLOTS = ['title', 'date', 'time', 'endTime', 'member']
+  const GENERIC_EVENT_TITLE = /^(?:un |une |l')?(?:nouvel |nouveau |autre )?(?:événement|evenement|rendez-vous|rendez vous|rdv)$/i
+
+  const eventIntent = (flow) => ({
+    name: 'AddEventIntent',
+    confirmationStatus: 'NONE',
+    slots: Object.fromEntries(EVENT_SLOTS.map(name => {
+      const value = name === 'member' ? flow.memberName : flow[name]
+      return [name, { name, confirmationStatus: 'NONE', ...(value ? { value } : {}) }]
+    }))
+  })
+
+  const askEvent = (h, flow, slotName, speech) => {
+    const attrs = h.attributesManager.getSessionAttributes()
+    h.attributesManager.setSessionAttributes({ ...attrs, eventFlow: { ...flow, step: slotName } })
+    return h.responseBuilder
+      .speak(escapeSsml(speech))
+      .reprompt(escapeSsml(speech))
+      .addElicitSlotDirective(slotName, eventIntent(flow))
+      .getResponse()
+  }
+
+  // Étape suivante du dialogue, ou création de l'événement quand tout est connu
+  const continueEvent = async (h, flow, notice = '') => {
+    const ask = (slotName, key) => askEvent(h, flow, slotName, `${notice ? notice + ' ' : ''}${t(`alexa.event.guide.${key}`)}`)
+    if (!flow.title) return ask('title', 'title')
+    if (!flow.date) return ask('date', 'date')
+    if (flow.guided) {
+      if (!flow.time && !flow.asked.time) { flow.asked.time = true; return ask('time', 'time') }
+      if (flow.time && !flow.endTime && !flow.asked.endTime) { flow.asked.endTime = true; return ask('endTime', 'endTime') }
+      if (flow.memberId == null && !flow.asked.member) { flow.asked.member = true; return ask('member', 'member') }
+    }
+
+    const title = flow.title.charAt(0).toUpperCase() + flow.title.slice(1)
+    await api.addEvent({
+      title,
+      date: flow.date,
+      time: flow.time || '',
+      endTime: flow.time ? (flow.endTime || '') : '',
+      memberIds: flow.memberId != null ? [flow.memberId] : []
+    })
+    const attrs = h.attributesManager.getSessionAttributes()
+    delete attrs.eventFlow
+    h.attributesManager.setSessionAttributes(attrs)
+
+    const date = readableDate(t, flow.date)
+    let when = date
+    if (flow.time && flow.endTime) when = t('alexa.event.fromTo', { date, start: spokenTime(t, flow.time), end: spokenTime(t, flow.endTime) })
+    else if (flow.time) when = t('alexa.dateAt', { date, time: spokenTime(t, flow.time) })
+    if (flow.memberName) when += ` ${t('alexa.query.tasks.for', { name: flow.memberName })}`
+    return finish(h, api, t('alexa.event.done', { title, when }))
+  }
+
   const AddEventHandler = {
     canHandle: isIntent('AddEventIntent'),
     async handle (h) {
-      const title = (readSlot(h, 'title').value || '').trim()
-      if (!title) return elicit(h, 'title', t('alexa.event.askTitle'))
-      const date = parseAlexaDate(readSlot(h, 'date').value)
-      if (!date) return elicit(h, 'date', t('alexa.event.askPreciseDate'))
-      const time = parseAlexaTime(readSlot(h, 'time').value)
+      const attrs = h.attributesManager.getSessionAttributes()
+      const dialogState = Alexa.getDialogState(h.requestEnvelope)
+      const incoming = Object.fromEntries(EVENT_SLOTS.map(name => [name, readSlot(h, name)]))
+      // Nouvelle demande : guidée si le titre n'a pas été dit d'emblée
+      let flow = attrs.eventFlow
+      if (!flow || dialogState === 'STARTED') {
+        flow = { guided: !incoming.title.value || GENERIC_EVENT_TITLE.test(incoming.title.value.trim()), asked: {}, title: '', date: '', time: '', endTime: '', memberId: null, memberName: '' }
+      }
 
-      const cleanTitle = title.charAt(0).toUpperCase() + title.slice(1)
-      await api.addEvent({ title: cleanTitle, date, time })
-      const when = time
-        ? t('alexa.dateAt', { date: readableDate(t, date), time: spokenTime(t, time) })
-        : readableDate(t, date)
-      return finish(h, api, t('alexa.event.done', { title: cleanTitle, when }))
+      const title = (incoming.title.value || '').trim()
+      if (title) flow.title = title
+      // « ajoute un événement » compris avec « un événement » comme titre : ajout guidé
+      if (GENERIC_EVENT_TITLE.test(flow.title)) {
+        flow.title = ''
+        flow.guided = true
+      }
+      if (incoming.date.value) {
+        const date = parseAlexaDate(incoming.date.value)
+        if (!date) return askEvent(h, flow, 'date', t('alexa.event.askPreciseDate'))
+        flow.date = date
+      }
+      for (const name of ['time', 'endTime']) {
+        if (!incoming[name].value) continue
+        const time = parseAlexaTime(incoming[name].value)
+        if (!time) return askEvent(h, flow, name, `${t('alexa.event.guide.badTime')} ${t(`alexa.event.guide.${name}`)}`)
+        flow[name] = time
+      }
+      if (flow.time && flow.endTime && flow.endTime <= flow.time) {
+        flow.endTime = ''
+        return askEvent(h, flow, 'endTime', `${t('alexa.event.guide.endBeforeStart')} ${t('alexa.event.guide.endTime')}`)
+      }
+      if (incoming.member.value) {
+        const found = matchMember(await api.members(), incoming.member.value, incoming.member.id)
+        if (found.member) {
+          flow.memberId = found.member.id
+          flow.memberName = found.member.firstName
+        } else {
+          const question = found.candidates
+            ? t('alexa.member.ambiguous', { name: incoming.member.value, names: joinList(t, found.candidates.map(m => m.firstName)) })
+            : t('alexa.member.unknown', { name: incoming.member.value })
+          return askEvent(h, flow, 'member', question)
+        }
+      }
+      return continueEvent(h, flow)
     }
+  }
+
+  // « toute la journée », « je ne sais pas », « toute la famille », « non » pendant l'ajout guidé
+  // d'un événement : l'étape est passée (le titre et le jour restent obligatoires)
+  const EventSkipHandler = {
+    canHandle: (h) => isIntent('EventSkipIntent', 'AMAZON.NoIntent')(h) &&
+      Boolean(h.attributesManager.getSessionAttributes().eventFlow),
+    handle: (h) => continueEvent(h, h.attributesManager.getSessionAttributes().eventFlow)
   }
 
   const AddShoppingHandler = {
@@ -472,7 +576,7 @@ export const buildHandlers = (api) => {
   }
 
   const StopHandler = {
-    canHandle: isIntent('AMAZON.CancelIntent', 'AMAZON.StopIntent', 'AMAZON.NoIntent', 'AMAZON.NavigateHomeIntent'),
+    canHandle: isIntent('AMAZON.CancelIntent', 'AMAZON.StopIntent', 'AMAZON.NoIntent', 'AMAZON.NavigateHomeIntent', 'EventSkipIntent'),
     handle: (h) => h.responseBuilder.speak(t('alexa.goodbye')).withShouldEndSession(true).getResponse()
   }
 
@@ -496,7 +600,7 @@ export const buildHandlers = (api) => {
 
   return {
     requestHandlers: [
-      LaunchHandler, AddEventHandler, AddShoppingHandler, AddMealHandler,
+      LaunchHandler, AddEventHandler, EventSkipHandler, AddShoppingHandler, AddMealHandler,
       presenceHandler('AbsenceIntent', 'absence'),
       presenceHandler('AbsenceNightIntent', 'absence', 'NIGHT'),
       presenceHandler('PresenceIntent', 'presence'),

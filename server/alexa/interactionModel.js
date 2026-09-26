@@ -259,8 +259,34 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
   const intents = [
     {
       name: 'AddEventIntent',
-      slots: [{ name: 'title', type: 'EventTitle' }, { ...date }, { name: 'time', type: 'AMAZON.TIME' }],
+      // Les « samples » des créneaux servent aux réponses de l'ajout guidé (« à 15 heures », « pour Paul »)
+      slots: [
+        { name: 'title', type: 'EventTitle', samples: ['{title}', "c'est {title}", "l'événement {title}"] },
+        { ...date, samples: ['{date}', 'le {date}', 'pour {date}', "c'est {date}"] },
+        { name: 'time', type: 'AMAZON.TIME', samples: ['{time}', 'à {time}', 'ça commence à {time}', 'il commence à {time}', 'de {time}'] },
+        { name: 'endTime', type: 'AMAZON.TIME', samples: ['{endTime}', 'à {endTime}', "jusqu'à {endTime}", 'ça finit à {endTime}', 'il se termine à {endTime}', 'vers {endTime}'] },
+        { name: 'member', type: 'MemberName', samples: ['{member}', 'pour {member}', "c'est pour {member}", 'avec {member}'] }
+      ],
       samples: expand([
+        // Sans titre : ajout guidé (titre, jour, début, fin, personne)
+        'ajoute un [nouvel] événement',
+        'ajouter un événement',
+        'ajoute un [nouveau] rendez-vous',
+        'ajouter un rendez-vous',
+        'crée un [nouvel] événement',
+        'crée un [nouveau] rendez-vous',
+        'nouvel événement',
+        'nouveau rendez-vous',
+        'un nouvel événement',
+        "ajoute un événement dans l'agenda",
+        "ajoute un événement à l'agenda",
+        "ajoute quelque chose dans l'agenda",
+        "je voudrais ajouter un événement",
+        "je veux ajouter un événement",
+        // En une phrase
+        'ajoute {title} pour {member} [{date}] [à {time}]',
+        'ajoute {title} {date} de {time} à {endTime}',
+        'ajoute {title} pour {member} {date} de {time} à {endTime}',
         "ajoute {title} [à l'agenda] {date} [à {time}]",
         "ajoute {title} à l'agenda",
         "ajoute l'événement {title} [{date}] [à {time}]",
@@ -499,6 +525,16 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
     { name: 'AMAZON.CancelIntent', samples: [] },
     { name: 'AMAZON.StopIntent', samples: [] },
     { name: 'AMAZON.NoIntent', samples: ["c'est tout", 'rien', 'non merci'] },
+    // Réponses qui passent une étape de l'ajout guidé d'un événement
+    {
+      name: 'EventSkipIntent',
+      samples: [
+        'toute la journée', 'pas d\'heure', 'sans heure', "il n'y a pas d'heure", 'pas d\'heure de fin', 'pas de fin',
+        'je ne sais pas', 'je sais pas', 'aucune idée', 'on ne sait pas', 'aucune', 'aucun', 'passe', 'suivant',
+        'personne', 'personne en particulier', 'toute la famille', 'tout le monde', 'pour toute la famille',
+        'pour tout le monde', 'toute la journée entière', 'la journée entière'
+      ]
+    },
     { name: 'AMAZON.YesIntent', samples: [] },
     { name: 'AMAZON.FallbackIntent', samples: [] },
     { name: 'AMAZON.NavigateHomeIntent', samples: [] }
@@ -514,9 +550,9 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
   ]
 
   // Dialogue : Alexa demande d'elle-même les informations obligatoires manquantes
-  const dialogIntent = (name, slots) => ({
+  const dialogIntent = (name, slots, delegationStrategy = 'ALWAYS') => ({
     name,
-    delegationStrategy: 'ALWAYS',
+    delegationStrategy,
     confirmationRequired: false,
     prompts: {},
     slots: slots.map(([slotName, type, promptId]) => ({
@@ -533,7 +569,8 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
       languageModel: { invocationName, intents: enrichIntents(intents), types },
       dialog: {
         intents: [
-          dialogIntent('AddEventIntent', [['title', 'EventTitle', 'Elicit.Event.Title'], ['date', 'AMAZON.DATE', 'Elicit.Event.Date'], ['time', 'AMAZON.TIME', null]]),
+          // Ajout d'événement piloté par la skill (SKILL_RESPONSE) : elle choisit les questions à poser
+          dialogIntent('AddEventIntent', [['title', 'EventTitle', 'Elicit.Event.Title'], ['date', 'AMAZON.DATE', 'Elicit.Event.Date'], ['time', 'AMAZON.TIME', 'Elicit.Event.Time'], ['endTime', 'AMAZON.TIME', 'Elicit.Event.EndTime'], ['member', 'MemberName', 'Elicit.Event.Member']], 'SKILL_RESPONSE'),
           dialogIntent('AddShoppingIntent', [['items', 'ShoppingItems', 'Elicit.Shopping.Items']]),
           dialogIntent('AddMealIntent', [['dish', 'DishName', 'Elicit.Meal.Dish'], ['date', 'AMAZON.DATE', null], ['mealSlot', 'MealSlot', 'Elicit.Meal.Slot']]),
           dialogIntent('AbsenceIntent', [['member', 'MemberName', 'Elicit.Member'], ['date', 'AMAZON.DATE', null], ['slotOne', 'MealSlot', 'Elicit.Presence.Slot'], ['slotTwo', 'MealSlot', null]]),
@@ -547,6 +584,9 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
       prompts: [
         prompt('Elicit.Event.Title', ["Quel est l'événement ?", "Comment s'appelle l'événement ?"]),
         prompt('Elicit.Event.Date', ['Pour quel jour ?', 'À quelle date ?']),
+        prompt('Elicit.Event.Time', ['À quelle heure commence-t-il ?']),
+        prompt('Elicit.Event.EndTime', ['À quelle heure se termine-t-il ?']),
+        prompt('Elicit.Event.Member', ['Pour qui est cet événement ?']),
         prompt('Elicit.Shopping.Items', ['Que faut-il ajouter à la liste de courses ?']),
         prompt('Elicit.Meal.Dish', ['Quel plat ?', 'Que voulez-vous mettre au menu ?']),
         prompt('Elicit.Meal.Slot', ['Pour le déjeuner ou le dîner ?']),
