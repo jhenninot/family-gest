@@ -283,7 +283,7 @@
                   {{ t('common.save') }}
                 </button>
               </div>
-              <p class="alexa-model-hint">{{ t('familySettings.alexa.invocationHint', { name: alexaStatus.invocationName || alexaInvocationName }) }}</p>
+              <p class="alexa-model-hint">{{ t(alexaSync.connected ? 'familySettings.alexa.invocationHintAuto' : 'familySettings.alexa.invocationHint', { name: alexaStatus.invocationName || alexaInvocationName }) }}</p>
             </form>
             <p v-if="!alexaSync.connected" class="alexa-model-hint">{{ t('familySettings.alexa.modelHint') }}</p>
 

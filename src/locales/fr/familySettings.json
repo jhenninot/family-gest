@@ -206,6 +206,7 @@
       "errors": {
         "request": "Erreur lors de la communication avec le serveur"
       }
-    }
+    },
+    "invocationHintAuto": "Exemple : « Alexa, demande à {name} d'acheter du lait ». Après un changement, le modèle est mis à jour automatiquement chez Amazon."
   }
 }
