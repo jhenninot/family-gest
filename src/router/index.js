@@ -150,9 +150,11 @@ const router = createRouter({
 })
 
 // Retour de l'autorisation Amazon (skill Alexa) arrivé dans l'application au lieu du serveur :
-// URL publique de la plateforme contenant un chemin ou un « # », ou service worker d'une ancienne
-// version. Il est reconnaissable à son code d'autorisation et à sa portée « alexa::ask » : on le
-// transmet au serveur, une seule fois par autorisation (pas de boucle si la page revient ici).
+// service worker d'une ancienne version qui répond aux navigations, ou URL publique de la
+// plateforme contenant un chemin ou un « # ». Il est reconnaissable à son code d'autorisation et à
+// sa portée « alexa::ask ». On le transmet au serveur par une requête directe (qu'un service worker
+// n'intercepte pas, contrairement à une navigation), puis on affiche la page de résultat renvoyée
+// par le serveur. Une seule fois par autorisation.
 const ALEXA_OAUTH_CALLBACK = '/api/alexa-oauth/callback'
 const forwardAlexaOauthReturn = (to) => {
   const { code, state, scope, error } = to.query
@@ -166,7 +168,14 @@ const forwardAlexaOauthReturn = (to) => {
   } catch { /* stockage indisponible : on tente quand même */ }
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(to.query)) if (value != null) params.set(key, String(value))
-  window.location.replace(`${ALEXA_OAUTH_CALLBACK}?${params}`)
+  fetch(`${ALEXA_OAUTH_CALLBACK}?${params}`, { credentials: 'same-origin', cache: 'no-store' })
+    .then(res => res.text())
+    .then(html => {
+      document.open()
+      document.write(html)
+      document.close()
+    })
+    .catch(() => window.location.replace('/'))
   return true
 }
 

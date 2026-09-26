@@ -5850,13 +5850,21 @@ mountAlexaSkill(app, {
 const distPath = path.resolve(__dirname, '../dist')
 if (fs.existsSync(distPath)) {
   console.log(`📦 Fichiers frontend détectés (${distPath}) : activation du service statique`)
-  app.use(express.static(distPath))
+  // Service worker et page d'accueil jamais mis en cache (navigateur, proxy) : une ancienne version
+  // pourrait sinon continuer d'intercepter les navigations après une mise à jour de l'application.
+  const NO_CACHE_FILES = new Set(['sw.js', 'registerSW.js', 'index.html', 'manifest.webmanifest'])
+  app.use(express.static(distPath, {
+    setHeaders: (res, filePath) => {
+      if (NO_CACHE_FILES.has(path.basename(filePath))) res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+    }
+  }))
 
   // Redirection SPA vers index.html pour les pages client (hors /api)
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) {
       return next()
     }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
     res.sendFile(path.join(distPath, 'index.html'))
   })
 }
