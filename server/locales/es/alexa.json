@@ -51,7 +51,7 @@
     "askSlot": "¿Para la comida, la cena o para dormir?",
     "done": "Anotado: se espera a {names} {date}, {slots}."
   },
-  "welcome": "Bienvenido a Family Gest. Puede añadir un evento, artículos de la compra, un plato, una ausencia, una presencia o un invitado, o preguntar quién come en casa, las tareas pendientes y las comidas previstas. ¿Qué quiere hacer?",
+  "welcome": "Sí, le escucho.",
   "help": "Por ejemplo, puede decir: añade dentista el martes a las 3 de la tarde. Compra leche y huevos. Pon lasaña para la cena del jueves. Pablo no estará mañana a mediodía. La abuela viene a cenar el sábado. También puede preguntar: ¿quién come en casa esta noche? ¿Cuáles son las tareas pendientes? ¿Qué comemos esta semana? ¿Qué quiere hacer?",
   "query": {
     "today": "hoy",

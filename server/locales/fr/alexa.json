@@ -51,7 +51,7 @@
     "askSlot": "Pour le déjeuner, le dîner ou la nuit ?",
     "done": "C'est noté, on attend {names} {date}, {slots}."
   },
-  "welcome": "Bienvenue sur Family Gest. Vous pouvez ajouter un événement, des courses, un plat, une absence, une présence ou un invité, ou demander qui mange à la maison, les tâches en cours et les repas prévus. Que voulez-vous faire ?",
+  "welcome": "Oui, je vous écoute.",
   "help": "Vous pouvez dire par exemple : ajoute dentiste mardi à 15 heures. Achète du lait et des œufs. Mets des lasagnes au dîner de jeudi. Paul ne sera pas là demain midi. Mamie vient dîner samedi. Vous pouvez aussi demander : qui mange à la maison ce soir ? Quelles sont les tâches en cours ? Qu'est-ce qu'on mange cette semaine ? Que voulez-vous faire ?",
   "query": {
     "today": "aujourd'hui",

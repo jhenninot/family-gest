@@ -51,7 +51,7 @@
     "askSlot": "For lunch, dinner or overnight?",
     "done": "Done: expecting {names} {date}, {slots}."
   },
-  "welcome": "Welcome to Family Gest. You can add an event, shopping items, a dish, an absence, a presence or a guest, or ask who is home for a meal, the pending tasks and the planned meals. What would you like to do?",
+  "welcome": "Yes, I'm listening.",
   "help": "For example, you can say: add dentist on Tuesday at 3 PM. Buy milk and eggs. Put lasagne on Thursday for dinner. Paul will be away tomorrow for lunch. Granny is coming for dinner on Saturday. You can also ask: who is home tonight? What are the pending tasks? What are we eating this week? What would you like to do?",
   "query": {
     "today": "today",
