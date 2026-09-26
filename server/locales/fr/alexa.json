@@ -60,18 +60,29 @@
       "today": {
         "lunch": "ce midi",
         "dinner": "ce soir",
-        "night": "cette nuit"
+        "night": "cette nuit",
+        "both": "ce midi et ce soir"
       },
       "other": {
         "lunch": "{day} midi",
         "dinner": "{day} soir",
-        "night": "la nuit de {day}"
+        "night": "la nuit de {day}",
+        "both": "{day} midi et soir"
       }
     },
     "who": {
       "result": "{when}, une seule personne : {names}. | {when}, vous serez {n} : {names}.",
       "withGuests": "{members}, plus {guests} en invité | {members}, plus {guests} en invités",
-      "nobody": "{when}, personne n'est prévu à la maison."
+      "nobody": "{when}, personne n'est prévu à la maison.",
+      "period": {
+        "range": "du {start} au {end}",
+        "whole": "sur toute la période",
+        "absent": "{name} ne sera pas là {moments}",
+        "present": "{name} sera là exceptionnellement {moments}",
+        "guest": "{name} viendra {moments} | {name} viendront {moments}",
+        "result": "{period} : {list}. Sinon, chacun sera là comme d'habitude.",
+        "nothing": "{period}, rien de particulier : chacun sera là comme d'habitude, sans invité."
+      }
     },
     "tasks": {
       "none": "Aucune tâche en cours, tout est fait !",

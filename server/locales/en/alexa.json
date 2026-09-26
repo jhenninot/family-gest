@@ -60,18 +60,29 @@
       "today": {
         "lunch": "at lunch today",
         "dinner": "tonight",
-        "night": "tonight, overnight"
+        "night": "tonight, overnight",
+        "both": "for lunch and dinner today"
       },
       "other": {
         "lunch": "{day} at lunch",
         "dinner": "{day} evening",
-        "night": "the night of {day}"
+        "night": "the night of {day}",
+        "both": "{day} for lunch and dinner"
       }
     },
     "who": {
       "result": "{when}, just one person: {names}. | {when}, there will be {n} of you: {names}.",
       "withGuests": "{members}, plus {guests} as a guest | {members}, plus {guests} as guests",
-      "nobody": "{when}, nobody is expected at home."
+      "nobody": "{when}, nobody is expected at home.",
+      "period": {
+        "range": "from {start} to {end}",
+        "whole": "for the whole period",
+        "absent": "{name} will be away {moments}",
+        "present": "{name} will exceptionally be home {moments}",
+        "guest": "{name} is coming {moments} | {name} are coming {moments}",
+        "result": "{period}: {list}. Otherwise, everyone will be home as usual.",
+        "nothing": "{period}, nothing special: everyone will be home as usual, with no guests."
+      }
     },
     "tasks": {
       "none": "No pending tasks, everything is done!",

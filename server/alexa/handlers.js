@@ -214,9 +214,67 @@ export const buildHandlers = (api) => {
 
   // « Qui mange à la maison ce soir ? » : sans créneau, le prochain repas du jour (midi avant 14 h,
   // soir ensuite), ou les deux repas pour un autre jour.
+  // Sur une semaine ou un week-end : seulement ce qui change des habitudes (absences et présences
+  // déclarées, invités), regroupé par personne
+  const whoOverPeriod = async (h, period, asked) => {
+    const slots = asked === 'LUNCH' ? ['lunch'] : asked === 'DINNER' ? ['dinner'] : ['lunch', 'dinner']
+    const firstNames = new Map((await api.members()).map(m => [m.id, m.firstName]))
+    const absent = new Map()
+    const present = new Map()
+    const guests = new Map()
+    const note = (map, name, date, slot) => {
+      if (!map.has(name)) map.set(name, [])
+      map.get(name).push({ date, slot })
+    }
+    let total = 0
+    for (let day = period.start; day <= period.end; day = addDays(day, 1)) {
+      for (const slot of slots) {
+        total++
+        const presence = await api.whoIsHome({ date: day, slot })
+        for (const m of presence.absentMembers || []) note(absent, firstNames.get(m.id) || m.name, day, slot)
+        for (const m of presence.exceptionalPresences || []) note(present, firstNames.get(m.id) || m.name, day, slot)
+        for (const g of presence.guests) note(guests, g.name, day, slot)
+      }
+    }
+    // « lundi midi », « mardi midi et soir », ou « sur toute la période »
+    const moments = (list) => {
+      if (list.length === total && total > 1) return t('alexa.query.who.period.whole')
+      const byDay = new Map()
+      for (const { date, slot } of list) byDay.set(date, [...(byDay.get(date) || []), slot])
+      // Dans une même semaine, le nom du jour suffit (« mercredi midi »)
+      const day = (date) => (date === api.today() || date === addDays(api.today(), 1)) ? dayLabel(api, date) : formatDateOnly(t.lang, date, { weekday: 'long' })
+      return joinList(t, [...byDay].map(([date, daySlots]) => {
+        if (date === api.today()) return daySlots.length === 2 ? t('alexa.query.moment.today.both') : slotMoment(api, date, daySlots[0])
+        return t(`alexa.query.moment.other.${daySlots.length === 2 ? 'both' : daySlots[0]}`, { day: day(date) })
+      }))
+    }
+    // Invités venant aux mêmes repas regroupés : « Mamie et Papi viendront samedi soir »
+    const guestGroups = new Map()
+    for (const [name, list] of guests) {
+      const when = moments(list)
+      guestGroups.set(when, [...(guestGroups.get(when) || []), name])
+    }
+    const label = capitalizeFirst(t('alexa.query.who.period.range', { start: readableDate(t, period.start), end: readableDate(t, period.end) }))
+    const parts = [
+      ...[...absent].map(([name, list]) => t('alexa.query.who.period.absent', { name, moments: moments(list) })),
+      ...[...present].map(([name, list]) => t('alexa.query.who.period.present', { name, moments: moments(list) })),
+      ...[...guestGroups].map(([when, names]) => t('alexa.query.who.period.guest', { name: joinList(t, names), moments: when, n: names.length }))
+    ]
+    return finish(h, api, parts.length === 0
+      ? t('alexa.query.who.period.nothing', { period: label })
+      : t('alexa.query.who.period.result', { period: label, list: parts.join(' ; ') }))
+  }
+
   const whoIsHomeHandler = (intentName, forcedSlot = null) => ({
     canHandle: isIntent(intentName),
     async handle (h) {
+      if (!forcedSlot) {
+        const period = parseAlexaPeriod(readSlot(h, 'date').value)
+        if (period && period.start !== period.end) {
+          const slotRead = readSlot(h, 'mealSlot')
+          return whoOverPeriod(h, period, parseMealSlot(slotRead.id, slotRead.value))
+        }
+      }
       const { date, invalid } = optionalDate(h, api)
       const day = invalid ? api.today() : date
       const slotRead = readSlot(h, 'mealSlot')

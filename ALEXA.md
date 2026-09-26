@@ -15,7 +15,7 @@ Elle répond aussi aux questions :
 
 | Question | Exemple de phrase |
 |---|---|
-| Qui est à la maison pour un repas | « Alexa, demande à gestion famille qui mange à la maison ce soir » · « … combien on sera demain midi » · « … qui dort à la maison samedi » |
+| Qui est à la maison pour un repas | « Alexa, demande à gestion famille qui mange à la maison ce soir » · « … combien on sera demain midi » · « … qui dort à la maison samedi » · « … qui est là la semaine prochaine » |
 | Les tâches en cours | « Alexa, demande à gestion famille quelles sont les tâches en cours » · « … quelles sont les tâches de Paul » |
 | Les repas prévus | « Alexa, demande à gestion famille ce qu'on mange ce soir » · « … quels sont les repas prévus » · « … quel est le menu de la semaine prochaine » |
 
@@ -74,7 +74,7 @@ C'est tout : la skill fonctionne aussitôt sur vos enceintes Echo (dans l'applic
 - Plusieurs articles ou invités d'un coup : « du lait, du beurre et des œufs », « Mamie et Papi ». Un article déjà présent sur la liste n'est pas ajouté en double ; les articles dictés vont dans le rayon « Autre ».
 - « Alexa, demande à gestion famille de l'aide » donne des exemples.
 
-- **Questions** : sans moment précisé, « qui est là ? » concerne le prochain repas du jour (le midi avant 14 h, le soir ensuite) et, pour un autre jour, les deux repas. « Quels sont les repas prévus ? » couvre les sept prochains jours ; on peut aussi demander un jour, « cette semaine », « la semaine prochaine » ou « ce week-end ». Les tâches sont lues par échéance, cinq au maximum.
+- **Questions** : sans moment précisé, « qui est là ? » concerne le prochain repas du jour (le midi avant 14 h, le soir ensuite) et, pour un autre jour, les deux repas. Sur une semaine ou un week-end, Alexa ne cite que ce qui change des habitudes : absences et présences exceptionnelles déclarées, et invités. « Quels sont les repas prévus ? » couvre les sept prochains jours ; on peut aussi demander un jour, « cette semaine », « la semaine prochaine » ou « ce week-end ». Les tâches sont lues par échéance, cinq au maximum.
 
 Les absences longues (vacances…) ne sont pas encore gérées à la voix.
 

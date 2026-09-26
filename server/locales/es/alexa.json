@@ -60,18 +60,29 @@
       "today": {
         "lunch": "hoy a mediodía",
         "dinner": "esta noche",
-        "night": "esta noche para dormir"
+        "night": "esta noche para dormir",
+        "both": "hoy a mediodía y por la noche"
       },
       "other": {
         "lunch": "{day} a mediodía",
         "dinner": "{day} por la noche",
-        "night": "la noche del {day}"
+        "night": "la noche del {day}",
+        "both": "{day} a mediodía y por la noche"
       }
     },
     "who": {
       "result": "{when}, una sola persona: {names}. | {when}, seréis {n}: {names}.",
       "withGuests": "{members}, más {guests} como invitado | {members}, más {guests} como invitados",
-      "nobody": "{when}, no se espera a nadie en casa."
+      "nobody": "{when}, no se espera a nadie en casa.",
+      "period": {
+        "range": "del {start} al {end}",
+        "whole": "durante todo el periodo",
+        "absent": "{name} no estará {moments}",
+        "present": "{name} estará excepcionalmente {moments}",
+        "guest": "{name} vendrá {moments} | {name} vendrán {moments}",
+        "result": "{period}: {list}. Por lo demás, todos estarán como de costumbre.",
+        "nothing": "{period}, nada especial: todos estarán como de costumbre, sin invitados."
+      }
     },
     "tasks": {
       "none": "No hay tareas pendientes, ¡todo está hecho!",

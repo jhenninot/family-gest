@@ -154,7 +154,22 @@ const EXTRA_SAMPLES = {
     'qui vient manger [{date}] [{mealSlot}]',
     'pour combien je cuisine [{date}] [{mealSlot}]',
     'je fais à manger pour combien [{date}] [{mealSlot}]',
-    'combien de couverts faut-il [{date}] [{mealSlot}]'
+    'combien de couverts faut-il [{date}] [{mealSlot}]',
+    // Sur une semaine ou un week-end (« qui est là la semaine prochaine »)
+    'qui est là pendant {date}',
+    'qui sera là pendant {date}',
+    'qui est là pour {date}',
+    'qui sera présent [{date}] [{mealSlot}]',
+    'qui sera à la maison pendant {date}',
+    'quelles sont les présences [{date}]',
+    'les présences [{date}]',
+    'qui est absent [{date}] [{mealSlot}]',
+    'qui sera absent [{date}] [{mealSlot}]',
+    'quelles sont les absences [{date}]',
+    'les absences [{date}]',
+    'est-ce que quelqu\'un est absent [{date}]',
+    'il y a des invités [{date}]',
+    'qui est invité [{date}] [{mealSlot}]'
   ],
   WhoSleepsIntent: ['qui dort ici [{date}]', 'qui passe la nuit à la maison [{date}]'],
   TasksIntent: [
