@@ -272,6 +272,16 @@
                 <Trash2 :size="15" /> {{ t('familySettings.mcp.revoke') }}
               </button>
             </div>
+            <form class="alexa-invocation" @submit.prevent="saveAlexaInvocationName">
+              <label class="form-label" for="alexa-invocation">{{ t('familySettings.alexa.invocationLabel') }}</label>
+              <div class="mcp-url-row">
+                <input id="alexa-invocation" v-model="alexaInvocationName" type="text" class="mcp-url-input" maxlength="50" autocomplete="off" />
+                <button type="submit" class="btn btn-secondary" :disabled="alexaActionLoading || !alexaInvocationName.trim()">
+                  {{ t('common.save') }}
+                </button>
+              </div>
+              <p class="alexa-model-hint">{{ t('familySettings.alexa.invocationHint', { name: alexaStatus.invocationName || alexaInvocationName }) }}</p>
+            </form>
             <p class="alexa-model-hint">{{ t('familySettings.alexa.modelHint') }}</p>
           </template>
         </div>
@@ -1514,6 +1524,7 @@ const alexaLoading = ref(true)
 const alexaActionLoading = ref(false)
 const alexaStatus = ref({ exists: false })
 const alexaEndpointUrl = ref('')
+const alexaInvocationName = ref('')
 
 const fetchAlexaConnectorStatus = async () => {
   alexaLoading.value = true
@@ -1521,6 +1532,7 @@ const fetchAlexaConnectorStatus = async () => {
     const res = await fetch('/api/family-settings/alexa-connector', { headers: getSettingsHeaders() })
     if (!res.ok) throw new Error(t('familySettings.alexa.errors.status'))
     alexaStatus.value = await res.json()
+    alexaInvocationName.value = alexaStatus.value.invocationName || ''
   } catch (err) {
     console.error(err)
   } finally {
@@ -1548,7 +1560,7 @@ const generateAlexaConnector = async () => {
     }
     const data = await res.json()
     alexaEndpointUrl.value = data.url
-    alexaStatus.value = { exists: true, tokenPreview: data.tokenPreview, createdAt: data.createdAt, lastUsedAt: null, requestCount: 0 }
+    alexaStatus.value = { ...alexaStatus.value, exists: true, tokenPreview: data.tokenPreview, createdAt: data.createdAt, lastUsedAt: null, requestCount: 0 }
   } catch (err) {
     alert(t('common.errorPrefix', { message: err.message }))
   } finally {
@@ -1570,7 +1582,27 @@ const revokeAlexaConnector = async () => {
     const res = await fetch('/api/family-settings/alexa-connector', { method: 'DELETE', headers: getSettingsHeaders() })
     if (!res.ok) throw new Error(t('familySettings.alexa.errors.revoke'))
     alexaEndpointUrl.value = ''
-    alexaStatus.value = { exists: false }
+    alexaStatus.value = { exists: false, invocationName: alexaStatus.value.invocationName }
+  } catch (err) {
+    alert(t('common.errorPrefix', { message: err.message }))
+  } finally {
+    alexaActionLoading.value = false
+  }
+}
+
+// Nom prononcé après « Alexa, demande à… » : repris dans le modèle de dialogue téléchargé
+const saveAlexaInvocationName = async () => {
+  alexaActionLoading.value = true
+  try {
+    const res = await fetch('/api/family-settings/alexa-connector/invocation-name', {
+      method: 'PUT',
+      headers: { ...getSettingsHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invocationName: alexaInvocationName.value })
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || t('familySettings.alexa.errors.invocation'))
+    alexaInvocationName.value = data.invocationName
+    alexaStatus.value = { ...alexaStatus.value, invocationName: data.invocationName }
   } catch (err) {
     alert(t('common.errorPrefix', { message: err.message }))
   } finally {
@@ -2673,6 +2705,10 @@ onMounted(() => {
   margin-top: 0;
   flex: 1;
   min-width: 200px;
+}
+
+.alexa-invocation {
+  margin-top: 1rem;
 }
 
 .alexa-model-hint {

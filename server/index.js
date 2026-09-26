@@ -41,7 +41,7 @@ import { ALERT_ACTIONS, ALERT_ACTIONS_LIST, ACTION_CATEGORY_BY_CODE } from './co
 import webpush from 'web-push'
 import { mountMcpServer } from './mcp/index.js'
 import { mountAlexaSkill } from './alexa/index.js'
-import { buildInteractionModel } from './alexa/interactionModel.js'
+import { buildInteractionModel, normalizeInvocationName, DEFAULT_INVOCATION_NAME } from './alexa/interactionModel.js'
 import { getFamilyMembersList } from './mcp/resolveMember.js'
 import AlexaConnector from './models/AlexaConnector.js'
 import { migrateNotificationPreferences } from './scripts/migrate-notification-preferences.js'
@@ -5572,10 +5572,12 @@ mountMcpServer(app, {
 // elle-même est vérifié par signature Amazon + jeton, voir server/alexa/.
 app.get('/api/family-settings/alexa-connector', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
-    const connector = await AlexaConnector.findOne({ familyId: req.family._id, revokedAt: null })
-    if (!connector) return res.json({ exists: false })
+    const connector = await AlexaConnector.findOne({ familyId: req.family._id })
+    const invocationName = connector?.invocationName || DEFAULT_INVOCATION_NAME
+    if (!connector || connector.revokedAt) return res.json({ exists: false, invocationName })
     res.json({
       exists: true,
+      invocationName,
       tokenPreview: connector.tokenPreview,
       createdAt: connector.createdAt,
       lastUsedAt: connector.lastUsedAt,
@@ -5625,12 +5627,30 @@ app.delete('/api/family-settings/alexa-connector', requireAuth, attachFamilyCont
   }
 })
 
+// Nom d'invocation choisi par la famille (repris dans le modèle de dialogue téléchargé)
+app.put('/api/family-settings/alexa-connector/invocation-name', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const invocationName = normalizeInvocationName(req.body?.invocationName)
+    if (!invocationName) return res.status(400).json({ error: req.t('errors.alexaInvocationName') })
+    // Le réglage peut précéder la génération de l'adresse : il est conservé sur le document de la famille
+    await AlexaConnector.updateOne(
+      { familyId: req.family._id },
+      { $set: { invocationName }, $setOnInsert: { tokenHash: `pending-${crypto.randomBytes(16).toString('hex')}`, tokenPreview: '----', revokedAt: new Date() } },
+      { upsert: true }
+    )
+    res.json({ invocationName })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // Modèle de dialogue à importer dans la console Amazon, avec les prénoms de la famille
 app.get('/api/family-settings/alexa-connector/interaction-model', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
+    const connector = await AlexaConnector.findOne({ familyId: req.family._id })
     const members = await getFamilyMembersList(req.family._id)
     res.setHeader('Content-Disposition', 'attachment; filename="familygest-alexa-fr-FR.json"')
-    res.json(buildInteractionModel({ members }))
+    res.json(buildInteractionModel({ members, invocationName: connector?.invocationName || DEFAULT_INVOCATION_NAME }))
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

@@ -8,6 +8,8 @@ const alexaConnectorSchema = new mongoose.Schema({
   tokenHash: { type: String, required: true, unique: true, index: true },
   tokenPreview: { type: String, required: true },
   createdByUserId: { type: Number, default: null },
+  // Nom prononcé après « Alexa, demande à… » (null = nom par défaut du modèle de dialogue)
+  invocationName: { type: String, default: null },
   lastUsedAt: { type: Date, default: null },
   requestCount: { type: Number, default: 0 },
   revokedAt: { type: Date, default: null }

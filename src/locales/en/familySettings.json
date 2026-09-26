@@ -169,7 +169,10 @@
       "status": "Error while loading the skill status",
       "generate": "Error while generating the address",
       "revoke": "Error while disconnecting the skill",
-      "model": "Error while downloading the model"
-    }
+      "model": "Error while downloading the model",
+      "invocation": "Error while saving the invocation name"
+    },
+    "invocationLabel": "Invocation name (what you say after \"Alexa, ask\")",
+    "invocationHint": "Example: \"Alexa, ask {name} to buy milk\". After changing it, download the model again and re-import it into the Amazon console (or change it under Build › Invocations)."
   }
 }

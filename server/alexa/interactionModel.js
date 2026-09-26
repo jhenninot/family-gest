@@ -3,7 +3,22 @@
 // la reconnaissance vocale les connaisse dès la première phrase ; la skill les renvoie aussi à Alexa
 // à l'ouverture (entités dynamiques), ce qui couvre les membres ajoutés après l'import.
 
-export const DEFAULT_INVOCATION_NAME = 'family gest'
+// « family gest » est mal reconnu en français : nom par défaut en mots courants, modifiable par
+// famille (AlexaConnector.invocationName) et repris à chaque téléchargement du modèle.
+export const DEFAULT_INVOCATION_NAME = 'gestion famille'
+
+// Règles d'Amazon : au moins deux mots, lettres minuscules, espaces et apostrophes, pas de mot
+// de lancement ni de nom réservé. Renvoie le nom nettoyé, ou null s'il n'est pas utilisable.
+const FORBIDDEN_INVOCATION_WORDS = ['alexa', 'amazon', 'echo', 'skill', 'app', 'application', 'ouvre', 'demande', 'lance', 'dis', 'commence', 'arrête', 'stop']
+export const normalizeInvocationName = (value) => {
+  const name = String(value || '').trim().toLowerCase().replace(/[’`]/g, "'").replace(/\s+/g, ' ')
+  if (name.length < 2 || name.length > 50) return null
+  if (!/^[a-zàâäçéèêëîïôöùûüÿœæ' ]+$/.test(name)) return null
+  const words = name.split(' ')
+  if (words.length < 2) return null
+  if (words.some(w => FORBIDDEN_INVOCATION_WORDS.includes(w))) return null
+  return name
+}
 
 // « {member} ne sera pas là [{date}] {slotOne} » : les parties entre crochets sont optionnelles.
 const expand = (templates) => {
@@ -63,7 +78,15 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
       slots: [{ name: 'items', type: 'ShoppingItems' }],
       samples: expand([
         'ajoute {items} à la liste [de courses]',
+        'ajoute {items} à ma liste [de courses]',
         'ajoute {items} aux courses',
+        'ajoute {items} à mes courses',
+        'rajoute {items} à ma liste [de courses]',
+        'acheter {items}',
+        "qu'il faut {items}",
+        "qu'il faut acheter {items}",
+        "qu'il manque {items}",
+        'il faut {items}',
         'ajoute {items} sur la liste [de courses]',
         'rajoute {items} [à la liste] [aux courses]',
         'mets {items} sur la liste [de courses]',

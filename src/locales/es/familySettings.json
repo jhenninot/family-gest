@@ -169,7 +169,10 @@
       "status": "Error al cargar el estado de la skill",
       "generate": "Error al generar la dirección",
       "revoke": "Error al desconectar la skill",
-      "model": "Error al descargar el modelo"
-    }
+      "model": "Error al descargar el modelo",
+      "invocation": "Error al guardar el nombre de invocación"
+    },
+    "invocationLabel": "Nombre de invocación (lo que se dice después de «Alexa, pide a»)",
+    "invocationHint": "Ejemplo: «Alexa, pide a {name} que compre leche». Tras cambiarlo, vuelva a descargar el modelo e impórtelo en la consola de Amazon (o cámbielo en Build › Invocations)."
   }
 }

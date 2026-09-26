@@ -118,5 +118,6 @@
     "serverError": "Erreur du serveur Mealie (HTTP {status})",
     "notMealie": "Réponse inattendue : l'URL indiquée ne semble pas être une instance Mealie",
     "notConfigured": "Aucun serveur Mealie n'est configuré pour cette famille"
-  }
+  },
+  "alexaInvocationName": "Nom d'invocation invalide : au moins deux mots, en lettres minuscules, sans « alexa », « amazon », « echo », « skill » ni mot comme « ouvre » ou « demande »."
 }

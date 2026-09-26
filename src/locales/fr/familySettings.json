@@ -169,7 +169,10 @@
       "status": "Erreur lors de la récupération du statut de la skill",
       "generate": "Erreur lors de la génération de l'adresse",
       "revoke": "Erreur lors de la déconnexion de la skill",
-      "model": "Erreur lors du téléchargement du modèle"
-    }
+      "model": "Erreur lors du téléchargement du modèle",
+      "invocation": "Erreur lors de l'enregistrement du nom d'invocation"
+    },
+    "invocationLabel": "Nom d'invocation (ce qu'on dit après « Alexa, demande à »)",
+    "invocationHint": "Exemple : « Alexa, demande à {name} d'acheter du lait ». Après un changement, retéléchargez le modèle et réimportez-le dans la console Amazon (ou modifiez-le dans Build › Invocations)."
   }
 }
