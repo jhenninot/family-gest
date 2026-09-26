@@ -224,6 +224,11 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
       slots: [{ ...date }, { name: 'mealSlot', type: 'MealSlot' }],
       samples: expand([
         "qu'est-ce qu'on mange [{date}] [{mealSlot}]",
+        // « Alexa, demande à … ce qu'on mange lundi soir » : forme indirecte après « demande à »
+        "ce qu'on mange [{date}] [{mealSlot}]",
+        "ce qu'on mange [au] {mealSlot} [{date}]",
+        "ce qu'il y a au menu [{date}] [{mealSlot}]",
+        "ce qui est prévu [au] {mealSlot} [{date}]",
         "qu'est-ce qu'on mange [au] {mealSlot} [{date}]",
         'on mange quoi [{date}] [{mealSlot}]',
         'on mange quoi [au] {mealSlot} [{date}]',
