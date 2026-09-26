@@ -21,6 +21,8 @@ Elle répond aussi aux questions :
 
 « gestion famille » est le nom d'invocation par défaut : il se change dans FamilyGest (voir section 2). Évitez les noms inventés ou anglais comme « family gest », que la reconnaissance vocale française comprend mal.
 
+> Ce guide est aussi disponible dans l'application, pour l'administrateur de la famille : **Administration › Assistant vocal Alexa › Guide d'installation pas à pas**.
+
 La skill reste en **mode développement** : elle n'est pas publiée sur le magasin Alexa, ne passe pas par la certification d'Amazon et ne fonctionne que sur les enceintes rattachées à **votre** compte Amazon.
 
 ---

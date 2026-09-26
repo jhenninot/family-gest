@@ -1,0 +1,77 @@
+{
+  "title": "Installer la skill Alexa",
+  "intro": "Ce guide vous accompagne pour relier vos enceintes Echo à FamilyGest, en une vingtaine de minutes. Une fois installée, il suffit de dire « Alexa, demande à {name}… » pour ajouter un événement, des courses, un plat, une absence, une présence ou un invité, ou pour demander qui mange à la maison, les tâches en cours et les repas prévus.",
+  "copied": "Copié !",
+  "alreadyGenerated": "Une adresse a déjà été générée. Si vous ne l'avez plus, utilisez « Régénérer l'adresse » dans la carte Alexa, puis recollez-la dans la console Amazon (étape 6).",
+  "consoleNote": "Les intitulés de la console Amazon sont en anglais et peuvent légèrement évoluer : en cas de doute, cherchez l'intitulé le plus proche.",
+  "steps": {
+    "prereq": {
+      "title": "Avant de commencer",
+      "https": "FamilyGest doit être accessible depuis Internet en HTTPS avec un certificat valide ({origin}). Pour le vérifier, ouvrez cette adresse depuis un téléphone en 4G, Wi-Fi coupé : la page doit s'afficher avec le cadenas, sans avertissement.",
+      "serverUrl": "Dans la console Super Administrateur › Configuration globale, l'« URL publique de l'application » doit être cette même adresse en https:// (sinon, demandez-le à l'administrateur de la plateforme).",
+      "account": "Utilisez le compte Amazon auquel vos enceintes Echo sont rattachées : la skill ne fonctionnera que sur ce compte.",
+      "private": "La skill reste privée (mode développement) : elle n'est pas publiée, ne passe pas de validation par Amazon et ne coûte rien."
+    },
+    "prepare": {
+      "title": "Préparer FamilyGest",
+      "name": "Choisissez le nom d'invocation dans la carte Alexa (actuellement « {name} ») : au moins deux mots français courants. Évitez les noms inventés ou anglais, que la reconnaissance vocale comprend mal.",
+      "generate": "Générez l'adresse de la skill et copiez-la immédiatement : elle ne sera plus jamais affichée en clair (en cas de perte, il suffit de la régénérer).",
+      "download": "Téléchargez le modèle de dialogue : vous obtenez le fichier familygest-alexa-fr-FR.json, qui contient les phrases comprises par la skill et les prénoms de la famille."
+    },
+    "devAccount": {
+      "title": "Créer le compte développeur Amazon",
+      "open": "Ouvrez le site développeur Amazon et connectez-vous avec le compte Amazon de vos enceintes :",
+      "profile": "À la première connexion, complétez le profil développeur demandé (gratuit, les champs obligatoires suffisent)."
+    },
+    "create": {
+      "title": "Créer la skill",
+      "console": "Ouvrez la console Alexa, puis cliquez sur « Create Skill » :",
+      "name": "« Skill name » : le nom affiché dans l'application Alexa, par exemple « Gestion famille ». « Primary locale » : « French (FR) ».",
+      "type": "« Type of experience » : « Other ». « Model » : « Custom ». « Hosting services » : « Provision your own » (surtout pas « Alexa-hosted »).",
+      "template": "« Template » : « Start from Scratch », puis « Create Skill ». Patientez quelques secondes."
+    },
+    "model": {
+      "title": "Importer le modèle de dialogue",
+      "json": "Dans le menu de gauche : « Build › Interaction Model › JSON Editor ».",
+      "drop": "Glissez le fichier familygest-alexa-fr-FR.json dans l'éditeur (ou remplacez tout le texte par son contenu), puis cliquez sur « Save ».",
+      "build": "Cliquez sur « Build skill » et attendez le message « Build Successful » (une à deux minutes)."
+    },
+    "endpoint": {
+      "title": "Relier la skill à FamilyGest",
+      "menu": "Dans le menu de gauche : « Build › Endpoint », puis choisissez « HTTPS ».",
+      "url": "Dans « Default Region », collez l'adresse de la skill copiée à l'étape 2.",
+      "cert": "Dans la liste juste en dessous, choisissez « My development endpoint has a certificate from a trusted certificate authority », puis « Save »."
+    },
+    "test": {
+      "title": "Tester",
+      "enable": "Onglet « Test » en haut de la page : passez « Skill testing is enabled in » sur « Development ».",
+      "type": "Tapez : « demande à {name} d'acheter du lait ». Alexa doit confirmer, et le lait apparaître dans la liste de courses de FamilyGest.",
+      "echo": "C'est prêt : la skill fonctionne aussitôt sur vos enceintes Echo (dans l'application Alexa : Plus › Skills et jeux › Vos skills › Développeur)."
+    },
+    "usage": {
+      "title": "Ce que vous pouvez dire",
+      "event": "« Alexa, demande à {name} d'ajouter dentiste mardi à 15 heures »",
+      "shopping": "« Alexa, demande à {name} d'acheter du lait et des œufs » — évitez « à ma liste de courses », souvent capté par la liste d'achats d'Amazon",
+      "meal": "« Alexa, demande à {name} de mettre des lasagnes au dîner de jeudi »",
+      "absence": "« Alexa, demande à {name} : Paul ne sera pas là demain midi » (toujours avec un prénom) ; « … Léa sera là ce soir » pour une présence",
+      "guest": "« Alexa, demande à {name} : Mamie vient dîner samedi »",
+      "who": "« Alexa, demande à {name} qui mange à la maison ce soir »",
+      "tasks": "« Alexa, demande à {name} quelles sont les tâches en cours » (ou « … les tâches de Paul »)",
+      "menu": "« Alexa, demande à {name} ce qu'on mange cette semaine »",
+      "conversation": "Pour enchaîner plusieurs demandes : « Alexa, ouvre {name} », puis vos demandes l'une après l'autre, et « c'est tout » pour terminer."
+    },
+    "maintenance": {
+      "title": "Entretien",
+      "newMember": "Nouveau membre dans la famille : retéléchargez le modèle de dialogue, réimportez-le (étape 5) et relancez « Build skill » pour que son prénom soit bien reconnu.",
+      "rename": "Nouveau nom d'invocation : enregistrez-le dans la carte Alexa, puis retéléchargez et réimportez le modèle.",
+      "regenerate": "Adresse perdue ou compromise : régénérez-la dans la carte Alexa et recollez-la à l'étape 6. « Révoquer » coupe immédiatement l'accès."
+    },
+    "troubleshooting": {
+      "title": "En cas de problème",
+      "amazonList": "La demande part sur la liste d'achats Amazon : le nom d'invocation n'a pas été reconnu, ou la phrase contenait « à ma liste de courses ». Dites « d'acheter… » et vérifiez ce qu'Alexa a entendu (application Alexa › Paramètres › Confidentialité Alexa › Historique vocal).",
+      "problem": "« Il y a eu un problème avec la réponse de la skill » : vérifiez l'adresse collée à l'étape 6 (a-t-elle été régénérée depuis ?). L'administrateur de la plateforme peut consulter les journaux du serveur (lignes « [Alexa] »).",
+      "unreachable": "Aucune réaction de FamilyGest : Amazon n'atteint pas le serveur. Revoyez les prérequis (accès HTTPS depuis Internet, certificat valide).",
+      "firstName": "Un prénom n'est pas compris : vérifiez son orthographe dans FamilyGest, puis retéléchargez et réimportez le modèle."
+    }
+  }
+}

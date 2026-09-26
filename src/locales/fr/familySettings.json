@@ -152,7 +152,7 @@
   },
   "alexa": {
     "title": "Assistant vocal Alexa",
-    "subtitle": "Ajoutez des événements, des courses, des plats, des absences, des présences et des invités à la voix, depuis vos enceintes Echo. La skill reste privée : elle ne fonctionne que sur votre compte Amazon, et l'adresse générée ici donne accès à ces ajouts pour cette famille. Suivez le guide ALEXA.md pour la créer dans la console développeur Amazon.",
+    "subtitle": "Ajoutez des événements, des courses, des plats, des absences, des présences et des invités à la voix, depuis vos enceintes Echo. La skill reste privée : elle ne fonctionne que sur votre compte Amazon, et l'adresse générée ici donne accès à ces ajouts pour cette famille. Le guide d'installation ci-dessous explique pas à pas comment la créer dans la console développeur Amazon.",
     "loading": "Chargement du statut de la skill…",
     "copyNow": "Copiez cette adresse maintenant et collez-la dans la console Amazon (Endpoint › HTTPS) : elle ne sera plus jamais affichée en clair.",
     "active": "Skill active · adresse se terminant par {token} · créée le {created} · dernière utilisation : {lastUsed}",
@@ -173,6 +173,7 @@
       "invocation": "Erreur lors de l'enregistrement du nom d'invocation"
     },
     "invocationLabel": "Nom d'invocation (ce qu'on dit après « Alexa, demande à »)",
-    "invocationHint": "Exemple : « Alexa, demande à {name} d'acheter du lait ». Après un changement, retéléchargez le modèle et réimportez-le dans la console Amazon (ou modifiez-le dans Build › Invocations)."
+    "invocationHint": "Exemple : « Alexa, demande à {name} d'acheter du lait ». Après un changement, retéléchargez le modèle et réimportez-le dans la console Amazon (ou modifiez-le dans Build › Invocations).",
+    "openGuide": "Guide d'installation pas à pas"
   }
 }

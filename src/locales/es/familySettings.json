@@ -152,7 +152,7 @@
   },
   "alexa": {
     "title": "Asistente de voz Alexa",
-    "subtitle": "Añada eventos, artículos de la compra, platos, ausencias, presencias e invitados por voz desde sus altavoces Echo. La skill es privada: solo funciona en su cuenta de Amazon, y la dirección generada aquí da acceso a estas acciones para esta familia. Siga la guía ALEXA.md para crearla en la consola de desarrollador de Amazon.",
+    "subtitle": "Añada eventos, artículos de la compra, platos, ausencias, presencias e invitados por voz desde sus altavoces Echo. La skill es privada: solo funciona en su cuenta de Amazon, y la dirección generada aquí da acceso a estas acciones para esta familia. La guía de instalación de abajo explica paso a paso cómo crearla en la consola de desarrollador de Amazon.",
     "loading": "Cargando el estado de la skill…",
     "copyNow": "Copie esta dirección ahora y péguela en la consola de Amazon (Endpoint › HTTPS): no se volverá a mostrar completa.",
     "active": "Skill activa · dirección terminada en {token} · creada el {created} · último uso: {lastUsed}",
@@ -173,6 +173,7 @@
       "invocation": "Error al guardar el nombre de invocación"
     },
     "invocationLabel": "Nombre de invocación (lo que se dice después de «Alexa, pide a»)",
-    "invocationHint": "Ejemplo: «Alexa, pide a {name} que compre leche». Tras cambiarlo, vuelva a descargar el modelo e impórtelo en la consola de Amazon (o cámbielo en Build › Invocations)."
+    "invocationHint": "Ejemplo: «Alexa, pide a {name} que compre leche». Tras cambiarlo, vuelva a descargar el modelo e impórtelo en la consola de Amazon (o cámbielo en Build › Invocations).",
+    "openGuide": "Guía de instalación paso a paso"
   }
 }

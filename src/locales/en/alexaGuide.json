@@ -1,0 +1,77 @@
+{
+  "title": "Install the Alexa skill",
+  "intro": "This guide walks you through connecting your Echo speakers to FamilyGest in about twenty minutes. Once installed, just say \"Alexa, ask {name}…\" to add an event, shopping items, a dish, an absence, a presence or a guest, or to ask who is eating at home, the pending tasks and the planned meals.",
+  "copied": "Copied!",
+  "alreadyGenerated": "An address has already been generated. If you no longer have it, use \"Regenerate the address\" in the Alexa card, then paste it again into the Amazon console (step 6).",
+  "consoleNote": "The Amazon console labels may change slightly over time: if in doubt, look for the closest label.",
+  "steps": {
+    "prereq": {
+      "title": "Before you start",
+      "https": "FamilyGest must be reachable from the Internet over HTTPS with a valid certificate ({origin}). To check, open this address on a phone using mobile data, Wi-Fi off: the page must show the padlock, with no warning.",
+      "serverUrl": "In the Super Administrator console › Global settings, the \"Public URL of the application\" must be this same https:// address (otherwise, ask the platform administrator).",
+      "account": "Use the Amazon account your Echo speakers are registered to: the skill will only work on that account.",
+      "private": "The skill stays private (development mode): it is not published, needs no Amazon certification and is free."
+    },
+    "prepare": {
+      "title": "Prepare FamilyGest",
+      "name": "Choose the invocation name in the Alexa card (currently \"{name}\"): at least two common words. Avoid made-up names, which speech recognition understands poorly.",
+      "generate": "Generate the skill address and copy it straight away: it will never be shown in full again (if you lose it, just regenerate it).",
+      "download": "Download the interaction model: you get the familygest-alexa-fr-FR.json file, containing the phrases the skill understands and the family members’ first names."
+    },
+    "devAccount": {
+      "title": "Create the Amazon developer account",
+      "open": "Open the Amazon developer site and sign in with the Amazon account of your speakers:",
+      "profile": "On first sign-in, fill in the requested developer profile (free, the required fields are enough)."
+    },
+    "create": {
+      "title": "Create the skill",
+      "console": "Open the Alexa console, then click \"Create Skill\":",
+      "name": "\"Skill name\": the name shown in the Alexa app, for example \"Gestion famille\". \"Primary locale\": \"French (FR)\" (the skill currently speaks French).",
+      "type": "\"Type of experience\": \"Other\". \"Model\": \"Custom\". \"Hosting services\": \"Provision your own\" (not \"Alexa-hosted\").",
+      "template": "\"Template\": \"Start from Scratch\", then \"Create Skill\". Wait a few seconds."
+    },
+    "model": {
+      "title": "Import the interaction model",
+      "json": "In the left menu: \"Build › Interaction Model › JSON Editor\".",
+      "drop": "Drag the familygest-alexa-fr-FR.json file into the editor (or replace all the text with its content), then click \"Save\".",
+      "build": "Click \"Build skill\" and wait for \"Build Successful\" (one to two minutes)."
+    },
+    "endpoint": {
+      "title": "Connect the skill to FamilyGest",
+      "menu": "In the left menu: \"Build › Endpoint\", then choose \"HTTPS\".",
+      "url": "In \"Default Region\", paste the skill address copied in step 2.",
+      "cert": "In the list just below, choose \"My development endpoint has a certificate from a trusted certificate authority\", then \"Save\"."
+    },
+    "test": {
+      "title": "Test",
+      "enable": "Open the \"Test\" tab at the top of the page: set \"Skill testing is enabled in\" to \"Development\".",
+      "type": "Type (in French): \"demande à {name} d’acheter du lait\". Alexa should confirm, and milk should appear on the FamilyGest shopping list.",
+      "echo": "Done: the skill works right away on your Echo speakers (in the Alexa app: More › Skills & Games › Your Skills › Dev)."
+    },
+    "usage": {
+      "title": "What you can say (in French)",
+      "event": "\"Alexa, demande à {name} d’ajouter dentiste mardi à 15 heures\" (add an event)",
+      "shopping": "\"Alexa, demande à {name} d’acheter du lait et des œufs\" (shopping) — avoid \"à ma liste de courses\", often picked up by Amazon’s own shopping list",
+      "meal": "\"Alexa, demande à {name} de mettre des lasagnes au dîner de jeudi\" (plan a dish)",
+      "absence": "\"Alexa, demande à {name} : Paul ne sera pas là demain midi\" (absence, always with a first name); \"… Léa sera là ce soir\" for a presence",
+      "guest": "\"Alexa, demande à {name} : Mamie vient dîner samedi\" (guest)",
+      "who": "\"Alexa, demande à {name} qui mange à la maison ce soir\" (who is home)",
+      "tasks": "\"Alexa, demande à {name} quelles sont les tâches en cours\" (pending tasks)",
+      "menu": "\"Alexa, demande à {name} ce qu’on mange cette semaine\" (planned meals)",
+      "conversation": "To chain several requests: \"Alexa, ouvre {name}\", then your requests one after the other, and \"c’est tout\" to finish."
+    },
+    "maintenance": {
+      "title": "Maintenance",
+      "newMember": "New family member: download the interaction model again, re-import it (step 5) and run \"Build skill\" again so their first name is recognised.",
+      "rename": "New invocation name: save it in the Alexa card, then download and re-import the model.",
+      "regenerate": "Lost or leaked address: regenerate it in the Alexa card and paste it again in step 6. \"Revoke\" cuts access immediately."
+    },
+    "troubleshooting": {
+      "title": "Troubleshooting",
+      "amazonList": "The request goes to Amazon’s shopping list: the invocation name was not recognised, or the sentence contained \"à ma liste de courses\". Say \"d’acheter…\" and check what Alexa heard (Alexa app › Settings › Alexa Privacy › Voice History).",
+      "problem": "\"There was a problem with the requested skill’s response\": check the address pasted in step 6 (has it been regenerated since?). The platform administrator can check the server logs (lines \"[Alexa]\").",
+      "unreachable": "No reaction from FamilyGest: Amazon cannot reach the server. Check the prerequisites (HTTPS access from the Internet, valid certificate).",
+      "firstName": "A first name is not understood: check its spelling in FamilyGest, then download and re-import the model."
+    }
+  }
+}

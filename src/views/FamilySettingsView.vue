@@ -224,6 +224,9 @@
             <p class="section-subtitle">
               {{ t('familySettings.alexa.subtitle') }}
             </p>
+            <button type="button" class="btn btn-secondary btn-sm alexa-guide-btn" @click="showAlexaGuide = true">
+              <BookOpen :size="15" /> {{ t('familySettings.alexa.openGuide') }}
+            </button>
           </div>
         </div>
 
@@ -286,6 +289,17 @@
           </template>
         </div>
       </div>
+
+      <AlexaSetupGuide
+        v-if="showAlexaGuide"
+        :invocation-name="alexaStatus.invocationName || alexaInvocationName || 'gestion famille'"
+        :exists="alexaStatus.exists"
+        :endpoint-url="alexaEndpointUrl"
+        :busy="alexaActionLoading"
+        @close="showAlexaGuide = false"
+        @generate="generateAlexaConnector"
+        @download="downloadAlexaModel"
+      />
 
       <!-- Mealie Card: connexion au serveur de recettes Mealie de la famille -->
       <div class="card glass-card mealie-card margin-top-lg">
@@ -968,8 +982,9 @@ import {
   ShieldCheck, Loader2, Globe,
   UserPlus, Download, ShoppingCart, Plus, Pencil, Trash2, ExternalLink,
   Users, Shield,
-  Bot, RefreshCw, Copy, KeyRound, ChefHat, Plug, Mic
+  Bot, RefreshCw, Copy, KeyRound, ChefHat, Plug, Mic, BookOpen
 } from '@lucide/vue'
+import AlexaSetupGuide from '../components/AlexaSetupGuide.vue'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 import { useI18n } from 'vue-i18n'
@@ -1525,6 +1540,7 @@ const alexaActionLoading = ref(false)
 const alexaStatus = ref({ exists: false })
 const alexaEndpointUrl = ref('')
 const alexaInvocationName = ref('')
+const showAlexaGuide = ref(false)
 
 const fetchAlexaConnectorStatus = async () => {
   alexaLoading.value = true
@@ -2705,6 +2721,10 @@ onMounted(() => {
   margin-top: 0;
   flex: 1;
   min-width: 200px;
+}
+
+.alexa-guide-btn {
+  margin-top: 0.75rem;
 }
 
 .alexa-invocation {
