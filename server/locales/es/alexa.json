@@ -52,7 +52,7 @@
     "done": "Anotado: se espera a {names} {date}, {slots}."
   },
   "welcome": "Sí, le escucho.",
-  "help": "Por ejemplo, puede decir: añade dentista el martes a las 3 de la tarde. Compra leche y huevos. Pon lasaña para la cena del jueves. Pablo no estará mañana a mediodía. La abuela viene a cenar el sábado. También puede preguntar: ¿quién come en casa esta noche? ¿Cuáles son las tareas pendientes? ¿Qué comemos esta semana? ¿Qué quiere hacer?",
+  "help": "Por ejemplo, puede decir: añade dentista el martes a las 3 de la tarde. Compra leche y huevos. Pon lasaña para la cena del jueves. Pablo no estará mañana a mediodía. La abuela viene a cenar el sábado. También puede preguntar: ¿quién come en casa esta noche? ¿Cuáles son las tareas pendientes? ¿Qué comemos esta semana? ¿Cuáles son los próximos eventos? El resumen del día. ¿Qué quiere hacer?",
   "query": {
     "today": "hoy",
     "tomorrow": "mañana",
@@ -109,6 +109,21 @@
       },
       "listOn": "{day}, en el menú: {list}.",
       "nonePeriod": "No hay comidas previstas del {start} al {end}."
+    },
+    "events": {
+      "at": "{title} a las {time}",
+      "noneOn": "No hay ningún evento previsto {day}.",
+      "nonePeriod": "No hay ningún evento previsto del {start} al {end}.",
+      "noneSoon": "No hay ningún evento previsto en las próximas dos semanas.",
+      "list": "Un evento próximo: {list}. | {n} eventos próximos: {list}.",
+      "listOn": "{day}, un evento: {list}. | {day}, {n} eventos: {list}."
+    },
+    "summary": {
+      "events": "{day}, un evento: {list}. | {day}, {n} eventos: {list}.",
+      "noEvents": "{day}, ningún evento.",
+      "absent": "{names} no estará. | {names} no estarán.",
+      "menu": "En el menú: {dish}.",
+      "noMenu": "No hay ningún plato previsto."
     }
   },
   "oauth": {

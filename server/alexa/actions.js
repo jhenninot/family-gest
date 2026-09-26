@@ -5,6 +5,7 @@ import User from '../models/User.js'
 import FamilyMember from '../models/FamilyMember.js'
 import Absence from '../models/Absence.js'
 import MealGuest from '../models/MealGuest.js'
+import Event from '../models/Event.js'
 import { getMealSlotPresence } from '../digest/mealPresence.js'
 import { translator, readableDate } from '../i18n/index.js'
 import { getFamilyMembersList } from '../mcp/resolveMember.js'
@@ -73,6 +74,20 @@ export const createAlexaApi = (req, ctx, lang) => {
       return meals
         .map(m => ({ date: m.date, slot: m.slot, dish: m.dish }))
         .sort((a, b) => a.date.localeCompare(b.date) || (a.slot === 'lunch' ? -1 : 1))
+    },
+
+    // Événements de l'agenda entre deux dates incluses, dans l'ordre (sans heure en premier dans la journée)
+    async upcomingEvents ({ start, end }) {
+      const events = await Event.find({ familyId, date: { $gte: start, $lte: end } })
+      const names = new Map((await this.members()).map(m => [m.id, m.firstName]))
+      return events
+        .map(e => ({
+          date: e.date,
+          time: e.time || '',
+          title: e.title,
+          members: [...new Set([...(e.memberIds || []), e.assignedTo].filter(id => id != null))].map(id => names.get(id)).filter(Boolean)
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
     },
 
     // --- Ajouts ---

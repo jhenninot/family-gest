@@ -39,6 +39,8 @@
     "endpoint": {
       "title": "Connect the skill to FamilyGest",
       "menu": "In the left menu: \"Build › Endpoint\", then choose \"HTTPS\".",
+      "agenda": "“Alexa, ask {name} what the upcoming events are” (or “… what's in the calendar tomorrow”)",
+      "summary": "“Alexa, ask {name} for today's summary”: events, who is home at each meal and what we are eating",
       "url": "In \"Default Region\", paste the skill address copied in step 2.",
       "cert": "In the list just below, choose \"My development endpoint has a certificate from a trusted certificate authority\", then \"Save\"."
     },

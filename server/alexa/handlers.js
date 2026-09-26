@@ -383,6 +383,89 @@ export const buildHandlers = (api) => {
     }
   }
 
+  // « le dentiste à 15 heures pour Paul »
+  const describeEvent = (event) => {
+    let text = event.time ? t('alexa.query.events.at', { title: event.title, time: spokenTime(t, event.time) }) : event.title
+    if (event.members.length > 0) text += ` ${t('alexa.query.tasks.for', { name: joinList(t, event.members) })}`
+    return text
+  }
+
+  // « Quels sont les événements à venir ? », « Qu'est-ce qu'il y a dans l'agenda demain ? »
+  const EventsHandler = {
+    canHandle: isIntent('EventsIntent'),
+    async handle (h) {
+      const dateValue = readSlot(h, 'date').value
+      const today = api.today()
+      // Sans date : les deux prochaines semaines
+      const period = dateValue ? parseAlexaPeriod(dateValue) : { start: today, end: addDays(today, 13) }
+      if (!period) return elicit(h, 'date', t('alexa.askPreciseDay'))
+      const events = await api.upcomingEvents(period)
+      const singleDay = period.start === period.end
+
+      if (events.length === 0) {
+        if (singleDay) return finish(h, api, t('alexa.query.events.noneOn', { day: dayLabel(api, period.start) }))
+        return finish(h, api, dateValue
+          ? t('alexa.query.events.nonePeriod', { start: readableDate(t, period.start), end: readableDate(t, period.end) })
+          : t('alexa.query.events.noneSoon'))
+      }
+      const shown = events.slice(0, 8)
+      // Regroupés par jour : « aujourd'hui, le dentiste à 15 heures et l'anniversaire de Léa »
+      const byDay = new Map()
+      for (const e of shown) byDay.set(e.date, [...(byDay.get(e.date) || []), describeEvent(e)])
+      const list = singleDay
+        ? shown.map(describeEvent)
+        : [...byDay].map(([date, items]) => `${dayLabel(api, date)}, ${joinList(t, items)}`)
+      const rest = events.length - shown.length
+      const fullList = list.join(' ; ') + (rest > 0 ? ` ; ${t('alexa.query.tasks.more', { n: rest })}` : '')
+      return finish(h, api, singleDay
+        ? t('alexa.query.events.listOn', { day: capitalizeFirst(dayLabel(api, period.start)), list: fullList, n: events.length })
+        : t('alexa.query.events.list', { list: fullList, n: events.length }))
+    }
+  }
+
+  // Récapitulatif d'une journée : événements, puis pour chaque repas qui est là, qui n'est pas là
+  // et ce qu'on mange
+  const DaySummaryHandler = {
+    canHandle: isIntent('DaySummaryIntent'),
+    async handle (h) {
+      const { date, invalid } = optionalDate(h, api)
+      if (invalid) return elicit(h, 'date', t('alexa.askPreciseDay'))
+      const day = dayLabel(api, date)
+      const [events, meals, members] = await Promise.all([
+        api.upcomingEvents({ start: date, end: date }),
+        api.plannedMeals({ start: date, end: date }),
+        api.members()
+      ])
+      const firstNames = new Map(members.map(m => [m.id, m.firstName]))
+      const sentences = [events.length > 0
+        ? t('alexa.query.summary.events', { day: capitalizeFirst(day), list: events.map(describeEvent).join(' ; '), n: events.length })
+        : t('alexa.query.summary.noEvents', { day: capitalizeFirst(day) })]
+
+      for (const slot of ['lunch', 'dinner']) {
+        const presence = await api.whoIsHome({ date, slot })
+        const when = capitalizeFirst(slotMoment(api, date, slot))
+        const presentIds = new Set(presence.presentMembers.map(m => m.id))
+        const present = presence.presentMembers.map(m => firstNames.get(m.id) || m.name)
+        const guests = presence.guests.map(g => g.name)
+        const absent = members.filter(m => !presentIds.has(m.id)).map(m => m.firstName)
+        if (present.length + guests.length === 0) {
+          sentences.push(t('alexa.query.who.nobody', { when }))
+        } else {
+          const names = guests.length > 0
+            ? t('alexa.query.who.withGuests', { members: joinList(t, present), guests: joinList(t, guests), n: guests.length })
+            : joinList(t, present)
+          sentences.push(t('alexa.query.who.result', { when, names, n: presence.headcount }))
+          if (absent.length > 0) sentences.push(t('alexa.query.summary.absent', { names: joinList(t, absent), n: absent.length }))
+        }
+        const dishes = meals.filter(m => m.slot === slot).map(m => m.dish)
+        sentences.push(dishes.length > 0
+          ? t('alexa.query.summary.menu', { dish: joinList(t, dishes) })
+          : t('alexa.query.summary.noMenu'))
+      }
+      return finish(h, api, sentences.join(' '))
+    }
+  }
+
   const HelpHandler = {
     canHandle: isIntent('AMAZON.HelpIntent'),
     handle: (h) => h.responseBuilder.speak(t('alexa.help')).reprompt(t('alexa.reprompt')).getResponse()
@@ -419,7 +502,7 @@ export const buildHandlers = (api) => {
       presenceHandler('PresenceIntent', 'presence'),
       presenceHandler('PresenceNightIntent', 'presence', 'NIGHT'),
       AddGuestHandler,
-      whoIsHomeHandler('WhoIsHomeIntent'), whoIsHomeHandler('WhoSleepsIntent', 'NIGHT'), TasksHandler, MealsHandler,
+      whoIsHomeHandler('WhoIsHomeIntent'), whoIsHomeHandler('WhoSleepsIntent', 'NIGHT'), TasksHandler, MealsHandler, EventsHandler, DaySummaryHandler,
       HelpHandler, StopHandler, FallbackHandler, SessionEndedHandler
     ],
     errorHandler: ErrorHandler

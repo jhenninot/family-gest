@@ -73,7 +73,7 @@ const STEPS = [
   { key: 'model', items: [{ key: 'json' }, { key: 'drop' }, { key: 'build' }] },
   { key: 'endpoint', items: [{ key: 'menu' }, { key: 'url' }, { key: 'cert' }] },
   { key: 'test', items: [{ key: 'enable' }, { key: 'type' }, { key: 'echo' }] },
-  { key: 'usage', items: [{ key: 'event' }, { key: 'shopping' }, { key: 'meal' }, { key: 'absence' }, { key: 'guest' }, { key: 'who' }, { key: 'tasks' }, { key: 'menu' }, { key: 'conversation' }] },
+  { key: 'usage', items: [{ key: 'event' }, { key: 'shopping' }, { key: 'meal' }, { key: 'absence' }, { key: 'guest' }, { key: 'who' }, { key: 'tasks' }, { key: 'menu' }, { key: 'agenda' }, { key: 'summary' }, { key: 'conversation' }] },
   { key: 'maintenance', items: [{ key: 'newMember' }, { key: 'rename' }, { key: 'regenerate' }] },
   { key: 'troubleshooting', items: [{ key: 'amazonList' }, { key: 'problem' }, { key: 'unreachable' }, { key: 'firstName' }] },
   { key: 'autoUpdate', items: [{ key: 'why' }, { key: 'profile', link: 'https://developer.amazon.com/loginwithamazon/console/site/lwa/overview.html', linkLabel: 'Login with Amazon' }, { key: 'returnUrl' }, { key: 'credentials' }, { key: 'skillId' }, { key: 'connect' }] }

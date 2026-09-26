@@ -52,7 +52,7 @@
     "done": "Done: expecting {names} {date}, {slots}."
   },
   "welcome": "Yes, I'm listening.",
-  "help": "For example, you can say: add dentist on Tuesday at 3 PM. Buy milk and eggs. Put lasagne on Thursday for dinner. Paul will be away tomorrow for lunch. Granny is coming for dinner on Saturday. You can also ask: who is home tonight? What are the pending tasks? What are we eating this week? What would you like to do?",
+  "help": "For example, you can say: add dentist on Tuesday at 3 PM. Buy milk and eggs. Put lasagne on Thursday for dinner. Paul will be away tomorrow for lunch. Granny is coming for dinner on Saturday. You can also ask: who is home tonight? What are the pending tasks? What are we eating this week? What are the upcoming events? Today's summary. What would you like to do?",
   "query": {
     "today": "today",
     "tomorrow": "tomorrow",
@@ -109,6 +109,21 @@
       },
       "listOn": "{day}, on the menu: {list}.",
       "nonePeriod": "No meals are planned from {start} to {end}."
+    },
+    "events": {
+      "at": "{title} at {time}",
+      "noneOn": "No events are planned {day}.",
+      "nonePeriod": "No events are planned from {start} to {end}.",
+      "noneSoon": "No events are planned for the next two weeks.",
+      "list": "One upcoming event: {list}. | {n} upcoming events: {list}.",
+      "listOn": "{day}, one event: {list}. | {day}, {n} events: {list}."
+    },
+    "summary": {
+      "events": "{day}, one event: {list}. | {day}, {n} events: {list}.",
+      "noEvents": "{day}, no events.",
+      "absent": "{names} will be away. | {names} will be away.",
+      "menu": "On the menu: {dish}.",
+      "noMenu": "No dish is planned."
     }
   },
   "oauth": {
