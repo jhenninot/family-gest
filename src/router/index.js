@@ -149,7 +149,29 @@ const router = createRouter({
   routes
 })
 
+// Retour de l'autorisation Amazon (skill Alexa) arrivé dans l'application au lieu du serveur :
+// URL publique de la plateforme contenant un chemin ou un « # », ou service worker d'une ancienne
+// version. Il est reconnaissable à son code d'autorisation et à sa portée « alexa::ask » : on le
+// transmet au serveur, une seule fois par autorisation (pas de boucle si la page revient ici).
+const ALEXA_OAUTH_CALLBACK = '/api/alexa-oauth/callback'
+const forwardAlexaOauthReturn = (to) => {
+  const { code, state, scope, error } = to.query
+  const looksLikeAmazonReturn = to.path.endsWith(ALEXA_OAUTH_CALLBACK) ||
+    (state && (code || error) && String(scope || '').includes('alexa::ask'))
+  if (!looksLikeAmazonReturn || !state) return false
+  const guardKey = `familygest_alexa_oauth_${state}`
+  try {
+    if (sessionStorage.getItem(guardKey)) return false
+    sessionStorage.setItem(guardKey, '1')
+  } catch { /* stockage indisponible : on tente quand même */ }
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(to.query)) if (value != null) params.set(key, String(value))
+  window.location.replace(`${ALEXA_OAUTH_CALLBACK}?${params}`)
+  return true
+}
+
 router.beforeEach(async (to, from, next) => {
+  if (forwardAlexaOauthReturn(to)) return next(false)
   document.title = `${to.meta.title || 'Accueil'} - FamilyGest`
   const authStore = useAuthStore()
   const familyStore = useFamilyStore()
