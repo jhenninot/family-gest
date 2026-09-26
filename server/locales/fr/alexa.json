@@ -37,7 +37,14 @@
       "member": "Pour qui est cet événement ? Dites un prénom, ou « toute la famille ».",
       "badTime": "Je n'ai pas compris l'heure.",
       "endBeforeStart": "L'heure de fin doit être après l'heure de début."
-    }
+    },
+    "meals": {
+      "lunch": "le déjeuner",
+      "dinner": "le dîner"
+    },
+    "absenceQuestion": "Il tombe pendant {meals} : faut-il noter l'absence de {member} ?",
+    "absenceDone": "C'est noté : {member} ne sera pas là pour {meals}, {date}.",
+    "noAbsence": "D'accord, pas d'absence."
   },
   "shopping": {
     "askItems": "Que faut-il ajouter à la liste de courses ?",

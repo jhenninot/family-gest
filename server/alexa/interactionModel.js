@@ -535,7 +535,7 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
         'pour tout le monde', 'toute la journée entière', 'la journée entière'
       ]
     },
-    { name: 'AMAZON.YesIntent', samples: [] },
+    { name: 'AMAZON.YesIntent', samples: ['oui merci', "oui s'il te plaît", 'vas-y', 'oui vas-y', "d'accord", 'bien sûr', 'oui note-la'] },
     { name: 'AMAZON.FallbackIntent', samples: [] },
     { name: 'AMAZON.NavigateHomeIntent', samples: [] }
   ]

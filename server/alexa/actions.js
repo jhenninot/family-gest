@@ -156,6 +156,29 @@ export const createAlexaApi = (req, ctx, lang) => {
       return absence
     },
 
+    // Absence liée à un événement (comme la case « générer une absence » de l'application) ; les
+    // repas déjà déclarés ce jour-là sont conservés
+    async addEventAbsence ({ member, date, slots, title, eventId }) {
+      const existing = await Absence.findOne({ familyId, memberId: member.id, date, type: 'absence' })
+      const lunch = Boolean(existing?.lunch) || slots.includes('lunch')
+      const dinner = Boolean(existing?.dinner) || slots.includes('dinner')
+      const night = Boolean(existing?.night)
+      const { absence } = await ctx.upsertAbsenceRecord({
+        familyId, memberId: member.id, date, type: 'absence', lunch, dinner, night,
+        note: existing?.note || t('notes.eventAbsence', { title }), declaredBy: actorId, eventId
+      })
+      notify({
+        action: ctx.ALERT_ACTIONS.ABSENCE_CREATED,
+        title: (tr) => tr('notify.mcp.absenceTitle', { member: member.firstName }),
+        body: (tr) => tr('notify.alexa.declared', {
+          text: tr('notify.alexa.memberOn', { member: member.firstName, date: readableDate(tr, date), slots: slotList(tr, { lunch: slots.includes('lunch'), dinner: slots.includes('dinner'), night: false }) })
+        }),
+        targetType: 'absence',
+        targetId: absence.id
+      })
+      return absence
+    },
+
     async addGuests ({ names, date, lunch, dinner, night }) {
       const guests = await ctx.createMealGuestsBatch({ familyId, names, date, lunch, dinner, night, invitedBy: null, note: '', fallbackHostId: actorId })
       notify({

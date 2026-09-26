@@ -1,11 +1,11 @@
 import Alexa from 'ask-sdk-core'
 import { readableDate, formatDateOnly } from '../i18n/index.js'
-import { parseAlexaDate, parseAlexaTime, parseMealSlot, slotsToFlags, splitSpokenList, parseShoppingEntry, parseGuestNames, matchMember, parseAlexaPeriod, addDays, currentHour } from './parsing.js'
+import { parseAlexaDate, parseAlexaTime, parseMealSlot, slotsToFlags, splitSpokenList, parseShoppingEntry, parseGuestNames, matchMember, parseAlexaPeriod, addDays, currentHour, eventMealSlots } from './parsing.js'
 
 // Dialogue de la skill Alexa. Toutes les écritures passent par `api` (voir actions.js), ce qui
 // permet de tester ces gestionnaires sans base de données.
 //
-// api = { t, today(), members(), addEvent(), upcomingEvents(), addShoppingItems(), addMeal(), declarePresence(), addGuests(),
+// api = { t, today(), members(), addEvent(), addEventAbsence(), upcomingEvents(), addShoppingItems(), addMeal(), declarePresence(), addGuests(),
 //         whoIsHome(), pendingTasks(), plannedMeals() }
 
 // Valeur entendue et identifiant résolu (valeurs du modèle ou entités dynamiques) d'un créneau
@@ -33,9 +33,11 @@ const spokenTime = (t, time) => {
 const finish = (handlerInput, api, speech) => {
   const attrs = handlerInput.attributesManager.getSessionAttributes()
   const { launched } = attrs
-  // Un ajout d'événement guidé laissé en plan ne doit pas reprendre au prochain « non »
-  if (attrs.eventFlow) {
+  // Un ajout d'événement guidé (ou sa question d'absence) laissé en plan ne doit pas reprendre au
+  // prochain « oui » ou « non »
+  if (attrs.eventFlow || attrs.pendingEventAbsence) {
     delete attrs.eventFlow
+    delete attrs.pendingEventAbsence
     handlerInput.attributesManager.setSessionAttributes(attrs)
   }
   const rb = handlerInput.responseBuilder
@@ -163,7 +165,7 @@ export const buildHandlers = (api) => {
     }
 
     const title = flow.title.charAt(0).toUpperCase() + flow.title.slice(1)
-    await api.addEvent({
+    const event = await api.addEvent({
       title,
       date: flow.date,
       time: flow.time || '',
@@ -179,7 +181,36 @@ export const buildHandlers = (api) => {
     if (flow.time && flow.endTime) when = t('alexa.event.fromTo', { date, start: spokenTime(t, flow.time), end: spokenTime(t, flow.endTime) })
     else if (flow.time) when = t('alexa.dateAt', { date, time: spokenTime(t, flow.time) })
     if (flow.memberName) when += ` ${t('alexa.query.tasks.for', { name: flow.memberName })}`
-    return finish(h, api, t('alexa.event.done', { title, when }))
+    const done = t('alexa.event.done', { title, when })
+
+    // Comme dans l'application : un événement qui chevauche un repas propose d'y noter la personne absente
+    const slots = flow.memberId != null ? eventMealSlots(flow.time, flow.endTime) : []
+    if (slots.length > 0) {
+      const question = t('alexa.event.absenceQuestion', { meals: joinList(t, slots.map(slot => t(`alexa.event.meals.${slot}`))), member: flow.memberName })
+      h.attributesManager.setSessionAttributes({
+        ...h.attributesManager.getSessionAttributes(),
+        pendingEventAbsence: { memberId: flow.memberId, memberName: flow.memberName, date: flow.date, slots, title, eventId: event?.id ?? null }
+      })
+      return h.responseBuilder.speak(escapeSsml(`${done} ${question}`)).reprompt(escapeSsml(question)).getResponse()
+    }
+    return finish(h, api, done)
+  }
+
+  // Réponse à « faut-il noter l'absence de Paul ? »
+  const EventAbsenceAnswerHandler = {
+    canHandle: (h) => isIntent('AMAZON.YesIntent', 'AMAZON.NoIntent', 'EventSkipIntent')(h) &&
+      Boolean(h.attributesManager.getSessionAttributes().pendingEventAbsence),
+    async handle (h) {
+      const pending = h.attributesManager.getSessionAttributes().pendingEventAbsence
+      if (Alexa.getIntentName(h.requestEnvelope) !== 'AMAZON.YesIntent') return finish(h, api, t('alexa.event.noAbsence'))
+      const member = (await api.members()).find(m => m.id === pending.memberId) || { id: pending.memberId, firstName: pending.memberName }
+      await api.addEventAbsence({ member, date: pending.date, slots: pending.slots, title: pending.title, eventId: pending.eventId })
+      return finish(h, api, t('alexa.event.absenceDone', {
+        member: member.firstName,
+        meals: joinList(t, pending.slots.map(slot => t(`alexa.event.meals.${slot}`))),
+        date: readableDate(t, pending.date)
+      }))
+    }
   }
 
   const AddEventHandler = {
@@ -600,7 +631,7 @@ export const buildHandlers = (api) => {
 
   return {
     requestHandlers: [
-      LaunchHandler, AddEventHandler, EventSkipHandler, AddShoppingHandler, AddMealHandler,
+      LaunchHandler, AddEventHandler, EventAbsenceAnswerHandler, EventSkipHandler, AddShoppingHandler, AddMealHandler,
       presenceHandler('AbsenceIntent', 'absence'),
       presenceHandler('AbsenceNightIntent', 'absence', 'NIGHT'),
       presenceHandler('PresenceIntent', 'presence'),

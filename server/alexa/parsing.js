@@ -160,3 +160,14 @@ export const parseAlexaPeriod = (value) => {
 // Heure locale (0-23) dans le fuseau de la famille
 export const currentHour = (timezone = process.env.DIGEST_TIMEZONE || 'Europe/Paris', now = new Date()) =>
   Number(new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', hourCycle: 'h23' }).format(now))
+
+// Repas chevauchés par un événement, avec les mêmes plages que l'application (déjeuner 12 h-14 h,
+// dîner 20 h-22 h) ; sans heure de fin, l'événement dure une heure, comme dans le formulaire
+const toMinutes = (time) => { const [h, m] = time.split(':').map(Number); return h * 60 + m }
+export const eventMealSlots = (time, endTime) => {
+  if (!time) return []
+  const start = toMinutes(time)
+  const end = endTime ? toMinutes(endTime) : start + 60
+  const overlaps = (from, to) => start < to && end > from
+  return [overlaps(12 * 60, 14 * 60) && 'lunch', overlaps(20 * 60, 22 * 60) && 'dinner'].filter(Boolean)
+}

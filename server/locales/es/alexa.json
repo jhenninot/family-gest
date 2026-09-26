@@ -37,7 +37,14 @@
       "member": "¿Para quién es este evento? Diga un nombre, o «toda la familia».",
       "badTime": "No he entendido la hora.",
       "endBeforeStart": "La hora de fin debe ser posterior a la de inicio."
-    }
+    },
+    "meals": {
+      "lunch": "la comida",
+      "dinner": "la cena"
+    },
+    "absenceQuestion": "Coincide con {meals}: ¿anoto la ausencia de {member}?",
+    "absenceDone": "Anotado: {member} no estará en {meals}, {date}.",
+    "noAbsence": "De acuerdo, sin ausencia."
   },
   "shopping": {
     "askItems": "¿Qué hay que añadir a la lista de la compra?",

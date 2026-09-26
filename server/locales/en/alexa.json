@@ -37,7 +37,14 @@
       "member": "Who is this event for? Say a first name, or “the whole family”.",
       "badTime": "I didn't understand the time.",
       "endBeforeStart": "The end time must be after the start time."
-    }
+    },
+    "meals": {
+      "lunch": "lunch",
+      "dinner": "dinner"
+    },
+    "absenceQuestion": "It overlaps {meals}: should I mark {member} as away?",
+    "absenceDone": "Done: {member} will be away for {meals}, {date}.",
+    "noAbsence": "OK, no absence."
   },
   "shopping": {
     "askItems": "What should I add to the shopping list?",
