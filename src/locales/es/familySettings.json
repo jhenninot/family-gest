@@ -149,5 +149,27 @@
     "resendError": "Error al enviar el correo",
     "error": "Error al modificar al miembro",
     "saveError": "Error al guardar"
+  },
+  "alexa": {
+    "title": "Asistente de voz Alexa",
+    "subtitle": "Añada eventos, artículos de la compra, platos, ausencias, presencias e invitados por voz desde sus altavoces Echo. La skill es privada: solo funciona en su cuenta de Amazon, y la dirección generada aquí da acceso a estas acciones para esta familia. Siga la guía ALEXA.md para crearla en la consola de desarrollador de Amazon.",
+    "loading": "Cargando el estado de la skill…",
+    "copyNow": "Copie esta dirección ahora y péguela en la consola de Amazon (Endpoint › HTTPS): no se volverá a mostrar completa.",
+    "active": "Skill activa · dirección terminada en {token} · creada el {created} · último uso: {lastUsed}",
+    "none": "No hay ninguna skill de Alexa vinculada a esta familia.",
+    "generate": "Generar la dirección de la skill",
+    "regenerate": "Regenerar la dirección",
+    "downloadModel": "Descargar el modelo de diálogo",
+    "modelHint": "El modelo contiene los nombres de los miembros: vuelva a descargarlo e importarlo en la consola de Amazon cuando se una un nuevo miembro.",
+    "regenerateTitle": "¿Regenerar la dirección de la skill?",
+    "regenerateMessage": "La dirección actual dejará de funcionar de inmediato: tendrá que pegar la nueva en la consola de Amazon.",
+    "revokeTitle": "¿Desconectar la skill de Alexa?",
+    "revokeMessage": "La dirección dejará de funcionar de inmediato: Alexa ya no podrá añadir nada para esta familia.",
+    "errors": {
+      "status": "Error al cargar el estado de la skill",
+      "generate": "Error al generar la dirección",
+      "revoke": "Error al desconectar la skill",
+      "model": "Error al descargar el modelo"
+    }
   }
 }

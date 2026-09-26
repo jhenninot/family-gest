@@ -1,0 +1,56 @@
+{
+  "welcome": "Bienvenue sur Family Gest. Vous pouvez ajouter un événement, des courses, un plat, une absence, une présence ou un invité. Que voulez-vous faire ?",
+  "reprompt": "Que voulez-vous faire ?",
+  "help": "Vous pouvez dire par exemple : ajoute dentiste mardi à 15 heures. Ajoute du lait et des œufs à la liste de courses. Mets des lasagnes au dîner de jeudi. Paul ne sera pas là demain midi. Léa sera là ce soir. Ou encore : Mamie vient dîner samedi. Que voulez-vous faire ?",
+  "goodbye": "À bientôt !",
+  "notUnderstood": "Je n'ai pas compris. Dites « aide » pour avoir des exemples.",
+  "error": "Désolé, une erreur est survenue. Réessayez dans un instant.",
+  "anythingElse": "Autre chose ?",
+  "and": "et",
+  "dateAt": "{date} à {time}",
+  "time": {
+    "hour": "{h} heures",
+    "hourMinutes": "{h} heures {m}"
+  },
+  "askPreciseDay": "Pour quel jour exactement ?",
+  "slots": {
+    "lunch": "le midi",
+    "dinner": "le soir",
+    "night": "la nuit"
+  },
+  "meals": {
+    "lunch": "déjeuner",
+    "dinner": "dîner"
+  },
+  "member": {
+    "unknown": "Je ne connais pas de {name} dans la famille. De qui s'agit-il ?",
+    "ambiguous": "Plusieurs personnes correspondent à {name} : {names}. De qui s'agit-il ?"
+  },
+  "event": {
+    "askTitle": "Quel est l'événement ?",
+    "askPreciseDate": "Pour quel jour exactement ?",
+    "done": "C'est noté : {title}, {when}."
+  },
+  "shopping": {
+    "askItems": "Que faut-il ajouter à la liste de courses ?",
+    "done": "J'ai ajouté {items} à la liste de courses.",
+    "already": "{items} est déjà sur la liste. | {items} sont déjà sur la liste."
+  },
+  "meal": {
+    "askDish": "Quel plat ?",
+    "askSlot": "Pour le déjeuner ou le dîner ?",
+    "done": "Au menu du {slot}, {date} : {dish}."
+  },
+  "presence": {
+    "askSlot": "Pour le midi, le soir ou la nuit ?",
+    "done": "C'est noté : {member} sera là {date}, {slots}."
+  },
+  "absence": {
+    "done": "C'est noté : {member} ne sera pas là {date}, {slots}."
+  },
+  "guest": {
+    "askNames": "Qui est invité ?",
+    "askSlot": "Pour le déjeuner, le dîner ou la nuit ?",
+    "done": "C'est noté, on attend {names} {date}, {slots}."
+  }
+}

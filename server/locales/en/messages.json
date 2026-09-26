@@ -31,5 +31,6 @@
   "accountDeletedNamed": "The account of {name} ({email}) has been deleted",
   "attachedToFamily": "User added to the family \"{family}\"",
   "seriesDeleted": "Event series deleted",
-  "eventDeleted": "Event deleted"
+  "eventDeleted": "Event deleted",
+  "alexaRevoked": "Alexa skill disconnected"
 }

@@ -160,5 +160,12 @@
     "declaredPeriod": "{member} from {start} to {end} • Reported via the assistant",
     "addedOn": "On {date} • Added via the assistant",
     "mealFor": "For {slot} on {date} • Added via the assistant"
+  },
+  "alexa": {
+    "added": "{text} • Added via Alexa",
+    "declared": "{text} • Reported via Alexa",
+    "memberOn": "{member} on {date} ({slots})",
+    "mealFor": "For {slot} on {date}",
+    "on": "On {date} ({slots})"
   }
 }

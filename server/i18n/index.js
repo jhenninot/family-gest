@@ -87,7 +87,11 @@ export const formatDateOnly = (lang, dateStr, options) => {
 }
 
 // Date d'un jour lisible pour un destinataire (« vendredi 25 septembre »), t étant son traducteur
-export const readableDate = (t, dateStr) => formatDateOnly(t.lang, dateStr, { weekday: 'long', day: 'numeric', month: 'long' })
+export const readableDate = (t, dateStr) => {
+  const text = formatDateOnly(t.lang, dateStr, { weekday: 'long', day: 'numeric', month: 'long' })
+  // « jeudi 1er octobre » : Intl écrit « 1 octobre »
+  return t.lang === 'fr' ? text.replace(/(^|\s)1(\s)/, '$11er$2') : text
+}
 
 // Middleware : langue de la réponse. L'interface envoie la sienne dans l'en-tête X-Lang ;
 // à défaut, on prend celle du compte connecté (connue après requireAuth), sinon le français.

@@ -1,0 +1,56 @@
+{
+  "welcome": "Welcome to Family Gest. You can add an event, shopping items, a dish, an absence, a presence or a guest. What would you like to do?",
+  "reprompt": "What would you like to do?",
+  "help": "For example, you can say: add dentist on Tuesday at 3 PM. Add milk and eggs to the shopping list. Put lasagne on Thursday for dinner. Paul will be away tomorrow for lunch. Leah will be home tonight. Or: Granny is coming for dinner on Saturday. What would you like to do?",
+  "goodbye": "Goodbye!",
+  "notUnderstood": "Sorry, I didn't understand. Say \"help\" for examples.",
+  "error": "Sorry, something went wrong. Please try again in a moment.",
+  "anythingElse": "Anything else?",
+  "and": "and",
+  "dateAt": "{date} at {time}",
+  "time": {
+    "hour": "{h}:00",
+    "hourMinutes": "{h}:{m}"
+  },
+  "askPreciseDay": "Which day exactly?",
+  "slots": {
+    "lunch": "for lunch",
+    "dinner": "for dinner",
+    "night": "overnight"
+  },
+  "meals": {
+    "lunch": "lunch",
+    "dinner": "dinner"
+  },
+  "member": {
+    "unknown": "I don't know anyone called {name} in the family. Who do you mean?",
+    "ambiguous": "Several people match {name}: {names}. Who do you mean?"
+  },
+  "event": {
+    "askTitle": "What is the event?",
+    "askPreciseDate": "Which day exactly?",
+    "done": "Done: {title}, {when}."
+  },
+  "shopping": {
+    "askItems": "What should I add to the shopping list?",
+    "done": "I added {items} to the shopping list.",
+    "already": "{items} is already on the list. | {items} are already on the list."
+  },
+  "meal": {
+    "askDish": "Which dish?",
+    "askSlot": "For lunch or dinner?",
+    "done": "{dish} is on the menu for {slot}, {date}."
+  },
+  "presence": {
+    "askSlot": "For lunch, dinner or overnight?",
+    "done": "Done: {member} will be home {date}, {slots}."
+  },
+  "absence": {
+    "done": "Done: {member} will be away {date}, {slots}."
+  },
+  "guest": {
+    "askNames": "Who is invited?",
+    "askSlot": "For lunch, dinner or overnight?",
+    "done": "Done: expecting {names} {date}, {slots}."
+  }
+}

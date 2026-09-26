@@ -149,5 +149,27 @@
     "resendError": "Erreur lors de l'envoi de l'email",
     "error": "Erreur lors de la modification du membre",
     "saveError": "Erreur lors de l'enregistrement"
+  },
+  "alexa": {
+    "title": "Assistant vocal Alexa",
+    "subtitle": "Ajoutez des événements, des courses, des plats, des absences, des présences et des invités à la voix, depuis vos enceintes Echo. La skill reste privée : elle ne fonctionne que sur votre compte Amazon, et l'adresse générée ici donne accès à ces ajouts pour cette famille. Suivez le guide ALEXA.md pour la créer dans la console développeur Amazon.",
+    "loading": "Chargement du statut de la skill…",
+    "copyNow": "Copiez cette adresse maintenant et collez-la dans la console Amazon (Endpoint › HTTPS) : elle ne sera plus jamais affichée en clair.",
+    "active": "Skill active · adresse se terminant par {token} · créée le {created} · dernière utilisation : {lastUsed}",
+    "none": "Aucune skill Alexa reliée à cette famille.",
+    "generate": "Générer l'adresse de la skill",
+    "regenerate": "Régénérer l'adresse",
+    "downloadModel": "Télécharger le modèle de dialogue",
+    "modelHint": "Le modèle contient les prénoms de la famille : téléchargez-le à nouveau et réimportez-le dans la console Amazon après l'arrivée d'un nouveau membre.",
+    "regenerateTitle": "Régénérer l'adresse de la skill ?",
+    "regenerateMessage": "L'adresse actuelle cessera immédiatement de fonctionner : il faudra coller la nouvelle dans la console Amazon.",
+    "revokeTitle": "Déconnecter la skill Alexa ?",
+    "revokeMessage": "L'adresse cessera immédiatement de fonctionner : Alexa ne pourra plus rien ajouter pour cette famille.",
+    "errors": {
+      "status": "Erreur lors de la récupération du statut de la skill",
+      "generate": "Erreur lors de la génération de l'adresse",
+      "revoke": "Erreur lors de la déconnexion de la skill",
+      "model": "Erreur lors du téléchargement du modèle"
+    }
   }
 }

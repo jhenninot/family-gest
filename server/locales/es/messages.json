@@ -31,5 +31,6 @@
   "accountDeletedNamed": "La cuenta de {name} ({email}) se ha eliminado",
   "attachedToFamily": "Usuario vinculado a la familia «{family}»",
   "seriesDeleted": "Serie de eventos eliminada",
-  "eventDeleted": "Evento eliminado"
+  "eventDeleted": "Evento eliminado",
+  "alexaRevoked": "Skill de Alexa desconectada"
 }

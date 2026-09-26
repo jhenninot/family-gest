@@ -40,6 +40,10 @@ import MealieConfig from './models/MealieConfig.js'
 import { ALERT_ACTIONS, ALERT_ACTIONS_LIST, ACTION_CATEGORY_BY_CODE } from './constants/alertActions.js'
 import webpush from 'web-push'
 import { mountMcpServer } from './mcp/index.js'
+import { mountAlexaSkill } from './alexa/index.js'
+import { buildInteractionModel } from './alexa/interactionModel.js'
+import { getFamilyMembersList } from './mcp/resolveMember.js'
+import AlexaConnector from './models/AlexaConnector.js'
 import { migrateNotificationPreferences } from './scripts/migrate-notification-preferences.js'
 import { migrateUsualPresenceGrid } from './scripts/migrate-usual-presence-grid.js'
 import { startDigestScheduler, mountDigestAdminRoutes } from './digest/index.js'
@@ -74,7 +78,13 @@ app.use(helmet({
 // via CORS_ORIGIN (ex: déploiement frontend/backend séparés), on restreint à cette liste.
 const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim()).filter(Boolean)
 app.use(cors(corsOrigins.length > 0 ? { origin: corsOrigins } : undefined))
-app.use(express.json())
+// Le corps brut des requêtes Alexa est conservé : leur signature porte sur ces octets exacts
+// (voir server/alexa/index.js).
+app.use(express.json({
+  verify: (req, _res, buf) => {
+    if (req.originalUrl.startsWith('/api/alexa/')) req.rawBody = buf.toString('utf8')
+  }
+}))
 
 // Langue des réponses (req.t) : voir server/i18n/index.js
 app.use(languageMiddleware)
@@ -5554,6 +5564,84 @@ mountMcpServer(app, {
   sanitizeRecipeUrl,
   applyMealRecipeChanges,
   normalizeTaskDueDate,
+  getOrSeedShoppingCategories
+})
+
+// === SKILL ALEXA PRIVÉE (COMMANDES VOCALES) ===
+// Réglages authentifiés (gestion du jeton par un admin de famille) ; le trafic de la skill
+// elle-même est vérifié par signature Amazon + jeton, voir server/alexa/.
+app.get('/api/family-settings/alexa-connector', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const connector = await AlexaConnector.findOne({ familyId: req.family._id, revokedAt: null })
+    if (!connector) return res.json({ exists: false })
+    res.json({
+      exists: true,
+      tokenPreview: connector.tokenPreview,
+      createdAt: connector.createdAt,
+      lastUsedAt: connector.lastUsedAt,
+      requestCount: connector.requestCount
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/family-settings/alexa-connector', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const rawToken = crypto.randomBytes(32).toString('hex')
+    const connector = await AlexaConnector.findOneAndUpdate(
+      { familyId: req.family._id },
+      {
+        familyId: req.family._id,
+        tokenHash: crypto.createHash('sha256').update(rawToken).digest('hex'),
+        tokenPreview: rawToken.slice(-4),
+        createdByUserId: req.user.id,
+        revokedAt: null,
+        lastUsedAt: null,
+        requestCount: 0
+      },
+      { upsert: true, new: true }
+    )
+
+    // Adresse publique HTTPS de la plateforme (Amazon n'appelle que des adresses publiques)
+    const config = await getSmtpConfig()
+    const baseServerUrl = (config?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
+    res.json({
+      url: `${baseServerUrl}/api/alexa/${req.family.slug}/${rawToken}`,
+      tokenPreview: connector.tokenPreview,
+      createdAt: connector.createdAt
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/family-settings/alexa-connector', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    await AlexaConnector.updateOne({ familyId: req.family._id }, { revokedAt: new Date() })
+    res.json({ message: req.t('messages.alexaRevoked') })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Modèle de dialogue à importer dans la console Amazon, avec les prénoms de la famille
+app.get('/api/family-settings/alexa-connector/interaction-model', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const members = await getFamilyMembersList(req.family._id)
+    res.setHeader('Content-Disposition', 'attachment; filename="familygest-alexa-fr-FR.json"')
+    res.json(buildInteractionModel({ members }))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+mountAlexaSkill(app, {
+  dispatchFamilyAlert,
+  ALERT_ACTIONS,
+  upsertAbsenceRecord,
+  createEventOrSeries,
+  createMealGuestsBatch,
   getOrSeedShoppingCategories
 })
 

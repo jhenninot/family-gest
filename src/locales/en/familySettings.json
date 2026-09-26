@@ -149,5 +149,27 @@
     "resendError": "Error while sending the email",
     "error": "Error while updating the member",
     "saveError": "Error while saving"
+  },
+  "alexa": {
+    "title": "Alexa voice assistant",
+    "subtitle": "Add events, shopping items, dishes, absences, presence and guests by voice from your Echo speakers. The skill stays private: it only works on your Amazon account, and the address generated here gives access to these additions for this family. Follow the ALEXA.md guide to create it in the Amazon developer console.",
+    "loading": "Loading skill status…",
+    "copyNow": "Copy this address now and paste it into the Amazon console (Endpoint › HTTPS): it will never be shown in full again.",
+    "active": "Skill active · address ending in {token} · created on {created} · last used: {lastUsed}",
+    "none": "No Alexa skill is linked to this family.",
+    "generate": "Generate the skill address",
+    "regenerate": "Regenerate the address",
+    "downloadModel": "Download the interaction model",
+    "modelHint": "The model contains the family members’ first names: download it again and re-import it into the Amazon console when a new member joins.",
+    "regenerateTitle": "Regenerate the skill address?",
+    "regenerateMessage": "The current address will stop working immediately: you will need to paste the new one into the Amazon console.",
+    "revokeTitle": "Disconnect the Alexa skill?",
+    "revokeMessage": "The address will stop working immediately: Alexa will no longer be able to add anything for this family.",
+    "errors": {
+      "status": "Error while loading the skill status",
+      "generate": "Error while generating the address",
+      "revoke": "Error while disconnecting the skill",
+      "model": "Error while downloading the model"
+    }
   }
 }

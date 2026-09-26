@@ -1,0 +1,56 @@
+{
+  "welcome": "Bienvenido a Family Gest. Puede añadir un evento, artículos de la compra, un plato, una ausencia, una presencia o un invitado. ¿Qué quiere hacer?",
+  "reprompt": "¿Qué quiere hacer?",
+  "help": "Por ejemplo, puede decir: añade dentista el martes a las 3 de la tarde. Añade leche y huevos a la lista de la compra. Pon lasaña para la cena del jueves. Pablo no estará mañana a mediodía. Lea estará esta noche. O también: la abuela viene a cenar el sábado. ¿Qué quiere hacer?",
+  "goodbye": "¡Hasta pronto!",
+  "notUnderstood": "No lo he entendido. Diga «ayuda» para oír ejemplos.",
+  "error": "Lo siento, se ha producido un error. Vuelva a intentarlo en un momento.",
+  "anythingElse": "¿Algo más?",
+  "and": "y",
+  "dateAt": "{date} a las {time}",
+  "time": {
+    "hour": "{h}:00",
+    "hourMinutes": "{h}:{m}"
+  },
+  "askPreciseDay": "¿Qué día exactamente?",
+  "slots": {
+    "lunch": "a mediodía",
+    "dinner": "por la noche",
+    "night": "para dormir"
+  },
+  "meals": {
+    "lunch": "la comida",
+    "dinner": "la cena"
+  },
+  "member": {
+    "unknown": "No conozco a nadie llamado {name} en la familia. ¿De quién se trata?",
+    "ambiguous": "Varias personas coinciden con {name}: {names}. ¿De quién se trata?"
+  },
+  "event": {
+    "askTitle": "¿Cuál es el evento?",
+    "askPreciseDate": "¿Qué día exactamente?",
+    "done": "Anotado: {title}, {when}."
+  },
+  "shopping": {
+    "askItems": "¿Qué hay que añadir a la lista de la compra?",
+    "done": "He añadido {items} a la lista de la compra.",
+    "already": "{items} ya está en la lista. | {items} ya están en la lista."
+  },
+  "meal": {
+    "askDish": "¿Qué plato?",
+    "askSlot": "¿Para la comida o la cena?",
+    "done": "{dish} en el menú de {slot}, {date}."
+  },
+  "presence": {
+    "askSlot": "¿A mediodía, por la noche o para dormir?",
+    "done": "Anotado: {member} estará {date}, {slots}."
+  },
+  "absence": {
+    "done": "Anotado: {member} no estará {date}, {slots}."
+  },
+  "guest": {
+    "askNames": "¿Quién está invitado?",
+    "askSlot": "¿Para la comida, la cena o para dormir?",
+    "done": "Anotado: se espera a {names} {date}, {slots}."
+  }
+}

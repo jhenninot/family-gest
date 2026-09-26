@@ -214,6 +214,69 @@
         </div>
       </div>
 
+      <!-- Alexa Card: skill vocale privée de la famille -->
+      <div class="card glass-card mcp-connector-card margin-top-lg">
+        <div class="mcp-connector-header">
+          <div class="section-title-group">
+            <h2 class="section-title">
+              <Mic :size="20" class="title-icon-mcp" /> {{ t('familySettings.alexa.title') }}
+            </h2>
+            <p class="section-subtitle">
+              {{ t('familySettings.alexa.subtitle') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="mcp-connector-body margin-top-md">
+          <div v-if="alexaLoading" class="mcp-status-line">
+            <Loader2 :size="16" class="spin" /> {{ t('familySettings.alexa.loading') }}
+          </div>
+
+          <template v-else>
+            <div v-if="alexaEndpointUrl" class="mcp-url-reveal">
+              <p class="mcp-url-warning">
+                <KeyRound :size="14" /> {{ t('familySettings.alexa.copyNow') }}
+              </p>
+              <div class="mcp-url-row">
+                <input type="text" readonly :value="alexaEndpointUrl" class="mcp-url-input" @click="$event.target.select()" />
+                <button type="button" class="btn btn-secondary" @click="copyAlexaUrl">
+                  <Copy :size="15" /> {{ t('familySettings.mcp.copy') }}
+                </button>
+              </div>
+            </div>
+
+            <div v-else-if="alexaStatus.exists" class="mcp-status-line">
+              ✅ <i18n-t keypath="familySettings.alexa.active" tag="span"><template #token><code>...{{ alexaStatus.tokenPreview }}</code></template><template #created>{{ formatMcpDate(alexaStatus.createdAt) }}</template><template #lastUsed>{{ alexaStatus.lastUsedAt ? formatMcpDate(alexaStatus.lastUsedAt) : t('familySettings.mcp.never') }}</template></i18n-t>
+            </div>
+
+            <div v-else class="mcp-status-line">
+              {{ t('familySettings.alexa.none') }}
+            </div>
+
+            <div class="mcp-connector-actions">
+              <button type="button" class="btn btn-primary" :disabled="alexaActionLoading" @click="generateAlexaConnector">
+                <RefreshCw :size="15" />
+                <span>{{ alexaStatus.exists ? t('familySettings.alexa.regenerate') : t('familySettings.alexa.generate') }}</span>
+              </button>
+              <button type="button" class="btn btn-secondary" :disabled="alexaActionLoading" @click="downloadAlexaModel">
+                <Download :size="15" />
+                <span>{{ t('familySettings.alexa.downloadModel') }}</span>
+              </button>
+              <button
+                v-if="alexaStatus.exists"
+                type="button"
+                class="btn btn-danger"
+                :disabled="alexaActionLoading"
+                @click="revokeAlexaConnector"
+              >
+                <Trash2 :size="15" /> {{ t('familySettings.mcp.revoke') }}
+              </button>
+            </div>
+            <p class="alexa-model-hint">{{ t('familySettings.alexa.modelHint') }}</p>
+          </template>
+        </div>
+      </div>
+
       <!-- Mealie Card: connexion au serveur de recettes Mealie de la famille -->
       <div class="card glass-card mealie-card margin-top-lg">
         <div class="section-title-group">
@@ -895,7 +958,7 @@ import {
   ShieldCheck, Loader2, Globe,
   UserPlus, Download, ShoppingCart, Plus, Pencil, Trash2, ExternalLink,
   Users, Shield,
-  Bot, RefreshCw, Copy, KeyRound, ChefHat, Plug
+  Bot, RefreshCw, Copy, KeyRound, ChefHat, Plug, Mic
 } from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -1446,6 +1509,99 @@ const copyMcpUrl = async () => {
   }
 }
 
+// --- Skill Alexa privée (commandes vocales) ---
+const alexaLoading = ref(true)
+const alexaActionLoading = ref(false)
+const alexaStatus = ref({ exists: false })
+const alexaEndpointUrl = ref('')
+
+const fetchAlexaConnectorStatus = async () => {
+  alexaLoading.value = true
+  try {
+    const res = await fetch('/api/family-settings/alexa-connector', { headers: getSettingsHeaders() })
+    if (!res.ok) throw new Error(t('familySettings.alexa.errors.status'))
+    alexaStatus.value = await res.json()
+  } catch (err) {
+    console.error(err)
+  } finally {
+    alexaLoading.value = false
+  }
+}
+
+const generateAlexaConnector = async () => {
+  if (alexaStatus.value.exists) {
+    const ok = await confirm({
+      title: t('familySettings.alexa.regenerateTitle'),
+      message: t('familySettings.alexa.regenerateMessage'),
+      confirmText: t('familySettings.mcp.regenerateConfirm'),
+      type: 'danger'
+    })
+    if (!ok) return
+  }
+
+  alexaActionLoading.value = true
+  try {
+    const res = await fetch('/api/family-settings/alexa-connector', { method: 'POST', headers: getSettingsHeaders() })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.error || t('familySettings.alexa.errors.generate'))
+    }
+    const data = await res.json()
+    alexaEndpointUrl.value = data.url
+    alexaStatus.value = { exists: true, tokenPreview: data.tokenPreview, createdAt: data.createdAt, lastUsedAt: null, requestCount: 0 }
+  } catch (err) {
+    alert(t('common.errorPrefix', { message: err.message }))
+  } finally {
+    alexaActionLoading.value = false
+  }
+}
+
+const revokeAlexaConnector = async () => {
+  const ok = await confirm({
+    title: t('familySettings.alexa.revokeTitle'),
+    message: t('familySettings.alexa.revokeMessage'),
+    confirmText: t('familySettings.mcp.revoke'),
+    type: 'danger'
+  })
+  if (!ok) return
+
+  alexaActionLoading.value = true
+  try {
+    const res = await fetch('/api/family-settings/alexa-connector', { method: 'DELETE', headers: getSettingsHeaders() })
+    if (!res.ok) throw new Error(t('familySettings.alexa.errors.revoke'))
+    alexaEndpointUrl.value = ''
+    alexaStatus.value = { exists: false }
+  } catch (err) {
+    alert(t('common.errorPrefix', { message: err.message }))
+  } finally {
+    alexaActionLoading.value = false
+  }
+}
+
+const copyAlexaUrl = async () => {
+  try {
+    await navigator.clipboard.writeText(alexaEndpointUrl.value)
+  } catch (err) {
+    console.error('Copie dans le presse-papiers impossible :', err)
+  }
+}
+
+// Modèle de dialogue (avec les prénoms de la famille) à importer dans la console Amazon
+const downloadAlexaModel = async () => {
+  try {
+    const res = await fetch('/api/family-settings/alexa-connector/interaction-model', { headers: getSettingsHeaders() })
+    if (!res.ok) throw new Error(t('familySettings.alexa.errors.model'))
+    const blob = new Blob([JSON.stringify(await res.json(), null, 2)], { type: 'application/json' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'familygest-alexa-fr-FR.json'
+    link.click()
+    URL.revokeObjectURL(link.href)
+  } catch (err) {
+    alert(t('common.errorPrefix', { message: err.message }))
+  }
+}
+
 // --- Connexion au serveur de recettes Mealie ---
 const mealieLoading = ref(true)
 const mealieSaving = ref(false)
@@ -1526,6 +1682,7 @@ const removeMealieConfig = async () => {
 onMounted(() => {
   if (store.isFamilyAdmin) {
     fetchMcpConnectorStatus()
+    fetchAlexaConnectorStatus()
     fetchMealieConfig()
   }
 })
@@ -2516,5 +2673,11 @@ onMounted(() => {
   margin-top: 0;
   flex: 1;
   min-width: 200px;
+}
+
+.alexa-model-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 </style>

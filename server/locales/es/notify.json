@@ -160,5 +160,12 @@
     "declaredPeriod": "{member} del {start} al {end} • Indicado a través del asistente",
     "addedOn": "El {date} • Añadido a través del asistente",
     "mealFor": "Para la {slot} del {date} • Añadido a través del asistente"
+  },
+  "alexa": {
+    "added": "{text} • Añadido a través de Alexa",
+    "declared": "{text} • Indicado a través de Alexa",
+    "memberOn": "{member} el {date} ({slots})",
+    "mealFor": "Para la {slot} del {date}",
+    "on": "El {date} ({slots})"
   }
 }
