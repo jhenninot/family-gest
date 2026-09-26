@@ -198,6 +198,7 @@
       "pending": "The model has changed: it will be sent to Amazon within the next few minutes.",
       "waiting": "Authorisation granted: first update pending.",
       "failed": "⚠️ Last update failed ({date}): {error}",
+      "manifestFailed": "⚠️ Skill listing (name, description, icons) rejected by Amazon: {error}",
       "return": {
         "connected": "FamilyGest is authorised: the model is being sent to Amazon.",
         "denied": "Authorisation declined at Amazon: nothing was changed.",

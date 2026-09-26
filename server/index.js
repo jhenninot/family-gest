@@ -5671,6 +5671,7 @@ const alexaSyncStatus = async (req, connector) => {
     lastSyncAt: connector.sync.lastSyncAt,
     lastSyncStatus: connector.sync.lastSyncStatus,
     lastSyncError: connector.sync.lastSyncError,
+    manifestError: connector.sync.manifestError,
     upToDate
   }
 }
@@ -5697,6 +5698,8 @@ app.put('/api/family-settings/alexa-connector/sync-config', requireAuth, attachF
     }
     connector.sync.syncedModelHash = ''
     connector.sync.failedModelHash = ''
+    connector.sync.syncedManifestHash = ''
+    connector.sync.failedManifestHash = ''
     await connector.save()
     res.json({ authorizeUrl: await startAuthorization(connector, oauthReturnUrl(await publicBaseUrl(req))) })
   } catch (err) {
@@ -5796,7 +5799,7 @@ app.delete('/api/family-settings/alexa-connector/sync', requireAuth, attachFamil
     const connector = await AlexaConnector.findOne({ familyId: req.family._id })
     if (connector) {
       forgetAccessToken(connector)
-      for (const field of ['skillId', 'clientId', 'clientSecret', 'refreshToken', 'oauthState', 'syncedModelHash', 'failedModelHash', 'lastSyncStatus', 'lastSyncError']) {
+      for (const field of ['skillId', 'clientId', 'clientSecret', 'refreshToken', 'oauthState', 'syncedModelHash', 'failedModelHash', 'lastSyncStatus', 'lastSyncError', 'syncedManifestHash', 'failedManifestHash', 'manifestError']) {
         connector.sync[field] = ''
       }
       connector.sync.oauthStateExpiresAt = null

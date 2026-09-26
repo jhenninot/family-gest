@@ -31,7 +31,11 @@ const alexaConnectorSchema = new mongoose.Schema({
     failedModelHash: { type: String, default: '' },
     lastSyncAt: { type: Date, default: null },
     lastSyncStatus: { type: String, enum: ['', 'in_progress', 'succeeded', 'failed'], default: '' },
-    lastSyncError: { type: String, default: '' }
+    lastSyncError: { type: String, default: '' },
+    // Fiche de présentation de la skill (nom, phrases d'exemple, descriptions, icônes)
+    syncedManifestHash: { type: String, default: '' },
+    failedManifestHash: { type: String, default: '' },
+    manifestError: { type: String, default: '' }
   }
 }, { timestamps: true })
 

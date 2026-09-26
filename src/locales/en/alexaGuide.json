@@ -75,7 +75,7 @@
     },
     "autoUpdate": {
       "title": "Automatic update (optional, one time only)",
-      "why": "To never re-import the interaction model by hand again, allow FamilyGest to update it itself at Amazon.",
+      "why": "To never re-import the interaction model by hand again, allow FamilyGest to update it itself at Amazon. It also fills in the skill listing in the Alexa app (name, description, example phrases, icon).",
       "profile": "Open the \"Login with Amazon\" console, then \"Create a New Security Profile\": name \"FamilyGest\", any description, and for \"Consent Privacy Notice URL\" the address {origin}/confidentialite. Save.",
       "returnUrl": "In this profile, \"Web Settings\" tab › \"Edit\": paste into \"Allowed Return URLs\" the return URL shown in the Alexa card (Automatic update section), then \"Save\".",
       "credentials": "Still in \"Web Settings\", copy the \"Client ID\" and the \"Client Secret\" (\"Show Secret\" button).",

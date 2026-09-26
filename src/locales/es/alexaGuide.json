@@ -75,7 +75,7 @@
     },
     "autoUpdate": {
       "title": "Actualización automática (opcional, una sola vez)",
-      "why": "Para no volver a importar nunca el modelo de diálogo a mano, autorice a FamilyGest a actualizarlo él mismo en Amazon.",
+      "why": "Para no volver a importar nunca el modelo de diálogo a mano, autorice a FamilyGest a actualizarlo él mismo en Amazon. También rellena la ficha de la skill en la aplicación Alexa (nombre, descripción, frases de ejemplo, icono).",
       "profile": "Abra la consola «Login with Amazon» y luego «Create a New Security Profile»: nombre «FamilyGest», descripción libre y, en «Consent Privacy Notice URL», la dirección {origin}/confidentialite. Guarde.",
       "returnUrl": "En ese perfil, pestaña «Web Settings» › «Edit»: pegue en «Allowed Return URLs» la dirección de retorno mostrada en la tarjeta de Alexa (sección Actualización automática) y luego «Save».",
       "credentials": "En «Web Settings», copie el «Client ID» y el «Client Secret» (botón «Show Secret»).",

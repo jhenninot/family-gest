@@ -198,6 +198,7 @@
       "pending": "El modelo ha cambiado: se enviará a Amazon en los próximos minutos.",
       "waiting": "Autorización concedida: primera actualización pendiente.",
       "failed": "⚠️ Error en la última actualización ({date}): {error}",
+      "manifestFailed": "⚠️ Amazon rechazó la ficha de la skill (nombre, descripción, iconos): {error}",
       "return": {
         "connected": "FamilyGest está autorizado: el modelo se está enviando a Amazon.",
         "denied": "Autorización rechazada en Amazon: no se ha modificado nada.",

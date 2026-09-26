@@ -104,6 +104,16 @@ async function generateIcons() {
     .toFile(path.resolve('public/pwa-maskable-512x512.png'));
   console.log('✓ Created public/pwa-maskable-512x512.png');
 
+  // Icônes de la skill Alexa (fiche de l'application Alexa, envoyées par server/alexa/sync.js) :
+  // Amazon impose ces deux tailles exactes
+  for (const size of [108, 512]) {
+    await sharp(Buffer.from(fullBleedSvg))
+      .resize(size, size)
+      .png()
+      .toFile(path.resolve(`public/alexa-icon-${size}.png`));
+    console.log(`✓ Created public/alexa-icon-${size}.png`);
+  }
+
   console.log('All icons generated successfully!');
 }
 

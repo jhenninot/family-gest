@@ -296,6 +296,7 @@
 
               <template v-if="alexaSync.connected">
                 <p class="mcp-status-line">{{ alexaSyncStatusText }}</p>
+                <p v-if="alexaSync.manifestError" class="mcp-status-line">{{ t('familySettings.alexa.sync.manifestFailed', { error: alexaSync.manifestError }) }}</p>
                 <div class="mcp-connector-actions">
                   <button type="button" class="btn btn-primary" :disabled="alexaSyncBusy || alexaSync.lastSyncStatus === 'in_progress'" @click="syncAlexaNow">
                     <RefreshCw :size="15" :class="{ spin: alexaSync.lastSyncStatus === 'in_progress' }" />

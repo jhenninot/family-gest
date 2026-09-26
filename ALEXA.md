@@ -88,6 +88,8 @@ Les absences longues (vacances…) ne sont pas encore gérées à la voix.
 
 Pour ne plus jamais réimporter le modèle de dialogue à la main, FamilyGest peut le mettre à jour lui-même chez Amazon (API de gestion des skills, « SMAPI ») : après une nouvelle version de l'application, l'arrivée ou le départ d'un membre, ou un changement de nom d'invocation. Il vérifie au démarrage puis toutes les 10 minutes, et n'envoie le modèle que s'il a changé.
 
+Il remplit aussi la **fiche de la skill** affichée dans l'application Alexa (*Vos skills › Développeur*) : nom (« Gestion famille », ou votre nom d'invocation), description courte et complète, trois phrases d'exemple et icônes FamilyGest (servies par votre serveur à l'adresse `/alexa-icon-108.png` et `/alexa-icon-512.png`, que l'URL publique doit rendre accessibles en HTTPS). L'application Alexa peut mettre quelques heures à afficher la nouvelle fiche.
+
 1. Ouvrez la console [Login with Amazon](https://developer.amazon.com/loginwithamazon/console/site/lwa/overview.html) › **Create a New Security Profile** : nom « FamilyGest », description libre, et pour *Consent Privacy Notice URL* l'adresse `https://famille.mondomaine.fr/confidentialite`.
 2. Dans ce profil, onglet **Web Settings › Edit** : ajoutez dans *Allowed Return URLs* l'adresse de retour affichée dans FamilyGest (carte Alexa › Mise à jour automatique), de la forme `https://famille.mondomaine.fr/api/alexa-oauth/callback`, puis **Save**.
 3. Copiez le **Client ID** et le **Client Secret** (*Show Secret*) du profil, et l'identifiant de la skill (console Alexa › *Copy Skill ID* sous le nom de la skill).

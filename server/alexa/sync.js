@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import AlexaConnector from '../models/AlexaConnector.js'
 import Family from '../models/Family.js'
+import GlobalConfig from '../models/GlobalConfig.js'
 import { getFamilyMembersList } from '../mcp/resolveMember.js'
 import { buildInteractionModel, DEFAULT_INVOCATION_NAME } from './interactionModel.js'
 
@@ -12,6 +13,9 @@ import { buildInteractionModel, DEFAULT_INVOCATION_NAME } from './interactionMod
 // Le modèle est renvoyé seulement s'il a changé (empreinte) : nouvelle version de l'application
 // (nouvelles phrases), membre ajouté ou retiré, nom d'invocation modifié. Vérification au
 // démarrage puis toutes les 10 minutes ; Amazon relance lui-même la construction (Build).
+//
+// La fiche de présentation de la skill (nom, phrases d'exemple, descriptions, icônes affichés dans
+// l'application Alexa) est remplie de la même façon, une fois le modèle à jour.
 
 const LWA_AUTHORIZE_URL = 'https://www.amazon.com/ap/oa'
 const LWA_TOKEN_URL = 'https://api.amazon.com/auth/o2/token'
@@ -121,11 +125,11 @@ export const forgetAccessToken = (connector) => accessTokens.delete(String(conne
 
 // --- API de gestion des skills ---
 
-const smapi = async (connector, method, path, body) => {
+const smapiRequest = async (connector, method, path, body, extraHeaders = {}) => {
   const token = await getAccessToken(connector)
   const res = await fetch(`${SMAPI_URL}${path}`, {
     method,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json', ...extraHeaders },
     body: body ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(30000)
   })
@@ -136,8 +140,10 @@ const smapi = async (connector, method, path, body) => {
     const details = (data?.violations || []).map(v => v.message).filter(Boolean).join(' ; ')
     throw new AlexaSyncError([data?.message, details].filter(Boolean).join(' — ') || `HTTP ${res.status}`, res.status === 401 ? 'revoked' : null)
   }
-  return data
+  return { data, headers: res.headers }
 }
+
+const smapi = async (...args) => (await smapiRequest(...args)).data
 
 const markFailure = async (connector, err, hash = null) => {
   connector.sync.lastSyncStatus = 'failed'
@@ -154,7 +160,7 @@ const markFailure = async (connector, err, hash = null) => {
 }
 
 // Suivi de la construction (Build) lancée par Amazon après l'envoi du modèle
-const watchBuild = async (connectorId, hash) => {
+const watchBuild = async (connectorId, hash, family) => {
   const deadline = Date.now() + BUILD_TIMEOUT_MS
   while (Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, BUILD_POLL_MS))
@@ -172,6 +178,7 @@ const watchBuild = async (connectorId, hash) => {
         connector.sync.failedModelHash = ''
         await connector.save()
         console.log('[Alexa] Modèle de dialogue mis à jour chez Amazon')
+        await pushManifest(connector, family)
         return
       }
       const messages = (request.errors || []).map(e => e.message).filter(Boolean).join(' ; ')
@@ -195,8 +202,17 @@ export const pushModel = async (connector, family, { force = false } = {}) => {
 
   const model = await familyModel(family, connector)
   const hash = modelHash(model)
-  if (!force && hash === connector.sync.syncedModelHash) return 'up_to_date'
+  if (!force && hash === connector.sync.syncedModelHash) {
+    // Modèle déjà à jour : on s'assure que la fiche de présentation l'est aussi
+    await pushManifest(connector, family)
+    return 'up_to_date'
+  }
   if (!force && hash === connector.sync.failedModelHash) return 'skipped'
+  // Mise à jour forcée : la fiche est renvoyée elle aussi, après le Build
+  if (force) {
+    connector.sync.syncedManifestHash = ''
+    connector.sync.failedManifestHash = ''
+  }
 
   running.add(key)
   try {
@@ -204,7 +220,7 @@ export const pushModel = async (connector, family, { force = false } = {}) => {
     connector.sync.lastSyncError = ''
     await connector.save()
     await smapi(connector, 'PUT', `/v1/skills/${encodeURIComponent(connector.sync.skillId)}/stages/development/interactionModel/locales/${LOCALE}`, model)
-    watchBuild(connector._id, hash)
+    watchBuild(connector._id, hash, family)
       .catch(err => console.error('[Alexa] Suivi du Build :', err.message))
       .finally(() => running.delete(key))
     return 'started'
@@ -212,6 +228,110 @@ export const pushModel = async (connector, family, { force = false } = {}) => {
     running.delete(key)
     await markFailure(connector, err, err.code === 'revoked' ? null : hash)
     return 'failed'
+  }
+}
+
+// --- Fiche de présentation (manifeste) ---
+
+const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
+
+// Textes de la fiche affichée dans l'application Alexa (skill en français uniquement). Les phrases
+// d'exemple reprennent le nom d'invocation de la famille ; Amazon en affiche trois au maximum.
+export const publishingInfo = (invocationName, baseUrl) => {
+  const name = invocationName || DEFAULT_INVOCATION_NAME
+  const info = {
+    name: capitalize(name),
+    summary: 'Organisez la vie de famille à la voix avec FamilyGest : agenda, courses, repas, présences et tâches.',
+    description: [
+      `${capitalize(name)} relie vos enceintes Echo à FamilyGest, l'organiseur de votre famille. Dites « Alexa, demande à ${name} » suivi de votre demande, ou « Alexa, ouvre ${name} » pour enchaîner plusieurs demandes.`,
+      '',
+      '• Agenda : « ajoute dentiste mardi à 15 heures ».',
+      '• Courses : « achète du lait, des œufs et deux baguettes ».',
+      '• Repas : « mets des lasagnes au dîner de jeudi », « qu\'est-ce qu\'on mange ce soir ? ».',
+      '• Présences : « Paul ne sera pas là demain midi », « Léa sera là ce soir », « qui mange à la maison ce soir ? ».',
+      '• Invités : « Mamie vient dîner samedi ».',
+      '• Tâches : « quelles sont les tâches en cours ? ».',
+      '',
+      'Tout ce que vous dites apparaît aussitôt dans FamilyGest, et les autres membres de la famille sont prévenus.'
+    ].join('\n'),
+    examplePhrases: [
+      `Alexa, ouvre ${name}`,
+      `Alexa, demande à ${name} d'acheter du lait`,
+      `Alexa, demande à ${name} qui mange à la maison ce soir`
+    ],
+    keywords: ['famille', 'agenda', 'courses', 'repas', 'menu', 'présence', 'tâches', 'organisation', 'FamilyGest']
+  }
+  // Icônes servies par FamilyGest (générées par scripts/generate-icons.js) ; Amazon les copie chez lui
+  if (baseUrl?.startsWith('https://')) {
+    info.smallIconUri = `${baseUrl}/alexa-icon-108.png`
+    info.largeIconUri = `${baseUrl}/alexa-icon-512.png`
+  }
+  return info
+}
+
+const publicServerUrl = async () => {
+  const config = await GlobalConfig.findOne().lean()
+  return (config?.serverUrl || '').trim().replace(/\/+$/, '')
+}
+
+const manifestRunning = new Set()
+
+// Suivi de la prise en compte du manifeste (asynchrone chez Amazon)
+const watchManifest = async (connector) => {
+  const deadline = Date.now() + BUILD_TIMEOUT_MS
+  while (Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, BUILD_POLL_MS))
+    const status = await smapi(connector, 'GET', `/v1/skills/${encodeURIComponent(connector.sync.skillId)}/status?resource=manifest`)
+    const request = status?.manifest?.lastUpdateRequest
+    if (!request || request.status === 'IN_PROGRESS') continue
+    if (request.status === 'SUCCEEDED') return
+    throw new AlexaSyncError((request.errors || []).map(e => e.message).filter(Boolean).join(' ; ') || request.status)
+  }
+  throw new AlexaSyncError('Mise à jour de la fiche toujours en cours après 5 minutes')
+}
+
+// Remplit la fiche de présentation de la skill si elle a changé. Le reste du manifeste (adresse du
+// point d'accès, pays de distribution…) est relu chez Amazon et renvoyé tel quel.
+export const pushManifest = async (connector, family) => {
+  if (!isSyncConnected(connector)) return 'skipped'
+  const key = String(connector._id)
+  if (manifestRunning.has(key)) return 'started'
+  const info = publishingInfo(connector.invocationName, await publicServerUrl())
+  const hash = modelHash(info)
+  if (hash === connector.sync.syncedManifestHash || hash === connector.sync.failedManifestHash) return 'up_to_date'
+
+  manifestRunning.add(key)
+  try {
+    const path = `/v1/skills/${encodeURIComponent(connector.sync.skillId)}/stages/development/manifest`
+    const { data, headers } = await smapiRequest(connector, 'GET', path)
+    const manifest = data?.manifest
+    if (!manifest) throw new AlexaSyncError('Manifeste de la skill illisible')
+    const publishing = manifest.publishingInformation = manifest.publishingInformation || {}
+    publishing.locales = publishing.locales || {}
+    publishing.locales[LOCALE] = { ...publishing.locales[LOCALE], ...info }
+    if (!publishing.category) publishing.category = 'ORGANIZERS_AND_ASSISTANTS'
+    const etag = headers.get('etag')
+    await smapiRequest(connector, 'PUT', path, { manifest }, etag ? { 'If-Match': etag } : {})
+    await watchManifest(connector)
+    connector.sync.syncedManifestHash = hash
+    connector.sync.failedManifestHash = ''
+    connector.sync.manifestError = ''
+    await connector.save()
+    console.log(`[Alexa] Fiche de la skill mise à jour chez Amazon (famille ${family?.slug || connector.familyId})`)
+    return 'succeeded'
+  } catch (err) {
+    if (err.code === 'revoked') {
+      await markFailure(connector, err)
+    } else {
+      // Fiche refusée : message affiché dans la carte Alexa, pas de renvoi en boucle de la même fiche
+      connector.sync.failedManifestHash = hash
+      connector.sync.manifestError = String(err.message || err).slice(0, 500)
+      await connector.save()
+      console.error('[Alexa] Mise à jour de la fiche de la skill impossible :', connector.sync.manifestError)
+    }
+    return 'failed'
+  } finally {
+    manifestRunning.delete(key)
   }
 }
 
