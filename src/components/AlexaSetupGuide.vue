@@ -75,7 +75,8 @@ const STEPS = [
   { key: 'test', items: [{ key: 'enable' }, { key: 'type' }, { key: 'echo' }] },
   { key: 'usage', items: [{ key: 'event' }, { key: 'shopping' }, { key: 'meal' }, { key: 'absence' }, { key: 'guest' }, { key: 'who' }, { key: 'tasks' }, { key: 'menu' }, { key: 'conversation' }] },
   { key: 'maintenance', items: [{ key: 'newMember' }, { key: 'rename' }, { key: 'regenerate' }] },
-  { key: 'troubleshooting', items: [{ key: 'amazonList' }, { key: 'problem' }, { key: 'unreachable' }, { key: 'firstName' }] }
+  { key: 'troubleshooting', items: [{ key: 'amazonList' }, { key: 'problem' }, { key: 'unreachable' }, { key: 'firstName' }] },
+  { key: 'autoUpdate', items: [{ key: 'why' }, { key: 'profile', link: 'https://developer.amazon.com/loginwithamazon/console/site/lwa/overview.html', linkLabel: 'Login with Amazon' }, { key: 'returnUrl' }, { key: 'credentials' }, { key: 'skillId' }, { key: 'connect' }] }
 ]
 
 const params = computed(() => ({ name: props.invocationName, origin: window.location.origin }))

@@ -62,8 +62,8 @@
     },
     "maintenance": {
       "title": "Mantenimiento",
-      "newMember": "Nuevo miembro en la familia: vuelva a descargar el modelo, impórtelo de nuevo (paso 5) y vuelva a ejecutar «Build skill» para que se reconozca su nombre.",
-      "rename": "Nuevo nombre de invocación: guárdelo en la tarjeta de Alexa y vuelva a descargar e importar el modelo.",
+      "newMember": "Nuevo miembro en la familia: vuelva a descargar el modelo, impórtelo de nuevo (paso 5) y vuelva a ejecutar «Build skill» para que se reconozca su nombre (innecesario si la actualización automática del paso 11 está activada).",
+      "rename": "Nuevo nombre de invocación: guárdelo en la tarjeta de Alexa y vuelva a descargar e importar el modelo (innecesario si la actualización automática del paso 11 está activada).",
       "regenerate": "Dirección perdida o comprometida: regenérela en la tarjeta de Alexa y vuelva a pegarla en el paso 6. «Revocar» corta el acceso de inmediato."
     },
     "troubleshooting": {
@@ -72,6 +72,15 @@
       "problem": "«Ha habido un problema con la respuesta de la skill»: compruebe la dirección pegada en el paso 6 (¿se ha regenerado desde entonces?). El administrador de la plataforma puede consultar los registros del servidor (líneas «[Alexa]»).",
       "unreachable": "FamilyGest no reacciona: Amazon no llega al servidor. Revise los requisitos (acceso HTTPS desde Internet, certificado válido).",
       "firstName": "No se entiende un nombre: compruebe su ortografía en FamilyGest y vuelva a descargar e importar el modelo."
+    },
+    "autoUpdate": {
+      "title": "Actualización automática (opcional, una sola vez)",
+      "why": "Para no volver a importar nunca el modelo de diálogo a mano, autorice a FamilyGest a actualizarlo él mismo en Amazon.",
+      "profile": "Abra la consola «Login with Amazon» y luego «Create a New Security Profile»: nombre «FamilyGest», descripción libre y, en «Consent Privacy Notice URL», la dirección {origin}/confidentialite. Guarde.",
+      "returnUrl": "En ese perfil, pestaña «Web Settings» › «Edit»: pegue en «Allowed Return URLs» la dirección de retorno mostrada en la tarjeta de Alexa (sección Actualización automática) y luego «Save».",
+      "credentials": "En «Web Settings», copie el «Client ID» y el «Client Secret» (botón «Show Secret»).",
+      "skillId": "En la consola de Alexa, bajo el nombre de su skill, haga clic en «Copy Skill ID».",
+      "connect": "En la tarjeta de Alexa de FamilyGest, pegue el identificador de la skill, el Client ID y el Client Secret, y luego «Guardar y autorizar en Amazon». En la página de Amazon, acepte: volverá a FamilyGest, que envía el modelo enseguida. «Modelo al día en Amazon» aparece al cabo de uno o dos minutos."
     }
   }
 }

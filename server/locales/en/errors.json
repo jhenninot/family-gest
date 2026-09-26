@@ -119,5 +119,10 @@
     "notMealie": "Unexpected response: the URL does not seem to be a Mealie instance",
     "notConfigured": "No Mealie server is configured for this family"
   },
-  "alexaInvocationName": "Invalid invocation name: at least two words, lowercase letters only, without \"alexa\", \"amazon\", \"echo\", \"skill\" or launch words such as \"open\" or \"ask\"."
+  "alexaInvocationName": "Invalid invocation name: at least two words, lowercase letters only, without \"alexa\", \"amazon\", \"echo\", \"skill\" or launch words such as \"open\" or \"ask\".",
+  "alexaSkillId": "Invalid skill ID: it starts with \"amzn1.ask.skill.\" (Amazon console, skills list, \"Copy Skill ID\").",
+  "alexaClientId": "Invalid Client ID: it starts with \"amzn1.application-oa2-client.\" (Login with Amazon security profile).",
+  "alexaClientSecret": "The security profile Client Secret is required.",
+  "alexaSyncNotConfigured": "First enter the skill ID and the Amazon security profile.",
+  "alexaSyncNotConnected": "FamilyGest is not yet authorised to update the skill at Amazon."
 }

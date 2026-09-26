@@ -32,5 +32,6 @@
   "attachedToFamily": "User added to the family \"{family}\"",
   "seriesDeleted": "Event series deleted",
   "eventDeleted": "Event deleted",
-  "alexaRevoked": "Alexa skill disconnected"
+  "alexaRevoked": "Alexa skill disconnected",
+  "alexaSyncDisconnected": "Automatic update disabled"
 }

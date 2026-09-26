@@ -62,8 +62,8 @@
     },
     "maintenance": {
       "title": "Maintenance",
-      "newMember": "New family member: download the interaction model again, re-import it (step 5) and run \"Build skill\" again so their first name is recognised.",
-      "rename": "New invocation name: save it in the Alexa card, then download and re-import the model.",
+      "newMember": "New family member: download the interaction model again, re-import it (step 5) and run \"Build skill\" again so their first name is recognised (not needed if the automatic update in step 11 is enabled).",
+      "rename": "New invocation name: save it in the Alexa card, then download and re-import the model (not needed if the automatic update in step 11 is enabled).",
       "regenerate": "Lost or leaked address: regenerate it in the Alexa card and paste it again in step 6. \"Revoke\" cuts access immediately."
     },
     "troubleshooting": {
@@ -72,6 +72,15 @@
       "problem": "\"There was a problem with the requested skill’s response\": check the address pasted in step 6 (has it been regenerated since?). The platform administrator can check the server logs (lines \"[Alexa]\").",
       "unreachable": "No reaction from FamilyGest: Amazon cannot reach the server. Check the prerequisites (HTTPS access from the Internet, valid certificate).",
       "firstName": "A first name is not understood: check its spelling in FamilyGest, then download and re-import the model."
+    },
+    "autoUpdate": {
+      "title": "Automatic update (optional, one time only)",
+      "why": "To never re-import the interaction model by hand again, allow FamilyGest to update it itself at Amazon.",
+      "profile": "Open the \"Login with Amazon\" console, then \"Create a New Security Profile\": name \"FamilyGest\", any description, and for \"Consent Privacy Notice URL\" the address {origin}/confidentialite. Save.",
+      "returnUrl": "In this profile, \"Web Settings\" tab › \"Edit\": paste into \"Allowed Return URLs\" the return URL shown in the Alexa card (Automatic update section), then \"Save\".",
+      "credentials": "Still in \"Web Settings\", copy the \"Client ID\" and the \"Client Secret\" (\"Show Secret\" button).",
+      "skillId": "In the Alexa console, under your skill name, click \"Copy Skill ID\".",
+      "connect": "In the FamilyGest Alexa card, paste the skill ID, Client ID and Client Secret, then \"Save and authorise at Amazon\". On the Amazon page, accept: you come back to FamilyGest, which sends the model straight away. \"Model up to date at Amazon\" appears after one to two minutes."
     }
   }
 }

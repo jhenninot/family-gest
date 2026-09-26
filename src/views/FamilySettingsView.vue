@@ -285,7 +285,71 @@
               </div>
               <p class="alexa-model-hint">{{ t('familySettings.alexa.invocationHint', { name: alexaStatus.invocationName || alexaInvocationName }) }}</p>
             </form>
-            <p class="alexa-model-hint">{{ t('familySettings.alexa.modelHint') }}</p>
+            <p v-if="!alexaSync.connected" class="alexa-model-hint">{{ t('familySettings.alexa.modelHint') }}</p>
+
+            <!-- Mise à jour automatique du modèle chez Amazon (évite les réimports manuels) -->
+            <div class="alexa-sync">
+              <h3 class="alexa-sync-title"><RefreshCw :size="16" /> {{ t('familySettings.alexa.sync.title') }}</h3>
+              <p class="alexa-model-hint">{{ t('familySettings.alexa.sync.intro') }}</p>
+
+              <p v-if="alexaSyncNotice" class="alexa-sync-notice" :class="alexaSyncNotice.type">{{ alexaSyncNotice.text }}</p>
+
+              <template v-if="alexaSync.connected">
+                <p class="mcp-status-line">{{ alexaSyncStatusText }}</p>
+                <div class="mcp-connector-actions">
+                  <button type="button" class="btn btn-primary" :disabled="alexaSyncBusy || alexaSync.lastSyncStatus === 'in_progress'" @click="syncAlexaNow">
+                    <RefreshCw :size="15" :class="{ spin: alexaSync.lastSyncStatus === 'in_progress' }" />
+                    <span>{{ t('familySettings.alexa.sync.syncNow') }}</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary" @click="showAlexaSyncForm = !showAlexaSyncForm">
+                    {{ t('familySettings.alexa.sync.editCredentials') }}
+                  </button>
+                  <button type="button" class="btn btn-danger" :disabled="alexaSyncBusy" @click="disconnectAlexaSync">
+                    <Trash2 :size="15" /> {{ t('familySettings.alexa.sync.disconnect') }}
+                  </button>
+                </div>
+              </template>
+              <template v-else-if="alexaSync.configured">
+                <p class="mcp-status-line">{{ alexaSync.lastSyncError === 'revoked' ? t('familySettings.alexa.sync.revoked') : t('familySettings.alexa.sync.notAuthorized') }}</p>
+                <div class="mcp-connector-actions">
+                  <button type="button" class="btn btn-primary" :disabled="alexaSyncBusy" @click="authorizeAlexaSync">
+                    <Plug :size="15" /> {{ t('familySettings.alexa.sync.authorize') }}
+                  </button>
+                  <button type="button" class="btn btn-secondary" @click="showAlexaSyncForm = !showAlexaSyncForm">
+                    {{ t('familySettings.alexa.sync.editCredentials') }}
+                  </button>
+                </div>
+              </template>
+
+              <form v-if="!alexaSync.configured || showAlexaSyncForm" class="alexa-sync-form" @submit.prevent="saveAlexaSyncConfig">
+                <label class="form-label">{{ t('familySettings.alexa.sync.returnUrl') }}</label>
+                <div class="mcp-url-row">
+                  <input type="text" readonly :value="alexaSync.returnUrl" class="mcp-url-input" @click="$event.target.select()" />
+                  <button type="button" class="btn btn-secondary" @click="copyText(alexaSync.returnUrl)">
+                    <Copy :size="15" /> {{ t('familySettings.mcp.copy') }}
+                  </button>
+                </div>
+                <label class="form-label" for="alexa-skill-id">{{ t('familySettings.alexa.sync.skillId') }}</label>
+                <input id="alexa-skill-id" v-model="alexaSyncForm.skillId" type="text" class="mcp-url-input" placeholder="amzn1.ask.skill.…" autocomplete="off" />
+                <label class="form-label" for="alexa-client-id">{{ t('familySettings.alexa.sync.clientId') }}</label>
+                <input id="alexa-client-id" v-model="alexaSyncForm.clientId" type="text" class="mcp-url-input" placeholder="amzn1.application-oa2-client.…" autocomplete="off" />
+                <label class="form-label" for="alexa-client-secret">{{ t('familySettings.alexa.sync.clientSecret') }}</label>
+                <input
+                  id="alexa-client-secret"
+                  v-model="alexaSyncForm.clientSecret"
+                  type="password"
+                  class="mcp-url-input"
+                  :placeholder="alexaSync.configured ? t('familySettings.alexa.sync.keepSecret') : ''"
+                  autocomplete="new-password"
+                />
+                <div class="mcp-connector-actions">
+                  <button type="submit" class="btn btn-primary" :disabled="alexaSyncBusy">
+                    <Plug :size="15" /> {{ t('familySettings.alexa.sync.saveAndAuthorize') }}
+                  </button>
+                </div>
+                <p class="alexa-model-hint">{{ t('familySettings.alexa.sync.formHint') }}</p>
+              </form>
+            </div>
           </template>
         </div>
       </div>
@@ -967,7 +1031,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { isPasswordValid, getPasswordErrorMessage } from '../utils/passwordValidator'
@@ -993,6 +1058,8 @@ import { FAMILY_ROLE_VALUES, translateValue } from '../i18n/values'
 
 const authStore = useAuthStore()
 const store = useFamilyStore()
+const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
 const { confirm } = useConfirm()
 
@@ -1542,6 +1609,99 @@ const alexaEndpointUrl = ref('')
 const alexaInvocationName = ref('')
 const showAlexaGuide = ref(false)
 
+// Mise à jour automatique du modèle chez Amazon
+const alexaSync = ref({ configured: false, connected: false, returnUrl: '' })
+const alexaSyncForm = ref({ skillId: '', clientId: '', clientSecret: '' })
+const alexaSyncBusy = ref(false)
+const showAlexaSyncForm = ref(false)
+const alexaSyncNotice = ref(null)
+let alexaSyncPoll = null
+
+const alexaSyncStatusText = computed(() => {
+  const sync = alexaSync.value
+  const date = sync.lastSyncAt ? formatMcpDate(sync.lastSyncAt) : ''
+  if (sync.lastSyncStatus === 'in_progress') return t('familySettings.alexa.sync.inProgress')
+  if (sync.lastSyncStatus === 'failed') return t('familySettings.alexa.sync.failed', { date, error: sync.lastSyncError })
+  if (sync.lastSyncStatus === 'succeeded') {
+    return sync.upToDate ? t('familySettings.alexa.sync.upToDate', { date }) : t('familySettings.alexa.sync.pending')
+  }
+  return t('familySettings.alexa.sync.waiting')
+})
+
+const applyAlexaSync = (sync) => {
+  alexaSync.value = sync || { configured: false, connected: false, returnUrl: '' }
+  alexaSyncForm.value.skillId = alexaSync.value.skillId || alexaSyncForm.value.skillId
+  alexaSyncForm.value.clientId = alexaSync.value.clientId || alexaSyncForm.value.clientId
+  // Pendant un envoi, on suit l'état jusqu'à la fin de la construction chez Amazon
+  clearTimeout(alexaSyncPoll)
+  if (alexaSync.value.lastSyncStatus === 'in_progress') alexaSyncPoll = setTimeout(fetchAlexaConnectorStatus, 5000)
+}
+
+const alexaSyncRequest = async (url, method, body) => {
+  alexaSyncBusy.value = true
+  try {
+    const res = await fetch(url, { method, headers: getSettingsHeaders(), body: body ? JSON.stringify(body) : undefined })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || t('familySettings.alexa.sync.errors.request'))
+    return data
+  } catch (err) {
+    alert(t('common.errorPrefix', { message: err.message }))
+    return null
+  } finally {
+    alexaSyncBusy.value = false
+  }
+}
+
+// Les identifiants sont enregistrés, puis on part sur la page d'autorisation d'Amazon, qui ramène ici
+const saveAlexaSyncConfig = async () => {
+  const data = await alexaSyncRequest('/api/family-settings/alexa-connector/sync-config', 'PUT', alexaSyncForm.value)
+  if (data?.authorizeUrl) window.location.href = data.authorizeUrl
+}
+
+const authorizeAlexaSync = async () => {
+  const data = await alexaSyncRequest('/api/family-settings/alexa-connector/sync-authorize', 'POST')
+  if (data?.authorizeUrl) window.location.href = data.authorizeUrl
+}
+
+const syncAlexaNow = async () => {
+  const data = await alexaSyncRequest('/api/family-settings/alexa-connector/sync-now', 'POST')
+  if (data?.sync) applyAlexaSync(data.sync)
+}
+
+const disconnectAlexaSync = async () => {
+  const ok = await confirm({
+    title: t('familySettings.alexa.sync.disconnectTitle'),
+    message: t('familySettings.alexa.sync.disconnectMessage'),
+    confirmText: t('familySettings.alexa.sync.disconnect'),
+    type: 'danger'
+  })
+  if (!ok) return
+  const data = await alexaSyncRequest('/api/family-settings/alexa-connector/sync', 'DELETE')
+  if (data) {
+    alexaSyncForm.value = { skillId: '', clientId: '', clientSecret: '' }
+    await fetchAlexaConnectorStatus()
+  }
+}
+
+const copyText = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch (err) {
+    console.error('Copie dans le presse-papiers impossible :', err)
+  }
+}
+
+// Retour de la page d'autorisation Amazon : ?alexaSync=connected|denied|error
+const readAlexaSyncReturn = () => {
+  const result = route.query.alexaSync
+  if (!result) return
+  const type = result === 'connected' ? 'success' : 'error'
+  alexaSyncNotice.value = { type, text: t(`familySettings.alexa.sync.return.${['connected', 'denied'].includes(result) ? result : 'error'}`) }
+  const query = { ...route.query }
+  delete query.alexaSync
+  router.replace({ query })
+}
+
 const fetchAlexaConnectorStatus = async () => {
   alexaLoading.value = true
   try {
@@ -1549,6 +1709,7 @@ const fetchAlexaConnectorStatus = async () => {
     if (!res.ok) throw new Error(t('familySettings.alexa.errors.status'))
     alexaStatus.value = await res.json()
     alexaInvocationName.value = alexaStatus.value.invocationName || ''
+    applyAlexaSync(alexaStatus.value.sync)
   } catch (err) {
     console.error(err)
   } finally {
@@ -1727,10 +1888,13 @@ const removeMealieConfig = async () => {
   }
 }
 
+onBeforeUnmount(() => clearTimeout(alexaSyncPoll))
+
 onMounted(() => {
   if (store.isFamilyAdmin) {
     fetchMcpConnectorStatus()
     fetchAlexaConnectorStatus()
+    readAlexaSyncReturn()
     fetchMealieConfig()
   }
 })
@@ -2723,8 +2887,48 @@ onMounted(() => {
   min-width: 200px;
 }
 
-.alexa-guide-btn {
+.alexa-sync {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.alexa-sync-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.alexa-sync-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
   margin-top: 0.75rem;
+}
+
+.alexa-sync-notice {
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.alexa-sync-notice.success {
+  background: var(--accent-secondary-light);
+  color: #047857;
+}
+
+.alexa-sync-notice.error {
+  background: var(--accent-rose-light);
+  color: #be123c;
+}
+
+.alexa-guide-btn {
+  margin: 0.75rem 0 0.5rem;
 }
 
 .alexa-invocation {

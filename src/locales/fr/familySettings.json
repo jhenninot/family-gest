@@ -174,6 +174,38 @@
     },
     "invocationLabel": "Nom d'invocation (ce qu'on dit après « Alexa, demande à »)",
     "invocationHint": "Exemple : « Alexa, demande à {name} d'acheter du lait ». Après un changement, retéléchargez le modèle et réimportez-le dans la console Amazon (ou modifiez-le dans Build › Invocations).",
-    "openGuide": "Guide d'installation pas à pas"
+    "openGuide": "Guide d'installation pas à pas",
+    "sync": {
+      "title": "Mise à jour automatique sur Amazon",
+      "intro": "Facultatif : autorisez FamilyGest à envoyer lui-même le modèle de dialogue à Amazon. Il sera mis à jour tout seul après une nouvelle version de l'application, l'arrivée ou le départ d'un membre, ou un changement de nom d'invocation — plus besoin de le réimporter. Voir l'étape 11 du guide.",
+      "returnUrl": "Adresse de retour à déclarer dans le profil de sécurité (« Allowed Return URLs »)",
+      "skillId": "Identifiant de la skill (Skill ID)",
+      "clientId": "Client ID du profil de sécurité",
+      "clientSecret": "Client Secret du profil de sécurité",
+      "keepSecret": "Laisser vide pour conserver le secret enregistré",
+      "saveAndAuthorize": "Enregistrer et autoriser sur Amazon",
+      "formHint": "Vous serez redirigé vers Amazon pour autoriser FamilyGest, puis ramené ici. Le secret et l'autorisation sont stockés chiffrés.",
+      "authorize": "Autoriser sur Amazon",
+      "notAuthorized": "Identifiants enregistrés : il reste à autoriser FamilyGest sur Amazon.",
+      "revoked": "L'autorisation a été retirée chez Amazon : autorisez de nouveau FamilyGest.",
+      "syncNow": "Mettre à jour maintenant",
+      "editCredentials": "Modifier les identifiants",
+      "disconnect": "Désactiver",
+      "disconnectTitle": "Désactiver la mise à jour automatique ?",
+      "disconnectMessage": "FamilyGest oubliera les identifiants et l'autorisation Amazon. La skill continuera de fonctionner, mais le modèle devra de nouveau être réimporté à la main.",
+      "inProgress": "Mise à jour en cours chez Amazon (construction du modèle)…",
+      "upToDate": "✅ Modèle à jour chez Amazon · dernière mise à jour : {date}",
+      "pending": "Le modèle a changé : il sera envoyé à Amazon dans les prochaines minutes.",
+      "waiting": "Autorisation accordée : première mise à jour en attente.",
+      "failed": "⚠️ Échec de la dernière mise à jour ({date}) : {error}",
+      "return": {
+        "connected": "FamilyGest est autorisé : le modèle est envoyé à Amazon.",
+        "denied": "Autorisation refusée sur Amazon : rien n'a été modifié.",
+        "error": "L'autorisation Amazon n'a pas abouti. Vérifiez l'adresse de retour déclarée dans le profil de sécurité et réessayez."
+      },
+      "errors": {
+        "request": "Erreur lors de la communication avec le serveur"
+      }
+    }
   }
 }

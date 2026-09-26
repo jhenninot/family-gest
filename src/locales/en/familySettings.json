@@ -174,6 +174,38 @@
     },
     "invocationLabel": "Invocation name (what you say after \"Alexa, ask\")",
     "invocationHint": "Example: \"Alexa, ask {name} to buy milk\". After changing it, download the model again and re-import it into the Amazon console (or change it under Build › Invocations).",
-    "openGuide": "Step-by-step setup guide"
+    "openGuide": "Step-by-step setup guide",
+    "sync": {
+      "title": "Automatic update at Amazon",
+      "intro": "Optional: allow FamilyGest to send the interaction model to Amazon itself. It will then update on its own after a new version of the app, when a member joins or leaves, or when the invocation name changes — no more re-importing. See step 11 of the guide.",
+      "returnUrl": "Return URL to declare in the security profile (\"Allowed Return URLs\")",
+      "skillId": "Skill ID",
+      "clientId": "Security profile Client ID",
+      "clientSecret": "Security profile Client Secret",
+      "keepSecret": "Leave empty to keep the saved secret",
+      "saveAndAuthorize": "Save and authorise at Amazon",
+      "formHint": "You will be redirected to Amazon to authorise FamilyGest, then brought back here. The secret and the authorisation are stored encrypted.",
+      "authorize": "Authorise at Amazon",
+      "notAuthorized": "Credentials saved: FamilyGest still needs to be authorised at Amazon.",
+      "revoked": "The authorisation was withdrawn at Amazon: authorise FamilyGest again.",
+      "syncNow": "Update now",
+      "editCredentials": "Edit credentials",
+      "disconnect": "Disable",
+      "disconnectTitle": "Disable automatic update?",
+      "disconnectMessage": "FamilyGest will forget the Amazon credentials and authorisation. The skill will keep working, but the model will have to be re-imported by hand again.",
+      "inProgress": "Update in progress at Amazon (building the model)…",
+      "upToDate": "✅ Model up to date at Amazon · last update: {date}",
+      "pending": "The model has changed: it will be sent to Amazon within the next few minutes.",
+      "waiting": "Authorisation granted: first update pending.",
+      "failed": "⚠️ Last update failed ({date}): {error}",
+      "return": {
+        "connected": "FamilyGest is authorised: the model is being sent to Amazon.",
+        "denied": "Authorisation declined at Amazon: nothing was changed.",
+        "error": "The Amazon authorisation did not complete. Check the return URL declared in the security profile and try again."
+      },
+      "errors": {
+        "request": "Error while contacting the server"
+      }
+    }
   }
 }

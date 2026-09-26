@@ -32,5 +32,6 @@
   "attachedToFamily": "Utilisateur rattaché à la famille « {family} » avec succès",
   "seriesDeleted": "Série d'événements supprimée",
   "eventDeleted": "Événement supprimé",
-  "alexaRevoked": "Skill Alexa déconnectée"
+  "alexaRevoked": "Skill Alexa déconnectée",
+  "alexaSyncDisconnected": "Mise à jour automatique désactivée"
 }

@@ -42,6 +42,7 @@ import webpush from 'web-push'
 import { mountMcpServer } from './mcp/index.js'
 import { mountAlexaSkill } from './alexa/index.js'
 import { buildInteractionModel, normalizeInvocationName, DEFAULT_INVOCATION_NAME } from './alexa/interactionModel.js'
+import { oauthReturnUrl, isSyncConfigured, isSyncConnected, familyModel, modelHash, startAuthorization, completeAuthorization, pushModel, forgetAccessToken, startAlexaSyncScheduler } from './alexa/sync.js'
 import { getFamilyMembersList } from './mcp/resolveMember.js'
 import AlexaConnector from './models/AlexaConnector.js'
 import { migrateNotificationPreferences } from './scripts/migrate-notification-preferences.js'
@@ -5574,10 +5575,12 @@ app.get('/api/family-settings/alexa-connector', requireAuth, attachFamilyContext
   try {
     const connector = await AlexaConnector.findOne({ familyId: req.family._id })
     const invocationName = connector?.invocationName || DEFAULT_INVOCATION_NAME
-    if (!connector || connector.revokedAt) return res.json({ exists: false, invocationName })
+    const sync = await alexaSyncStatus(req, connector)
+    if (!connector || connector.revokedAt) return res.json({ exists: false, invocationName, sync })
     res.json({
       exists: true,
       invocationName,
+      sync,
       tokenPreview: connector.tokenPreview,
       createdAt: connector.createdAt,
       lastUsedAt: connector.lastUsedAt,
@@ -5627,17 +5630,153 @@ app.delete('/api/family-settings/alexa-connector', requireAuth, attachFamilyCont
   }
 })
 
+// --- Mise à jour automatique du modèle chez Amazon (voir server/alexa/sync.js) ---
+
+// Adresse publique de la plateforme : sert à l'adresse de retour de l'autorisation Amazon, qui doit
+// être identique à celle déclarée dans le profil de sécurité
+const publicBaseUrl = async (req) => {
+  const config = await getSmtpConfig()
+  return (config?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
+}
+
+// Document de la famille, créé au besoin (les réglages peuvent précéder la génération de l'adresse)
+const getOrCreateAlexaConnector = async (familyId) => {
+  let connector = await AlexaConnector.findOne({ familyId })
+  if (!connector) {
+    connector = await AlexaConnector.create({
+      familyId,
+      tokenHash: `pending-${crypto.randomBytes(16).toString('hex')}`,
+      tokenPreview: '----',
+      revokedAt: new Date()
+    })
+  }
+  return connector
+}
+
+const alexaSyncStatus = async (req, connector) => {
+  const base = {
+    returnUrl: oauthReturnUrl(await publicBaseUrl(req)),
+    configured: isSyncConfigured(connector),
+    connected: isSyncConnected(connector)
+  }
+  if (!connector) return base
+  let upToDate = false
+  if (base.connected && connector.sync.syncedModelHash) {
+    upToDate = modelHash(await familyModel(req.family, connector)) === connector.sync.syncedModelHash
+  }
+  return {
+    ...base,
+    skillId: connector.sync.skillId,
+    clientId: connector.sync.clientId,
+    lastSyncAt: connector.sync.lastSyncAt,
+    lastSyncStatus: connector.sync.lastSyncStatus,
+    lastSyncError: connector.sync.lastSyncError,
+    upToDate
+  }
+}
+
+// Identifiants de la skill et du profil de sécurité, puis adresse de la page d'autorisation Amazon
+app.put('/api/family-settings/alexa-connector/sync-config', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const skillId = String(req.body?.skillId || '').trim()
+    const clientId = String(req.body?.clientId || '').trim()
+    const clientSecret = String(req.body?.clientSecret || '').trim()
+    if (!/^amzn1\.ask\.skill\.[\w-]+$/.test(skillId)) return res.status(400).json({ error: req.t('errors.alexaSkillId') })
+    if (!/^amzn1\.application-oa2-client\.\w+$/.test(clientId)) return res.status(400).json({ error: req.t('errors.alexaClientId') })
+
+    const connector = await getOrCreateAlexaConnector(req.family._id)
+    // Le secret n'est jamais renvoyé à l'interface : champ vide = on garde celui déjà enregistré
+    if (!clientSecret && !connector.sync.clientSecret) return res.status(400).json({ error: req.t('errors.alexaClientSecret') })
+    const credentialsChanged = connector.sync.clientId !== clientId || Boolean(clientSecret)
+    connector.sync.skillId = skillId
+    connector.sync.clientId = clientId
+    if (clientSecret) connector.sync.clientSecret = clientSecret
+    if (credentialsChanged) {
+      connector.sync.refreshToken = ''
+      forgetAccessToken(connector)
+    }
+    connector.sync.syncedModelHash = ''
+    connector.sync.failedModelHash = ''
+    await connector.save()
+    res.json({ authorizeUrl: await startAuthorization(connector, oauthReturnUrl(await publicBaseUrl(req))) })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Nouvelle autorisation avec les identifiants déjà enregistrés
+app.post('/api/family-settings/alexa-connector/sync-authorize', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const connector = await AlexaConnector.findOne({ familyId: req.family._id })
+    if (!isSyncConfigured(connector)) return res.status(400).json({ error: req.t('errors.alexaSyncNotConfigured') })
+    res.json({ authorizeUrl: await startAuthorization(connector, oauthReturnUrl(await publicBaseUrl(req))) })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Retour de la page d'autorisation Amazon (navigation du navigateur, sans session) : la famille est
+// retrouvée par le `state` à usage unique, puis on revient à ses réglages
+app.get('/api/alexa-oauth/callback', async (req, res) => {
+  let slug = ''
+  try {
+    const state = String(req.query.state || '')
+    const pending = state ? await AlexaConnector.findOne({ 'sync.oauthState': state }) : null
+    const family = pending ? await Family.findById(pending.familyId) : null
+    slug = family?.slug || ''
+    if (req.query.error || !req.query.code) {
+      return res.redirect(`/${slug ? `${slug}/settings` : ''}?alexaSync=denied`)
+    }
+    const connector = await completeAuthorization({ state, code: String(req.query.code), returnUrl: oauthReturnUrl(await publicBaseUrl(req)) })
+    pushModel(connector, family, { force: true }).catch(err => console.error('[Alexa] Première mise à jour :', err.message))
+    res.redirect(`/${slug}/settings?alexaSync=connected`)
+  } catch (err) {
+    console.error('[Alexa] Autorisation Amazon :', err.message)
+    res.redirect(`/${slug ? `${slug}/settings` : ''}?alexaSync=error`)
+  }
+})
+
+// Mise à jour immédiate (même si le modèle n'a pas changé)
+app.post('/api/family-settings/alexa-connector/sync-now', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const connector = await AlexaConnector.findOne({ familyId: req.family._id })
+    if (!isSyncConnected(connector)) return res.status(400).json({ error: req.t('errors.alexaSyncNotConnected') })
+    const result = await pushModel(connector, req.family, { force: true })
+    res.json({ result, sync: await alexaSyncStatus(req, connector) })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Déconnexion : identifiants et autorisation oubliés (la skill elle-même continue de fonctionner)
+app.delete('/api/family-settings/alexa-connector/sync', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const connector = await AlexaConnector.findOne({ familyId: req.family._id })
+    if (connector) {
+      forgetAccessToken(connector)
+      for (const field of ['skillId', 'clientId', 'clientSecret', 'refreshToken', 'oauthState', 'syncedModelHash', 'failedModelHash', 'lastSyncStatus', 'lastSyncError']) {
+        connector.sync[field] = ''
+      }
+      connector.sync.oauthStateExpiresAt = null
+      connector.sync.lastSyncAt = null
+      await connector.save()
+    }
+    res.json({ message: req.t('messages.alexaSyncDisconnected') })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // Nom d'invocation choisi par la famille (repris dans le modèle de dialogue téléchargé)
 app.put('/api/family-settings/alexa-connector/invocation-name', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const invocationName = normalizeInvocationName(req.body?.invocationName)
     if (!invocationName) return res.status(400).json({ error: req.t('errors.alexaInvocationName') })
     // Le réglage peut précéder la génération de l'adresse : il est conservé sur le document de la famille
-    await AlexaConnector.updateOne(
-      { familyId: req.family._id },
-      { $set: { invocationName }, $setOnInsert: { tokenHash: `pending-${crypto.randomBytes(16).toString('hex')}`, tokenPreview: '----', revokedAt: new Date() } },
-      { upsert: true }
-    )
+    const connector = await getOrCreateAlexaConnector(req.family._id)
+    connector.invocationName = invocationName
+    await connector.save()
+    pushModel(connector, req.family).catch(err => console.error('[Alexa] Mise à jour après changement de nom :', err.message))
     res.json({ invocationName })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -5700,6 +5839,7 @@ const startServer = async () => {
     ALERT_ACTIONS
   }
   startDigestScheduler(digestCtx)
+  startAlexaSyncScheduler()
   mountDigestAdminRoutes(app, digestCtx, { requireAuth, requireSuperAdmin })
 
   app.listen(PORT, '0.0.0.0', () => {

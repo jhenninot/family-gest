@@ -62,8 +62,8 @@
     },
     "maintenance": {
       "title": "Entretien",
-      "newMember": "Nouveau membre dans la famille : retéléchargez le modèle de dialogue, réimportez-le (étape 5) et relancez « Build skill » pour que son prénom soit bien reconnu.",
-      "rename": "Nouveau nom d'invocation : enregistrez-le dans la carte Alexa, puis retéléchargez et réimportez le modèle.",
+      "newMember": "Nouveau membre dans la famille : retéléchargez le modèle de dialogue, réimportez-le (étape 5) et relancez « Build skill » pour que son prénom soit bien reconnu (inutile si la mise à jour automatique de l'étape 11 est activée).",
+      "rename": "Nouveau nom d'invocation : enregistrez-le dans la carte Alexa, puis retéléchargez et réimportez le modèle (inutile si la mise à jour automatique de l'étape 11 est activée).",
       "regenerate": "Adresse perdue ou compromise : régénérez-la dans la carte Alexa et recollez-la à l'étape 6. « Révoquer » coupe immédiatement l'accès."
     },
     "troubleshooting": {
@@ -72,6 +72,15 @@
       "problem": "« Il y a eu un problème avec la réponse de la skill » : vérifiez l'adresse collée à l'étape 6 (a-t-elle été régénérée depuis ?). L'administrateur de la plateforme peut consulter les journaux du serveur (lignes « [Alexa] »).",
       "unreachable": "Aucune réaction de FamilyGest : Amazon n'atteint pas le serveur. Revoyez les prérequis (accès HTTPS depuis Internet, certificat valide).",
       "firstName": "Un prénom n'est pas compris : vérifiez son orthographe dans FamilyGest, puis retéléchargez et réimportez le modèle."
+    },
+    "autoUpdate": {
+      "title": "Mise à jour automatique (facultatif, une seule fois)",
+      "why": "Pour ne plus jamais réimporter le modèle de dialogue à la main, autorisez FamilyGest à le mettre à jour lui-même chez Amazon.",
+      "profile": "Ouvrez la console « Login with Amazon », puis « Create a New Security Profile » : nom « FamilyGest », description libre, et pour « Consent Privacy Notice URL » l'adresse {origin}/confidentialite. Enregistrez.",
+      "returnUrl": "Dans ce profil, onglet « Web Settings » › « Edit » : collez dans « Allowed Return URLs » l'adresse de retour affichée dans la carte Alexa (section Mise à jour automatique), puis « Save ».",
+      "credentials": "Toujours dans « Web Settings », copiez le « Client ID » et le « Client Secret » (bouton « Show Secret »).",
+      "skillId": "Dans la console Alexa, sous le nom de votre skill, cliquez sur « Copy Skill ID ».",
+      "connect": "Dans la carte Alexa de FamilyGest, collez l'identifiant de la skill, le Client ID et le Client Secret, puis « Enregistrer et autoriser sur Amazon ». Sur la page d'Amazon, acceptez : vous revenez dans FamilyGest, qui envoie aussitôt le modèle. L'état « Modèle à jour chez Amazon » s'affiche après une à deux minutes."
     }
   }
 }

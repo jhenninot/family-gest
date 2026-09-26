@@ -80,11 +80,22 @@ Les absences longues (vacances…) ne sont pas encore gérées à la voix.
 
 ## 5. Entretien
 
-- **Nouveau membre dans la famille** : retéléchargez le modèle de dialogue et réimportez-le (étape 3.2, puis *Build skill*) pour que son prénom soit bien reconnu. Entre-temps, la skill transmet déjà les prénoms à Alexa à chaque ouverture (« Alexa, ouvre gestion famille »).
+- **Nouveau membre dans la famille** (inutile avec la mise à jour automatique, section 6) : retéléchargez le modèle de dialogue et réimportez-le (étape 3.2, puis *Build skill*) pour que son prénom soit bien reconnu. Entre-temps, la skill transmet déjà les prénoms à Alexa à chaque ouverture (« Alexa, ouvre gestion famille »).
 - **Adresse compromise ou changement de responsable** : *Régénérer l'adresse* dans FamilyGest, puis collez la nouvelle dans *Build › Endpoint*. *Révoquer* coupe immédiatement l'accès.
 - **Changer le nom d'invocation** : modifiez-le dans FamilyGest (Assistant vocal Alexa), retéléchargez le modèle et réimportez-le (étape 3.2, puis *Build skill*). Le modifier seulement dans la console Amazon fonctionne aussi, mais il serait écrasé au prochain réimport du modèle.
 
-## 6. En cas de problème
+## 6. Mise à jour automatique (facultatif, une seule fois)
+
+Pour ne plus jamais réimporter le modèle de dialogue à la main, FamilyGest peut le mettre à jour lui-même chez Amazon (API de gestion des skills, « SMAPI ») : après une nouvelle version de l'application, l'arrivée ou le départ d'un membre, ou un changement de nom d'invocation. Il vérifie au démarrage puis toutes les 10 minutes, et n'envoie le modèle que s'il a changé.
+
+1. Ouvrez la console [Login with Amazon](https://developer.amazon.com/loginwithamazon/console/site/lwa/overview.html) › **Create a New Security Profile** : nom « FamilyGest », description libre, et pour *Consent Privacy Notice URL* l'adresse `https://famille.mondomaine.fr/confidentialite`.
+2. Dans ce profil, onglet **Web Settings › Edit** : ajoutez dans *Allowed Return URLs* l'adresse de retour affichée dans FamilyGest (carte Alexa › Mise à jour automatique), de la forme `https://famille.mondomaine.fr/api/alexa-oauth/callback`, puis **Save**.
+3. Copiez le **Client ID** et le **Client Secret** (*Show Secret*) du profil, et l'identifiant de la skill (console Alexa › *Copy Skill ID* sous le nom de la skill).
+4. Dans FamilyGest, collez ces trois valeurs et cliquez sur **Enregistrer et autoriser sur Amazon**. Acceptez sur la page d'Amazon : vous revenez dans FamilyGest, qui envoie aussitôt le modèle. L'état « Modèle à jour chez Amazon » s'affiche après une à deux minutes.
+
+Le secret et l'autorisation sont stockés chiffrés. **Désactiver** (dans FamilyGest) les oublie ; l'autorisation peut aussi être retirée côté Amazon (*Compte › Login with Amazon*). Si Amazon refuse un modèle, son message s'affiche dans la carte Alexa et le même modèle n'est pas renvoyé en boucle (*Mettre à jour maintenant* le renvoie).
+
+## 7. En cas de problème
 
 | Symptôme | Piste |
 |---|---|
