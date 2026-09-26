@@ -5716,7 +5716,38 @@ app.post('/api/family-settings/alexa-connector/sync-authorize', requireAuth, att
 })
 
 // Retour de la page d'autorisation Amazon (navigation du navigateur, sans session) : la famille est
-// retrouvée par le `state` à usage unique, puis on revient à ses réglages
+// retrouvée par le `state` à usage unique. Le serveur affiche lui-même le résultat (sans passer par
+// l'application, dont les redirections pourraient masquer l'erreur), puis ramène aux réglages.
+const alexaOauthResultPage = (req, { ok, slug, detail = '' }) => {
+  const back = slug ? `/${slug}/settings` : '/'
+  const title = req.t(ok ? 'alexa.oauth.successTitle' : 'alexa.oauth.errorTitle')
+  return `<!DOCTYPE html>
+<html lang="${req.lang}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  ${ok ? `<meta http-equiv="refresh" content="3;url=${back}?alexaSync=connected">` : ''}
+  <title>${escapeHtml(title)} - FamilyGest</title>
+  <style>
+    body { font-family: 'Segoe UI', -apple-system, Arial, sans-serif; background: #f4f6fb; color: #0f172a; display: flex; min-height: 100vh; align-items: center; justify-content: center; margin: 0; padding: 16px; box-sizing: border-box; }
+    main { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 28px; max-width: 520px; width: 100%; }
+    h1 { font-size: 20px; margin: 0 0 12px; color: ${ok ? '#047857' : '#be123c'}; }
+    p { line-height: 1.5; margin: 0 0 12px; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; font-size: 13px; }
+    a { display: inline-block; margin-top: 8px; background: #6366f1; color: #fff; text-decoration: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>${ok ? '✅' : '⚠️'} ${escapeHtml(title)}</h1>
+    <p>${escapeHtml(req.t(ok ? 'alexa.oauth.successText' : 'alexa.oauth.errorText'))}</p>
+    ${detail ? `<pre>${escapeHtml(detail)}</pre>` : ''}
+    <a href="${back}">${escapeHtml(req.t('alexa.oauth.back'))}</a>
+  </main>
+</body>
+</html>`
+}
+
 app.get('/api/alexa-oauth/callback', async (req, res) => {
   let slug = ''
   try {
@@ -5724,15 +5755,26 @@ app.get('/api/alexa-oauth/callback', async (req, res) => {
     const pending = state ? await AlexaConnector.findOne({ 'sync.oauthState': state }) : null
     const family = pending ? await Family.findById(pending.familyId) : null
     slug = family?.slug || ''
-    if (req.query.error || !req.query.code) {
-      return res.redirect(`/${slug ? `${slug}/settings` : ''}?alexaSync=denied`)
+    console.log(`[Alexa] Retour d'autorisation Amazon : famille ${slug || 'inconnue'}${req.query.error ? `, erreur ${req.query.error}` : ''}`)
+
+    if (req.query.error) {
+      const detail = [req.query.error, req.query.error_description].filter(Boolean).join(' — ')
+      return res.status(400).send(alexaOauthResultPage(req, { ok: false, slug, detail }))
     }
+    if (!pending) {
+      return res.status(400).send(alexaOauthResultPage(req, { ok: false, slug, detail: req.t('alexa.oauth.unknownState') }))
+    }
+    if (!req.query.code) {
+      return res.status(400).send(alexaOauthResultPage(req, { ok: false, slug, detail: req.t('alexa.oauth.noCode') }))
+    }
+
     const connector = await completeAuthorization({ state, code: String(req.query.code), returnUrl: oauthReturnUrl(await publicBaseUrl(req)) })
+    console.log(`[Alexa] Autorisation Amazon enregistrée pour la famille ${slug}`)
     pushModel(connector, family, { force: true }).catch(err => console.error('[Alexa] Première mise à jour :', err.message))
-    res.redirect(`/${slug}/settings?alexaSync=connected`)
+    res.send(alexaOauthResultPage(req, { ok: true, slug }))
   } catch (err) {
     console.error('[Alexa] Autorisation Amazon :', err.message)
-    res.redirect(`/${slug ? `${slug}/settings` : ''}?alexaSync=error`)
+    res.status(400).send(alexaOauthResultPage(req, { ok: false, slug, detail: err.message }))
   }
 })
 

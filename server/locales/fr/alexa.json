@@ -99,5 +99,14 @@
       "listOn": "{day}, au menu : {list}.",
       "nonePeriod": "Aucun repas n'est prévu du {start} au {end}."
     }
+  },
+  "oauth": {
+    "successTitle": "FamilyGest est autorisé",
+    "successText": "Le modèle de dialogue est envoyé à Amazon. Retour aux réglages de la famille dans quelques secondes…",
+    "errorTitle": "L'autorisation Amazon n'a pas abouti",
+    "errorText": "Rien n'a été enregistré. Voici la réponse obtenue (à transmettre en cas de besoin) :",
+    "back": "Retour aux réglages",
+    "unknownState": "Demande d'autorisation inconnue ou expirée : relancez « Autoriser sur Amazon » depuis la carte Alexa de FamilyGest (dans la même fenêtre, en moins de 15 minutes).",
+    "noCode": "Amazon n'a renvoyé aucun code d'autorisation."
   }
 }

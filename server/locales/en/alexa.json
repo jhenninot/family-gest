@@ -99,5 +99,14 @@
       "listOn": "{day}, on the menu: {list}.",
       "nonePeriod": "No meals are planned from {start} to {end}."
     }
+  },
+  "oauth": {
+    "successTitle": "FamilyGest is authorised",
+    "successText": "The interaction model is being sent to Amazon. Returning to the family settings in a few seconds…",
+    "errorTitle": "The Amazon authorisation did not complete",
+    "errorText": "Nothing was saved. Here is the response received (share it if needed):",
+    "back": "Back to settings",
+    "unknownState": "Unknown or expired authorisation request: start \"Authorise at Amazon\" again from the FamilyGest Alexa card (in the same window, within 15 minutes).",
+    "noCode": "Amazon did not return any authorisation code."
   }
 }

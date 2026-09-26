@@ -99,5 +99,14 @@
       "listOn": "{day}, en el menú: {list}.",
       "nonePeriod": "No hay comidas previstas del {start} al {end}."
     }
+  },
+  "oauth": {
+    "successTitle": "FamilyGest está autorizado",
+    "successText": "El modelo de diálogo se está enviando a Amazon. Volviendo a la configuración de la familia en unos segundos…",
+    "errorTitle": "La autorización de Amazon no se completó",
+    "errorText": "No se ha guardado nada. Esta es la respuesta obtenida (compártala si es necesario):",
+    "back": "Volver a la configuración",
+    "unknownState": "Solicitud de autorización desconocida o caducada: vuelva a pulsar «Autorizar en Amazon» en la tarjeta de Alexa de FamilyGest (en la misma ventana, antes de 15 minutos).",
+    "noCode": "Amazon no ha devuelto ningún código de autorización."
   }
 }
