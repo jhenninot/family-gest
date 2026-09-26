@@ -1,0 +1,9 @@
+{
+  "dueToday": "aujourd'hui",
+  "overdue": "en retard, prévue le {date}",
+  "oneTitle": "Tâche à faire : {title}",
+  "manyTitle": "{n} tâches à faire",
+  "due": "Échéance {label}",
+  "heading": "Une tâche arrive à échéance | Des tâches arrivent à échéance",
+  "intro": "Cette tâche qui vous est assignée est à faire : | Ces tâches qui vous sont assignées sont à faire :"
+}

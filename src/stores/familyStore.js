@@ -971,7 +971,7 @@ export const useFamilyStore = defineStore('family', () => {
       })
       if (res.ok) {
         const updated = await res.json()
-        if (updated.message && updated.message.includes('supprimée')) {
+        if (updated.deleted) {
           absences.value = absences.value.filter(a => a.id !== id)
         } else {
           const idx = absences.value.findIndex(a => a.id === id)
@@ -1124,7 +1124,7 @@ export const useFamilyStore = defineStore('family', () => {
       })
       if (res.ok) {
         const updated = await res.json()
-        if (updated.message && updated.message.includes('supprimé')) {
+        if (updated.deleted) {
           mealGuests.value = mealGuests.value.filter(g => g.id !== id)
         } else {
           const idx = mealGuests.value.findIndex(g => g.id === id)

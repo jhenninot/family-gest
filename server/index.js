@@ -44,7 +44,7 @@ import { migrateNotificationPreferences } from './scripts/migrate-notification-p
 import { migrateUsualPresenceGrid } from './scripts/migrate-usual-presence-grid.js'
 import { startDigestScheduler, mountDigestAdminRoutes } from './digest/index.js'
 import { escapeHtml } from './digest/templates.js'
-import { normalizeLanguage } from './i18n/index.js'
+import { t, normalizeLanguage, languageMiddleware, TranslatableError, localizeError, translator, localize, DEFAULT_LANGUAGE, formatDateOnly, readableDate, translateValue } from './i18n/index.js'
 import { normalizeUsualPresenceConfig, summarizeUsualPresence, mondayOf, DEFAULT_WEEK_ANCHOR } from '../shared/presence.js'
 
 dotenv.config()
@@ -76,6 +76,9 @@ const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim()
 app.use(cors(corsOrigins.length > 0 ? { origin: corsOrigins } : undefined))
 app.use(express.json())
 
+// Langue des réponses (req.t) : voir server/i18n/index.js
+app.use(languageMiddleware)
+
 // Neutralise l'injection d'opérateurs Mongo ($ne, $gt...) glissés dans le corps, la query ou les
 // paramètres d'URL d'une requête — défense en profondeur en complément du casting explicite déjà
 // fait par chaque route (String(...), .trim(), Number(...)).
@@ -87,7 +90,7 @@ const authRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Trop de tentatives, veuillez réessayer plus tard.' }
+  message: (req) => ({ error: req.t('errors.tooManyAttempts') })
 })
 
 // Health check endpoint
@@ -203,12 +206,12 @@ const attachFamilyContext = async (req, res, next) => {
     }
 
     if (!family) {
-      return res.status(404).json({ error: 'Famille introuvable ou aucune famille active' })
+      return res.status(404).json({ error: req.t('errors.noActiveFamily') })
     }
 
     // Vérifier si la famille est désactivée
     if (!family.isActive && !req.user?.isSuperAdmin) {
-      return res.status(403).json({ error: 'Cet espace familial est actuellement désactivé' })
+      return res.status(403).json({ error: req.t('errors.familyDisabled') })
     }
 
     req.family = family
@@ -249,14 +252,14 @@ const attachFamilyContext = async (req, res, next) => {
     }
 
     if (!membership) {
-      return res.status(403).json({ error: 'Vous ne faites pas partie de cette famille' })
+      return res.status(403).json({ error: req.t('errors.notInFamily') })
     }
 
     req.membership = membership
     next()
   } catch (err) {
     console.error('attachFamilyContext error:', err.message)
-    res.status(500).json({ error: 'Erreur lors de la résolution du contexte familial' })
+    res.status(500).json({ error: req.t('errors.familyContext') })
   }
 }
 
@@ -264,11 +267,11 @@ const requireFamilyAdmin = (req, res, next) => {
   if (req.user?.isSuperAdmin || req.membership?.isAdmin) {
     return next()
   }
-  return res.status(403).json({ error: 'Action réservée aux administrateurs de cette famille' })
+  return res.status(403).json({ error: req.t('errors.familyAdminOnly') })
 }
 
 // Helper : Envoi d'email de bienvenue avec token d'activation (durée 2 heures)
-const sendWelcomeEmail = async (user, token) => {
+const sendWelcomeEmail = async (user, token, lang = user.language) => {
   try {
     const config = await getSmtpConfig()
     if (!config || !config.isConfigured || !isEmailConfigUsable(config)) {
@@ -276,16 +279,17 @@ const sendWelcomeEmail = async (user, token) => {
       return { success: false, reason: 'SMTP_NOT_CONFIGURED' }
     }
 
+    const t = translator(lang)
     const baseServerUrl = (config.serverUrl || 'http://localhost:5173').replace(/\/+$/, '')
     const setPasswordUrl = `${baseServerUrl}/set-password?token=${token}`
 
     const emailHtml = `
         <!DOCTYPE html>
-        <html>
+        <html lang="${t.lang}">
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Bienvenue sur FamilyGest</title>
+          <title>${t('email.welcome.title')}</title>
         </head>
         <body style="margin: 0; padding: 20px; background-color: #f8fafc; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;">
           <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden;">
@@ -295,17 +299,17 @@ const sendWelcomeEmail = async (user, token) => {
                   <div style="display: inline-block; width: 56px; height: 56px; line-height: 56px; border-radius: 14px; background-color: #6366f1; background: linear-gradient(135deg, #6366f1, #818cf8); font-size: 28px; text-align: center; color: #ffffff;">
                     ✨
                   </div>
-                  <h1 style="color: #4338ca; margin: 12px 0 4px 0; font-size: 24px; font-weight: 800;">Bienvenue sur FamilyGest</h1>
-                  <p style="color: #64748b; margin: 0; font-size: 14px;">Votre espace familial partagé</p>
+                  <h1 style="color: #4338ca; margin: 12px 0 4px 0; font-size: 24px; font-weight: 800;">${t('email.welcome.title')}</h1>
+                  <p style="color: #64748b; margin: 0; font-size: 14px;">${t('email.welcome.tagline')}</p>
                 </div>
 
-                <p style="font-size: 16px; line-height: 1.5; margin-bottom: 12px; color: #1e293b;">Bonjour <strong>${user.firstName || user.name || 'Membre'}</strong>,</p>
+                <p style="font-size: 16px; line-height: 1.5; margin-bottom: 12px; color: #1e293b;">${t('email.greeting', { name: `<strong>${escapeHtml(user.firstName || user.name || t('email.member'))}</strong>` })}</p>
                 <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 16px;">
-                  Un compte d'accès à <strong>FamilyGest</strong> vient d'être créé pour vous avec l'adresse email : <strong style="color: #4f46e5;">${user.email}</strong>.
+                  ${t('email.welcome.intro', { email: `<strong style="color: #4f46e5;">${escapeHtml(user.email)}</strong>` })}
                 </p>
 
                 <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 24px;">
-                  Pour activer votre compte et vous connecter pour la première fois, veuillez cliquer sur le bouton ci-dessous pour choisir votre mot de passe personnel :
+                  ${t('email.welcome.instructions')}
                 </p>
 
                 <!-- Bulletproof cross-client button -->
@@ -313,7 +317,7 @@ const sendWelcomeEmail = async (user, token) => {
                   <!--[if mso]>
                   <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${setPasswordUrl}" style="height:50px;v-text-anchor:middle;width:300px;" arcsize="16%" stroke="f" fillcolor="#4f46e5">
                     <w:anchorlock/>
-                    <center style="color:#ffffff;font-family:'Segoe UI',sans-serif;font-size:16px;font-weight:bold;">🔐 Définir mon mot de passe</center>
+                    <center style="color:#ffffff;font-family:'Segoe UI',sans-serif;font-size:16px;font-weight:bold;">🔐 ${t('email.welcome.button')}</center>
                   </v:roundrect>
                   <![endif]-->
                   <!--[if !mso]><!-->
@@ -321,7 +325,7 @@ const sendWelcomeEmail = async (user, token) => {
                     <tr>
                       <td align="center" bgcolor="#4f46e5" style="border-radius: 8px; background-color: #4f46e5; vertical-align: middle;">
                         <a href="${setPasswordUrl}" target="_blank" style="background-color: #4f46e5; border: 14px solid #4f46e5; border-left: 28px solid #4f46e5; border-right: 28px solid #4f46e5; color: #ffffff !important; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 16px; font-weight: bold; text-decoration: none; display: inline-block; border-radius: 8px; line-height: 1.2;">
-                          🔐 Définir mon mot de passe
+                          🔐 ${t('email.welcome.button')}
                         </a>
                       </td>
                     </tr>
@@ -331,18 +335,18 @@ const sendWelcomeEmail = async (user, token) => {
 
                 <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 14px 18px; border-radius: 6px; margin-bottom: 24px;">
                   <p style="margin: 0; font-size: 13px; color: #92400e; line-height: 1.5;">
-                    ⏱️ <strong>Important :</strong> Ce lien sécurisé est valable pendant <strong>2 heures</strong>. Passé ce délai, demandez à un administrateur de votre famille de vous renvoyer un email d'invitation.
+                    ⏱️ ${t('email.welcome.expiry')}
                   </p>
                 </div>
 
                 <p style="font-size: 12px; color: #94a3b8; word-break: break-all; margin-top: 24px; line-height: 1.5;">
-                  Si le bouton ci-dessus ne s'affiche pas correctement, vous pouvez copier et coller ce lien dans votre navigateur :<br/>
+                  ${t('email.welcome.linkFallback')}<br/>
                   <a href="${setPasswordUrl}" style="color: #6366f1; text-decoration: underline;">${setPasswordUrl}</a>
                 </p>
 
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
                 <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
-                  FamilyGest • Application d'organisation familiale sécurisée
+                  ${t('email.welcome.footer')}
                 </p>
               </td>
             </tr>
@@ -353,7 +357,7 @@ const sendWelcomeEmail = async (user, token) => {
 
     await sendEmailWithConfig(config, {
       to: user.email,
-      subject: '✨ Bienvenue sur FamilyGest - Définissez votre mot de passe',
+      subject: `✨ ${t('email.welcome.subject')}`,
       html: emailHtml
     })
     console.log(`[Email] Email de bienvenue envoyé avec succès à ${user.email}`)
@@ -364,8 +368,9 @@ const sendWelcomeEmail = async (user, token) => {
   }
 }
 
-// Helper : Envoi d'email d'invitation à une famille
-const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExistingUser, invitedByName, isAdmin = false }) => {
+// Helper : Envoi d'email d'invitation à une famille, dans la langue du compte invité s'il existe,
+// sinon dans celle de la personne qui invite.
+const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExistingUser, invitedByName, isAdmin = false, lang = null }) => {
   try {
     const config = await getSmtpConfig()
     if (!config || !config.isConfigured || !isEmailConfigUsable(config)) {
@@ -373,32 +378,26 @@ const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExi
       return { success: false, reason: 'SMTP_NOT_CONFIGURED' }
     }
 
+    const t = translator(lang)
     const baseServerUrl = (config.serverUrl || 'http://localhost:5173').replace(/\/+$/, '')
     const invitationUrl = `${baseServerUrl}/invitation/${invitationToken}`
 
-    const title = isExistingUser
-      ? (isAdmin ? `Invitation à devenir administrateur de « ${family.name} »` : `Invitation à rejoindre la famille « ${family.name} »`)
-      : (isAdmin ? `Bienvenue sur FamilyGest - Administrez « ${family.name} »` : `Bienvenue sur FamilyGest - Rejoignez « ${family.name} »`)
+    // Variante du texte : compte existant ou nouveau, invité comme administrateur ou comme membre
+    const variant = `${isExistingUser ? 'existing' : 'new'}${isAdmin ? 'Admin' : 'Member'}`
+    const familyName = escapeHtml(family.name)
+    const inviter = `<strong>${escapeHtml(invitedByName || (isAdmin ? t('email.invitation.defaultSuperAdmin') : t('email.invitation.defaultAdmin')))}</strong>`
 
-    const introText = isExistingUser
-      ? (isAdmin
-          ? `<strong>${invitedByName || 'Le Super Administrateur'}</strong> vous a désigné comme <strong>administrateur</strong> de l'espace familial <strong>${family.name}</strong> sur FamilyGest.`
-          : `<strong>${invitedByName || 'Un administrateur'}</strong> vous invite à rejoindre l'espace familial <strong>${family.name}</strong> sur FamilyGest.`)
-      : (isAdmin
-          ? `Un espace familial <strong>${family.name}</strong> vous attend sur <strong>FamilyGest</strong>, où vous avez été invité en tant qu'<strong>administrateur</strong> par <strong>${invitedByName || 'Le Super Administrateur'}</strong>.`
-          : `Un nouvel espace familial <strong>${family.name}</strong> a été créé pour vous sur <strong>FamilyGest</strong> par <strong>${invitedByName || 'Un administrateur'}</strong>.`)
-
-    const buttonText = isExistingUser
-      ? (isAdmin ? `✨ Rejoindre en tant qu'administrateur` : `✨ Rejoindre la famille ${family.name}`)
-      : (isAdmin ? `🚀 Définir mon mot de passe & administrer` : `🚀 Créer mon compte & rejoindre la famille`)
+    const title = t(`email.invitation.${variant}.title`, { family: family.name })
+    const introText = t(`email.invitation.${variant}.intro`, { family: `<strong>${familyName}</strong>`, inviter })
+    const buttonText = t(`email.invitation.${variant}.button`, { family: familyName })
 
     const invitationHtml = `
         <!DOCTYPE html>
-        <html>
+        <html lang="${t.lang}">
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${title}</title>
+          <title>${escapeHtml(title)}</title>
         </head>
         <body style="margin: 0; padding: 20px; background-color: #f8fafc; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;">
           <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden;">
@@ -408,12 +407,12 @@ const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExi
                   <div style="display: inline-block; width: 56px; height: 56px; line-height: 56px; border-radius: 14px; background-color: #6366f1; background: linear-gradient(135deg, #6366f1, #818cf8); font-size: 28px; text-align: center; color: #ffffff;">
                     🏡
                   </div>
-                  <h1 style="color: #4338ca; margin: 12px 0 4px 0; font-size: 22px; font-weight: 800;">${family.name}</h1>
-                  <p style="color: #64748b; margin: 0; font-size: 14px;">Espace partagé FamilyGest</p>
+                  <h1 style="color: #4338ca; margin: 12px 0 4px 0; font-size: 22px; font-weight: 800;">${familyName}</h1>
+                  <p style="color: #64748b; margin: 0; font-size: 14px;">${t('email.invitation.tagline')}</p>
                 </div>
 
                 <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 16px;">
-                  Bonjour,
+                  ${t('email.hello')}
                 </p>
                 <p style="font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 24px;">
                   ${introText}
@@ -424,7 +423,7 @@ const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExi
                     <tr>
                       <td align="center" bgcolor="#4f46e5" style="border-radius: 8px; background-color: #4f46e5; vertical-align: middle;">
                         <a href="${invitationUrl}" target="_blank" style="background-color: #4f46e5; border: 14px solid #4f46e5; border-left: 28px solid #4f46e5; border-right: 28px solid #4f46e5; color: #ffffff !important; font-family: 'Segoe UI', sans-serif; font-size: 16px; font-weight: bold; text-decoration: none; display: inline-block; border-radius: 8px; line-height: 1.2;">
-                          ${buttonText}
+                          ${isExistingUser ? '✨' : '🚀'} ${buttonText}
                         </a>
                       </td>
                     </tr>
@@ -433,18 +432,18 @@ const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExi
 
                 <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 14px 18px; border-radius: 6px; margin-bottom: 24px;">
                   <p style="margin: 0; font-size: 13px; color: #92400e; line-height: 1.5;">
-                    ⏱️ Cette invitation sécurisée est valable pendant <strong>7 jours</strong>.
+                    ⏱️ ${t('email.invitation.expiry')}
                   </p>
                 </div>
 
                 <p style="font-size: 12px; color: #94a3b8; word-break: break-all; margin-top: 24px; line-height: 1.5;">
-                  Lien d'accès direct :<br/>
+                  ${t('email.invitation.directLink')}<br/>
                   <a href="${invitationUrl}" style="color: #6366f1; text-decoration: underline;">${invitationUrl}</a>
                 </p>
 
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
                 <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
-                  FamilyGest • Gestion collaborative et privée de la vie de famille
+                  ${t('email.invitation.footer')}
                 </p>
               </td>
             </tr>
@@ -500,27 +499,29 @@ const formatServerEventDates = (dateStr, timeStr, endTimeStr) => {
   }
 }
 
-const generateServerGoogleCalendarUrl = (event) => {
+const generateServerGoogleCalendarUrl = (event, lang = null) => {
+  const t = translator(lang)
   const { start, end } = formatServerEventDates(event.date, event.time, event.endTime)
-  const title = encodeURIComponent(event.title || 'Événement FamilyGest')
+  const title = encodeURIComponent(event.title || t('calendar.eventFallback'))
   const location = encodeURIComponent(event.location || '')
-  let detailsText = 'Événement FamilyGest'
+  let detailsText = t('calendar.eventFallback')
   if (event.category) detailsText += ` (${event.category})`
   const details = encodeURIComponent(detailsText)
 
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=${location}`
 }
 
-const generateServerIcsContent = (event) => {
+const generateServerIcsContent = (event, lang = null) => {
+  const t = translator(lang)
   const { start, end, isAllDay } = formatServerEventDates(event.date, event.time, event.endTime)
   const now = new Date()
   const pad = (n) => String(n).padStart(2, '0')
   const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
 
   const uid = `familygest-${event.id || Date.now()}@familygest.local`
-  const summary = (event.title || 'Événement FamilyGest').replace(/[,;\\]/g, ' ')
+  const summary = (event.title || t('calendar.eventFallback')).replace(/[,;\\]/g, ' ')
   const location = (event.location || '').replace(/[,;\\]/g, ' ')
-  const description = `Événement FamilyGest${event.category ? ' - ' + event.category : ''}`
+  const description = `${t('calendar.eventFallback')}${event.category ? ' - ' + event.category : ''}`
 
   let dateLines = isAllDay
     ? `DTSTART;VALUE=DATE:${start}\r\nDTEND;VALUE=DATE:${end}`
@@ -598,26 +599,22 @@ const applyUniformNotificationPreference = (user, push, email) => {
   }
 }
 
-// Libellés lisibles des catégories d'abonnement, utilisés dans le rappel de gestion des
-// préférences ajouté au pied de chaque email de notification.
-const CATEGORY_LABELS = {
-  presence: 'Présences, absences & invités aux repas',
-  meals: 'Repas',
-  tasks: 'Tâches',
-  taskReminders: 'Rappels de tâches à échéance',
-  events: 'Événements',
-  digest: 'Récapitulatif quotidien'
-}
+// Les textes d'une notification (titre, corps, détails…) peuvent être une chaîne ou une fonction
+// (t) => chaîne : ils sont alors rédigés pour chaque destinataire, dans la langue de son compte.
+// Le libellé de la catégorie d'abonnement (pied de chaque email) est email.categories.<catégorie>.
+
+// Catégories d'abonnement granulaire (User.notificationPreferences)
+const NOTIFICATION_CATEGORIES = ['presence', 'meals', 'tasks', 'taskReminders', 'events', 'digest']
 
 const sendNotificationEmail = async ({
-  subject,
-  title,
+  subject: subjectText,
+  title: titleText,
   badge = '🔔',
-  detailsHtml,
+  detailsHtml: detailsText,
   actionUrl = '/',
-  actionText = 'Accéder à FamilyGest',
+  actionText: actionLabel = (t) => t('email.layout.defaultAction'),
   excludeUserId = null,
-  calendarData = null,
+  calendarData: calendarInfo = null,
   familyId = null,
   action = null,
   // Restreint l'envoi à ces comptes (ex : rappel destiné à la seule personne assignée).
@@ -656,13 +653,13 @@ const sendNotificationEmail = async ({
       recipientUsers = await User.find({
         id: { $in: memberUserIds },
         [emailPrefField]: true
-      }).select('email firstName lastName id')
+      }).select('email firstName lastName id language')
     } else {
       const userQuery = { [emailPrefField]: true }
       if (excludeUserId) {
         userQuery.id = { $ne: Number(excludeUserId) }
       }
-      recipientUsers = await User.find(userQuery).select('email firstName lastName id')
+      recipientUsers = await User.find(userQuery).select('email firstName lastName id language')
     }
 
     if (!recipientUsers || recipientUsers.length === 0) return { success: true, count: 0, recipients: [] }
@@ -670,20 +667,26 @@ const sendNotificationEmail = async ({
     const baseServerUrl = (config.serverUrl || 'http://localhost:5173').replace(/\/+$/, '')
     const fullActionUrl = actionUrl.startsWith('http') ? actionUrl : `${baseServerUrl}${actionUrl}`
 
-    const finalSubject = familyName ? `[${familyName}] ${subject || title}` : (subject || `✨ FamilyGest - ${title}`)
-
-    const notificationAttachments = (calendarData && calendarData.icsContent) ? [
-      {
-        filename: `${(calendarData.eventTitle || 'evenement').replace(/[^a-zA-Z0-9]/g, '_')}.ics`,
-        content: calendarData.icsContent,
-        contentType: 'text/calendar; charset=utf-8; method=REQUEST'
-      }
-    ] : []
-
     const emailPromises = recipientUsers.map(async (recipient) => {
+      const t = translator(recipient.language)
+      const title = localize(titleText, t)
+      const subject = localize(subjectText, t)
+      const detailsHtml = localize(detailsText, t)
+      const actionText = localize(actionLabel, t)
+      const calendarData = localize(calendarInfo, t)
+      const finalSubject = familyName ? `[${familyName}] ${subject || title}` : (subject || `✨ FamilyGest - ${title}`)
+
+      const notificationAttachments = (calendarData && calendarData.icsContent) ? [
+        {
+          filename: `${(calendarData.eventTitle || 'evenement').replace(/[^a-zA-Z0-9]/g, '_')}.ics`,
+          content: calendarData.icsContent,
+          contentType: 'text/calendar; charset=utf-8; method=REQUEST'
+        }
+      ] : []
+
       const notificationHtml = `
           <!DOCTYPE html>
-          <html>
+          <html lang="${t.lang}">
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -698,11 +701,11 @@ const sendNotificationEmail = async ({
                       ${badge}
                     </div>
                     <h1 style="color: #312e81; margin: 14px 0 4px 0; font-size: 22px; font-weight: 800;">${title}</h1>
-                    <p style="color: #64748b; margin: 0; font-size: 13px;">Notification FamilyGest • ${familyName || 'Espace Familial'}</p>
+                    <p style="color: #64748b; margin: 0; font-size: 13px;">${t('email.layout.notificationFrom', { family: escapeHtml(familyName || t('email.layout.familySpace')) })}</p>
                   </div>
 
                   <p style="font-size: 15px; line-height: 1.5; color: #1e293b; margin-bottom: 16px;">
-                    Bonjour <strong>${recipient.firstName || 'Membre'}</strong>,
+                    ${t('email.greeting', { name: `<strong>${escapeHtml(recipient.firstName || t('email.member'))}</strong>` })}
                   </p>
 
                   <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin-bottom: 20px;">
@@ -713,7 +716,7 @@ const sendNotificationEmail = async ({
                   ${calendarData ? `
                     <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px 18px; margin: 20px 0; text-align: center;">
                       <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #334155;">
-                        📅 Ajouter directement à votre agenda personnel :
+                        📅 ${t('email.layout.addToCalendar')}
                       </p>
                       <div>
                         <a href="${calendarData.googleUrl}" target="_blank" style="display: inline-block; background-color: #4285f4; color: #ffffff !important; padding: 9px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; text-decoration: none; margin: 4px 6px;">
@@ -741,8 +744,8 @@ const sendNotificationEmail = async ({
 
                   <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
                   <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0; line-height: 1.4;">
-                    Vous recevez cet email car vous avez activé les notifications « ${CATEGORY_LABELS[category] || 'FamilyGest'} » par email sur votre compte.<br/>
-                    Vous pouvez gérer vos préférences de notification à tout moment depuis votre profil, dans l'application.
+                    ${t('email.layout.whyReceived', { category: category ? t(`email.categories.${category}`) : 'FamilyGest' })}<br/>
+                    ${t('email.layout.managePreferences')}
                   </p>
                 </td>
               </tr>
@@ -760,7 +763,7 @@ const sendNotificationEmail = async ({
     })
 
     await Promise.allSettled(emailPromises)
-    console.log(`[Email] Notification email envoyée à ${recipientUsers.length} membre(s) : "${title}"`)
+    console.log(`[Email] Notification email envoyée à ${recipientUsers.length} membre(s) : "${localize(titleText, translator(DEFAULT_LANGUAGE))}"`)
     return {
       success: true,
       count: recipientUsers.length,
@@ -774,24 +777,24 @@ const sendNotificationEmail = async ({
 
 // Helper : Validation de sécurité renforcée du mot de passe
 // Règle : 10 caractères minimum, au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial.
-const validatePasswordSecurity = (password) => {
+const validatePasswordSecurity = (password, t) => {
   if (!password || typeof password !== 'string') {
-    return { valid: false, error: 'Le mot de passe est obligatoire.' }
+    return { valid: false, error: t('errors.password.required') }
   }
   if (password.length < 10) {
-    return { valid: false, error: 'Le mot de passe doit comporter au moins 10 caractères.' }
+    return { valid: false, error: t('errors.password.length') }
   }
   if (!/[A-Z]/.test(password)) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins une lettre majuscule (A-Z).' }
+    return { valid: false, error: t('errors.password.uppercase') }
   }
   if (!/[a-z]/.test(password)) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins une lettre minuscule (a-z).' }
+    return { valid: false, error: t('errors.password.lowercase') }
   }
   if (!/[0-9]/.test(password)) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins un chiffre (0-9).' }
+    return { valid: false, error: t('errors.password.digit') }
   }
   if (!/[^A-Za-z0-9]/.test(password)) {
-    return { valid: false, error: 'Le mot de passe doit contenir au moins un caractère spécial (ex: ! @ # $ % * _ -).' }
+    return { valid: false, error: t('errors.password.special') }
   }
   return { valid: true }
 }
@@ -829,12 +832,12 @@ const initVapid = async () => {
 
 // Helper pour diffuser une notification push aux membres éligibles
 const sendPushNotification = async ({
-  title,
-  body,
+  title: titleText,
+  body: bodyText,
   url = '/',
   excludeUserId = null,
-  actions = [],
-  googleCalendarUrl = null,
+  actions: actionsSpec = [],
+  googleCalendarUrl: googleCalendarSpec = null,
   familyId = null,
   action = null,
   // Restreint l'envoi à ces comptes (ex : rappel destiné à la seule personne assignée).
@@ -874,25 +877,34 @@ const sendPushNotification = async ({
 
     if (userIds.length === 0) return { success: false, reason: 'NO_ELIGIBLE_MEMBERS', count: 0, recipients: [] }
 
-    const activeUsers = await User.find({ id: { $in: userIds }, [pushPrefField]: true }).select('id firstName lastName')
+    const activeUsers = await User.find({ id: { $in: userIds }, [pushPrefField]: true }).select('id firstName lastName language')
     const finalUserIds = activeUsers.map(u => u.id)
     if (finalUserIds.length === 0) return { success: false, reason: 'NO_ELIGIBLE_MEMBERS', count: 0, recipients: [] }
 
     const subscriptions = await PushSubscription.find({ userId: { $in: finalUserIds } })
     if (subscriptions.length === 0) return { success: false, reason: 'NO_SUBSCRIPTIONS', count: 0, recipients: [] }
 
-    const finalTitle = familyName ? `[${familyName}] ${title}` : title
-
-    const payload = JSON.stringify({
-      title: finalTitle,
-      body,
-      url,
-      icon: '/pwa-192x192.png',
-      badge: '/pwa-192x192.png',
-      tag: `familygest-${Date.now()}`,
-      actions,
-      googleCalendarUrl
-    })
+    // Contenu rédigé une fois par langue, puis envoyé à chaque appareil selon la langue de son compte
+    const tag = `familygest-${Date.now()}`
+    const payloads = new Map()
+    const payloadFor = (language) => {
+      const t = translator(language)
+      if (!payloads.has(t.lang)) {
+        const title = localize(titleText, t)
+        payloads.set(t.lang, JSON.stringify({
+          title: familyName ? `[${familyName}] ${title}` : title,
+          body: localize(bodyText, t),
+          url,
+          icon: '/pwa-192x192.png',
+          badge: '/pwa-192x192.png',
+          tag,
+          actions: localize(actionsSpec, t),
+          googleCalendarUrl: localize(googleCalendarSpec, t)
+        }))
+      }
+      return payloads.get(t.lang)
+    }
+    const languageByUserId = new Map(activeUsers.map(u => [u.id, u.language]))
 
     const deliveredUserIds = new Set()
 
@@ -904,7 +916,7 @@ const sendPushNotification = async ({
             p256dh: sub.keys.p256dh,
             auth: sub.keys.auth
           }
-        }, payload)
+        }, payloadFor(languageByUserId.get(sub.userId)))
         deliveredUserIds.add(sub.userId)
       } catch (err) {
         if (err.statusCode === 404 || err.statusCode === 410) {
@@ -968,6 +980,8 @@ const logAlertEntry = async ({ family = null, actor = null, action, actionLabel,
 // Diffuse une alerte push + email à une famille et journalise le résultat des deux canaux.
 // Appelé en tâche de fond (sans await côté route) pour ne pas retarder la réponse HTTP.
 const dispatchFamilyAlert = async ({ family, actor = null, action, actionLabel, title = '', targetType = null, targetId = null, push = null, email = null }) => {
+  // Le titre journalisé (console Super Admin) reste en français, comme le reste du journal.
+  const logTitle = localize(title, translator(DEFAULT_LANGUAGE))
   const [pushResult, emailResult] = await Promise.all([
     push ? sendPushNotification({ ...push, action, familyId: family._id, excludeUserId: actor?.id ?? null }) : Promise.resolve(null),
     email ? sendNotificationEmail({ ...email, action, familyId: family._id, excludeUserId: actor?.id ?? null }) : Promise.resolve(null)
@@ -978,7 +992,7 @@ const dispatchFamilyAlert = async ({ family, actor = null, action, actionLabel, 
     actor,
     action,
     actionLabel,
-    title,
+    title: logTitle,
     targetType,
     targetId,
     channels: [toAlertChannelLog('push', pushResult), toAlertChannelLog('email', emailResult)]
@@ -988,7 +1002,7 @@ const dispatchFamilyAlert = async ({ family, actor = null, action, actionLabel, 
 // GET /api/push/vapid-public-key (Obtenir la clé publique pour le client web)
 app.get('/api/push/vapid-public-key', (req, res) => {
   if (!vapidPublicKey) {
-    return res.status(503).json({ error: 'Service Web Push non initialisé' })
+    return res.status(503).json({ error: req.t('errors.pushNotInitialized') })
   }
   res.json({ publicKey: vapidPublicKey })
 })
@@ -998,7 +1012,7 @@ app.post('/api/push/subscribe', requireAuth, async (req, res) => {
   try {
     const { subscription, userAgent } = req.body
     if (!subscription || !subscription.endpoint || !subscription.keys) {
-      return res.status(400).json({ error: 'Données de souscription invalides' })
+      return res.status(400).json({ error: req.t('errors.invalidSubscription') })
     }
 
     const { endpoint, keys } = subscription
@@ -1018,7 +1032,7 @@ app.post('/api/push/subscribe', requireAuth, async (req, res) => {
       { upsert: true, new: true }
     )
 
-    res.json({ success: true, message: 'Souscription push enregistrée avec succès' })
+    res.json({ success: true, message: req.t('messages.pushSubscribed') })
   } catch (err) {
     console.error('[WebPush] Erreur enregistrement souscription:', err.message)
     res.status(500).json({ error: err.message })
@@ -1037,7 +1051,7 @@ app.post('/api/push/unsubscribe', requireAuth, async (req, res) => {
       await PushSubscription.deleteMany({ userId })
     }
 
-    res.json({ success: true, message: 'Désabonnement push effectué' })
+    res.json({ success: true, message: req.t('messages.pushUnsubscribed') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -1051,17 +1065,17 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
     const { email, password } = req.body
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Veuillez saisir une adresse email et un mot de passe' })
+      return res.status(400).json({ error: req.t('errors.emailPasswordRequired') })
     }
 
     const user = await User.findOne({ email: email.toLowerCase().trim() })
     if (!user) {
-      return res.status(401).json({ error: 'Adresse email ou mot de passe incorrect' })
+      return res.status(401).json({ error: req.t('errors.invalidCredentials') })
     }
 
     const isMatch = await user.matchPassword(password)
     if (!isMatch) {
-      return res.status(401).json({ error: 'Adresse email ou mot de passe incorrect' })
+      return res.status(401).json({ error: req.t('errors.invalidCredentials') })
     }
 
     await User.updateOne({ id: user.id }, { $set: { lastLogin: new Date() } })
@@ -1217,17 +1231,17 @@ app.post('/api/auth/register', requireAuth, requireSuperAdmin, async (req, res) 
     const { firstName, lastName, email, password, role, avatar, color, isAdmin } = req.body
 
     if (!firstName || !lastName || !email || !password) {
-      return res.status(400).json({ error: 'Champs nom, prénom, email et mot de passe requis' })
+      return res.status(400).json({ error: req.t('errors.registerFieldsRequired') })
     }
 
-    const pwdCheck = validatePasswordSecurity(password)
+    const pwdCheck = validatePasswordSecurity(password, req.t)
     if (!pwdCheck.valid) {
       return res.status(400).json({ error: pwdCheck.error })
     }
 
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() })
     if (existingUser) {
-      return res.status(400).json({ error: 'Un utilisateur avec cette adresse email existe déjà' })
+      return res.status(400).json({ error: req.t('errors.userEmailExists') })
     }
 
     const welcomeToken = crypto.randomBytes(32).toString('hex')
@@ -1251,7 +1265,7 @@ app.post('/api/auth/register', requireAuth, requireSuperAdmin, async (req, res) 
     await newUser.save()
 
     // Envoi de l'email de bienvenue en arrière-plan
-    sendWelcomeEmail(newUser, welcomeToken)
+    sendWelcomeEmail(newUser, welcomeToken, newUser.language || req.lang)
       .then(result => logAlertEntry({
         family: null,
         actor: req.user,
@@ -1286,7 +1300,7 @@ app.get('/api/auth/verify-token', async (req, res) => {
   try {
     const { token } = req.query
     if (!token) {
-      return res.status(400).json({ valid: false, error: 'Token manquant' })
+      return res.status(400).json({ valid: false, error: req.t('errors.tokenMissing') })
     }
 
     const user = await User.findOne({
@@ -1297,7 +1311,7 @@ app.get('/api/auth/verify-token', async (req, res) => {
     if (!user) {
       return res.status(400).json({ 
         valid: false, 
-        error: 'Ce lien de bienvenue est invalide ou a expiré (durée de validité : 2 heures). Veuillez contacter un administrateur pour en recevoir un nouveau.' 
+        error: req.t('errors.welcomeLinkExpiredContact') 
       })
     }
 
@@ -1321,10 +1335,10 @@ app.post('/api/auth/set-password', authRateLimiter, async (req, res) => {
   try {
     const { token, password, notificationPreferences, language } = req.body
     if (!token || !password) {
-      return res.status(400).json({ error: 'Token et mot de passe requis' })
+      return res.status(400).json({ error: req.t('errors.tokenPasswordRequired') })
     }
 
-    const pwdCheck = validatePasswordSecurity(password)
+    const pwdCheck = validatePasswordSecurity(password, req.t)
     if (!pwdCheck.valid) {
       return res.status(400).json({ error: pwdCheck.error })
     }
@@ -1336,7 +1350,7 @@ app.post('/api/auth/set-password', authRateLimiter, async (req, res) => {
 
     if (!user) {
       return res.status(400).json({ 
-        error: 'Ce lien de bienvenue est invalide ou a expiré (durée de validité : 2 heures). Veuillez demander à un administrateur de vous renvoyer un email.' 
+        error: req.t('errors.welcomeLinkExpired') 
       })
     }
 
@@ -1358,7 +1372,7 @@ app.post('/api/auth/set-password', authRateLimiter, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Votre mot de passe a été enregistré avec succès !',
+      message: req.t('messages.passwordSaved'),
       token: jwtToken,
       user: {
         id: user.id,
@@ -1385,7 +1399,7 @@ app.post('/api/auth/set-password', authRateLimiter, async (req, res) => {
 app.put('/api/auth/profile', requireAuth, async (req, res) => {
   try {
     const user = await User.findOne({ id: req.user.id })
-    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
+    if (!user) return res.status(404).json({ error: req.t('errors.userNotFound') })
 
     const { firstName, lastName, email, password, role, avatar, color, notificationPreferences, language } = req.body
 
@@ -1396,7 +1410,7 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     if (color) user.color = color
     if (language !== undefined) {
       const normalized = normalizeLanguage(language)
-      if (!normalized) return res.status(400).json({ error: 'Langue non prise en charge' })
+      if (!normalized) return res.status(400).json({ error: req.t('errors.unsupportedLanguage') })
       user.language = normalized
     }
 
@@ -1410,7 +1424,7 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     // Préférences de notification granulaires (6 catégories × push/email), gérées uniquement
     // par l'utilisateur pour son propre compte — valables sur toutes ses familles.
     if (notificationPreferences && typeof notificationPreferences === 'object') {
-      for (const category of Object.keys(CATEGORY_LABELS)) {
+      for (const category of NOTIFICATION_CATEGORIES) {
         const incoming = notificationPreferences[category]
         if (incoming && typeof incoming === 'object') {
           if (incoming.push !== undefined) user.notificationPreferences[category].push = Boolean(incoming.push)
@@ -1422,13 +1436,13 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
     if (email && email.toLowerCase().trim() !== user.email) {
       const existing = await User.findOne({ email: email.toLowerCase().trim() })
       if (existing && existing.id !== user.id) {
-        return res.status(400).json({ error: 'Cette adresse email est déjà utilisée par un autre compte' })
+        return res.status(400).json({ error: req.t('errors.emailTaken') })
       }
       user.email = email.toLowerCase().trim()
     }
 
     if (password && password.trim().length > 0) {
-      const pwdCheck = validatePasswordSecurity(password.trim())
+      const pwdCheck = validatePasswordSecurity(password.trim(), req.t)
       if (!pwdCheck.valid) {
         return res.status(400).json({ error: pwdCheck.error })
       }
@@ -1461,7 +1475,7 @@ app.put('/api/auth/profile', requireAuth, async (req, res) => {
 app.get('/api/auth/export', requireAuth, async (req, res) => {
   try {
     const user = await User.findOne({ id: req.user.id }).select('-password').lean()
-    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
+    if (!user) return res.status(404).json({ error: req.t('errors.userNotFound') })
 
     const memberships = await FamilyMember.find({ userId: user.id }).lean()
     const families = await Family.find({ _id: { $in: memberships.map(m => m.familyId) } }).lean()
@@ -1503,15 +1517,15 @@ app.get('/api/auth/export', requireAuth, async (req, res) => {
 app.delete('/api/auth/account', requireAuth, async (req, res) => {
   try {
     const user = await User.findOne({ id: req.user.id })
-    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
+    if (!user) return res.status(404).json({ error: req.t('errors.userNotFound') })
 
     if (user.isSuperAdmin) {
-      return res.status(400).json({ error: 'Le compte Super Administrateur ne peut pas être auto-supprimé. Contactez un autre Super Administrateur.' })
+      return res.status(400).json({ error: req.t('errors.superAdminSelfDelete') })
     }
 
     const { password } = req.body
     if (!password || !(await user.matchPassword(password))) {
-      return res.status(401).json({ error: 'Mot de passe incorrect' })
+      return res.status(401).json({ error: req.t('errors.wrongPassword') })
     }
 
     await FamilyMember.deleteMany({ userId: user.id })
@@ -1519,7 +1533,7 @@ app.delete('/api/auth/account', requireAuth, async (req, res) => {
     await PushSubscription.deleteMany({ userId: user.id })
     await User.deleteOne({ id: user.id })
 
-    res.json({ message: 'Votre compte a été supprimé définitivement' })
+    res.json({ message: req.t('messages.accountDeleted') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -1583,17 +1597,17 @@ app.get('/api/super-admin/check-slug/:slug', requireAuth, requireSuperAdmin, asy
     const slug = String(req.params.slug).toLowerCase().trim()
     const reservedSlugs = ['admin', 'superadmin', 'super-admin', 'api', 'login', 'set-password', 'invitation', 'settings', 'dashboard', 'tasks', 'calendar', 'absences', 'shopping', 'meals', 'select-family']
     if (reservedSlugs.includes(slug)) {
-      return res.json({ available: false, reason: 'Ce nom est réservé par le système' })
+      return res.json({ available: false, reason: req.t('errors.slugReserved') })
     }
     if (!/^[a-z0-9-]+$/.test(slug)) {
-      return res.json({ available: false, reason: 'Le slug ne doit contenir que des lettres minuscules, chiffres et tirets (-)' })
+      return res.json({ available: false, reason: req.t('errors.slugFormat') })
     }
     const filter = { slug }
     if (req.query.excludeId) {
       filter._id = { $ne: req.query.excludeId }
     }
     const existing = await Family.findOne(filter)
-    res.json({ available: !existing, reason: existing ? 'Identifiant déjà utilisé par une autre famille' : null })
+    res.json({ available: !existing, reason: existing ? req.t('errors.slugTakenOther') : null })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -1603,7 +1617,7 @@ app.get('/api/super-admin/check-slug/:slug', requireAuth, requireSuperAdmin, asy
 app.get('/api/super-admin/check-email', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const email = String(req.query.email || '').toLowerCase().trim()
-    if (!email) return res.status(400).json({ error: 'Email requis' })
+    if (!email) return res.status(400).json({ error: req.t('errors.emailRequired') })
     const user = await User.findOne({ email }).select('id firstName lastName email avatar color')
     if (user) {
       return res.json({ exists: true, user })
@@ -1620,22 +1634,22 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
     const { name, slug, maxMembers, adminEmail, adminFirstName, adminLastName } = req.body
 
     if (!name || !slug || !adminEmail) {
-      return res.status(400).json({ error: 'Nom de famille, identifiant (slug) et email administrateur requis' })
+      return res.status(400).json({ error: req.t('errors.createFamilyFieldsRequired') })
     }
 
     const cleanSlug = String(slug).toLowerCase().trim()
     if (!/^[a-z0-9-]+$/.test(cleanSlug)) {
-      return res.status(400).json({ error: 'L\'identifiant ne doit comporter que des minuscules, chiffres et tirets' })
+      return res.status(400).json({ error: req.t('errors.slugFormat') })
     }
 
     const reservedSlugs = ['admin', 'superadmin', 'super-admin', 'api', 'login', 'set-password', 'invitation', 'settings', 'select-family']
     if (reservedSlugs.includes(cleanSlug)) {
-      return res.status(400).json({ error: 'Cet identifiant est réservé par le système' })
+      return res.status(400).json({ error: req.t('errors.slugReserved') })
     }
 
     const slugExists = await Family.findOne({ slug: cleanSlug })
     if (slugExists) {
-      return res.status(400).json({ error: 'Cet identifiant de famille est déjà utilisé' })
+      return res.status(400).json({ error: req.t('errors.slugTaken') })
     }
 
     const family = new Family({
@@ -1666,13 +1680,14 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
     const catDocs = DEFAULT_CATEGORIES.map((c, i) => ({ ...c, familyId: family._id, id: Date.now() + i }))
     await ShoppingCategory.insertMany(catDocs)
 
-    // Initialiser 2 tâches d'accueil pour la nouvelle famille
+    // Initialiser 2 tâches d'accueil pour la nouvelle famille, dans la langue de son administrateur
+    const seedT = translator(existingUser?.language || req.lang)
     await Task.insertMany([
       {
         id: Date.now(),
         familyId: family._id,
-        title: 'Inviter les membres de la famille',
-        description: 'Ajoutez les membres de votre famille depuis la section Membres.',
+        title: seedT('seed.inviteMembers.title'),
+        description: seedT('seed.inviteMembers.description'),
         category: 'Organisation',
         assignedTo: existingUser ? existingUser.id : null,
         priority: 'Haute',
@@ -1683,8 +1698,8 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
       {
         id: Date.now() + 1,
         familyId: family._id,
-        title: 'Découvrir le calendrier et les courses',
-        description: 'Planifiez vos premiers événements familiaux et préparez la liste de courses.',
+        title: seedT('seed.discover.title'),
+        description: seedT('seed.discover.description'),
         category: 'Maison',
         assignedTo: existingUser ? existingUser.id : null,
         priority: 'Moyenne',
@@ -1718,7 +1733,8 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
       invitationToken: token,
       isExistingUser: Boolean(existingUser),
       invitedByName: `${req.user.firstName} ${req.user.lastName}`,
-      isAdmin: true
+      isAdmin: true,
+      lang: existingUser?.language || req.lang
     })
     logAlertEntry({
       family,
@@ -1749,12 +1765,12 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
   try {
     const family = await Family.findById(req.params.id)
     if (!family) {
-      return res.status(404).json({ error: 'Famille introuvable' })
+      return res.status(404).json({ error: req.t('errors.familyNotFound') })
     }
 
     const { email, firstName, lastName } = req.body
     if (!email) {
-      return res.status(400).json({ error: 'L\'adresse email est requise' })
+      return res.status(400).json({ error: req.t('errors.emailRequired') })
     }
 
     const cleanEmail = String(email).toLowerCase().trim()
@@ -1764,7 +1780,7 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
       let existingMember = await FamilyMember.findOne({ familyId: family._id, userId: existingUser.id })
       if (existingMember && existingMember.isAdmin) {
         return res.status(400).json({
-          error: `L'utilisateur ${existingUser.firstName || ''} ${existingUser.lastName || ''} (${cleanEmail}) est déjà administrateur de la famille « ${family.name} »`
+          error: req.t('errors.alreadyAdmin', { name: `${existingUser.firstName || ''} ${existingUser.lastName || ''}`.trim(), email: cleanEmail, family: family.name })
         })
       }
       if (!existingMember) {
@@ -1784,7 +1800,7 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
       }
     } else {
       if (!firstName || !firstName.trim()) {
-        return res.status(400).json({ error: 'Le prénom est requis pour un nouveau compte' })
+        return res.status(400).json({ error: req.t('errors.firstNameRequired') })
       }
     }
 
@@ -1815,7 +1831,8 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
       invitationToken: token,
       isExistingUser: Boolean(existingUser),
       invitedByName: `${req.user.firstName} ${req.user.lastName}`,
-      isAdmin: true
+      isAdmin: true,
+      lang: existingUser?.language || req.lang
     })
     logAlertEntry({
       family,
@@ -1829,7 +1846,7 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
     }).catch(err => console.error('[AlertLog] sendFamilyInvitationEmail (invite-admin):', err.message))
 
     res.status(201).json({
-      message: `Invitation administrateur envoyée avec succès à ${cleanEmail}`,
+      message: req.t('messages.adminInvitationSent', { email: cleanEmail }),
       emailSent: Boolean(emailResult?.success),
       invitation: {
         token,
@@ -1847,29 +1864,29 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
 app.put('/api/super-admin/families/:id', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const family = await Family.findById(req.params.id)
-    if (!family) return res.status(404).json({ error: 'Famille introuvable' })
+    if (!family) return res.status(404).json({ error: req.t('errors.familyNotFound') })
 
     const { name, slug, maxMembers, isActive } = req.body
 
     if (name !== undefined) {
       const cleanName = String(name).trim()
-      if (!cleanName) return res.status(400).json({ error: 'Le nom de la famille ne peut pas être vide' })
+      if (!cleanName) return res.status(400).json({ error: req.t('errors.familyNameEmpty') })
       family.name = cleanName
     }
 
     if (slug !== undefined) {
       const cleanSlug = String(slug).toLowerCase().trim()
-      if (!cleanSlug) return res.status(400).json({ error: 'L\'identifiant (slug) ne peut pas être vide' })
+      if (!cleanSlug) return res.status(400).json({ error: req.t('errors.slugEmpty') })
       if (!/^[a-z0-9-]+$/.test(cleanSlug)) {
-        return res.status(400).json({ error: 'L\'identifiant ne doit contenir que des lettres minuscules, chiffres et tirets (-)' })
+        return res.status(400).json({ error: req.t('errors.slugFormat') })
       }
       const reservedSlugs = ['admin', 'superadmin', 'super-admin', 'api', 'login', 'set-password', 'invitation', 'settings', 'dashboard', 'tasks', 'calendar', 'absences', 'shopping', 'meals', 'select-family']
       if (reservedSlugs.includes(cleanSlug)) {
-        return res.status(400).json({ error: 'Cet identifiant est réservé par le système' })
+        return res.status(400).json({ error: req.t('errors.slugReserved') })
       }
       const existing = await Family.findOne({ slug: cleanSlug, _id: { $ne: family._id } })
       if (existing) {
-        return res.status(400).json({ error: 'Cet identifiant (slug) est déjà utilisé par une autre famille' })
+        return res.status(400).json({ error: req.t('errors.slugTakenOther') })
       }
       family.slug = cleanSlug
     }
@@ -1888,11 +1905,11 @@ app.put('/api/super-admin/families/:id', requireAuth, requireSuperAdmin, async (
 app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const family = await Family.findById(req.params.id)
-    if (!family) return res.status(404).json({ error: 'Famille introuvable' })
+    if (!family) return res.status(404).json({ error: req.t('errors.familyNotFound') })
 
     const payload = req.body.data || req.body
     if (!payload || typeof payload !== 'object') {
-      return res.status(400).json({ error: 'Données d\'import invalides (JSON attendu)' })
+      return res.status(400).json({ error: req.t('errors.invalidImport') })
     }
 
     const {
@@ -2114,7 +2131,7 @@ app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin,
 
     res.json({
       success: true,
-      message: `Données importées avec succès pour la famille « ${family.name} »`,
+      message: req.t('messages.imported', { family: family.name }),
       summary: {
         family: family.name,
         slug: family.slug,
@@ -2131,7 +2148,7 @@ app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin,
     })
   } catch (err) {
     console.error('Erreur import-family:', err)
-    res.status(500).json({ error: 'Erreur lors de l\'importation : ' + err.message })
+    res.status(500).json({ error: req.t('errors.importFailed', { message: err.message }) })
   }
 })
 
@@ -2178,7 +2195,7 @@ app.put('/api/super-admin/users/:userId/set-family-admin', requireAuth, requireS
 
     const member = await FamilyMember.findOne({ userId, familyId })
     if (!member) {
-      return res.status(404).json({ error: 'Rattachement familial introuvable' })
+      return res.status(404).json({ error: req.t('errors.membershipNotFound') })
     }
 
     member.isAdmin = Boolean(isAdmin)
@@ -2200,7 +2217,7 @@ app.put('/api/super-admin/users/:userId', requireAuth, requireSuperAdmin, async 
   try {
     const userId = Number(req.params.userId)
     const user = await User.findOne({ id: userId })
-    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' })
+    if (!user) return res.status(404).json({ error: req.t('errors.userNotFound') })
 
     const { firstName, lastName, email, isSuperAdmin } = req.body
 
@@ -2208,7 +2225,7 @@ app.put('/api/super-admin/users/:userId', requireAuth, requireSuperAdmin, async 
       const cleanEmail = String(email).toLowerCase().trim()
       const existing = await User.findOne({ email: cleanEmail, id: { $ne: userId } })
       if (existing) {
-        return res.status(400).json({ error: 'Cette adresse email est déjà utilisée par un autre compte' })
+        return res.status(400).json({ error: req.t('errors.emailTaken') })
       }
       user.email = cleanEmail
     }
@@ -2220,7 +2237,7 @@ app.put('/api/super-admin/users/:userId', requireAuth, requireSuperAdmin, async 
       if (!isSuperAdmin && user.isSuperAdmin) {
         const superAdminCount = await User.countDocuments({ isSuperAdmin: true })
         if (superAdminCount <= 1) {
-          return res.status(400).json({ error: 'Impossible de retirer les droits du dernier Super Administrateur de la plateforme' })
+          return res.status(400).json({ error: req.t('errors.lastSuperAdminDemote') })
         }
       }
       user.isSuperAdmin = Boolean(isSuperAdmin)
@@ -2228,7 +2245,7 @@ app.put('/api/super-admin/users/:userId', requireAuth, requireSuperAdmin, async 
 
     await user.save()
     res.json({
-      message: 'Utilisateur mis à jour avec succès',
+      message: req.t('messages.userUpdated'),
       user: {
         id: user.id,
         firstName: user.firstName,
@@ -2249,24 +2266,24 @@ app.post('/api/super-admin/users/:userId/families', requireAuth, requireSuperAdm
     const { familyId, role, isAdmin } = req.body
 
     if (!familyId) {
-      return res.status(400).json({ error: 'Identifiant de famille requis' })
+      return res.status(400).json({ error: req.t('errors.familyIdRequired') })
     }
 
     const user = await User.findOne({ id: userId })
-    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' })
+    if (!user) return res.status(404).json({ error: req.t('errors.userNotFound') })
 
     const family = await Family.findById(familyId)
-    if (!family) return res.status(404).json({ error: 'Famille introuvable' })
+    if (!family) return res.status(404).json({ error: req.t('errors.familyNotFound') })
 
     const existingMember = await FamilyMember.findOne({ userId, familyId })
     if (existingMember) {
-      return res.status(400).json({ error: `Cet utilisateur fait déjà partie de la famille « ${family.name} »` })
+      return res.status(400).json({ error: req.t('errors.alreadyInNamedFamily', { family: family.name }) })
     }
 
     // Contrôle quota
     const currentMemberCount = await FamilyMember.countDocuments({ familyId: family._id })
     if (currentMemberCount >= family.maxMembers) {
-      return res.status(400).json({ error: `Le quota maximal de cette famille (${family.maxMembers} membres) est atteint` })
+      return res.status(400).json({ error: req.t('errors.quotaReached', { max: family.maxMembers }) })
     }
 
     const isMemberAdmin = Boolean(isAdmin)
@@ -2283,7 +2300,7 @@ app.post('/api/super-admin/users/:userId/families', requireAuth, requireSuperAdm
     await newMember.save()
 
     res.status(201).json({
-      message: `Utilisateur rattaché à la famille « ${family.name} » avec succès`,
+      message: req.t('messages.attachedToFamily', { family: family.name }),
       member: {
         familyId: family._id,
         familyName: family.name,
@@ -2306,7 +2323,7 @@ app.put('/api/super-admin/users/:userId/families/:familyId', requireAuth, requir
 
     const member = await FamilyMember.findOne({ userId, familyId })
     if (!member) {
-      return res.status(404).json({ error: 'Rattachement familial introuvable' })
+      return res.status(404).json({ error: req.t('errors.membershipNotFound') })
     }
 
     if (isAdmin !== undefined) {
@@ -2324,7 +2341,7 @@ app.put('/api/super-admin/users/:userId/families/:familyId', requireAuth, requir
     }
 
     await member.save()
-    res.json({ message: 'Rôle familial mis à jour avec succès', member })
+    res.json({ message: req.t('messages.familyRoleSaved'), member })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -2338,11 +2355,11 @@ app.delete('/api/super-admin/users/:userId/families/:familyId', requireAuth, req
 
     const member = await FamilyMember.findOne({ userId, familyId })
     if (!member) {
-      return res.status(404).json({ error: 'Rattachement familial introuvable' })
+      return res.status(404).json({ error: req.t('errors.membershipNotFound') })
     }
 
     await FamilyMember.deleteOne({ _id: member._id })
-    res.json({ message: 'Utilisateur retiré de la famille avec succès' })
+    res.json({ message: req.t('messages.userRemovedFromFamily') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -2354,18 +2371,18 @@ app.delete('/api/super-admin/users/:userId', requireAuth, requireSuperAdmin, asy
     const userId = Number(req.params.userId)
 
     if (req.user.id === userId) {
-      return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte Super Administrateur' })
+      return res.status(400).json({ error: req.t('errors.cannotDeleteOwnSuperAdmin') })
     }
 
     const user = await User.findOne({ id: userId })
     if (!user) {
-      return res.status(404).json({ error: 'Utilisateur introuvable' })
+      return res.status(404).json({ error: req.t('errors.userNotFound') })
     }
 
     if (user.isSuperAdmin) {
       const superAdminCount = await User.countDocuments({ isSuperAdmin: true })
       if (superAdminCount <= 1) {
-        return res.status(400).json({ error: 'Impossible de supprimer le dernier Super Administrateur de la plateforme' })
+        return res.status(400).json({ error: req.t('errors.lastSuperAdminDelete') })
       }
     }
 
@@ -2375,7 +2392,7 @@ app.delete('/api/super-admin/users/:userId', requireAuth, requireSuperAdmin, asy
     await PushSubscription.deleteMany({ userId: user.id })
     await User.deleteOne({ id: user.id })
 
-    res.json({ message: `Le compte de ${user.firstName} ${user.lastName} (${user.email}) a été supprimé avec succès` })
+    res.json({ message: req.t('messages.accountDeletedNamed', { name: `${user.firstName} ${user.lastName}`.trim(), email: user.email }) })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -2432,7 +2449,7 @@ const handleSaveGlobalSmtp = async (req, res) => {
     await config.save()
 
     res.json({
-      message: 'Configuration SMTP globale enregistrée avec succès',
+      message: req.t('messages.smtpSaved'),
       serverUrl: config.serverUrl,
       providerPreset: config.providerPreset,
       host: config.host,
@@ -2478,10 +2495,10 @@ app.put('/api/super-admin/digest-schedule', requireAuth, requireSuperAdmin, asyn
     const minute = Number(digestMinute)
 
     if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
-      return res.status(400).json({ error: 'L\'heure doit être un nombre entier entre 0 et 23' })
+      return res.status(400).json({ error: req.t('errors.hourRange') })
     }
     if (!Number.isInteger(minute) || minute < 0 || minute > 59) {
-      return res.status(400).json({ error: 'Les minutes doivent être un nombre entier entre 0 et 59' })
+      return res.status(400).json({ error: req.t('errors.minuteRange') })
     }
 
     let config = await GlobalConfig.findOne()
@@ -2491,7 +2508,7 @@ app.put('/api/super-admin/digest-schedule', requireAuth, requireSuperAdmin, asyn
     config.digestMinute = minute
     await config.save()
 
-    res.json({ message: 'Heure du récapitulatif quotidien mise à jour', digestHour: config.digestHour, digestMinute: config.digestMinute })
+    res.json({ message: req.t('messages.digestScheduleSaved'), digestHour: config.digestHour, digestMinute: config.digestMinute })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -2509,7 +2526,7 @@ app.put('/api/super-admin/legal', requireAuth, requireSuperAdmin, async (req, re
     if (privacyPolicy !== undefined) config.privacyPolicy = privacyPolicy
     await config.save()
 
-    res.json({ message: 'Contenu légal mis à jour', legalNotice: config.legalNotice, privacyPolicy: config.privacyPolicy })
+    res.json({ message: req.t('messages.legalSaved'), legalNotice: config.legalNotice, privacyPolicy: config.privacyPolicy })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -2520,7 +2537,7 @@ app.post('/api/super-admin/smtp/test', authRateLimiter, requireAuth, requireSupe
   try {
     const recipientEmail = req.body.recipientEmail || req.user?.email
     if (!recipientEmail || !recipientEmail.trim()) {
-      return res.status(400).json({ error: 'Veuillez renseigner une adresse email destinataire' })
+      return res.status(400).json({ error: req.t('errors.recipientRequired') })
     }
 
     const stored = await GlobalConfig.findOne()
@@ -2540,26 +2557,26 @@ app.post('/api/super-admin/smtp/test', authRateLimiter, requireAuth, requireSupe
     if (!isEmailConfigUsable(testConfig)) {
       return res.status(400).json({
         error: providerPreset === 'brevo-api'
-          ? 'Veuillez renseigner la clé API Brevo et une adresse d\'expédition'
-          : 'Veuillez renseigner l\'hôte, l\'utilisateur et le mot de passe SMTP'
+          ? req.t('errors.brevoFieldsRequired')
+          : req.t('errors.smtpFieldsRequired')
       })
     }
 
     await sendEmailWithConfig(testConfig, {
       to: recipientEmail.trim(),
-      subject: '✨ Test de connexion SMTP Plateforme - FamilyGest',
+      subject: `✨ ${req.t('email.smtpTest.subject')}`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
-          <h2 style="color: #4f46e5;">Connexion SMTP Plateforme Réussie !</h2>
-          <p>Le serveur SMTP global de FamilyGest fonctionne correctement.</p>
-          <p style="color: #64748b; font-size: 13px;">Expédié depuis : ${testConfig.fromEmail}</p>
+          <h2 style="color: #4f46e5;">${req.t('email.smtpTest.title')}</h2>
+          <p>${req.t('email.smtpTest.body')}</p>
+          <p style="color: #64748b; font-size: 13px;">${req.t('email.smtpTest.sentFrom', { email: escapeHtml(testConfig.fromEmail) })}</p>
         </div>
       `
     })
 
-    res.json({ success: true, message: `Email de test plateforme envoyé avec succès à ${recipientEmail.trim()}` })
+    res.json({ success: true, message: req.t('messages.smtpTestSent', { email: recipientEmail.trim() }) })
   } catch (err) {
-    res.status(500).json({ error: `Échec de l'envoi : ${err.message}` })
+    res.status(500).json({ error: req.t('errors.sendFailed', { message: err.message }) })
   }
 })
 
@@ -2686,7 +2703,7 @@ app.put('/api/families/:familySlug/presence-anchor', requireAuth, attachFamilyCo
   try {
     const raw = String(req.body.presenceWeekAnchor || '').trim()
     if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-      return res.status(400).json({ error: 'Date invalide (format attendu : YYYY-MM-DD)' })
+      return res.status(400).json({ error: req.t('errors.invalidDate') })
     }
 
     // Toujours stocker un lundi : la parité se calcule de lundi à lundi, un ancrage en milieu
@@ -2704,7 +2721,7 @@ app.put('/api/families/:familySlug/presence-anchor', requireAuth, attachFamilyCo
 app.post('/api/families/:familySlug/check-email', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const email = String(req.body.email || '').toLowerCase().trim()
-    if (!email) return res.status(400).json({ error: 'Adresse email requise' })
+    if (!email) return res.status(400).json({ error: req.t('errors.emailRequired') })
 
     const existingUser = await User.findOne({ email }).select('id firstName lastName email avatar color')
     if (existingUser) {
@@ -2731,21 +2748,21 @@ app.post('/api/families/:familySlug/check-email', requireAuth, attachFamilyConte
 app.post('/api/families/:familySlug/invite', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const { email, firstName, lastName, role, isAdmin } = req.body
-    if (!email) return res.status(400).json({ error: 'Adresse email requise' })
+    if (!email) return res.status(400).json({ error: req.t('errors.emailRequired') })
 
     const cleanEmail = email.toLowerCase().trim()
 
     // Vérifier le quota
     const currentMemberCount = await FamilyMember.countDocuments({ familyId: req.family._id })
     if (currentMemberCount >= req.family.maxMembers) {
-      return res.status(400).json({ error: `Le quota maximal de cette famille (${req.family.maxMembers} membres) est atteint` })
+      return res.status(400).json({ error: req.t('errors.quotaReached', { max: req.family.maxMembers }) })
     }
 
     const existingUser = await User.findOne({ email: cleanEmail })
     if (existingUser) {
       const alreadyMember = await FamilyMember.findOne({ familyId: req.family._id, userId: existingUser.id })
       if (alreadyMember) {
-        return res.status(400).json({ error: 'Cet utilisateur fait déjà partie de la famille' })
+        return res.status(400).json({ error: req.t('errors.alreadyInFamily') })
       }
     }
 
@@ -2772,7 +2789,8 @@ app.post('/api/families/:familySlug/invite', requireAuth, attachFamilyContext, r
       family: req.family,
       invitationToken: token,
       isExistingUser: Boolean(existingUser),
-      invitedByName: `${req.user.firstName} ${req.user.lastName}`
+      invitedByName: `${req.user.firstName} ${req.user.lastName}`,
+      lang: existingUser?.language || req.lang
     })
     logAlertEntry({
       family: req.family,
@@ -2787,7 +2805,7 @@ app.post('/api/families/:familySlug/invite', requireAuth, attachFamilyContext, r
 
     res.json({
       success: true,
-      message: `Invitation envoyée avec succès à ${cleanEmail}`,
+      message: req.t('messages.invitationSent', { email: cleanEmail }),
       token
     })
   } catch (err) {
@@ -2801,14 +2819,14 @@ app.post('/api/families/:familySlug/invite', requireAuth, attachFamilyContext, r
 app.get('/api/invitations/:token', async (req, res) => {
   try {
     const invitation = await FamilyInvitation.findOne({ token: req.params.token })
-    if (!invitation) return res.status(404).json({ error: 'Invitation introuvable' })
+    if (!invitation) return res.status(404).json({ error: req.t('errors.invitationNotFound') })
 
     if (invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
-      return res.status(400).json({ error: 'Cette invitation a expiré ou a déjà été utilisée' })
+      return res.status(400).json({ error: req.t('errors.invitationExpired') })
     }
 
     const family = await Family.findById(invitation.familyId)
-    if (!family) return res.status(404).json({ error: 'Famille introuvable' })
+    if (!family) return res.status(404).json({ error: req.t('errors.familyNotFound') })
 
     const existingUser = await User.findOne({ email: invitation.email })
 
@@ -2849,14 +2867,14 @@ app.get('/api/invitations/:token', async (req, res) => {
 app.post('/api/invitations/:token/accept', authRateLimiter, async (req, res) => {
   try {
     const invitation = await FamilyInvitation.findOne({ token: req.params.token })
-    if (!invitation) return res.status(404).json({ error: 'Invitation introuvable' })
+    if (!invitation) return res.status(404).json({ error: req.t('errors.invitationNotFound') })
 
     if (invitation.status !== 'pending' || invitation.expiresAt < new Date()) {
-      return res.status(400).json({ error: 'Cette invitation a expiré ou a déjà été utilisée' })
+      return res.status(400).json({ error: req.t('errors.invitationExpired') })
     }
 
     const family = await Family.findById(invitation.familyId)
-    if (!family) return res.status(404).json({ error: 'Famille introuvable' })
+    if (!family) return res.status(404).json({ error: req.t('errors.familyNotFound') })
 
     let user = await User.findOne({ email: invitation.email })
     let alreadyMember = false
@@ -2868,7 +2886,7 @@ app.post('/api/invitations/:token/accept', authRateLimiter, async (req, res) => 
     if (!alreadyMember) {
       const currentMemberCount = await FamilyMember.countDocuments({ familyId: family._id })
       if (currentMemberCount >= family.maxMembers) {
-        return res.status(400).json({ error: `Le quota de membres pour la famille "${family.name}" est atteint` })
+        return res.status(400).json({ error: req.t('errors.quotaReachedFamily', { family: family.name }) })
       }
     }
 
@@ -2896,12 +2914,12 @@ app.post('/api/invitations/:token/accept', authRateLimiter, async (req, res) => 
       }
     } else {
       // Nouvel utilisateur : création complète
-      const { password, firstName, lastName, avatar, color, usualPresence, role } = req.body
+      const { password, firstName, lastName, avatar, color, usualPresence, role, language } = req.body
       if (!password) {
-        return res.status(400).json({ error: 'Veuillez définir un mot de passe' })
+        return res.status(400).json({ error: req.t('errors.passwordRequired') })
       }
 
-      const pwdCheck = validatePasswordSecurity(password)
+      const pwdCheck = validatePasswordSecurity(password, req.t)
       if (!pwdCheck.valid) {
         return res.status(400).json({ error: pwdCheck.error })
       }
@@ -2923,7 +2941,9 @@ app.post('/api/invitations/:token/accept', authRateLimiter, async (req, res) => 
         isAdmin: false, // Les droits admin sont purement familiaux (sur FamilyMember)
         isSuperAdmin: false,
         role: assignedRole,
-        usualPresence: usualPresence || 'present'
+        usualPresence: usualPresence || 'present',
+        // Langue choisie sur l'écran d'invitation (absente tant que le multilingue n'est pas activé)
+        language: normalizeLanguage(language)
       })
       await user.save()
 
@@ -2957,7 +2977,8 @@ app.post('/api/invitations/:token/accept', authRateLimiter, async (req, res) => 
         color: user.color,
         isSuperAdmin: Boolean(user.isSuperAdmin),
         isAdmin: Boolean(user.isSuperAdmin),
-        role: user.role
+        role: user.role,
+        language: user.language || null
       }
     })
   } catch (err) {
@@ -3051,7 +3072,7 @@ app.post('/api/members', requireAuth, attachFamilyContext, requireFamilyAdmin, a
     // Vérification du quota
     const currentMemberCount = await FamilyMember.countDocuments({ familyId: req.family._id })
     if (currentMemberCount >= req.family.maxMembers) {
-      return res.status(400).json({ error: `Le quota maximal de cette famille (${req.family.maxMembers} membres) est atteint` })
+      return res.status(400).json({ error: req.t('errors.quotaReached', { max: req.family.maxMembers }) })
     }
 
     const fName = firstName || (name ? name.split(' ')[0] : 'Membre')
@@ -3060,7 +3081,7 @@ app.post('/api/members', requireAuth, attachFamilyContext, requireFamilyAdmin, a
     const userPassword = password || 'Family2026!*'
 
     if (password && password.trim()) {
-      const pwdCheck = validatePasswordSecurity(password.trim())
+      const pwdCheck = validatePasswordSecurity(password.trim(), req.t)
       if (!pwdCheck.valid) {
         return res.status(400).json({ error: pwdCheck.error })
       }
@@ -3070,7 +3091,7 @@ app.post('/api/members', requireAuth, attachFamilyContext, requireFamilyAdmin, a
     if (user) {
       const already = await FamilyMember.findOne({ familyId: req.family._id, userId: user.id })
       if (already) {
-        return res.status(400).json({ error: 'Ce membre fait déjà partie de la famille' })
+        return res.status(400).json({ error: req.t('errors.memberAlreadyInFamily') })
       }
     } else {
       const highestUser = await User.findOne().sort('-id')
@@ -3097,7 +3118,7 @@ app.post('/api/members', requireAuth, attachFamilyContext, requireFamilyAdmin, a
       await user.save()
 
       // Envoi de l'email de bienvenue
-      sendWelcomeEmail(user, welcomeToken)
+      sendWelcomeEmail(user, welcomeToken, user.language || req.lang)
         .then(result => logAlertEntry({
           family: req.family,
           actor: req.user,
@@ -3133,10 +3154,10 @@ app.put('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAdmin
   try {
     const memberId = Number(req.params.id)
     const user = await User.findOne({ id: memberId })
-    if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
+    if (!user) return res.status(404).json({ error: req.t('errors.memberNotFound') })
 
     const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: memberId })
-    if (!membership) return res.status(404).json({ error: 'Membre non trouvé dans cette famille' })
+    if (!membership) return res.status(404).json({ error: req.t('errors.memberNotInFamily') })
 
     const { name, firstName, lastName, email, password, role, avatar, color, points, isAdmin, usualPresence, usualPresenceConfig } = req.body
 
@@ -3173,12 +3194,12 @@ app.put('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAdmin
     if (isAdmin !== undefined && isAdmin !== null) {
       const newAdminState = Boolean(isAdmin)
       if (user.id === req.user.id && !newAdminState && membership.isAdmin) {
-        return res.status(400).json({ error: 'Vous ne pouvez pas retirer vos propres privilèges d\'administrateur' })
+        return res.status(400).json({ error: req.t('errors.cannotRemoveOwnAdmin') })
       }
       if (membership.isAdmin && !newAdminState) {
         const adminCount = await FamilyMember.countDocuments({ familyId: req.family._id, isAdmin: true })
         if (adminCount <= 1) {
-          return res.status(400).json({ error: 'Impossible de retirer le statut administrateur car il s\'agit du dernier administrateur de cette famille.' })
+          return res.status(400).json({ error: req.t('errors.lastAdminDemote') })
         }
       }
       membership.isAdmin = newAdminState
@@ -3187,13 +3208,13 @@ app.put('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAdmin
     if (email && email.toLowerCase().trim() !== user.email) {
       const existing = await User.findOne({ email: email.toLowerCase().trim() })
       if (existing && existing.id !== user.id) {
-        return res.status(400).json({ error: 'Un membre avec cette adresse email existe déjà' })
+        return res.status(400).json({ error: req.t('errors.memberEmailExists') })
       }
       user.email = email.toLowerCase().trim()
     }
 
     if (password && password.trim().length > 0) {
-      const pwdCheck = validatePasswordSecurity(password.trim())
+      const pwdCheck = validatePasswordSecurity(password.trim(), req.t)
       if (!pwdCheck.valid) {
         return res.status(400).json({ error: pwdCheck.error })
       }
@@ -3219,14 +3240,14 @@ app.put('/api/members/:id/usual-presence', requireAuth, attachFamilyContext, asy
     const memberId = Number(req.params.id)
     const isSelf = memberId === req.user.id
     if (!isSelf && !req.membership?.isAdmin && !req.user?.isSuperAdmin) {
-      return res.status(403).json({ error: 'Vous ne pouvez modifier que votre propre présence habituelle' })
+      return res.status(403).json({ error: req.t('errors.ownUsualPresenceOnly') })
     }
 
     const user = await User.findOne({ id: memberId })
-    if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
+    if (!user) return res.status(404).json({ error: req.t('errors.memberNotFound') })
 
     const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: memberId })
-    if (!membership) return res.status(404).json({ error: 'Membre non trouvé dans cette famille' })
+    if (!membership) return res.status(404).json({ error: req.t('errors.memberNotInFamily') })
 
     // On fusionne avec la config stockée avant de normaliser, pour accepter un patch partiel
     // (par exemple n'envoyer que weekB). La normalisation élimine au passage les clés inconnues
@@ -3260,19 +3281,19 @@ app.put('/api/members/:id/toggle-admin', requireAuth, attachFamilyContext, requi
   try {
     const memberId = Number(req.params.id)
     const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: memberId })
-    if (!membership) return res.status(404).json({ error: 'Membre non trouvé dans cette famille' })
+    if (!membership) return res.status(404).json({ error: req.t('errors.memberNotInFamily') })
 
     const user = await User.findOne({ id: memberId })
-    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
+    if (!user) return res.status(404).json({ error: req.t('errors.userNotFound') })
 
     if (user.id === req.user.id && membership.isAdmin) {
-      return res.status(400).json({ error: 'Vous ne pouvez pas retirer vos propres privilèges d\'administrateur' })
+      return res.status(400).json({ error: req.t('errors.cannotRemoveOwnAdmin') })
     }
 
     if (membership.isAdmin) {
       const adminCount = await FamilyMember.countDocuments({ familyId: req.family._id, isAdmin: true })
       if (adminCount <= 1) {
-        return res.status(400).json({ error: 'Impossible de retirer le statut administrateur car il s\'agit du dernier administrateur de cette famille.' })
+        return res.status(400).json({ error: req.t('errors.lastAdminDemote') })
       }
     }
 
@@ -3301,20 +3322,20 @@ app.delete('/api/members/:id', requireAuth, attachFamilyContext, requireFamilyAd
   try {
     const memberId = Number(req.params.id)
     if (req.user.id === memberId) {
-      return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte de la famille' })
+      return res.status(400).json({ error: req.t('errors.cannotRemoveSelf') })
     }
     const membership = await FamilyMember.findOne({ familyId: req.family._id, userId: memberId })
-    if (!membership) return res.status(404).json({ error: 'Membre non trouvé dans cette famille' })
+    if (!membership) return res.status(404).json({ error: req.t('errors.memberNotInFamily') })
 
     if (membership.isAdmin) {
       const adminCount = await FamilyMember.countDocuments({ familyId: req.family._id, isAdmin: true })
       if (adminCount <= 1) {
-        return res.status(400).json({ error: 'Impossible de supprimer cet administrateur car il s\'agit du dernier administrateur de cette famille.' })
+        return res.status(400).json({ error: req.t('errors.lastAdminDelete') })
       }
     }
 
     await FamilyMember.deleteOne({ familyId: req.family._id, userId: memberId })
-    res.json({ message: 'Membre retiré de la famille' })
+    res.json({ message: req.t('messages.memberRemoved') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -3325,12 +3346,12 @@ app.post('/api/members/:id/resend-welcome', requireAuth, attachFamilyContext, re
   try {
     const memberId = Number(req.params.id)
     const user = await User.findOne({ id: memberId })
-    if (!user) return res.status(404).json({ error: 'Membre non trouvé' })
+    if (!user) return res.status(404).json({ error: req.t('errors.memberNotFound') })
 
     const config = await getSmtpConfig()
     if (!config || !config.isConfigured || !config.host || !config.user || !config.pass) {
       return res.status(400).json({ 
-        error: 'Le serveur email SMTP n\'est pas encore configuré. Rendez-vous dans Administration pour le paramétrer.' 
+        error: req.t('errors.smtpNotConfigured') 
       })
     }
 
@@ -3339,7 +3360,7 @@ app.post('/api/members/:id/resend-welcome', requireAuth, attachFamilyContext, re
     user.welcomeTokenExpires = new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 heures
     await user.save()
 
-    const emailResult = await sendWelcomeEmail(user, welcomeToken)
+    const emailResult = await sendWelcomeEmail(user, welcomeToken, user.language || req.lang)
     logAlertEntry({
       family: req.family,
       actor: req.user,
@@ -3354,11 +3375,11 @@ app.post('/api/members/:id/resend-welcome', requireAuth, attachFamilyContext, re
     if (emailResult.success) {
       res.json({ 
         success: true, 
-        message: `Email de bienvenue renvoyé avec succès à ${user.email} (lien valable 2 heures)` 
+        message: req.t('messages.welcomeResent', { email: user.email }) 
       })
     } else {
       res.status(500).json({ 
-        error: `Erreur lors de l'envoi SMTP : ${emailResult.error || 'Vérifiez la configuration email'}` 
+        error: req.t('errors.smtpSend', { message: emailResult.error || req.t('errors.checkEmailConfig') }) 
       })
     }
   } catch (err) {
@@ -3405,29 +3426,30 @@ const normalizeTaskDueDate = (raw) => {
   return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d ? value : null
 }
 
-// Met à jour partiellement une tâche (pas de route HTTP équivalente avant l'ajout du connecteur MCP).
-// Libellés des champs d'une tâche suivis dans la notification de modification.
-const TASK_FIELD_LABELS = {
-  title: 'Titre',
-  assignedTo: 'Assignée à',
-  dueDate: 'Échéance',
-  priority: 'Priorité',
-  category: 'Catégorie',
-  points: 'Récompense',
-  notes: 'Notes'
+// Champs d'une tâche suivis dans la notification de modification (libellés : notify.task.fields.*)
+const TASK_TRACKED_FIELDS = ['title', 'assignedTo', 'dueDate', 'priority', 'category', 'points', 'notes']
+
+// Noms des personnes assignées (avant/après), résolus une fois pour toutes les langues
+const loadAssigneeNames = async (ids) => {
+  const users = await User.find({ id: { $in: ids.filter(id => id != null) } }).select('id firstName lastName')
+  return new Map(users.map(u => [u.id, `${u.firstName} ${u.lastName}`.trim()]))
 }
 
-const formatTaskFieldValue = async (field, value) => {
-  if (value === null || value === undefined || value === '') return 'aucune'
-  if (field === 'assignedTo') {
-    const user = await User.findOne({ id: value }).select('firstName lastName')
-    return user ? `${user.firstName} ${user.lastName}`.trim() : 'Non assignée'
-  }
-  if (field === 'dueDate') {
-    return new Date(`${value}T12:00:00Z`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
-  }
-  if (field === 'points') return `+${value} pts`
+// Valeur lisible d'un champ de tâche, dans la langue du destinataire
+const formatTaskFieldValue = (t, field, value, names) => {
+  if (value === null || value === undefined || value === '') return t('notify.task.none')
+  if (field === 'assignedTo') return names.get(value) || t('notify.task.unassigned')
+  if (field === 'dueDate') return formatDateOnly(t.lang, value, { weekday: 'long', day: 'numeric', month: 'long' })
+  if (field === 'points') return t('notify.task.points', { n: value })
+  if (field === 'priority') return translateValue(t, 'taskPriority', value)
+  if (field === 'category') return translateValue(t, 'taskCategory', value)
   return String(value)
+}
+
+// « Marie » ou « Marie via l'assistant » (écritures faites depuis le connecteur MCP)
+const authorLabel = (t, actor, via) => {
+  const name = actor ? actor.firstName : t('notify.aMember')
+  return via === 'assistant' ? t('notify.viaAssistant', { name }) : name
 }
 
 // Prévient la personne assignée (et l'ancienne en cas de réassignation) qu'une tâche a été
@@ -3435,22 +3457,20 @@ const formatTaskFieldValue = async (field, value) => {
 // n'est jamais notifié. Tâche de fond : ne doit pas faire échouer l'appelant.
 const notifyTaskUpdated = async ({ family, actor, task, before, via = null }) => {
   const normalize = (v) => (v === undefined || v === '' ? null : v)
-  const changedFields = Object.keys(TASK_FIELD_LABELS).filter(f => normalize(before[f]) !== normalize(task[f]))
+  const changedFields = TASK_TRACKED_FIELDS.filter(f => normalize(before[f]) !== normalize(task[f]))
   if (changedFields.length === 0) return
 
   const recipientUserIds = [...new Set([task.assignedTo, before.assignedTo])]
     .filter(id => id != null && id !== actor?.id)
   if (recipientUserIds.length === 0) return
 
-  const changes = await Promise.all(changedFields.map(async (field) => ({
+  const names = await loadAssigneeNames([task.assignedTo, before.assignedTo])
+  const changesFor = (t) => changedFields.map(field => ({
     field,
-    label: TASK_FIELD_LABELS[field],
-    from: await formatTaskFieldValue(field, before[field]),
-    to: await formatTaskFieldValue(field, task[field])
-  })))
-
-  const authorName = actor ? actor.firstName : 'Un membre'
-  const authorSuffix = via ? ` ${via}` : ''
+    label: t(`notify.task.fields.${field}`),
+    from: formatTaskFieldValue(t, field, before[field], names),
+    to: formatTaskFieldValue(t, field, task[field], names)
+  }))
   const url = `/${family.slug}/tasks`
 
   await dispatchFamilyAlert({
@@ -3458,30 +3478,33 @@ const notifyTaskUpdated = async ({ family, actor, task, before, via = null }) =>
     actor,
     action: ALERT_ACTIONS.TASK_UPDATED.code,
     actionLabel: ALERT_ACTIONS.TASK_UPDATED.label,
-    title: `Tâche modifiée : ${task.title}`,
+    title: (t) => t('notify.task.updatedTitle', { title: task.title }),
     targetType: 'task',
     targetId: task.id,
     push: {
-      title: `✏️ Tâche modifiée : ${task.title}`,
+      title: (t) => `✏️ ${t('notify.task.updatedTitle', { title: task.title })}`,
       // Les notes (texte long) ne sont que signalées dans le push ; leur contenu est dans l'email.
-      body: `${changes.map(c => c.field === 'notes' ? 'Notes modifiées' : `${c.label} : ${c.to}`).join(' • ')} • Par ${authorName}${authorSuffix}`,
+      body: (t) => [
+        ...changesFor(t).map(c => c.field === 'notes' ? t('notify.task.notesChanged') : `${c.label} : ${c.to}`),
+        t('notify.by', { name: authorLabel(t, actor, via) })
+      ].join(' • '),
       url,
       recipientUserIds
     },
     email: {
-      subject: `✏️ Tâche modifiée : ${task.title}`,
-      title: 'Tâche modifiée',
+      subject: (t) => `✏️ ${t('notify.task.updatedTitle', { title: task.title })}`,
+      title: (t) => t('notify.task.updatedHeading'),
       badge: '✏️',
-      detailsHtml: `
+      detailsHtml: (t) => `
         <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-          <strong>${escapeHtml(authorName)}</strong>${escapeHtml(authorSuffix)} a modifié la tâche <strong>${escapeHtml(task.title)}</strong> :
+          ${t('notify.task.updatedIntro', { author: `<strong>${escapeHtml(authorLabel(t, actor, via))}</strong>`, title: `<strong>${escapeHtml(task.title)}</strong>` })}
         </p>
         <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-          ${changes.map(c => `<li><strong>${c.label} :</strong> <span style="color:#94a3b8; text-decoration: line-through;">${escapeHtml(c.from)}</span> → <strong>${escapeHtml(c.to)}</strong></li>`).join('')}
+          ${changesFor(t).map(c => `<li><strong>${t('notify.label', { label: c.label })}</strong> <span style="color:#94a3b8; text-decoration: line-through;">${escapeHtml(c.from)}</span> → <strong>${escapeHtml(c.to)}</strong></li>`).join('')}
         </ul>
       `,
       actionUrl: url,
-      actionText: 'Voir les tâches',
+      actionText: (t) => t('notify.task.viewTasks'),
       recipientUserIds
     }
   })
@@ -3493,9 +3516,7 @@ const notifyTaskCreated = async ({ family, actor, task, via = null }) => {
   if (task.assignedTo == null || task.assignedTo === actor?.id) return
   const recipientUserIds = [task.assignedTo]
 
-  const authorName = actor ? actor.firstName : 'Un membre'
-  const authorSuffix = via ? ` ${via}` : ''
-  const dueLabel = task.dueDate ? await formatTaskFieldValue('dueDate', task.dueDate) : null
+  const dueLabel = (t) => (task.dueDate ? formatTaskFieldValue(t, 'dueDate', task.dueDate) : null)
   const url = `/${family.slug}/tasks`
 
   await dispatchFamilyAlert({
@@ -3503,39 +3524,39 @@ const notifyTaskCreated = async ({ family, actor, task, via = null }) => {
     actor,
     action: ALERT_ACTIONS.TASK_CREATED.code,
     actionLabel: ALERT_ACTIONS.TASK_CREATED.label,
-    title: `Nouvelle tâche : ${task.title}`,
+    title: (t) => t('notify.task.createdTitle', { title: task.title }),
     targetType: 'task',
     targetId: task.id,
     push: {
-      title: `📋 Nouvelle tâche : ${task.title}`,
-      body: [
-        'Assignée à vous',
-        `+${task.points} pts`,
-        dueLabel ? `Échéance : ${dueLabel}` : null,
-        `Ajoutée par ${authorName}${authorSuffix}`
+      title: (t) => `📋 ${t('notify.task.createdTitle', { title: task.title })}`,
+      body: (t) => [
+        t('notify.task.assignedToYou'),
+        t('notify.task.points', { n: task.points }),
+        dueLabel(t) ? t('notify.task.due', { date: dueLabel(t) }) : null,
+        t('notify.task.addedBy', { name: authorLabel(t, actor, via) })
       ].filter(Boolean).join(' • '),
       url,
       recipientUserIds
     },
     email: {
-      subject: `📋 Nouvelle tâche : ${task.title}`,
-      title: 'Nouvelle tâche pour vous',
+      subject: (t) => `📋 ${t('notify.task.createdTitle', { title: task.title })}`,
+      title: (t) => t('notify.task.createdHeading'),
       badge: '📋',
-      detailsHtml: `
+      detailsHtml: (t) => `
         <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-          <strong>${escapeHtml(authorName)}</strong>${escapeHtml(authorSuffix)} vous a assigné une nouvelle tâche :
+          ${t('notify.task.createdIntro', { author: `<strong>${escapeHtml(authorLabel(t, actor, via))}</strong>` })}
         </p>
         <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-          <li><strong>Titre :</strong> ${escapeHtml(task.title)}</li>
-          <li><strong>Catégorie :</strong> ${escapeHtml(task.category || 'Maison')}</li>
-          <li><strong>Priorité :</strong> ${escapeHtml(task.priority || 'Moyenne')}</li>
-          <li><strong>Récompense :</strong> +${task.points} pts</li>
-          ${dueLabel ? `<li><strong>Échéance :</strong> ${escapeHtml(dueLabel)}</li>` : ''}
-          ${task.notes ? `<li><strong>Notes :</strong> ${escapeHtml(task.notes).replace(/\n/g, '<br/>')}</li>` : ''}
+          <li><strong>${t('notify.label', { label: t('notify.task.fields.title') })}</strong> ${escapeHtml(task.title)}</li>
+          <li><strong>${t('notify.label', { label: t('notify.task.fields.category') })}</strong> ${escapeHtml(translateValue(t, 'taskCategory', task.category || 'Maison'))}</li>
+          <li><strong>${t('notify.label', { label: t('notify.task.fields.priority') })}</strong> ${escapeHtml(translateValue(t, 'taskPriority', task.priority || 'Moyenne'))}</li>
+          <li><strong>${t('notify.label', { label: t('notify.task.fields.points') })}</strong> ${t('notify.task.points', { n: task.points })}</li>
+          ${dueLabel(t) ? `<li><strong>${t('notify.label', { label: t('notify.task.fields.dueDate') })}</strong> ${escapeHtml(dueLabel(t))}</li>` : ''}
+          ${task.notes ? `<li><strong>${t('notify.label', { label: t('notify.task.fields.notes') })}</strong> ${escapeHtml(task.notes).replace(/\n/g, '<br/>')}</li>` : ''}
         </ul>
       `,
       actionUrl: url,
-      actionText: 'Voir mes tâches',
+      actionText: (t) => t('notify.task.viewMyTasks'),
       recipientUserIds
     }
   })
@@ -3547,7 +3568,7 @@ const updateTask = async ({ familyId, taskId, fields, family = null, actor = nul
   const task = await Task.findOne({ id: Number(taskId), familyId })
   if (!task) return null
 
-  const before = Object.fromEntries(Object.keys(TASK_FIELD_LABELS).map(f => [f, task[f]]))
+  const before = Object.fromEntries(TASK_TRACKED_FIELDS.map(f => [f, task[f]]))
   const { title, category, assignedTo, priority, points, dueDate, notes } = fields
   if (title !== undefined) task.title = String(title).trim()
   if (category !== undefined) task.category = category
@@ -3603,7 +3624,7 @@ app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
 app.put('/api/tasks/:id/toggle', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const task = await toggleTaskCompletion({ familyId: req.family._id, taskId: req.params.id })
-    if (!task) return res.status(404).json({ error: 'Tâche non trouvée' })
+    if (!task) return res.status(404).json({ error: req.t('errors.taskNotFound') })
     res.json(task)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -3613,7 +3634,7 @@ app.put('/api/tasks/:id/toggle', requireAuth, attachFamilyContext, async (req, r
 app.put('/api/tasks/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const task = await updateTask({ familyId: req.family._id, taskId: req.params.id, fields: req.body, family: req.family, actor: req.user })
-    if (!task) return res.status(404).json({ error: 'Tâche non trouvée' })
+    if (!task) return res.status(404).json({ error: req.t('errors.taskNotFound') })
     res.json(task)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -3623,7 +3644,7 @@ app.put('/api/tasks/:id', requireAuth, attachFamilyContext, async (req, res) => 
 app.delete('/api/tasks/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     await Task.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
-    res.json({ message: 'Tâche supprimée' })
+    res.json({ message: req.t('messages.taskDeleted') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -3643,7 +3664,7 @@ app.get('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
 // optionnelle d'absences liées. Ne construit aucune notification — le contenu push/email diffère selon
 // le contexte (route HTTP vs outil MCP) et reste à la charge de l'appelant. Partagée par la route HTTP
 // et l'outil MCP create_event.
-const createEventOrSeries = async ({ familyId, body, declaredBy }) => {
+const createEventOrSeries = async ({ familyId, body, declaredBy, lang = null }) => {
   const { title, date, time, endTime, category, location, color, assignedTo, recurrence, generateAbsence, absenceSlots } = body
   const memberIdsInput = Array.isArray(body.memberIds) ? body.memberIds.map(Number) : []
 
@@ -3652,15 +3673,15 @@ const createEventOrSeries = async ({ familyId, body, declaredBy }) => {
     const interval = Math.max(1, Number(recurrence.interval) || 1)
 
     if (!['daily', 'weekly', 'monthly'].includes(frequency)) {
-      throw new Error('Fréquence de récurrence invalide')
+      throw new TranslatableError('errors.recurrence.invalidFrequency')
     }
     if (!endDate || endDate < date) {
-      throw new Error("La date de fin de récurrence doit être postérieure ou égale à la date de l'événement")
+      throw new TranslatableError('errors.recurrence.endBeforeStart')
     }
 
     const { dates, truncated } = getRecurrenceDates(date, frequency, interval, endDate)
     if (dates.length === 0) {
-      throw new Error('Aucune occurrence à générer pour cette récurrence')
+      throw new TranslatableError('errors.recurrence.noOccurrence')
     }
 
     const recurrenceMeta = { frequency, interval, endDate }
@@ -3702,7 +3723,7 @@ const createEventOrSeries = async ({ familyId, body, declaredBy }) => {
             lunch: Boolean(absenceSlots.lunch),
             dinner: Boolean(absenceSlots.dinner),
             night: Boolean(absenceSlots.night),
-            note: `Événement : ${title}`,
+            note: t(lang, 'notes.eventAbsence', { title }),
             declaredBy: declaredBy ?? null,
             eventId: occurrence.id,
             recurrenceId: baseId
@@ -3745,52 +3766,120 @@ const createEventOrSeries = async ({ familyId, body, declaredBy }) => {
   return { isRecurring: false, event: newEvent }
 }
 
+// « vendredi 25 septembre à 15:00 - 17:00 »
+const eventWhen = (t, event) => {
+  const date = readableDate(t, event.date)
+  if (!event.time) return date
+  return event.endTime
+    ? t('notify.event.whenRange', { date, start: event.time, end: event.endTime })
+    : t('notify.event.whenTime', { date, time: event.time })
+}
+
+// Notification (push + email avec liens d'agenda) d'un événement simple créé ou modifié
+const notifyEventChanged = async ({ req, event, created }) => {
+  const emailConfig = await getSmtpConfig()
+  const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
+  const icsDownloadUrl = (t) => `${baseServerUrl}/api/events/${event.id}/ics?token=${event.icsToken}&lang=${t.lang}`
+  const author = (t) => authorLabel(t, req.user)
+  const kind = created ? 'created' : 'updated'
+  const badge = created ? '📅' : '✏️'
+  const where = event.location ? ` (${event.location})` : ''
+
+  await dispatchFamilyAlert({
+    family: req.family,
+    actor: req.user,
+    action: created ? ALERT_ACTIONS.EVENT_CREATED.code : ALERT_ACTIONS.EVENT_UPDATED.code,
+    actionLabel: created ? ALERT_ACTIONS.EVENT_CREATED.label : ALERT_ACTIONS.EVENT_UPDATED.label,
+    title: (t) => t(`notify.event.${kind}Title`, { title: event.title }),
+    targetType: 'event',
+    targetId: event.id,
+    push: {
+      title: (t) => `${badge} ${t(`notify.event.${kind}Title`, { title: event.title })}`,
+      body: (t) => `${eventWhen(t, event)}${where} • ${t(created ? 'notify.addedBy' : 'notify.updatedBy', { name: author(t) })}`,
+      url: `/${req.family.slug}/calendar`,
+      actions: (t) => [
+        { action: 'open', title: t(created ? 'notify.event.pushView' : 'notify.event.pushViewCalendar') },
+        { action: 'add-google', title: `📅 ${t(created ? 'notify.event.pushGoogle' : 'notify.event.pushUpdate')}` }
+      ],
+      googleCalendarUrl: (t) => generateServerGoogleCalendarUrl(event, t.lang)
+    },
+    email: {
+      subject: (t) => `${badge} ${t(`notify.event.${kind}Subject`, { title: event.title })}`,
+      title: (t) => t(`notify.event.${kind}Heading`),
+      badge,
+      detailsHtml: (t) => `
+        <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+          ${t(`notify.event.${kind}Intro`, { author: `<strong>${escapeHtml(author(t))}</strong>` })}
+        </p>
+        <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+          <li><strong>${t('notify.label', { label: t('notify.event.fields.title') })}</strong> ${escapeHtml(event.title)}</li>
+          <li><strong>${t('notify.label', { label: t(created ? 'notify.event.fields.date' : 'notify.event.fields.newDate') })}</strong> ${escapeHtml(eventWhen(t, event))}</li>
+          ${event.location ? `<li><strong>${t('notify.label', { label: t('notify.event.fields.location') })}</strong> ${escapeHtml(event.location)}</li>` : ''}
+          <li><strong>${t('notify.label', { label: t('notify.event.fields.category') })}</strong> ${escapeHtml(translateValue(t, 'eventCategory', event.category || 'Famille'))}</li>
+        </ul>
+      `,
+      actionUrl: `/${req.family.slug}/calendar`,
+      actionText: (t) => t('notify.event.viewCalendar'),
+      calendarData: (t) => ({
+        googleUrl: generateServerGoogleCalendarUrl(event, t.lang),
+        icsUrl: icsDownloadUrl(t),
+        icsContent: generateServerIcsContent(event, t.lang),
+        eventTitle: event.title
+      })
+    }
+  })
+}
+
 app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     let result
     try {
-      result = await createEventOrSeries({ familyId: req.family._id, body: req.body, declaredBy: req.user ? req.user.id : null })
+      result = await createEventOrSeries({ familyId: req.family._id, body: req.body, declaredBy: req.user ? req.user.id : null, lang: req.lang })
     } catch (e) {
-      return res.status(400).json({ error: e.message })
+      return res.status(400).json({ error: localizeError(req, e) })
     }
 
     if (result.isRecurring) {
       const { events: createdEvents, absences: createdAbsences, truncated, recurrenceId, frequency, interval, endDate, occurrenceCount } = result
 
       // Une seule notification pour toute la série (pas une par occurrence)
-      const authorName = req.user ? req.user.firstName : 'Un membre'
-      const freqLabel = frequency === 'daily' ? 'jour(s)' : frequency === 'weekly' ? 'semaine(s)' : 'mois'
-      const recurrenceLabel = `tous les ${interval > 1 ? interval + ' ' : ''}${freqLabel}`
+      const author = (t) => authorLabel(t, req.user)
+      const recurrenceLabel = (t) => t(`notify.event.every.${frequency}`, { n: interval })
+      const title = escapeHtml(req.body.title)
       dispatchFamilyAlert({
         family: req.family,
         actor: req.user,
         action: ALERT_ACTIONS.EVENT_CREATED.code,
         actionLabel: ALERT_ACTIONS.EVENT_CREATED.label,
-        title: `Nouvel événement récurrent : ${req.body.title}`,
+        title: (t) => t('notify.event.recurringCreatedTitle', { title: req.body.title }),
         targetType: 'event',
         targetId: recurrenceId,
         push: {
-          title: `🔁 Nouvel événement récurrent : ${req.body.title}`,
-          body: `${recurrenceLabel} jusqu'au ${endDate} • ${occurrenceCount} occurrence(s) • Ajouté par ${authorName}`,
+          title: (t) => `🔁 ${t('notify.event.recurringCreatedTitle', { title: req.body.title })}`,
+          body: (t) => [
+            t('notify.event.recurrenceUntil', { recurrence: recurrenceLabel(t), date: readableDate(t, endDate) }),
+            t('notify.event.occurrences', { n: occurrenceCount }),
+            t('notify.addedBy', { name: author(t) })
+          ].join(' • '),
           url: `/${req.family.slug}/calendar`
         },
         email: {
-          subject: `🔁 Nouvel événement récurrent : ${req.body.title}`,
-          title: `Nouvel événement récurrent dans l'agenda`,
+          subject: (t) => `🔁 ${t('notify.event.recurringCreatedTitle', { title: req.body.title })}`,
+          title: (t) => t('notify.event.recurringCreatedHeading'),
           badge: '🔁',
-          detailsHtml: `
+          detailsHtml: (t) => `
             <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-              <strong>${authorName}</strong> a ajouté un événement récurrent au calendrier familial :
+              ${t('notify.event.recurringCreatedIntro', { author: `<strong>${escapeHtml(author(t))}</strong>` })}
             </p>
             <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-              <li><strong>Titre :</strong> ${req.body.title}</li>
-              <li><strong>Récurrence :</strong> ${recurrenceLabel}, jusqu'au ${endDate}</li>
-              <li><strong>Occurrences créées :</strong> ${occurrenceCount}</li>
-              ${req.body.location ? `<li><strong>Lieu :</strong> ${req.body.location}</li>` : ''}
+              <li><strong>${t('notify.label', { label: t('notify.event.fields.title') })}</strong> ${title}</li>
+              <li><strong>${t('notify.label', { label: t('notify.event.fields.recurrence') })}</strong> ${t('notify.event.recurrenceUntil', { recurrence: recurrenceLabel(t), date: readableDate(t, endDate) })}</li>
+              <li><strong>${t('notify.label', { label: t('notify.event.fields.occurrencesCreated') })}</strong> ${occurrenceCount}</li>
+              ${req.body.location ? `<li><strong>${t('notify.label', { label: t('notify.event.fields.location') })}</strong> ${escapeHtml(req.body.location)}</li>` : ''}
             </ul>
           `,
           actionUrl: `/${req.family.slug}/calendar`,
-          actionText: 'Voir dans le calendrier'
+          actionText: (t) => t('notify.event.viewCalendar')
         }
       }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (event.created recurring):', err.message))
 
@@ -3798,61 +3887,8 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
     }
 
     const newEvent = result.event
-
-    // Liens et contenu pour ajout à l'agenda personnel
-    const emailConfig = await getSmtpConfig()
-    const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
-    const googleCalendarUrl = generateServerGoogleCalendarUrl(newEvent)
-    const icsContent = generateServerIcsContent(newEvent)
-    const icsDownloadUrl = `${baseServerUrl}/api/events/${newEvent.id}/ics?token=${newEvent.icsToken}`
-
-    // Notification push pour le nouvel événement agenda avec bouton Google Agenda
-    const authorName = req.user ? req.user.firstName : 'Un membre'
-    const timeStr = newEvent.time ? ` à ${newEvent.time}${newEvent.endTime ? ` - ${newEvent.endTime}` : ''}` : ''
-    const locStr = newEvent.location ? ` (${newEvent.location})` : ''
-    dispatchFamilyAlert({
-      family: req.family,
-      actor: req.user,
-      action: ALERT_ACTIONS.EVENT_CREATED.code,
-      actionLabel: ALERT_ACTIONS.EVENT_CREATED.label,
-      title: `Nouvel événement : ${newEvent.title}`,
-      targetType: 'event',
-      targetId: newEvent.id,
-      push: {
-        title: `📅 Nouvel événement : ${newEvent.title}`,
-        body: `${newEvent.date}${timeStr}${locStr} • Ajouté par ${authorName}`,
-        url: `/${req.family.slug}/calendar`,
-        actions: [
-          { action: 'open', title: 'Voir' },
-          { action: 'add-google', title: '📅 Google Agenda' }
-        ],
-        googleCalendarUrl
-      },
-      email: {
-        subject: `📅 Nouvel événement agenda : ${newEvent.title}`,
-        title: `Nouvel événement dans l'agenda`,
-        badge: '📅',
-        detailsHtml: `
-          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-            <strong>${authorName}</strong> a ajouté un événement au calendrier familial :
-          </p>
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-            <li><strong>Titre :</strong> ${newEvent.title}</li>
-            <li><strong>Date :</strong> ${newEvent.date}${timeStr}</li>
-            ${newEvent.location ? `<li><strong>Lieu :</strong> ${newEvent.location}</li>` : ''}
-            <li><strong>Catégorie :</strong> ${newEvent.category || 'Famille'}</li>
-          </ul>
-        `,
-        actionUrl: `/${req.family.slug}/calendar`,
-        actionText: 'Voir dans le calendrier',
-        calendarData: {
-          googleUrl: googleCalendarUrl,
-          icsUrl: icsDownloadUrl,
-          icsContent,
-          eventTitle: newEvent.title
-        }
-      }
-    }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (event.created):', err.message))
+    notifyEventChanged({ req, event: newEvent, created: true })
+      .catch(err => console.error('[AlertLog] dispatchFamilyAlert (event.created):', err.message))
 
     res.status(201).json(newEvent)
   } catch (err) {
@@ -3863,7 +3899,7 @@ app.post('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
 // Modifie un événement simple, ou toute une série récurrente (scope: 'series') ; régénère les
 // absences liées à la série si generateAbsence est explicitement fourni. Aucune notification ici
 // (contenu push/email à charge de l'appelant). Partagée par la route HTTP et l'outil MCP update_event.
-const updateEventOrSeries = async ({ familyId, eventId, body, declaredBy }) => {
+const updateEventOrSeries = async ({ familyId, eventId, body, declaredBy, lang = null }) => {
   const event = await Event.findOne({ id: Number(eventId), familyId })
   if (!event) return null
 
@@ -3904,7 +3940,7 @@ const updateEventOrSeries = async ({ familyId, eventId, body, declaredBy }) => {
               lunch: Boolean(absenceSlots.lunch),
               dinner: Boolean(absenceSlots.dinner),
               night: Boolean(absenceSlots.night),
-              note: `Événement : ${occ.title}`,
+              note: t(lang, 'notes.eventAbsence', { title: occ.title }),
               declaredBy: declaredBy ?? null,
               eventId: occ.id,
               recurrenceId: event.recurrenceId
@@ -3957,40 +3993,41 @@ const deleteEventOrSeries = async ({ familyId, eventId, scope }) => {
 app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const eventId = Number(req.params.id)
-    const result = await updateEventOrSeries({ familyId: req.family._id, eventId, body: req.body, declaredBy: req.user ? req.user.id : null })
-    if (!result) return res.status(404).json({ error: 'Événement non trouvé' })
+    const result = await updateEventOrSeries({ familyId: req.family._id, eventId, body: req.body, declaredBy: req.user ? req.user.id : null, lang: req.lang })
+    if (!result) return res.status(404).json({ error: req.t('errors.eventNotFound') })
 
     if (result.isSeries) {
       const { events: occurrences, absences: seriesAbsences, recurrenceId } = result
-      const authorName = req.user ? req.user.firstName : 'Un membre'
+      const author = (t) => authorLabel(t, req.user)
+      const seriesTitle = occurrences[0].title
       dispatchFamilyAlert({
         family: req.family,
         actor: req.user,
         action: ALERT_ACTIONS.EVENT_UPDATED.code,
         actionLabel: ALERT_ACTIONS.EVENT_UPDATED.label,
-        title: `Série d'événements modifiée : ${occurrences[0].title}`,
+        title: (t) => t('notify.event.seriesUpdatedTitle', { title: seriesTitle }),
         targetType: 'event',
         targetId: recurrenceId,
         push: {
-          title: `✏️ Série modifiée : ${occurrences[0].title}`,
-          body: `${occurrences.length} occurrence(s) mises à jour • Modifié par ${authorName}`,
+          title: (t) => `✏️ ${t('notify.event.seriesUpdatedShort', { title: seriesTitle })}`,
+          body: (t) => `${t('notify.event.occurrencesUpdated', { n: occurrences.length })} • ${t('notify.updatedBy', { name: author(t) })}`,
           url: `/${req.family.slug}/calendar`
         },
         email: {
-          subject: `✏️ Série d'événements modifiée : ${occurrences[0].title}`,
-          title: `Série d'événements modifiée dans l'agenda`,
+          subject: (t) => `✏️ ${t('notify.event.seriesUpdatedTitle', { title: seriesTitle })}`,
+          title: (t) => t('notify.event.seriesUpdatedHeading'),
           badge: '✏️',
-          detailsHtml: `
+          detailsHtml: (t) => `
             <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-              <strong>${authorName}</strong> a modifié une série d'événements récurrents dans le calendrier familial :
+              ${t('notify.event.seriesUpdatedIntro', { author: `<strong>${escapeHtml(author(t))}</strong>` })}
             </p>
             <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-              <li><strong>Titre :</strong> ${occurrences[0].title}</li>
-              <li><strong>Occurrences concernées :</strong> ${occurrences.length}</li>
+              <li><strong>${t('notify.label', { label: t('notify.event.fields.title') })}</strong> ${escapeHtml(seriesTitle)}</li>
+              <li><strong>${t('notify.label', { label: t('notify.event.fields.occurrencesConcerned') })}</strong> ${occurrences.length}</li>
             </ul>
           `,
           actionUrl: `/${req.family.slug}/calendar`,
-          actionText: 'Voir dans le calendrier'
+          actionText: (t) => t('notify.event.viewCalendar')
         }
       }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (event.updated series):', err.message))
 
@@ -3998,62 +4035,8 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
     }
 
     const event = result.event
-
-    // Liens et contenu pour ajout/mise à jour sur l'agenda personnel
-    const emailConfig = await getSmtpConfig()
-    const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
-    const googleCalendarUrl = generateServerGoogleCalendarUrl(event)
-    const icsContent = generateServerIcsContent(event)
-    const icsDownloadUrl = `${baseServerUrl}/api/events/${event.id}/ics?token=${event.icsToken}`
-
-    const authorName = req.user ? req.user.firstName : 'Un membre'
-    const timeStr = event.time ? ` à ${event.time}${event.endTime ? ` - ${event.endTime}` : ''}` : ''
-    const locStr = event.location ? ` (${event.location})` : ''
-
-    // Notification push pour l'événement modifié
-    dispatchFamilyAlert({
-      family: req.family,
-      actor: req.user,
-      action: ALERT_ACTIONS.EVENT_UPDATED.code,
-      actionLabel: ALERT_ACTIONS.EVENT_UPDATED.label,
-      title: `Événement modifié : ${event.title}`,
-      targetType: 'event',
-      targetId: event.id,
-      push: {
-        title: `✏️ Événement modifié : ${event.title}`,
-        body: `${event.date}${timeStr}${locStr} • Modifié par ${authorName}`,
-        url: `/${req.family.slug}/calendar`,
-        actions: [
-          { action: 'open', title: 'Voir l\'agenda' },
-          { action: 'add-google', title: '📅 Mettre à jour' }
-        ],
-        googleCalendarUrl
-      },
-      email: {
-        subject: `✏️ Événement modifié : ${event.title}`,
-        title: `Événement modifié dans l'agenda`,
-        badge: '✏️',
-        detailsHtml: `
-          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-            <strong>${authorName}</strong> a modifié cet événement dans le calendrier familial :
-          </p>
-          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-            <li><strong>Titre :</strong> ${event.title}</li>
-            <li><strong>Nouvelle date :</strong> ${event.date}${timeStr}</li>
-            ${event.location ? `<li><strong>Lieu :</strong> ${event.location}</li>` : ''}
-            <li><strong>Catégorie :</strong> ${event.category || 'Famille'}</li>
-          </ul>
-        `,
-        actionUrl: `/${req.family.slug}/calendar`,
-        actionText: 'Voir dans le calendrier',
-        calendarData: {
-          googleUrl: googleCalendarUrl,
-          icsUrl: icsDownloadUrl,
-          icsContent,
-          eventTitle: event.title
-        }
-      }
-    }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (event.updated):', err.message))
+    notifyEventChanged({ req, event, created: false })
+      .catch(err => console.error('[AlertLog] dispatchFamilyAlert (event.updated):', err.message))
 
     res.json(event)
   } catch (err) {
@@ -4067,19 +4050,19 @@ app.put('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) =>
 app.get('/api/events/:id/ics', async (req, res) => {
   try {
     const token = req.query.token
-    if (!token) return res.status(404).send('Événement introuvable')
+    if (!token) return res.status(404).send(req.t('errors.eventNotFound'))
 
     const event = await Event.findOne({ id: Number(req.params.id), icsToken: token })
-    if (!event) return res.status(404).send('Événement introuvable')
+    if (!event) return res.status(404).send(req.t('errors.eventNotFound'))
 
-    const icsContent = generateServerIcsContent(event)
+    const icsContent = generateServerIcsContent(event, req.query.lang)
     const sanitizedTitle = (event.title || 'evenement').toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30)
 
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
     res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle || 'evenement'}.ics"`)
     res.send(icsContent)
   } catch (err) {
-    res.status(500).send('Erreur lors de la génération du fichier calendrier')
+    res.status(500).send(req.t('errors.icsFailed'))
   }
 })
 
@@ -4089,7 +4072,7 @@ app.delete('/api/events/:id', requireAuth, attachFamilyContext, async (req, res)
     const scope = req.query.scope || req.body?.scope
 
     const result = await deleteEventOrSeries({ familyId: req.family._id, eventId, scope })
-    res.json({ message: result.deletedSeries ? "Série d'événements supprimée" : 'Événement supprimé' })
+    res.json({ message: result.deletedSeries ? req.t('messages.seriesDeleted') : req.t('messages.eventDeleted') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -4158,7 +4141,7 @@ app.put('/api/shopping-categories/reorder', requireAuth, attachFamilyContext, re
 app.put('/api/shopping-categories/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const cat = await ShoppingCategory.findOne({ id: Number(req.params.id), familyId: req.family._id })
-    if (!cat) return res.status(404).json({ error: 'Catégorie non trouvée' })
+    if (!cat) return res.status(404).json({ error: req.t('errors.categoryNotFound') })
     if (req.body.name !== undefined) cat.name = req.body.name
     if (req.body.icon !== undefined) cat.icon = req.body.icon
     if (req.body.rank !== undefined) cat.rank = Number(req.body.rank)
@@ -4172,7 +4155,7 @@ app.put('/api/shopping-categories/:id', requireAuth, attachFamilyContext, requir
 app.delete('/api/shopping-categories/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     await ShoppingCategory.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
-    res.json({ message: 'Catégorie supprimée' })
+    res.json({ message: req.t('messages.categoryDeleted') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -4210,7 +4193,7 @@ app.post('/api/shopping', requireAuth, attachFamilyContext, async (req, res) => 
 app.put('/api/shopping/:id/toggle', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const item = await ShoppingItem.findOne({ id: Number(req.params.id), familyId: req.family._id })
-    if (!item) return res.status(404).json({ error: 'Article non trouvé' })
+    if (!item) return res.status(404).json({ error: req.t('errors.itemNotFound') })
 
     item.checked = !item.checked
     await item.save()
@@ -4223,7 +4206,7 @@ app.put('/api/shopping/:id/toggle', requireAuth, attachFamilyContext, async (req
 app.put('/api/shopping/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const item = await ShoppingItem.findOne({ id: Number(req.params.id), familyId: req.family._id })
-    if (!item) return res.status(404).json({ error: 'Article non trouvé' })
+    if (!item) return res.status(404).json({ error: req.t('errors.itemNotFound') })
 
     if (req.body.name !== undefined)     item.name     = req.body.name
     if (req.body.category !== undefined) item.category = req.body.category
@@ -4241,7 +4224,7 @@ app.put('/api/shopping/:id', requireAuth, attachFamilyContext, async (req, res) 
 app.delete('/api/shopping/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     await ShoppingItem.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
-    res.json({ message: 'Article supprimé' })
+    res.json({ message: req.t('messages.itemDeleted') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -4340,11 +4323,11 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
     const { memberId, date, type, lunch, dinner, night, note, eventId } = req.body
 
     if (!memberId || !date) {
-      return res.status(400).json({ error: 'Membre et date requis' })
+      return res.status(400).json({ error: req.t('errors.memberDateRequired') })
     }
 
     if (!lunch && !dinner && !night) {
-      return res.status(400).json({ error: 'Veuillez sélectionner au moins un créneau (Déjeuner, Dîner ou Nuit)' })
+      return res.status(400).json({ error: req.t('errors.selectSlot') })
     }
 
     const recordType = type === 'presence' ? 'presence' : 'absence'
@@ -4352,103 +4335,58 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
     const notifyAbsenceOrPresence = async (recType, mId, dStr, l, din, n, nt, absenceId) => {
       try {
         const member = await User.findOne({ id: Number(mId) })
-        const mName = member ? member.firstName : 'Un membre'
-        const authorName = req.user ? req.user.firstName : 'Un membre'
         const isSelf = req.user && req.user.id === Number(mId)
-        const slots = []
-        if (l) slots.push('Midi')
-        if (din) slots.push('Soir')
-        if (n) slots.push('Nuit')
-        const slotsStr = slots.length > 0 ? slots.join(', ') : 'Journée'
+        const kind = recType === 'presence' ? 'presence' : 'absence'
+        const badge = kind === 'presence' ? '🟢' : '🚫'
+        const texts = (t) => {
+          const slots = [l && 'lunch', din && 'dinner', n && 'night'].filter(Boolean).map(slot => t(`notify.slots.${slot}`))
+          const params = {
+            member: member ? member.firstName : t('notify.aMember'),
+            author: authorLabel(t, req.user),
+            date: readableDate(t, dStr.trim()),
+            slots: slots.length > 0 ? slots.join(', ') : t('notify.slots.day')
+          }
+          return { params, who: isSelf ? 'Self' : 'Other' }
+        }
         const noteStr = nt ? ` • ${nt.trim()}` : ''
 
-        if (recType === 'presence') {
-          const pushTitle = `🟢 Présence confirmée : ${mName}`
-          const pushBody = isSelf
-            ? `${mName} sera présent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`
-            : `${authorName} a signalé la présence de ${mName} le ${dStr.trim()} (${slotsStr})${noteStr}`
-
-          const emailSubject = isSelf
-            ? `🟢 Présence confirmée : ${mName}`
-            : `🟢 Présence signalée pour ${mName} par ${authorName}`
-
-          const introHtml = isSelf
-            ? `<strong>${mName}</strong> a confirmé sa présence :`
-            : `<strong>${authorName}</strong> a signalé la présence de <strong>${mName}</strong> :`
-
-          await dispatchFamilyAlert({
-            family: req.family,
-            actor: req.user,
-            action: ALERT_ACTIONS.PRESENCE_CREATED.code,
-            actionLabel: ALERT_ACTIONS.PRESENCE_CREATED.label,
-            title: pushTitle,
-            targetType: 'absence',
-            targetId: absenceId,
-            push: { title: pushTitle, body: pushBody, url: `/${req.family.slug}/absences` },
-            email: {
-              subject: emailSubject,
-              title: `Nouvelle présence signalée`,
-              badge: '🟢',
-              detailsHtml: `
+        await dispatchFamilyAlert({
+          family: req.family,
+          actor: req.user,
+          action: kind === 'presence' ? ALERT_ACTIONS.PRESENCE_CREATED.code : ALERT_ACTIONS.ABSENCE_CREATED.code,
+          actionLabel: kind === 'presence' ? ALERT_ACTIONS.PRESENCE_CREATED.label : ALERT_ACTIONS.ABSENCE_CREATED.label,
+          title: (t) => `${badge} ${t(`notify.${kind}.title`, texts(t).params)}`,
+          targetType: 'absence',
+          targetId: absenceId,
+          push: {
+            title: (t) => `${badge} ${t(`notify.${kind}.title`, texts(t).params)}`,
+            body: (t) => `${t(`notify.${kind}.body${texts(t).who}`, texts(t).params)}${noteStr}`,
+            url: `/${req.family.slug}/absences`
+          },
+          email: {
+            subject: (t) => `${badge} ${t(`notify.${kind}.subject${texts(t).who}`, texts(t).params)}`,
+            title: (t) => t(`notify.${kind}.heading`),
+            badge,
+            detailsHtml: (t) => {
+              const { params, who } = texts(t)
+              const html = Object.fromEntries(Object.entries(params).map(([k, v]) => [k, escapeHtml(v)]))
+              return `
                 <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-                  ${introHtml}
+                  ${t(`notify.${kind}.intro${who}`, { member: `<strong>${html.member}</strong>`, author: `<strong>${html.author}</strong>` })}
                 </p>
                 <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-                  <li><strong>Membre :</strong> ${mName}</li>
-                  <li><strong>Date :</strong> ${dStr.trim()}</li>
-                  <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
-                  ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
-                  ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
+                  <li><strong>${t('notify.label', { label: t('notify.fields.member') })}</strong> ${html.member}</li>
+                  <li><strong>${t('notify.label', { label: t('notify.fields.date') })}</strong> ${html.date}</li>
+                  <li><strong>${t('notify.label', { label: t('notify.fields.slots') })}</strong> ${html.slots}</li>
+                  ${!isSelf ? `<li><strong>${t('notify.label', { label: t('notify.fields.reportedBy') })}</strong> ${html.author}</li>` : ''}
+                  ${nt ? `<li><strong>${t('notify.label', { label: t('notify.fields.note') })}</strong> ${escapeHtml(nt.trim())}</li>` : ''}
                 </ul>
-              `,
-              actionUrl: `/${req.family.slug}/absences`,
-              actionText: 'Consulter les présences & repas'
-            }
-          })
-        } else {
-          const pushTitle = `🚫 Nouvelle absence : ${mName}`
-          const pushBody = isSelf
-            ? `${mName} sera absent(e) le ${dStr.trim()} (${slotsStr})${noteStr}`
-            : `${authorName} a signalé l'absence de ${mName} le ${dStr.trim()} (${slotsStr})${noteStr}`
-
-          const emailSubject = isSelf
-            ? `🚫 Nouvelle absence signalée : ${mName}`
-            : `🚫 Absence signalée pour ${mName} par ${authorName}`
-
-          const introHtml = isSelf
-            ? `<strong>${mName}</strong> a signalé une absence :`
-            : `<strong>${authorName}</strong> a signalé l'absence de <strong>${mName}</strong> :`
-
-          await dispatchFamilyAlert({
-            family: req.family,
-            actor: req.user,
-            action: ALERT_ACTIONS.ABSENCE_CREATED.code,
-            actionLabel: ALERT_ACTIONS.ABSENCE_CREATED.label,
-            title: pushTitle,
-            targetType: 'absence',
-            targetId: absenceId,
-            push: { title: pushTitle, body: pushBody, url: `/${req.family.slug}/absences` },
-            email: {
-              subject: emailSubject,
-              title: `Nouvelle absence signalée`,
-              badge: '🚫',
-              detailsHtml: `
-                <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-                  ${introHtml}
-                </p>
-                <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-                  <li><strong>Membre :</strong> ${mName}</li>
-                  <li><strong>Date :</strong> ${dStr.trim()}</li>
-                  <li><strong>Créneau(x) concerné(s) :</strong> ${slotsStr}</li>
-                  ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
-                  ${nt ? `<li><strong>Remarque :</strong> ${nt.trim()}</li>` : ''}
-                </ul>
-              `,
-              actionUrl: `/${req.family.slug}/absences`,
-              actionText: 'Consulter les absences & repas'
-            }
-          })
-        }
+              `
+            },
+            actionUrl: `/${req.family.slug}/absences`,
+            actionText: (t) => t(`notify.${kind}.action`)
+          }
+        })
       } catch (e) {
         console.error('[WebPush] Erreur notification absence/présence:', e.message)
       }
@@ -4477,11 +4415,11 @@ app.post('/api/absences', requireAuth, attachFamilyContext, async (req, res) => 
 app.put('/api/absences/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const absence = await Absence.findOne({ id: Number(req.params.id), familyId: req.family._id })
-    if (!absence) return res.status(404).json({ error: 'Absence non trouvée' })
+    if (!absence) return res.status(404).json({ error: req.t('errors.absenceNotFound') })
 
     const isAuthorized = absence.memberId === req.user.id || absence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
     if (!isAuthorized) {
-      return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres déclarations d\'absence ou de présence' })
+      return res.status(403).json({ error: req.t('errors.ownAbsencesEditOnly') })
     }
 
     const { memberId, date, type, lunch, dinner, night, note } = req.body
@@ -4496,7 +4434,7 @@ app.put('/api/absences/:id', requireAuth, attachFamilyContext, async (req, res) 
 
     if (!absence.lunch && !absence.dinner && !absence.night) {
       await deleteAbsenceIfEmptySlots(absence, req.family._id)
-      return res.json({ message: 'Absence supprimée car aucun créneau n\'est sélectionné' })
+      return res.json({ deleted: true, message: req.t('messages.absenceDeletedNoSlot') })
     }
 
     await absence.save()
@@ -4513,15 +4451,15 @@ app.put('/api/absences/:id', requireAuth, attachFamilyContext, async (req, res) 
 app.delete('/api/absences/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const absence = await Absence.findOne({ id: Number(req.params.id), familyId: req.family._id })
-    if (!absence) return res.status(404).json({ error: 'Absence non trouvée' })
+    if (!absence) return res.status(404).json({ error: req.t('errors.absenceNotFound') })
 
     const isAuthorized = absence.memberId === req.user.id || absence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
     if (!isAuthorized) {
-      return res.status(403).json({ error: 'Vous ne pouvez supprimer que vos propres déclarations d\'absence ou de présence' })
+      return res.status(403).json({ error: req.t('errors.ownAbsencesDeleteOnly') })
     }
 
     await Absence.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
-    res.json({ message: 'Absence supprimée' })
+    res.json({ message: req.t('messages.absenceDeleted') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -4572,13 +4510,6 @@ const computeSlotsForDate = (dateStr, startDate, startSlot, endDate, endSlot) =>
   }
 
   return { lunch, dinner, night }
-}
-
-const formatSlotLabel = (s) => {
-  if (s === 'lunch') return 'Midi'
-  if (s === 'dinner') return 'Soir'
-  if (s === 'night') return 'Nuit'
-  return s
 }
 
 // (Re)génère les lignes Absence journalières couvrant une absence longue. Supprime d'abord toute
@@ -4644,7 +4575,7 @@ app.post('/api/long-absences', requireAuth, attachFamilyContext, async (req, res
     const { memberId, startDate, startSlot, endDate, endSlot, note } = req.body
 
     if (!memberId || !startDate || !endDate) {
-      return res.status(400).json({ error: 'Membre, date de début et date de fin requis' })
+      return res.status(400).json({ error: req.t('errors.longAbsenceFieldsRequired') })
     }
 
     const slotIndices = { lunch: 0, dinner: 1, night: 2 }
@@ -4653,11 +4584,11 @@ app.post('/api/long-absences', requireAuth, attachFamilyContext, async (req, res
     const eSlot = validSlot(endSlot) ? endSlot : 'night'
 
     if (startDate > endDate) {
-      return res.status(400).json({ error: 'La date de fin doit être postérieure ou égale à la date de début' })
+      return res.status(400).json({ error: req.t('errors.endDateBeforeStart') })
     }
 
     if (startDate === endDate && slotIndices[sSlot] > slotIndices[eSlot]) {
-      return res.status(400).json({ error: 'Le créneau de fin doit être après ou égal au créneau de début' })
+      return res.status(400).json({ error: req.t('errors.endSlotBeforeStart') })
     }
 
     const longAbsence = new LongAbsence({
@@ -4690,52 +4621,52 @@ app.post('/api/long-absences', requireAuth, attachFamilyContext, async (req, res
     // Consolidated notification
     try {
       const member = await User.findOne({ id: Number(memberId) })
-      const mName = member ? member.firstName : 'Un membre'
-      const authorName = req.user ? req.user.firstName : 'Un membre'
       const isSelf = req.user && req.user.id === Number(memberId)
-      const periodStr = `du ${startDate.trim()} (${formatSlotLabel(sSlot)}) au ${endDate.trim()} (${formatSlotLabel(eSlot)})`
+      const who = isSelf ? 'Self' : 'Other'
+      const paramsFor = (t) => ({
+        member: member ? member.firstName : t('notify.aMember'),
+        author: authorLabel(t, req.user),
+        period: t('notify.longAbsence.period', {
+          start: readableDate(t, startDate.trim()), startSlot: t(`notify.slots.${sSlot}`),
+          end: readableDate(t, endDate.trim()), endSlot: t(`notify.slots.${eSlot}`)
+        })
+      })
       const noteStr = note ? ` • ${note.trim()}` : ''
-
-      const pushTitle = `🚫 Nouvelle absence longue : ${mName}`
-      const pushBody = isSelf
-        ? `${mName} sera absent(e) ${periodStr}${noteStr}`
-        : `${authorName} a signalé une absence longue pour ${mName} ${periodStr}${noteStr}`
-
-      const emailSubject = isSelf
-        ? `🚫 Absence longue déclarée : ${mName}`
-        : `🚫 Absence longue signalée pour ${mName} par ${authorName}`
-
-      const introHtml = isSelf
-        ? `<strong>${mName}</strong> a déclaré une absence longue :`
-        : `<strong>${authorName}</strong> a signalé une absence longue pour <strong>${mName}</strong> :`
 
       dispatchFamilyAlert({
         family: req.family,
         actor: req.user,
         action: ALERT_ACTIONS.LONG_ABSENCE_CREATED.code,
         actionLabel: ALERT_ACTIONS.LONG_ABSENCE_CREATED.label,
-        title: pushTitle,
+        title: (t) => `🚫 ${t('notify.longAbsence.title', paramsFor(t))}`,
         targetType: 'long_absence',
         targetId: longAbsence.id,
-        push: { title: pushTitle, body: pushBody, url: `/${req.family.slug}/absences` },
+        push: {
+          title: (t) => `🚫 ${t('notify.longAbsence.title', paramsFor(t))}`,
+          body: (t) => `${t(`notify.longAbsence.body${who}`, paramsFor(t))}${noteStr}`,
+          url: `/${req.family.slug}/absences`
+        },
         email: {
-          subject: emailSubject,
-          title: `Nouvelle absence longue signalée`,
+          subject: (t) => `🚫 ${t(`notify.longAbsence.subject${who}`, paramsFor(t))}`,
+          title: (t) => t('notify.longAbsence.heading'),
           badge: '🚫',
-          detailsHtml: `
+          detailsHtml: (t) => {
+            const html = Object.fromEntries(Object.entries(paramsFor(t)).map(([k, v]) => [k, escapeHtml(v)]))
+            return `
             <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-              ${introHtml}
+              ${t(`notify.longAbsence.intro${who}`, { member: `<strong>${html.member}</strong>`, author: `<strong>${html.author}</strong>` })}
             </p>
             <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-              <li><strong>Membre :</strong> ${mName}</li>
-              <li><strong>Période :</strong> ${periodStr}</li>
-              <li><strong>Nombre de jours :</strong> ${dates.length}</li>
-              ${!isSelf ? `<li><strong>Signalé par :</strong> ${authorName}</li>` : ''}
-              ${note ? `<li><strong>Motif :</strong> ${note.trim()}</li>` : ''}
+              <li><strong>${t('notify.label', { label: t('notify.fields.member') })}</strong> ${html.member}</li>
+              <li><strong>${t('notify.label', { label: t('notify.fields.period') })}</strong> ${html.period}</li>
+              <li><strong>${t('notify.label', { label: t('notify.fields.days') })}</strong> ${dates.length}</li>
+              ${!isSelf ? `<li><strong>${t('notify.label', { label: t('notify.fields.reportedBy') })}</strong> ${html.author}</li>` : ''}
+              ${note ? `<li><strong>${t('notify.label', { label: t('notify.fields.reason') })}</strong> ${escapeHtml(note.trim())}</li>` : ''}
             </ul>
-          `,
+          `
+          },
           actionUrl: `/${req.family.slug}/absences`,
-          actionText: 'Consulter les présences & repas'
+          actionText: (t) => t('notify.presence.action')
         }
       }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (absence.long):', err.message))
     } catch (e) {
@@ -4751,11 +4682,11 @@ app.post('/api/long-absences', requireAuth, attachFamilyContext, async (req, res
 app.put('/api/long-absences/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const longAbsence = await LongAbsence.findOne({ id: Number(req.params.id), familyId: req.family._id })
-    if (!longAbsence) return res.status(404).json({ error: 'Absence longue non trouvée' })
+    if (!longAbsence) return res.status(404).json({ error: req.t('errors.longAbsenceNotFound') })
 
     const isAuthorized = longAbsence.memberId === req.user.id || longAbsence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
     if (!isAuthorized) {
-      return res.status(403).json({ error: 'Vous ne pouvez modifier que vos propres absences longues' })
+      return res.status(403).json({ error: req.t('errors.ownLongAbsencesEditOnly') })
     }
 
     const { memberId, startDate, startSlot, endDate, endSlot, note } = req.body
@@ -4769,11 +4700,11 @@ app.put('/api/long-absences/:id', requireAuth, attachFamilyContext, async (req, 
     const targetEndSlot = validSlot(endSlot) ? endSlot : longAbsence.endSlot
 
     if (targetStartDate > targetEndDate) {
-      return res.status(400).json({ error: 'La date de fin doit être postérieure ou égale à la date de début' })
+      return res.status(400).json({ error: req.t('errors.endDateBeforeStart') })
     }
 
     if (targetStartDate === targetEndDate && slotIndices[targetStartSlot] > slotIndices[targetEndSlot]) {
-      return res.status(400).json({ error: 'Le créneau de fin doit être après ou égal au créneau de début' })
+      return res.status(400).json({ error: req.t('errors.endSlotBeforeStart') })
     }
 
     // Supprime puis régénère les lignes Absence journalières liées à cette absence longue
@@ -4808,11 +4739,11 @@ app.put('/api/long-absences/:id', requireAuth, attachFamilyContext, async (req, 
 app.delete('/api/long-absences/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const longAbsence = await LongAbsence.findOne({ id: Number(req.params.id), familyId: req.family._id })
-    if (!longAbsence) return res.status(404).json({ error: 'Absence longue non trouvée' })
+    if (!longAbsence) return res.status(404).json({ error: req.t('errors.longAbsenceNotFound') })
 
     const isAuthorized = longAbsence.memberId === req.user.id || longAbsence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
     if (!isAuthorized) {
-      return res.status(403).json({ error: 'Vous ne pouvez supprimer que vos propres absences longues' })
+      return res.status(403).json({ error: req.t('errors.ownLongAbsencesDeleteOnly') })
     }
 
     // Cascade delete of daily absence slots
@@ -4821,7 +4752,7 @@ app.delete('/api/long-absences/:id', requireAuth, attachFamilyContext, async (re
 
     res.json({ 
       success: true, 
-      message: 'Absence longue supprimée avec succès', 
+      message: req.t('messages.longAbsenceDeleted'), 
       deletedId: longAbsence.id,
       deletedAbsencesCount: deleteResult.deletedCount 
     })
@@ -4843,7 +4774,7 @@ const createMealGuestsBatch = async ({ familyId, name, names, date, lunch, dinne
   }
 
   if (guestNames.length === 0) {
-    throw new Error('Veuillez renseigner le nom de l\'invité')
+    throw new TranslatableError('errors.guestNameRequired')
   }
 
   const hostId = invitedBy ? Number(invitedBy) : fallbackHostId
@@ -4882,11 +4813,11 @@ app.post('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) 
     const { name, names, date, lunch, dinner, night, invitedBy, note } = req.body
 
     if (!date) {
-      return res.status(400).json({ error: 'La date est requise' })
+      return res.status(400).json({ error: req.t('errors.dateRequired') })
     }
 
     if (!lunch && !dinner && !night) {
-      return res.status(400).json({ error: 'Veuillez sélectionner au moins un créneau (Déjeuner, Dîner ou Nuit)' })
+      return res.status(400).json({ error: req.t('errors.selectSlot') })
     }
 
     let createdGuests
@@ -4896,7 +4827,7 @@ app.post('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) 
         fallbackHostId: req.user.id
       })
     } catch (e) {
-      return res.status(400).json({ error: e.message })
+      return res.status(400).json({ error: localizeError(req, e) })
     }
 
     const guestNames = createdGuests.map(g => g.name)
@@ -4905,45 +4836,52 @@ app.post('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) 
     // Déclenchement notification push pour nouvel invité
     try {
       const host = await User.findOne({ id: hostId })
-      const hostName = host ? host.firstName : (req.user ? req.user.firstName : 'Un membre')
-      const slots = []
-      if (lunch) slots.push('Midi')
-      if (dinner) slots.push('Soir')
-      if (night) slots.push('Nuit')
-      const slotsStr = slots.length > 0 ? slots.join(', ') : 'Repas'
       const namesStr = guestNames.join(', ')
       const noteStr = note ? ` • ${note.trim()}` : ''
+      const paramsFor = (t) => {
+        const slots = [lunch && 'lunch', dinner && 'dinner', night && 'night'].filter(Boolean).map(slot => t(`notify.slots.${slot}`))
+        return {
+          names: namesStr,
+          n: guestNames.length,
+          host: host ? host.firstName : authorLabel(t, req.user),
+          date: readableDate(t, date.trim()),
+          slots: slots.length > 0 ? slots.join(', ') : t('notify.slots.meal')
+        }
+      }
 
       dispatchFamilyAlert({
         family: req.family,
         actor: req.user,
         action: ALERT_ACTIONS.MEAL_GUEST_CREATED.code,
         actionLabel: ALERT_ACTIONS.MEAL_GUEST_CREATED.label,
-        title: `Nouvel invité : ${namesStr}`,
+        title: (t) => t('notify.guest.title', paramsFor(t)),
         targetType: 'meal_guest',
         targetId: createdGuests[0]?.id,
         push: {
-          title: `🍽️ Nouvel invité : ${namesStr}`,
-          body: `${namesStr} invité(s) par ${hostName} le ${date.trim()} (${slotsStr})${noteStr}`,
+          title: (t) => `🍽️ ${t('notify.guest.title', paramsFor(t))}`,
+          body: (t) => `${t('notify.guest.body', paramsFor(t))}${noteStr}`,
           url: `/${req.family.slug}/absences`
         },
         email: {
-          subject: `🍽️ Nouvel invité aux repas : ${namesStr}`,
-          title: `Nouvel invité aux repas`,
+          subject: (t) => `🍽️ ${t('notify.guest.subject', paramsFor(t))}`,
+          title: (t) => t('notify.guest.heading'),
           badge: '🍽️',
-          detailsHtml: `
+          detailsHtml: (t) => {
+            const params = paramsFor(t)
+            return `
             <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-              <strong>${hostName}</strong> a invité à la maison :
+              ${t('notify.guest.intro', { host: `<strong>${escapeHtml(params.host)}</strong>` })}
             </p>
             <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-              <li><strong>Invité(s) :</strong> ${namesStr}</li>
-              <li><strong>Date :</strong> ${date.trim()}</li>
-              <li><strong>Créneau(x) :</strong> ${slotsStr}</li>
-              ${note ? `<li><strong>Remarque :</strong> ${note.trim()}</li>` : ''}
+              <li><strong>${t('notify.label', { label: t('notify.fields.guests') })}</strong> ${escapeHtml(params.names)}</li>
+              <li><strong>${t('notify.label', { label: t('notify.fields.date') })}</strong> ${escapeHtml(params.date)}</li>
+              <li><strong>${t('notify.label', { label: t('notify.fields.slotsShort') })}</strong> ${escapeHtml(params.slots)}</li>
+              ${note ? `<li><strong>${t('notify.label', { label: t('notify.fields.note') })}</strong> ${escapeHtml(note.trim())}</li>` : ''}
             </ul>
-          `,
+          `
+          },
           actionUrl: `/${req.family.slug}/absences`,
-          actionText: 'Consulter le planning des repas'
+          actionText: (t) => t('notify.guest.action')
         }
       }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (meal_guest.created):', err.message))
     } catch (e) {
@@ -4963,7 +4901,7 @@ app.post('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) 
 app.put('/api/meal-guests/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const guest = await MealGuest.findOne({ id: Number(req.params.id), familyId: req.family._id })
-    if (!guest) return res.status(404).json({ error: 'Invité non trouvé' })
+    if (!guest) return res.status(404).json({ error: req.t('errors.guestNotFound') })
 
     const { name, date, lunch, dinner, night, invitedBy, note } = req.body
     if (name) guest.name = name.trim()
@@ -4976,7 +4914,7 @@ app.put('/api/meal-guests/:id', requireAuth, attachFamilyContext, async (req, re
 
     if (!guest.lunch && !guest.dinner && !guest.night) {
       await MealGuest.deleteOne({ id: guest.id, familyId: req.family._id })
-      return res.json({ message: 'Invité supprimé car aucun créneau n\'est sélectionné' })
+      return res.json({ deleted: true, message: req.t('messages.guestDeletedNoSlot') })
     }
 
     await guest.save()
@@ -4989,7 +4927,7 @@ app.put('/api/meal-guests/:id', requireAuth, attachFamilyContext, async (req, re
 app.delete('/api/meal-guests/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     await MealGuest.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
-    res.json({ message: 'Invité supprimé' })
+    res.json({ message: req.t('messages.guestDeleted') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -5080,12 +5018,12 @@ app.post('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
     const { date, slot, dish, notes, suggestedBy, recipeUrl, recipeImageUrl } = req.body
 
     if (!date || !slot || !dish) {
-      return res.status(400).json({ error: 'La date, le créneau (midi/soir) et l\'intitulé du plat sont obligatoires' })
+      return res.status(400).json({ error: req.t('errors.mealFieldsRequired') })
     }
 
     const cleanDish = String(dish).trim()
     if (!cleanDish) {
-      return res.status(400).json({ error: 'L\'intitulé du plat ne peut pas être vide' })
+      return res.status(400).json({ error: req.t('errors.dishEmpty') })
     }
 
     const memberId = suggestedBy !== undefined && suggestedBy !== null 
@@ -5113,49 +5051,46 @@ app.post('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
     })
 
     // Informations pour les notifications
-    const authorName = req.user ? req.user.firstName : 'Un membre'
-    const slotLabel = newMeal.slot === 'lunch' ? 'Déjeuner (Midi)' : 'Dîner (Soir)'
-    
-    // Format friendly date
-    let dateFormatted = newMeal.date
-    try {
-      const dParts = newMeal.date.split('-')
-      if (dParts.length === 3) {
-        const dObj = new Date(Number(dParts[0]), Number(dParts[1]) - 1, Number(dParts[2]))
-        dateFormatted = dObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-      }
-    } catch (e) {}
+    const paramsFor = (t) => ({
+      dish: newMeal.dish,
+      slot: t(`notify.meal.slot.${newMeal.slot === 'lunch' ? 'lunch' : 'dinner'}`),
+      date: readableDate(t, newMeal.date),
+      author: authorLabel(t, req.user)
+    })
 
     dispatchFamilyAlert({
       family: req.family,
       actor: req.user,
       action: ALERT_ACTIONS.MEAL_CREATED.code,
       actionLabel: ALERT_ACTIONS.MEAL_CREATED.label,
-      title: `Repas suggéré : ${newMeal.dish}`,
+      title: (t) => t('notify.meal.title', paramsFor(t)),
       targetType: 'meal',
       targetId: newMeal.id,
       push: {
-        title: `🍲 Repas suggéré : ${newMeal.dish}`,
-        body: `Pour le ${slotLabel} du ${dateFormatted} • Suggéré par ${authorName}`,
+        title: (t) => `🍲 ${t('notify.meal.title', paramsFor(t))}`,
+        body: (t) => t('notify.meal.body', paramsFor(t)),
         url: `/${req.family.slug}/meals`
       },
       email: {
-        subject: `🍲 Repas : ${newMeal.dish} (${slotLabel})`,
-        title: `Nouveau plat suggéré`,
+        subject: (t) => `🍲 ${t('notify.meal.subject', paramsFor(t))}`,
+        title: (t) => t('notify.meal.heading'),
         badge: '🍲',
-        detailsHtml: `
+        detailsHtml: (t) => {
+          const params = paramsFor(t)
+          return `
           <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-            <strong>${authorName}</strong> a proposé un plat pour la famille :
+            ${t('notify.meal.intro', { author: `<strong>${escapeHtml(params.author)}</strong>` })}
           </p>
           <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-            <li><strong>Plat :</strong> ${newMeal.dish}</li>
-            <li><strong>Créneau :</strong> ${slotLabel}</li>
-            <li><strong>Date :</strong> ${dateFormatted}</li>
-            ${newMeal.notes ? `<li><strong>Notes :</strong> ${newMeal.notes}</li>` : ''}
+            <li><strong>${t('notify.label', { label: t('notify.fields.dish') })}</strong> ${escapeHtml(params.dish)}</li>
+            <li><strong>${t('notify.label', { label: t('notify.fields.slot') })}</strong> ${escapeHtml(params.slot)}</li>
+            <li><strong>${t('notify.label', { label: t('notify.fields.date') })}</strong> ${escapeHtml(params.date)}</li>
+            ${newMeal.notes ? `<li><strong>${t('notify.label', { label: t('notify.fields.notes') })}</strong> ${escapeHtml(newMeal.notes)}</li>` : ''}
           </ul>
-        `,
+        `
+        },
         actionUrl: `/${req.family.slug}/meals`,
-        actionText: 'Voir le menu de la semaine'
+        actionText: (t) => t('notify.meal.action')
       }
     }).catch(err => console.error('[AlertLog] dispatchFamilyAlert (meal.created):', err.message))
 
@@ -5171,14 +5106,14 @@ app.post('/api/meals', requireAuth, attachFamilyContext, async (req, res) => {
 app.put('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const meal = await Meal.findOne({ id: Number(req.params.id), familyId: req.family._id })
-    if (!meal) return res.status(404).json({ error: 'Plat non trouvé' })
+    if (!meal) return res.status(404).json({ error: req.t('errors.mealNotFound') })
 
     const { date, slot, dish, notes, suggestedBy, recipeUrl, recipeImageUrl } = req.body
     if (date !== undefined) meal.date = String(date)
     if (slot !== undefined) meal.slot = slot === 'dinner' ? 'dinner' : 'lunch'
     if (dish !== undefined) {
       const cleanDish = String(dish).trim()
-      if (!cleanDish) return res.status(400).json({ error: 'L\'intitulé du plat ne peut pas être vide' })
+      if (!cleanDish) return res.status(400).json({ error: req.t('errors.dishEmpty') })
       meal.dish = cleanDish
     }
     if (notes !== undefined) meal.notes = String(notes).trim()
@@ -5195,10 +5130,10 @@ app.put('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) => 
 app.delete('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const meal = await Meal.findOne({ id: Number(req.params.id), familyId: req.family._id })
-    if (!meal) return res.status(404).json({ error: 'Plat non trouvé' })
+    if (!meal) return res.status(404).json({ error: req.t('errors.mealNotFound') })
 
     await deleteMealCascade({ familyId: req.family._id, mealId: meal.id })
-    res.json({ message: 'Plat et ingrédients associés supprimés' })
+    res.json({ message: req.t('messages.mealDeleted') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -5209,9 +5144,9 @@ app.delete('/api/meals/:id', requireAuth, attachFamilyContext, async (req, res) 
 // serveur et seuls les champs utiles des réponses Mealie sont renvoyés au navigateur.
 const MEALIE_TIMEOUT_MS = 8000
 
-class MealieError extends Error {
-  constructor(message, status = 502) {
-    super(message)
+class MealieError extends TranslatableError {
+  constructor(key, params = {}, status = 502) {
+    super(key, params)
     this.status = status
   }
 }
@@ -5239,21 +5174,21 @@ const mealieRequest = async ({ baseUrl, apiToken }, apiPath) => {
       signal: AbortSignal.timeout(MEALIE_TIMEOUT_MS)
     })
   } catch (err) {
-    const reason = err.name === 'TimeoutError' ? 'délai dépassé' : (err.cause?.code || err.message)
-    throw new MealieError(`Serveur Mealie injoignable (${reason})`)
+    if (err.name === 'TimeoutError') throw new MealieError('errors.mealie.timeout')
+    throw new MealieError('errors.mealie.unreachable', { reason: err.cause?.code || err.message })
   }
-  if (res.status === 401 || res.status === 403) throw new MealieError('Jeton d\'API Mealie refusé par le serveur')
-  if (res.status === 404) throw new MealieError('Ressource introuvable sur le serveur Mealie', 404)
-  if (!res.ok) throw new MealieError(`Erreur du serveur Mealie (HTTP ${res.status})`)
+  if (res.status === 401 || res.status === 403) throw new MealieError('errors.mealie.tokenRefused')
+  if (res.status === 404) throw new MealieError('errors.mealie.notFound', {}, 404)
+  if (!res.ok) throw new MealieError('errors.mealie.serverError', { status: res.status })
   try {
     return await res.json()
   } catch {
-    throw new MealieError('Réponse inattendue : l\'URL indiquée ne semble pas être une instance Mealie')
+    throw new MealieError('errors.mealie.notMealie')
   }
 }
 
 const sendMealieError = (res, err) => {
-  if (err instanceof MealieError) return res.status(err.status).json({ error: err.message })
+  if (err instanceof MealieError) return res.status(err.status).json({ error: localizeError(res.req, err) })
   res.status(500).json({ error: err.message })
 }
 
@@ -5299,7 +5234,7 @@ const getMealieBaseServings = (recipe) => {
 
 const getFamilyMealieConfig = async (familyId) => {
   const config = await MealieConfig.findOne({ familyId })
-  if (!config) throw new MealieError('Aucun serveur Mealie n\'est configuré pour cette famille', 404)
+  if (!config) throw new MealieError('errors.mealie.notConfigured', {}, 404)
   return { baseUrl: config.baseUrl, apiToken: config.apiToken, groupSlug: config.groupSlug }
 }
 
@@ -5322,14 +5257,14 @@ app.put('/api/family-settings/mealie', requireAuth, attachFamilyContext, require
   try {
     const baseUrl = normalizeMealieBaseUrl(req.body.baseUrl)
     if (!baseUrl) {
-      return res.status(400).json({ error: 'URL du serveur Mealie invalide (ex : https://mealie.exemple.fr)' })
+      return res.status(400).json({ error: req.t('errors.mealieUrlInvalid') })
     }
 
     const existing = await MealieConfig.findOne({ familyId: req.family._id })
     const newToken = String(req.body.apiToken || '').trim()
     const apiToken = newToken || existing?.apiToken
     if (!apiToken) {
-      return res.status(400).json({ error: 'Le jeton d\'API Mealie est obligatoire' })
+      return res.status(400).json({ error: req.t('errors.mealieTokenRequired') })
     }
 
     // Vérifie l'URL et le jeton, et récupère le groupe du compte pour construire les liens.
@@ -5354,7 +5289,7 @@ app.put('/api/family-settings/mealie', requireAuth, attachFamilyContext, require
 app.delete('/api/family-settings/mealie', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     await MealieConfig.deleteOne({ familyId: req.family._id })
-    res.json({ message: 'Connexion Mealie supprimée' })
+    res.json({ message: req.t('messages.mealieDisconnected') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -5428,7 +5363,7 @@ app.post('/api/shortcuts', requireAuth, attachFamilyContext, requireFamilyAdmin,
   try {
     const { title, url, icon, order } = req.body
     if (!title || !url) {
-      return res.status(400).json({ error: 'Le titre et l\'adresse URL sont requis' })
+      return res.status(400).json({ error: req.t('errors.shortcutFieldsRequired') })
     }
 
     let validUrl = url.trim()
@@ -5455,7 +5390,7 @@ app.post('/api/shortcuts', requireAuth, attachFamilyContext, requireFamilyAdmin,
 app.put('/api/shortcuts/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     const shortcut = await Shortcut.findOne({ id: Number(req.params.id), familyId: req.family._id })
-    if (!shortcut) return res.status(404).json({ error: 'Raccourci non trouvé' })
+    if (!shortcut) return res.status(404).json({ error: req.t('errors.shortcutNotFound') })
 
     const { title, url, icon, order } = req.body
     if (title) shortcut.title = title.trim()
@@ -5479,7 +5414,7 @@ app.put('/api/shortcuts/:id', requireAuth, attachFamilyContext, requireFamilyAdm
 app.delete('/api/shortcuts/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     await Shortcut.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
-    res.json({ message: 'Raccourci supprimé' })
+    res.json({ message: req.t('messages.shortcutDeleted') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -5535,7 +5470,7 @@ app.get('/api/admin/export', requireAuth, attachFamilyContext, requireFamilyAdmi
     res.json(exportPayload)
   } catch (err) {
     console.error('Erreur lors de l\'export des données', err)
-    res.status(500).json({ error: 'Erreur lors de l\'export des données : ' + err.message })
+    res.status(500).json({ error: req.t('errors.exportFailed', { message: err.message }) })
   }
 })
 
@@ -5593,7 +5528,7 @@ app.post('/api/family-settings/mcp-connector', requireAuth, attachFamilyContext,
 app.delete('/api/family-settings/mcp-connector', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
     await McpConnector.updateOne({ familyId: req.family._id }, { revokedAt: new Date() })
-    res.json({ message: 'Connecteur MCP révoqué' })
+    res.json({ message: req.t('messages.mcpRevoked') })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

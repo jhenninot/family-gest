@@ -18,7 +18,7 @@ export const requireAuth = async (req, res, next) => {
       
       const user = await User.findOne({ id: decoded.id }).select('-password')
       if (!user) {
-        return res.status(401).json({ error: 'Utilisateur non trouvé ou token invalide' })
+        return res.status(401).json({ error: req.t('errors.userNotFoundOrInvalidToken') })
       }
 
       req.user = user
@@ -32,12 +32,12 @@ export const requireAuth = async (req, res, next) => {
       return next()
     } catch (error) {
       console.error('Erreur de vérification JWT', error.message)
-      return res.status(401).json({ error: 'Session expirée (plus de 30 jours d\'inactivité) ou invalide' })
+      return res.status(401).json({ error: req.t('errors.sessionExpired') })
     }
   }
 
   if (!token) {
-    return res.status(401).json({ error: 'Accès non autorisé, aucun token fourni' })
+    return res.status(401).json({ error: req.t('errors.noToken') })
   }
 }
 
@@ -45,7 +45,7 @@ export const requireAdmin = (req, res, next) => {
   if (req.user && (req.user.isAdmin || req.user.isSuperAdmin)) {
     return next()
   } else {
-    return res.status(403).json({ error: 'Action réservée aux utilisateurs administrateurs' })
+    return res.status(403).json({ error: req.t('errors.adminOnly') })
   }
 }
 
@@ -53,7 +53,7 @@ export const requireSuperAdmin = (req, res, next) => {
   if (req.user && req.user.isSuperAdmin) {
     return next()
   } else {
-    return res.status(403).json({ error: 'Action réservée au Super Administrateur de la plateforme' })
+    return res.status(403).json({ error: req.t('errors.superAdminOnly') })
   }
 }
 

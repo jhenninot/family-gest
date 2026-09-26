@@ -1,0 +1,9 @@
+{
+  "dueToday": "hoy",
+  "overdue": "con retraso, prevista el {date}",
+  "oneTitle": "Tarea pendiente: {title}",
+  "manyTitle": "{n} tareas pendientes",
+  "due": "Vencimiento: {label}",
+  "heading": "Una tarea vence | Varias tareas vencen",
+  "intro": "Esta tarea que tiene asignada está pendiente: | Estas tareas que tiene asignadas están pendientes:"
+}

@@ -45,7 +45,7 @@ export const registerTaskTools = (server, req, ctx) => {
     })
     await newTask.save()
 
-    notifyTaskCreated({ family: req.family, actor: req.mcpFallbackActor || null, task: newTask, via: "via l'assistant" })
+    notifyTaskCreated({ family: req.family, actor: req.mcpFallbackActor || null, task: newTask, via: 'assistant' })
       .catch(err => console.error('[MCP] notifyTaskCreated:', err.message))
 
     return jsonResult(newTask)
@@ -72,7 +72,7 @@ export const registerTaskTools = (server, req, ctx) => {
       fields: { ...fields, assignedTo: resolvedAssignedTo },
       family: req.family,
       actor: req.mcpFallbackActor || null,
-      via: "via l'assistant"
+      via: 'assistant'
     })
     if (!task) throw new Error('Tâche non trouvée')
     return jsonResult(task)

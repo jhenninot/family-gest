@@ -1,0 +1,33 @@
+{
+  "pageTitle": "Récapitulatif du jour",
+  "heading": "Votre récapitulatif du jour",
+  "intro": "Bonjour {name}, voici ce qui vous attend aujourd'hui :",
+  "label": "{label} :",
+  "slots": {
+    "lunch": "Déjeuner",
+    "dinner": "Dîner",
+    "night": "Cette nuit"
+  },
+  "noDish": "Aucun plat prévu",
+  "nobody": "Personne",
+  "guests": "invité : {names} | invités : {names}",
+  "present": "Présents : {names}",
+  "headcount": "{n} pers.",
+  "points": "+{n} pts",
+  "noTasks": "Aucune tâche en attente",
+  "noEvents": "Aucun événement aujourd'hui",
+  "noShopping": "Liste de courses vide",
+  "sections": {
+    "meals": "Repas",
+    "tasks": "Mes tâches en attente",
+    "events": "Événements du jour",
+    "shopping": "Liste de courses"
+  },
+  "whyReceived": "Vous recevez ce récapitulatif quotidien car vous l'avez activé sur votre compte FamilyGest.",
+  "pushTitle": "Votre récap du jour",
+  "pushTasks": "{n} tâche | {n} tâches",
+  "pushEvents": "{n} événement | {n} événements",
+  "pushDinner": "Dîner : {counts}",
+  "subject": "Votre récapitulatif du jour — FamilyGest",
+  "openApp": "Ouvrir FamilyGest"
+}

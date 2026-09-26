@@ -4,6 +4,7 @@ import Absence from '../../models/Absence.js'
 import { resolveMember } from '../resolveMember.js'
 import { jsonResult } from '../toolHelpers.js'
 import { notifyMcpAction } from '../notify.js'
+import { readableDate } from '../../i18n/index.js'
 
 const SLOT_INDEX = { lunch: 0, dinner: 1, night: 2 }
 const isValidSlot = (s) => ['lunch', 'dinner', 'night'].includes(s)
@@ -65,10 +66,10 @@ export const registerLongAbsenceTools = (server, req, ctx) => {
 
     notifyMcpAction(req, ctx, {
       action: ALERT_ACTIONS.LONG_ABSENCE_CREATED,
-      title: `Absence longue : ${resolved.name}`,
+      title: (t) => t('notify.mcp.longAbsenceTitle', { member: resolved.name }),
       targetType: 'long_absence',
       targetId: longAbsence.id,
-      body: `${resolved.name} du ${startDate} au ${endDate} • Déclaré via l'assistant`
+      body: (t) => t('notify.mcp.declaredPeriod', { member: resolved.name, start: readableDate(t, startDate), end: readableDate(t, endDate) })
     })
 
     return jsonResult({ longAbsence, absences })

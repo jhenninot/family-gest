@@ -1,18 +1,4 @@
 {
-  "role": {
-    "administrateur": "Administrador/a",
-    "membre": "Miembro",
-    "parent": "Padre/Madre",
-    "enfant": "Hijo/a",
-    "papa": "Papá",
-    "maman": "Mamá",
-    "fils": "Hijo",
-    "fille": "Hija",
-    "grand_parent": "Abuelo/a",
-    "oncle_tante": "Tío / Tía",
-    "baby_sitter": "Niñero/a",
-    "autre": "Otro"
-  },
   "taskCategory": {
     "maison": "Casa",
     "cuisine": "Cocina",
@@ -26,6 +12,13 @@
     "moyenne": "Media",
     "haute": "Alta"
   },
+  "eventCategory": {
+    "fete": "Fiesta",
+    "sante": "Salud",
+    "famille": "Familia",
+    "scolaire": "Escolar",
+    "loisirs": "Ocio"
+  },
   "shoppingCategory": {
     "frais": "Frescos",
     "epicerie": "Despensa",
@@ -35,15 +28,5 @@
     "maison": "Hogar",
     "autre": "Otros",
     "surgeles": "Congelados"
-  },
-  "eventCategory": {
-    "fete": "Fiesta",
-    "sante": "Salud",
-    "famille": "Familia",
-    "scolaire": "Escolar",
-    "loisirs": "Ocio"
-  },
-  "location": {
-    "maison": "Casa"
   }
 }

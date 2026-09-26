@@ -1,0 +1,33 @@
+{
+  "pageTitle": "Resumen del día",
+  "heading": "Su resumen del día",
+  "intro": "Hola {name}, esto es lo que le espera hoy:",
+  "label": "{label}:",
+  "slots": {
+    "lunch": "Comida",
+    "dinner": "Cena",
+    "night": "Esta noche"
+  },
+  "noDish": "Ningún plato previsto",
+  "nobody": "Nadie",
+  "guests": "invitado: {names} | invitados: {names}",
+  "present": "Presentes: {names}",
+  "headcount": "{n} pers.",
+  "points": "+{n} pts",
+  "noTasks": "Ninguna tarea pendiente",
+  "noEvents": "Ningún evento hoy",
+  "noShopping": "Lista de la compra vacía",
+  "sections": {
+    "meals": "Comidas",
+    "tasks": "Mis tareas pendientes",
+    "events": "Eventos del día",
+    "shopping": "Lista de la compra"
+  },
+  "whyReceived": "Recibe este resumen diario porque lo ha activado en su cuenta de FamilyGest.",
+  "pushTitle": "Su resumen del día",
+  "pushTasks": "{n} tarea | {n} tareas",
+  "pushEvents": "{n} evento | {n} eventos",
+  "pushDinner": "Cena: {counts}",
+  "subject": "Su resumen del día — FamilyGest",
+  "openApp": "Abrir FamilyGest"
+}

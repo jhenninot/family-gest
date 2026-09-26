@@ -1,0 +1,9 @@
+{
+  "dueToday": "today",
+  "overdue": "overdue, due on {date}",
+  "oneTitle": "Task to do: {title}",
+  "manyTitle": "{n} tasks to do",
+  "due": "Due {label}",
+  "heading": "A task is due | Tasks are due",
+  "intro": "This task assigned to you needs doing: | These tasks assigned to you need doing:"
+}

@@ -3,6 +3,7 @@ import Meal from '../../models/Meal.js'
 import { resolveMember } from '../resolveMember.js'
 import { jsonResult } from '../toolHelpers.js'
 import { notifyMcpAction } from '../notify.js'
+import { readableDate } from '../../i18n/index.js'
 
 const ingredientSchema = z.union([
   z.string(),
@@ -67,10 +68,10 @@ export const registerMealTools = (server, req, ctx) => {
 
     notifyMcpAction(req, ctx, {
       action: ALERT_ACTIONS.MEAL_CREATED,
-      title: `Repas suggéré : ${newMeal.dish}`,
+      title: (t) => t('notify.meal.title', { dish: newMeal.dish }),
       targetType: 'meal',
       targetId: newMeal.id,
-      body: `Pour le ${newMeal.slot === 'lunch' ? 'midi' : 'soir'} du ${newMeal.date} • Ajouté via l'assistant`
+      body: (t) => t('notify.mcp.mealFor', { slot: t(`notify.meal.slot.${newMeal.slot === 'lunch' ? 'lunch' : 'dinner'}`), date: readableDate(t, newMeal.date) })
     })
 
     return jsonResult({ ...newMeal.toObject(), createdIngredients })

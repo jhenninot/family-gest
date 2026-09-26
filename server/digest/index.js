@@ -95,10 +95,10 @@ export const startDigestScheduler = (ctx) => {
 export const mountDigestAdminRoutes = (app, ctx, { requireAuth, requireSuperAdmin }) => {
   app.post('/api/super-admin/digest/send-now', requireAuth, requireSuperAdmin, async (req, res) => {
     if (isDigestRunning) {
-      return res.status(409).json({ error: 'Un envoi du récapitulatif quotidien est déjà en cours, veuillez patienter.' })
+      return res.status(409).json({ error: req.t('errors.digestAlreadyRunning') })
     }
 
-    res.json({ message: 'Envoi du récapitulatif quotidien déclenché aux utilisateurs y ayant souscrit.' })
+    res.json({ message: req.t('messages.digestTriggered') })
 
     runDigestSafely(ctx).catch(err => console.error('[Digest] Erreur lors de l\'envoi manuel:', err.message))
   })

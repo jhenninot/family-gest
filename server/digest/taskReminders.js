@@ -1,43 +1,44 @@
 import { escapeHtml } from './templates.js'
+import { formatDateOnly } from '../i18n/index.js'
 
 // Rappel quotidien des tâches à échéance : chaque jour, à l'heure du récapitulatif, la personne
 // assignée à une tâche non terminée dont l'échéance est atteinte ou dépassée reçoit une
 // notification (une par famille, regroupant ses tâches), par push et/ou email selon ses
 // préférences User.notificationPreferences.taskReminders — vérifiées par les helpers d'envoi.
 
-const formatDueLabel = (dueDate, todayStr) => {
-  if (dueDate === todayStr) return "aujourd'hui"
-  const [y, m, d] = dueDate.split('-').map(Number)
-  const formatted = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' })
-  return `en retard, prévue le ${formatted}`
+// « aujourd'hui » ou « en retard, prévue le 3 sept. », dans la langue du destinataire
+const formatDueLabel = (t, dueDate, todayStr) => {
+  if (dueDate === todayStr) return t('reminders.dueToday')
+  return t('reminders.overdue', { date: formatDateOnly(t.lang, dueDate, { day: 'numeric', month: 'short' }) })
 }
 
+// Textes résolus par sendPushNotification / sendNotificationEmail pour chaque destinataire
 const buildPush = (family, tasks, todayStr) => ({
   // Le nom de la famille est préfixé par sendPushNotification.
-  title: tasks.length === 1 ? `📋 Tâche à faire : ${tasks[0].title}` : `📋 ${tasks.length} tâches à faire`,
-  body: tasks.length === 1
-    ? `Échéance ${formatDueLabel(tasks[0].dueDate, todayStr)}`
-    : tasks.map(t => `• ${t.title} (${formatDueLabel(t.dueDate, todayStr)})`).join('\n'),
+  title: (t) => `📋 ${tasks.length === 1 ? t('reminders.oneTitle', { title: tasks[0].title }) : t('reminders.manyTitle', { n: tasks.length })}`,
+  body: (t) => tasks.length === 1
+    ? t('reminders.due', { label: formatDueLabel(t, tasks[0].dueDate, todayStr) })
+    : tasks.map(task => `• ${task.title} (${formatDueLabel(t, task.dueDate, todayStr)})`).join('\n'),
   url: `/${family.slug}/tasks`
 })
 
 const buildEmail = (family, tasks, todayStr) => ({
-  subject: tasks.length === 1 ? `📋 Tâche à faire : ${tasks[0].title}` : `📋 ${tasks.length} tâches à faire`,
-  title: tasks.length === 1 ? 'Une tâche arrive à échéance' : 'Des tâches arrivent à échéance',
+  subject: (t) => `📋 ${tasks.length === 1 ? t('reminders.oneTitle', { title: tasks[0].title }) : t('reminders.manyTitle', { n: tasks.length })}`,
+  title: (t) => t('reminders.heading', { n: tasks.length }),
   badge: '📋',
-  detailsHtml: `
+  detailsHtml: (t) => `
     <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
-      ${tasks.length === 1 ? 'Cette tâche qui vous est assignée est' : 'Ces tâches qui vous sont assignées sont'} à faire :
+      ${t('reminders.intro', { n: tasks.length })}
     </p>
     <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
-      ${tasks.map(t => {
-        const late = t.dueDate < todayStr
-        return `<li><strong>${escapeHtml(t.title)}</strong> — <span style="color: ${late ? '#e11d48' : '#d97706'};">${escapeHtml(formatDueLabel(t.dueDate, todayStr))}</span> <span style="color:#94a3b8;">(+${t.points} pts)</span></li>`
+      ${tasks.map(task => {
+        const late = task.dueDate < todayStr
+        return `<li><strong>${escapeHtml(task.title)}</strong> — <span style="color: ${late ? '#e11d48' : '#d97706'};">${escapeHtml(formatDueLabel(t, task.dueDate, todayStr))}</span> <span style="color:#94a3b8;">(${t('notify.task.points', { n: task.points })})</span></li>`
       }).join('')}
     </ul>
   `,
   actionUrl: `/${family.slug}/tasks`,
-  actionText: 'Voir mes tâches'
+  actionText: (t) => t('notify.task.viewMyTasks')
 })
 
 export const runTaskDueReminders = async (ctx, todayStr) => {

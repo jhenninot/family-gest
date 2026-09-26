@@ -1,0 +1,66 @@
+{
+  "greeting": "Hola {name}:",
+  "hello": "Hola:",
+  "member": "Miembro",
+  "welcome": {
+    "title": "Bienvenido a FamilyGest",
+    "tagline": "Su espacio familiar compartido",
+    "subject": "Bienvenido a FamilyGest - Defina su contraseña",
+    "intro": "Se acaba de crear para usted una cuenta de acceso a <strong>FamilyGest</strong> con la dirección de email: {email}.",
+    "instructions": "Para activar su cuenta e iniciar sesión por primera vez, haga clic en el botón de abajo para elegir su contraseña personal:",
+    "button": "Definir mi contraseña",
+    "expiry": "<strong>Importante:</strong> este enlace seguro es válido durante <strong>2 horas</strong>. Pasado ese plazo, pida a un administrador de su familia que le vuelva a enviar un email de invitación.",
+    "linkFallback": "Si el botón de arriba no se muestra correctamente, copie y pegue este enlace en su navegador:",
+    "footer": "FamilyGest • Aplicación segura de organización familiar"
+  },
+  "invitation": {
+    "tagline": "Espacio compartido FamilyGest",
+    "defaultSuperAdmin": "El Superadministrador",
+    "defaultAdmin": "Un administrador",
+    "expiry": "Esta invitación segura es válida durante <strong>7 días</strong>.",
+    "directLink": "Enlace de acceso directo:",
+    "footer": "FamilyGest • Gestión colaborativa y privada de la vida familiar",
+    "existingAdmin": {
+      "title": "Invitación para ser administrador de «{family}»",
+      "intro": "{inviter} le ha nombrado <strong>administrador</strong> del espacio familiar {family} en FamilyGest.",
+      "button": "Unirse como administrador"
+    },
+    "existingMember": {
+      "title": "Invitación para unirse a la familia «{family}»",
+      "intro": "{inviter} le invita a unirse al espacio familiar {family} en FamilyGest.",
+      "button": "Unirse a la familia {family}"
+    },
+    "newAdmin": {
+      "title": "Bienvenido a FamilyGest - Administre «{family}»",
+      "intro": "Le espera un espacio familiar {family} en <strong>FamilyGest</strong>, donde {inviter} le ha invitado como <strong>administrador</strong>.",
+      "button": "Definir mi contraseña y administrar"
+    },
+    "newMember": {
+      "title": "Bienvenido a FamilyGest - Únase a «{family}»",
+      "intro": "{inviter} ha creado para usted un nuevo espacio familiar {family} en <strong>FamilyGest</strong>.",
+      "button": "Crear mi cuenta y unirme a la familia"
+    }
+  },
+  "layout": {
+    "defaultAction": "Abrir FamilyGest",
+    "notificationFrom": "Notificación de FamilyGest • {family}",
+    "familySpace": "Espacio familiar",
+    "addToCalendar": "Añádalo directamente a su calendario personal:",
+    "whyReceived": "Recibe este email porque ha activado las notificaciones «{category}» por email en su cuenta.",
+    "managePreferences": "Puede cambiar sus preferencias de notificación en cualquier momento desde su perfil, en la aplicación."
+  },
+  "categories": {
+    "presence": "Presencias, ausencias e invitados a las comidas",
+    "meals": "Comidas",
+    "tasks": "Tareas",
+    "taskReminders": "Recordatorios de tareas con vencimiento",
+    "events": "Eventos",
+    "digest": "Resumen diario"
+  },
+  "smtpTest": {
+    "subject": "Prueba de conexión SMTP de la plataforma - FamilyGest",
+    "title": "¡Conexión SMTP de la plataforma correcta!",
+    "body": "El servidor SMTP global de FamilyGest funciona correctamente.",
+    "sentFrom": "Enviado desde: {email}"
+  }
+}

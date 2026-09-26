@@ -1,18 +1,4 @@
 {
-  "role": {
-    "administrateur": "Administrateur",
-    "membre": "Membre",
-    "parent": "Parent",
-    "enfant": "Enfant",
-    "papa": "Papa",
-    "maman": "Maman",
-    "fils": "Fils",
-    "fille": "Fille",
-    "grand_parent": "Grand-parent",
-    "oncle_tante": "Oncle / Tante",
-    "baby_sitter": "Baby-sitter",
-    "autre": "Autre"
-  },
   "taskCategory": {
     "maison": "Maison",
     "cuisine": "Cuisine",
@@ -26,6 +12,13 @@
     "moyenne": "Moyenne",
     "haute": "Haute"
   },
+  "eventCategory": {
+    "fete": "Fête",
+    "sante": "Santé",
+    "famille": "Famille",
+    "scolaire": "Scolaire",
+    "loisirs": "Loisirs"
+  },
   "shoppingCategory": {
     "frais": "Frais",
     "epicerie": "Épicerie",
@@ -35,15 +28,5 @@
     "maison": "Maison",
     "autre": "Autre",
     "surgeles": "Surgelés"
-  },
-  "eventCategory": {
-    "fete": "Fête",
-    "sante": "Santé",
-    "famille": "Famille",
-    "scolaire": "Scolaire",
-    "loisirs": "Loisirs"
-  },
-  "location": {
-    "maison": "Maison"
   }
 }

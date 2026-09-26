@@ -18,7 +18,8 @@
     "cuisine": "Kitchen",
     "jardin": "Garden",
     "chambre": "Bedroom",
-    "autre": "Other"
+    "autre": "Other",
+    "organisation": "Organisation"
   },
   "taskPriority": {
     "basse": "Low",

@@ -3,6 +3,7 @@ import MealGuest from '../../models/MealGuest.js'
 import { resolveMember } from '../resolveMember.js'
 import { jsonResult } from '../toolHelpers.js'
 import { notifyMcpAction } from '../notify.js'
+import { readableDate } from '../../i18n/index.js'
 
 export const registerMealGuestTools = (server, req, ctx) => {
   const { createMealGuestsBatch, ALERT_ACTIONS } = ctx
@@ -51,10 +52,10 @@ export const registerMealGuestTools = (server, req, ctx) => {
 
     notifyMcpAction(req, ctx, {
       action: ALERT_ACTIONS.MEAL_GUEST_CREATED,
-      title: `Nouvel(le) invité(s) : ${createdGuests.map(g => g.name).join(', ')}`,
+      title: (t) => t('notify.guest.title', { names: createdGuests.map(g => g.name).join(', '), n: createdGuests.length }),
       targetType: 'meal_guest',
       targetId: createdGuests[0]?.id,
-      body: `Le ${date} • Ajouté via l'assistant`
+      body: (t) => t('notify.mcp.addedOn', { date: readableDate(t, date) })
     })
 
     return jsonResult(createdGuests)

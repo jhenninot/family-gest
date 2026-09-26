@@ -1,5 +1,6 @@
 import { gatherFamilyDigestSection } from './gatherFamilyData.js'
 import { buildDigestEmailHtml, buildDigestPushPayload } from './templates.js'
+import { translator } from '../i18n/index.js'
 
 const getTodayStr = (timezone) => {
   const now = new Date()
@@ -25,7 +26,7 @@ const sendDigestEmail = async (ctx, user, familySections, todayStr) => {
   try {
     await ctx.sendEmailWithConfig(config, {
       to: user.email,
-      subject: `☀️ Votre récapitulatif du jour — FamilyGest`,
+      subject: `☀️ ${translator(user.language)('digest.subject')}`,
       html
     })
     return { success: true, count: 1, recipients: [{ userId: user.id, name: `${user.firstName} ${user.lastName}`.trim(), email: user.email }] }
@@ -45,7 +46,7 @@ const sendDigestPush = async (ctx, user, familySections) => {
     return { success: false, reason: 'NO_SUBSCRIPTIONS', count: 0, recipients: [] }
   }
 
-  const { title, body, url } = buildDigestPushPayload({ familySections })
+  const { title, body, url } = buildDigestPushPayload({ user, familySections })
   const payload = JSON.stringify({
     title,
     body,

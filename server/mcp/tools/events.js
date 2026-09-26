@@ -3,6 +3,7 @@ import Event from '../../models/Event.js'
 import { resolveMember } from '../resolveMember.js'
 import { jsonResult } from '../toolHelpers.js'
 import { notifyMcpAction } from '../notify.js'
+import { readableDate } from '../../i18n/index.js'
 
 const resolveMemberIdOrNull = async (familyId, value) => {
   if (value === undefined || value === null || value === '') return undefined
@@ -78,20 +79,20 @@ export const registerEventTools = (server, req, ctx) => {
     if (result.isRecurring) {
       notifyMcpAction(req, ctx, {
         action: ALERT_ACTIONS.EVENT_CREATED,
-        title: `Nouvel événement récurrent : ${input.title}`,
+        title: (t) => t('notify.event.recurringCreatedTitle', { title: input.title }),
         targetType: 'event',
         targetId: result.recurrenceId,
-        body: `${result.occurrenceCount} occurrence(s) jusqu'au ${result.endDate} • Ajouté via l'assistant`
+        body: (t) => t('notify.mcp.recurringAdded', { n: result.occurrenceCount, date: readableDate(t, result.endDate) })
       })
       return jsonResult({ events: result.events, absences: result.absences, truncated: result.truncated })
     }
 
     notifyMcpAction(req, ctx, {
       action: ALERT_ACTIONS.EVENT_CREATED,
-      title: `Nouvel événement : ${result.event.title}`,
+      title: (t) => t('notify.event.createdTitle', { title: result.event.title }),
       targetType: 'event',
       targetId: result.event.id,
-      body: `${result.event.date}${result.event.time ? ' à ' + result.event.time : ''} • Ajouté via l'assistant`
+      body: (t) => t('notify.mcp.added', { when: result.event.time ? t('notify.event.whenTime', { date: readableDate(t, result.event.date), time: result.event.time }) : readableDate(t, result.event.date) })
     })
     return jsonResult(result.event)
   })
@@ -133,20 +134,20 @@ export const registerEventTools = (server, req, ctx) => {
     if (result.isSeries) {
       notifyMcpAction(req, ctx, {
         action: ALERT_ACTIONS.EVENT_UPDATED,
-        title: `Série d'événements modifiée : ${result.events[0]?.title}`,
+        title: (t) => t('notify.event.seriesUpdatedTitle', { title: result.events[0]?.title }),
         targetType: 'event',
         targetId: result.recurrenceId,
-        body: `${result.events.length} occurrence(s) mises à jour via l'assistant`
+        body: (t) => t('notify.mcp.occurrencesUpdated', { n: result.events.length })
       })
       return jsonResult({ events: result.events, absences: result.absences })
     }
 
     notifyMcpAction(req, ctx, {
       action: ALERT_ACTIONS.EVENT_UPDATED,
-      title: `Événement modifié : ${result.event.title}`,
+      title: (t) => t('notify.event.updatedTitle', { title: result.event.title }),
       targetType: 'event',
       targetId: result.event.id,
-      body: `Modifié via l'assistant`
+      body: (t) => t('notify.mcp.updated')
     })
     return jsonResult(result.event)
   })

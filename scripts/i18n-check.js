@@ -39,7 +39,8 @@ function loadLocale(dir) {
   return messages
 }
 
-const placeholders = (msg) => [...String(msg).matchAll(/\{\s*([\w.]+)\s*\}/g)].map(m => m[1]).sort().join(',')
+// Ensemble des variables d'un message (une forme plurielle peut les répéter ou non)
+const placeholders = (msg) => [...new Set([...String(msg).matchAll(/\{\s*([\w.]+)\s*\}/g)].map(m => m[1]))].sort().join(',')
 
 function walk(dir, ext, files = []) {
   if (!fs.existsSync(dir)) return files

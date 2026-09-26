@@ -6,6 +6,7 @@ import './utils/theme.js'
 import App from './App.vue'
 import { registerSW } from 'virtual:pwa-register'
 import { i18n, setLocale, detectLocale } from './i18n'
+import './i18n/apiLanguage.js'
 import { useAuthStore } from './stores/authStore'
 
 // Enregistrement et vérification active des mises à jour PWA

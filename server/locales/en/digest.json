@@ -1,0 +1,33 @@
+{
+  "pageTitle": "Today's summary",
+  "heading": "Your daily summary",
+  "intro": "Hello {name}, here is what is on today:",
+  "label": "{label}:",
+  "slots": {
+    "lunch": "Lunch",
+    "dinner": "Dinner",
+    "night": "Tonight"
+  },
+  "noDish": "No dish planned",
+  "nobody": "Nobody",
+  "guests": "guest: {names} | guests: {names}",
+  "present": "Present: {names}",
+  "headcount": "{n} people",
+  "points": "+{n} pts",
+  "noTasks": "No pending tasks",
+  "noEvents": "No events today",
+  "noShopping": "Shopping list empty",
+  "sections": {
+    "meals": "Meals",
+    "tasks": "My pending tasks",
+    "events": "Today's events",
+    "shopping": "Shopping list"
+  },
+  "whyReceived": "You are receiving this daily summary because you enabled it on your FamilyGest account.",
+  "pushTitle": "Your daily summary",
+  "pushTasks": "{n} task | {n} tasks",
+  "pushEvents": "{n} event | {n} events",
+  "pushDinner": "Dinner: {counts}",
+  "subject": "Your daily summary — FamilyGest",
+  "openApp": "Open FamilyGest"
+}

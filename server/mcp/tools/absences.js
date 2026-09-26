@@ -3,6 +3,7 @@ import Absence from '../../models/Absence.js'
 import { resolveMember } from '../resolveMember.js'
 import { jsonResult } from '../toolHelpers.js'
 import { notifyMcpAction } from '../notify.js'
+import { readableDate } from '../../i18n/index.js'
 
 export const registerAbsenceTools = (server, req, ctx) => {
   const { upsertAbsenceRecord, deleteAbsenceIfEmptySlots, mergeAbsenceIntoSibling, ALERT_ACTIONS } = ctx
@@ -55,10 +56,10 @@ export const registerAbsenceTools = (server, req, ctx) => {
     const action = type === 'presence' ? ALERT_ACTIONS.PRESENCE_CREATED : ALERT_ACTIONS.ABSENCE_CREATED
     notifyMcpAction(req, ctx, {
       action,
-      title: `${type === 'presence' ? 'Présence' : 'Absence'} : ${resolved.name}`,
+      title: (t) => t(`notify.mcp.${type === 'presence' ? 'presence' : 'absence'}Title`, { member: resolved.name }),
       targetType: 'absence',
       targetId: absence.id,
-      body: `${resolved.name} le ${date} • Déclaré via l'assistant`
+      body: (t) => t('notify.mcp.declaredOn', { member: resolved.name, date: readableDate(t, date) })
     })
 
     return jsonResult({ absence, isNew })
