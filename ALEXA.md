@@ -106,6 +106,7 @@ Le secret et l'autorisation sont stockés chiffrés. **Désactiver** (dans Famil
 |---|---|
 | « Il y a eu un problème avec la réponse de la skill demandée » | Consultez les journaux du conteneur `familygest-app` (lignes `[Alexa]`). Vérifiez que l'adresse de l'endpoint est complète et n'a pas été régénérée depuis. |
 | Rien n'arrive dans les journaux | Amazon n'atteint pas votre serveur : vérifiez l'accès HTTPS depuis l'extérieur et le certificat (l'adresse doit s'ouvrir sans avertissement dans un navigateur). |
+| L'ajout guidé d'un événement repose une question puis s'arrête | Les journaux montrent chaque requête (`[Alexa] <famille> : IntentRequest …`) et, pour les événements, l'étape en cours et les informations reçues (`[Alexa] Événement : …`) : cela indique si Alexa a transmis la réponse. |
 | `[Alexa] Requête refusée` dans les journaux | La signature d'Amazon n'a pas pu être vérifiée : le proxy modifie probablement la requête, ou l'horloge du serveur est très décalée. |
 | La demande part sur la liste d'achats Amazon ou une réponse d'Alexa sans rapport | Alexa n'a pas reconnu le nom d'invocation : vérifiez ce qu'elle a entendu dans l'application Alexa (*Paramètres › Confidentialité Alexa › Historique vocal*) et choisissez un nom plus simple à prononcer. Pour les courses, dites « d'acheter… » plutôt que « à ma liste de courses ». |
 | Un prénom n'est pas compris | Retéléchargez et réimportez le modèle de dialogue (section 5). |

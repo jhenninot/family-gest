@@ -131,14 +131,14 @@ export const buildHandlers = (api) => {
   // (« ajoute un événement »), Alexa guide : titre, jour, heure de début, heure de fin, personne ;
   // les trois dernières peuvent être passées (« toute la journée », « je ne sais pas », « toute la
   // famille »). L'avancement est gardé dans la session (eventFlow).
-  const EVENT_SLOTS = ['title', 'date', 'time', 'endTime', 'member']
+  const EVENT_SLOTS = ['title', 'guidedTitle', 'date', 'time', 'endTime', 'member']
   const GENERIC_EVENT_TITLE = /^(?:un |une |l')?(?:nouvel |nouveau |autre )?(?:événement|evenement|rendez-vous|rendez vous|rdv)$/i
 
   const eventIntent = (flow) => ({
     name: 'AddEventIntent',
     confirmationStatus: 'NONE',
     slots: Object.fromEntries(EVENT_SLOTS.map(name => {
-      const value = name === 'member' ? flow.memberName : flow[name]
+      const value = name === 'member' ? flow.memberName : name === 'guidedTitle' ? '' : flow[name]
       return [name, { name, confirmationStatus: 'NONE', ...(value ? { value } : {}) }]
     }))
   })
@@ -156,7 +156,7 @@ export const buildHandlers = (api) => {
   // Étape suivante du dialogue, ou création de l'événement quand tout est connu
   const continueEvent = async (h, flow, notice = '') => {
     const ask = (slotName, key) => askEvent(h, flow, slotName, `${notice ? notice + ' ' : ''}${t(`alexa.event.guide.${key}`)}`)
-    if (!flow.title) return ask('title', 'title')
+    if (!flow.title) return ask('guidedTitle', 'title')
     if (!flow.date) return ask('date', 'date')
     if (flow.guided) {
       if (!flow.time && !flow.asked.time) { flow.asked.time = true; return ask('time', 'time') }
@@ -221,11 +221,13 @@ export const buildHandlers = (api) => {
       const incoming = Object.fromEntries(EVENT_SLOTS.map(name => [name, readSlot(h, name)]))
       // Nouvelle demande : guidée si le titre n'a pas été dit d'emblée
       let flow = attrs.eventFlow
+      // Trace (sans les valeurs) pour diagnostiquer le dialogue dans les journaux du serveur
+      console.log(`[Alexa] Événement : état ${dialogState || '-'}, étape ${flow?.step || '-'}, reçu ${EVENT_SLOTS.filter(n => incoming[n].value).join(', ') || 'rien'}`)
       if (!flow || dialogState === 'STARTED') {
         flow = { guided: !incoming.title.value || GENERIC_EVENT_TITLE.test(incoming.title.value.trim()), asked: {}, title: '', date: '', time: '', endTime: '', memberId: null, memberName: '' }
       }
 
-      const title = (incoming.title.value || '').trim()
+      const title = (incoming.guidedTitle.value || incoming.title.value || '').trim()
       if (title) flow.title = title
       // « ajoute un événement » compris avec « un événement » comme titre : ajout guidé
       if (GENERIC_EVENT_TITLE.test(flow.title)) {

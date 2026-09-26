@@ -28,6 +28,8 @@ export const mountAlexaSkill = (app, ctx) => {
       // Le corps brut est relu ici : req.body a été modifié par express-mongo-sanitize, qui retire
       // les clés contenant un point (ex. « Alexa.Presentation.APL » dans supportedInterfaces).
       const envelope = JSON.parse(rawBody)
+      const { type, intent, dialogState } = envelope.request || {}
+      console.log(`[Alexa] ${req.params.familySlug} : ${type}${intent ? ` ${intent.name}` : ''}${dialogState ? ` (${dialogState})` : ''}`)
       const lang = normalizeLanguage(envelope.request?.locale)
       const skill = buildSkill(createAlexaApi(req, ctx, lang))
       res.json(await skill.invoke(envelope))
