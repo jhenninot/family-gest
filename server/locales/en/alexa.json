@@ -1,7 +1,5 @@
 {
-  "welcome": "Welcome to Family Gest. You can add an event, shopping items, a dish, an absence, a presence or a guest. What would you like to do?",
   "reprompt": "What would you like to do?",
-  "help": "For example, you can say: add dentist on Tuesday at 3 PM. Add milk and eggs to the shopping list. Put lasagne on Thursday for dinner. Paul will be away tomorrow for lunch. Leah will be home tonight. Or: Granny is coming for dinner on Saturday. What would you like to do?",
   "goodbye": "Goodbye!",
   "notUnderstood": "Sorry, I didn't understand. Say \"help\" for examples.",
   "error": "Sorry, something went wrong. Please try again in a moment.",
@@ -52,5 +50,54 @@
     "askNames": "Who is invited?",
     "askSlot": "For lunch, dinner or overnight?",
     "done": "Done: expecting {names} {date}, {slots}."
+  },
+  "welcome": "Welcome to Family Gest. You can add an event, shopping items, a dish, an absence, a presence or a guest, or ask who is home for a meal, the pending tasks and the planned meals. What would you like to do?",
+  "help": "For example, you can say: add dentist on Tuesday at 3 PM. Buy milk and eggs. Put lasagne on Thursday for dinner. Paul will be away tomorrow for lunch. Granny is coming for dinner on Saturday. You can also ask: who is home tonight? What are the pending tasks? What are we eating this week? What would you like to do?",
+  "query": {
+    "today": "today",
+    "tomorrow": "tomorrow",
+    "moment": {
+      "today": {
+        "lunch": "at lunch today",
+        "dinner": "tonight",
+        "night": "tonight, overnight"
+      },
+      "other": {
+        "lunch": "{day} at lunch",
+        "dinner": "{day} evening",
+        "night": "the night of {day}"
+      }
+    },
+    "who": {
+      "result": "{when}, just one person: {names}. | {when}, there will be {n} of you: {names}.",
+      "withGuests": "{members}, plus {guests} as a guest | {members}, plus {guests} as guests",
+      "nobody": "{when}, nobody is expected at home."
+    },
+    "tasks": {
+      "none": "No pending tasks, everything is done!",
+      "noneFor": "{member} has no pending tasks.",
+      "list": "There is {n} pending task: {list}. | There are {n} pending tasks: {list}.",
+      "listFor": "{member} has {n} pending task: {list}. | {member} has {n} pending tasks: {list}.",
+      "for": "for {name}",
+      "overdue": "overdue",
+      "dueToday": "due today",
+      "dueTomorrow": "due tomorrow",
+      "dueOn": "due {date}",
+      "more": "and {n} more | and {n} more"
+    },
+    "meals": {
+      "one": "{when}, it is {dish}.",
+      "noneAt": "No dish is planned {when}.",
+      "noneOn": "No meal is planned {day}.",
+      "nonePlanned": "No meals are planned for the coming days.",
+      "list": "On the menu: {list}.",
+      "item": "{when}, {dish}",
+      "slot": {
+        "lunch": "lunch",
+        "dinner": "dinner"
+      },
+      "listOn": "{day}, on the menu: {list}.",
+      "nonePeriod": "No meals are planned from {start} to {end}."
+    }
   }
 }

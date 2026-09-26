@@ -11,6 +11,14 @@ Ce guide explique comment créer une skill Alexa **privée** qui permet d'ajoute
 | Une présence exceptionnelle | « Alexa, demande à gestion famille : Léa sera là ce soir » |
 | Un invité | « Alexa, demande à gestion famille : Mamie vient dîner samedi » |
 
+Elle répond aussi aux questions :
+
+| Question | Exemple de phrase |
+|---|---|
+| Qui est à la maison pour un repas | « Alexa, demande à gestion famille qui mange à la maison ce soir » · « … combien on sera demain midi » · « … qui dort à la maison samedi » |
+| Les tâches en cours | « Alexa, demande à gestion famille quelles sont les tâches en cours » · « … quelles sont les tâches de Paul » |
+| Les repas prévus | « Alexa, demande à gestion famille ce qu'on mange ce soir » · « … quels sont les repas prévus » · « … quel est le menu de la semaine prochaine » |
+
 « gestion famille » est le nom d'invocation par défaut : il se change dans FamilyGest (voir section 2). Évitez les noms inventés ou anglais comme « family gest », que la reconnaissance vocale française comprend mal.
 
 La skill reste en **mode développement** : elle n'est pas publiée sur le magasin Alexa, ne passe pas par la certification d'Amazon et ne fonctionne que sur les enceintes rattachées à **votre** compte Amazon.
@@ -63,6 +71,8 @@ C'est tout : la skill fonctionne aussitôt sur vos enceintes Echo (dans l'applic
 - **Courses** : évitez « à ma liste de courses », qu'Alexa a tendance à envoyer vers la liste d'achats d'Amazon. Préférez « d'**acheter** du lait », « qu'il faut du lait » ou « d'ajouter du lait **aux courses** ». En conversation (skill ouverte), « ajoute du lait » suffit toujours.
 - Plusieurs articles ou invités d'un coup : « du lait, du beurre et des œufs », « Mamie et Papi ». Un article déjà présent sur la liste n'est pas ajouté en double ; les articles dictés vont dans le rayon « Autre ».
 - « Alexa, demande à gestion famille de l'aide » donne des exemples.
+
+- **Questions** : sans moment précisé, « qui est là ? » concerne le prochain repas du jour (le midi avant 14 h, le soir ensuite) et, pour un autre jour, les deux repas. « Quels sont les repas prévus ? » couvre les sept prochains jours ; on peut aussi demander un jour, « cette semaine », « la semaine prochaine » ou « ce week-end ». Les tâches sont lues par échéance, cinq au maximum.
 
 Les absences longues (vacances…) ne sont pas encore gérées à la voix.
 

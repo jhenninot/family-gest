@@ -1,5 +1,11 @@
 import Meal from '../models/Meal.js'
 import ShoppingItem from '../models/ShoppingItem.js'
+import Task from '../models/Task.js'
+import User from '../models/User.js'
+import FamilyMember from '../models/FamilyMember.js'
+import Absence from '../models/Absence.js'
+import MealGuest from '../models/MealGuest.js'
+import { getMealSlotPresence } from '../digest/mealPresence.js'
 import { translator, readableDate } from '../i18n/index.js'
 import { getFamilyMembersList } from '../mcp/resolveMember.js'
 import { todayStr } from './parsing.js'
@@ -43,6 +49,33 @@ export const createAlexaApi = (req, ctx, lang) => {
       if (!membersCache) membersCache = await getFamilyMembersList(familyId)
       return membersCache
     },
+
+    // --- Questions (lecture seule) ---
+
+    // Qui est à la maison à un créneau : même calcul que le récapitulatif quotidien et l'application
+    // (présence habituelle, semaines A/B, absences et présences déclarées, invités)
+    whoIsHome: ({ date, slot }) => getMealSlotPresence({ FamilyMember, User, Absence, MealGuest }, family, date, slot),
+
+    // Tâches non terminées (d'un membre ou de toute la famille), les échéances les plus proches d'abord
+    async pendingTasks ({ memberId = null } = {}) {
+      const filter = { familyId, completed: false }
+      if (memberId != null) filter.assignedTo = memberId
+      const tasks = await Task.find(filter)
+      const names = new Map((await this.members()).map(m => [m.id, m.firstName]))
+      return tasks
+        .map(task => ({ title: task.title, dueDate: task.dueDate || null, assignee: names.get(task.assignedTo) || null }))
+        .sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'))
+    },
+
+    // Plats prévus entre deux dates incluses, dans l'ordre (midi avant soir)
+    async plannedMeals ({ start, end }) {
+      const meals = await Meal.find({ familyId, date: { $gte: start, $lte: end } })
+      return meals
+        .map(m => ({ date: m.date, slot: m.slot, dish: m.dish }))
+        .sort((a, b) => a.date.localeCompare(b.date) || (a.slot === 'lunch' ? -1 : 1))
+    },
+
+    // --- Ajouts ---
 
     async addEvent ({ title, date, time }) {
       const { event } = await ctx.createEventOrSeries({ familyId, body: { title, date, time: time || '' }, declaredBy: actorId, lang })

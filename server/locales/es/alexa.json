@@ -1,7 +1,5 @@
 {
-  "welcome": "Bienvenido a Family Gest. Puede añadir un evento, artículos de la compra, un plato, una ausencia, una presencia o un invitado. ¿Qué quiere hacer?",
   "reprompt": "¿Qué quiere hacer?",
-  "help": "Por ejemplo, puede decir: añade dentista el martes a las 3 de la tarde. Añade leche y huevos a la lista de la compra. Pon lasaña para la cena del jueves. Pablo no estará mañana a mediodía. Lea estará esta noche. O también: la abuela viene a cenar el sábado. ¿Qué quiere hacer?",
   "goodbye": "¡Hasta pronto!",
   "notUnderstood": "No lo he entendido. Diga «ayuda» para oír ejemplos.",
   "error": "Lo siento, se ha producido un error. Vuelva a intentarlo en un momento.",
@@ -52,5 +50,54 @@
     "askNames": "¿Quién está invitado?",
     "askSlot": "¿Para la comida, la cena o para dormir?",
     "done": "Anotado: se espera a {names} {date}, {slots}."
+  },
+  "welcome": "Bienvenido a Family Gest. Puede añadir un evento, artículos de la compra, un plato, una ausencia, una presencia o un invitado, o preguntar quién come en casa, las tareas pendientes y las comidas previstas. ¿Qué quiere hacer?",
+  "help": "Por ejemplo, puede decir: añade dentista el martes a las 3 de la tarde. Compra leche y huevos. Pon lasaña para la cena del jueves. Pablo no estará mañana a mediodía. La abuela viene a cenar el sábado. También puede preguntar: ¿quién come en casa esta noche? ¿Cuáles son las tareas pendientes? ¿Qué comemos esta semana? ¿Qué quiere hacer?",
+  "query": {
+    "today": "hoy",
+    "tomorrow": "mañana",
+    "moment": {
+      "today": {
+        "lunch": "hoy a mediodía",
+        "dinner": "esta noche",
+        "night": "esta noche para dormir"
+      },
+      "other": {
+        "lunch": "{day} a mediodía",
+        "dinner": "{day} por la noche",
+        "night": "la noche del {day}"
+      }
+    },
+    "who": {
+      "result": "{when}, una sola persona: {names}. | {when}, seréis {n}: {names}.",
+      "withGuests": "{members}, más {guests} como invitado | {members}, más {guests} como invitados",
+      "nobody": "{when}, no se espera a nadie en casa."
+    },
+    "tasks": {
+      "none": "No hay tareas pendientes, ¡todo está hecho!",
+      "noneFor": "{member} no tiene tareas pendientes.",
+      "list": "Hay {n} tarea pendiente: {list}. | Hay {n} tareas pendientes: {list}.",
+      "listFor": "{member} tiene {n} tarea pendiente: {list}. | {member} tiene {n} tareas pendientes: {list}.",
+      "for": "para {name}",
+      "overdue": "con retraso",
+      "dueToday": "para hoy",
+      "dueTomorrow": "para mañana",
+      "dueOn": "para el {date}",
+      "more": "y {n} más | y {n} más"
+    },
+    "meals": {
+      "one": "{when}, hay {dish}.",
+      "noneAt": "No hay ningún plato previsto {when}.",
+      "noneOn": "No hay ninguna comida prevista {day}.",
+      "nonePlanned": "No hay comidas previstas para los próximos días.",
+      "list": "En el menú: {list}.",
+      "item": "{when}, {dish}",
+      "slot": {
+        "lunch": "a mediodía",
+        "dinner": "por la noche"
+      },
+      "listOn": "{day}, en el menú: {list}.",
+      "nonePeriod": "No hay comidas previstas del {start} al {end}."
+    }
   }
 }

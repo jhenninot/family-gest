@@ -1,7 +1,5 @@
 {
-  "welcome": "Bienvenue sur Family Gest. Vous pouvez ajouter un événement, des courses, un plat, une absence, une présence ou un invité. Que voulez-vous faire ?",
   "reprompt": "Que voulez-vous faire ?",
-  "help": "Vous pouvez dire par exemple : ajoute dentiste mardi à 15 heures. Ajoute du lait et des œufs à la liste de courses. Mets des lasagnes au dîner de jeudi. Paul ne sera pas là demain midi. Léa sera là ce soir. Ou encore : Mamie vient dîner samedi. Que voulez-vous faire ?",
   "goodbye": "À bientôt !",
   "notUnderstood": "Je n'ai pas compris. Dites « aide » pour avoir des exemples.",
   "error": "Désolé, une erreur est survenue. Réessayez dans un instant.",
@@ -52,5 +50,54 @@
     "askNames": "Qui est invité ?",
     "askSlot": "Pour le déjeuner, le dîner ou la nuit ?",
     "done": "C'est noté, on attend {names} {date}, {slots}."
+  },
+  "welcome": "Bienvenue sur Family Gest. Vous pouvez ajouter un événement, des courses, un plat, une absence, une présence ou un invité, ou demander qui mange à la maison, les tâches en cours et les repas prévus. Que voulez-vous faire ?",
+  "help": "Vous pouvez dire par exemple : ajoute dentiste mardi à 15 heures. Achète du lait et des œufs. Mets des lasagnes au dîner de jeudi. Paul ne sera pas là demain midi. Mamie vient dîner samedi. Vous pouvez aussi demander : qui mange à la maison ce soir ? Quelles sont les tâches en cours ? Qu'est-ce qu'on mange cette semaine ? Que voulez-vous faire ?",
+  "query": {
+    "today": "aujourd'hui",
+    "tomorrow": "demain",
+    "moment": {
+      "today": {
+        "lunch": "ce midi",
+        "dinner": "ce soir",
+        "night": "cette nuit"
+      },
+      "other": {
+        "lunch": "{day} midi",
+        "dinner": "{day} soir",
+        "night": "la nuit de {day}"
+      }
+    },
+    "who": {
+      "result": "{when}, une seule personne : {names}. | {when}, vous serez {n} : {names}.",
+      "withGuests": "{members}, plus {guests} en invité | {members}, plus {guests} en invités",
+      "nobody": "{when}, personne n'est prévu à la maison."
+    },
+    "tasks": {
+      "none": "Aucune tâche en cours, tout est fait !",
+      "noneFor": "{member} n'a aucune tâche en cours.",
+      "list": "Il y a {n} tâche en cours : {list}. | Il y a {n} tâches en cours : {list}.",
+      "listFor": "{member} a {n} tâche en cours : {list}. | {member} a {n} tâches en cours : {list}.",
+      "for": "pour {name}",
+      "overdue": "en retard",
+      "dueToday": "à faire aujourd'hui",
+      "dueTomorrow": "à faire demain",
+      "dueOn": "à faire pour {date}",
+      "more": "et {n} autre | et {n} autres"
+    },
+    "meals": {
+      "one": "{when}, c'est {dish}.",
+      "noneAt": "Aucun plat n'est prévu {when}.",
+      "noneOn": "Aucun repas n'est prévu {day}.",
+      "nonePlanned": "Aucun repas n'est prévu pour les jours qui viennent.",
+      "list": "Au menu : {list}.",
+      "item": "{when}, {dish}",
+      "slot": {
+        "lunch": "le midi",
+        "dinner": "le soir"
+      },
+      "listOn": "{day}, au menu : {list}.",
+      "nonePeriod": "Aucun repas n'est prévu du {start} au {end}."
+    }
   }
 }

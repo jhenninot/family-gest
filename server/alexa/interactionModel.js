@@ -177,6 +177,66 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
         '{guests} est invité [au] {slotOne} [{date}]'
       ])
     },
+    {
+      name: 'WhoIsHomeIntent',
+      slots: [{ ...date }, { name: 'mealSlot', type: 'MealSlot' }],
+      samples: expand([
+        'qui mange à la maison [{date}] [{mealSlot}]',
+        'qui mange à la maison [au] {mealSlot} [{date}]',
+        'qui mange [au] {mealSlot} [{date}]',
+        'qui est là [{date}] [{mealSlot}]',
+        'qui est là [au] {mealSlot} [{date}]',
+        'qui est présent [{date}] [{mealSlot}]',
+        'qui sera là [{date}] [{mealSlot}]',
+        'qui sera là [au] {mealSlot} [{date}]',
+        'combien on est [{date}] [{mealSlot}]',
+        'combien on est [au] {mealSlot} [{date}]',
+        'on sera combien [{date}] [{mealSlot}]',
+        'on sera combien [au] {mealSlot} [{date}]',
+        'combien de personnes [{date}] [{mealSlot}]',
+        'combien de couverts [{date}] [{mealSlot}]'
+      ])
+    },
+    {
+      name: 'WhoSleepsIntent',
+      slots: [{ ...date }],
+      samples: expand(['qui dort à la maison [{date}]', 'qui dort là [{date}]', 'qui sera là [{date}] pour dormir'])
+    },
+    {
+      name: 'TasksIntent',
+      slots: [{ name: 'member', type: 'MemberName' }],
+      samples: expand([
+        'quelles sont les tâches [en cours]',
+        'quelles sont les tâches à faire',
+        'quelles tâches restent à faire',
+        "qu'est-ce qu'il reste à faire",
+        "qu'est-ce qu'il y a à faire",
+        'la liste des tâches',
+        'les tâches en cours',
+        'quelles sont les tâches de {member}',
+        "qu'est-ce que {member} doit faire",
+        'quelles tâches a {member}',
+        'les tâches de {member}'
+      ])
+    },
+    {
+      name: 'MealsIntent',
+      slots: [{ ...date }, { name: 'mealSlot', type: 'MealSlot' }],
+      samples: expand([
+        "qu'est-ce qu'on mange [{date}] [{mealSlot}]",
+        "qu'est-ce qu'on mange [au] {mealSlot} [{date}]",
+        'on mange quoi [{date}] [{mealSlot}]',
+        'on mange quoi [au] {mealSlot} [{date}]',
+        'quel est le menu [{date}] [{mealSlot}]',
+        'quel est le menu [du] {mealSlot} [{date}]',
+        'quel est le menu de {date}',
+        'quels sont les repas prévus [{date}]',
+        'quels repas sont prévus [{date}]',
+        "qu'est-ce qui est prévu [au] {mealSlot} [{date}]",
+        "qu'est-ce qui est prévu à manger [{date}]",
+        'le menu [{date}]'
+      ])
+    },
     { name: 'AMAZON.HelpIntent', samples: ['aide', 'aide-moi', "qu'est-ce que je peux dire"] },
     { name: 'AMAZON.CancelIntent', samples: [] },
     { name: 'AMAZON.StopIntent', samples: [] },

@@ -1,11 +1,12 @@
 import Alexa from 'ask-sdk-core'
-import { readableDate } from '../i18n/index.js'
-import { parseAlexaDate, parseAlexaTime, parseMealSlot, slotsToFlags, splitSpokenList, parseShoppingEntry, parseGuestNames, matchMember } from './parsing.js'
+import { readableDate, formatDateOnly } from '../i18n/index.js'
+import { parseAlexaDate, parseAlexaTime, parseMealSlot, slotsToFlags, splitSpokenList, parseShoppingEntry, parseGuestNames, matchMember, parseAlexaPeriod, addDays, currentHour } from './parsing.js'
 
 // Dialogue de la skill Alexa. Toutes les écritures passent par `api` (voir actions.js), ce qui
 // permet de tester ces gestionnaires sans base de données.
 //
-// api = { t, today(), members(), addEvent(), addShoppingItems(), addMeal(), declarePresence(), addGuests() }
+// api = { t, today(), members(), addEvent(), addShoppingItems(), addMeal(), declarePresence(), addGuests(),
+//         whoIsHome(), pendingTasks(), plannedMeals() }
 
 // Valeur entendue et identifiant résolu (valeurs du modèle ou entités dynamiques) d'un créneau
 const readSlot = (handlerInput, name) => {
@@ -76,6 +77,23 @@ const readPresenceSlots = (handlerInput, forcedSlot) => {
     .map(name => { const s = readSlot(handlerInput, name); return parseMealSlot(s.id, s.value) })
     .filter(Boolean)
 }
+
+// « aujourd'hui », « demain », « mardi » (dans les six jours) ou « samedi 17 octobre »
+const dayLabel = (api, date) => {
+  const today = api.today()
+  if (date === today) return api.t('alexa.query.today')
+  if (date === addDays(today, 1)) return api.t('alexa.query.tomorrow')
+  if (date > today && date <= addDays(today, 6)) return formatDateOnly(api.t.lang, date, { weekday: 'long' })
+  return readableDate(api.t, date)
+}
+
+// « ce soir », « demain midi », « la nuit de samedi 4 octobre »
+const slotMoment = (api, date, slot) => {
+  if (date === api.today()) return api.t(`alexa.query.moment.today.${slot}`)
+  return api.t(`alexa.query.moment.other.${slot}`, { day: dayLabel(api, date) })
+}
+
+const capitalizeFirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
 
 const slotNames = (t, flags) => ['lunch', 'dinner', 'night'].filter(s => flags[s]).map(s => t(`alexa.slots.${s}`))
 
@@ -192,6 +210,121 @@ export const buildHandlers = (api) => {
     }
   }
 
+  // --- Questions ---
+
+  // « Qui mange à la maison ce soir ? » : sans créneau, le prochain repas du jour (midi avant 14 h,
+  // soir ensuite), ou les deux repas pour un autre jour.
+  const whoIsHomeHandler = (intentName, forcedSlot = null) => ({
+    canHandle: isIntent(intentName),
+    async handle (h) {
+      const { date, invalid } = optionalDate(h, api)
+      const day = invalid ? api.today() : date
+      const slotRead = readSlot(h, 'mealSlot')
+      const asked = forcedSlot || parseMealSlot(slotRead.id, slotRead.value)
+      let slots
+      if (asked === 'LUNCH') slots = ['lunch']
+      else if (asked === 'DINNER') slots = ['dinner']
+      else if (asked === 'NIGHT') slots = ['night']
+      else if (day === api.today()) slots = [currentHour() < 14 ? 'lunch' : 'dinner']
+      else slots = ['lunch', 'dinner']
+
+      const firstNames = new Map((await api.members()).map(m => [m.id, m.firstName]))
+      const sentences = []
+      for (const slot of slots) {
+        const presence = await api.whoIsHome({ date: day, slot })
+        const when = capitalizeFirst(slotMoment(api, day, slot))
+        const members = presence.presentMembers.map(m => firstNames.get(m.id) || m.name)
+        const guests = presence.guests.map(g => g.name)
+        if (members.length + guests.length === 0) {
+          sentences.push(t('alexa.query.who.nobody', { when }))
+          continue
+        }
+        const names = guests.length > 0
+          ? t('alexa.query.who.withGuests', { members: joinList(t, members), guests: joinList(t, guests), n: guests.length })
+          : joinList(t, members)
+        sentences.push(t('alexa.query.who.result', { when, names, n: presence.headcount }))
+      }
+      return finish(h, api, sentences.join(' '))
+    }
+  })
+
+  // « Quelles sont les tâches en cours ? », « Qu'est-ce que Paul doit faire ? »
+  const TasksHandler = {
+    canHandle: isIntent('TasksIntent'),
+    async handle (h) {
+      const { value } = readSlot(h, 'member')
+      let member = null
+      if (value) {
+        const found = await resolveMemberOrElicit(h, api)
+        if (found.response) return found.response
+        member = found.member
+      }
+      const tasks = await api.pendingTasks({ memberId: member?.id ?? null })
+      if (tasks.length === 0) {
+        return finish(h, api, member ? t('alexa.query.tasks.noneFor', { member: member.firstName }) : t('alexa.query.tasks.none'))
+      }
+      const today = api.today()
+      const describe = (task) => {
+        let text = task.title
+        if (!member && task.assignee) text += ` ${t('alexa.query.tasks.for', { name: task.assignee })}`
+        if (task.dueDate) {
+          if (task.dueDate < today) text += `, ${t('alexa.query.tasks.overdue')}`
+          else if (task.dueDate === today) text += `, ${t('alexa.query.tasks.dueToday')}`
+          else if (task.dueDate === addDays(today, 1)) text += `, ${t('alexa.query.tasks.dueTomorrow')}`
+          else text += `, ${t('alexa.query.tasks.dueOn', { date: readableDate(t, task.dueDate) })}`
+        }
+        return text
+      }
+      const shown = tasks.slice(0, 5).map(describe)
+      const rest = tasks.length - shown.length
+      const list = shown.join(' ; ') + (rest > 0 ? ` ; ${t('alexa.query.tasks.more', { n: rest })}` : '')
+      return finish(h, api, member
+        ? t('alexa.query.tasks.listFor', { member: member.firstName, n: tasks.length, list })
+        : t('alexa.query.tasks.list', { n: tasks.length, list }))
+    }
+  }
+
+  // « Qu'est-ce qu'on mange ce soir ? », « Quels sont les repas prévus cette semaine ? »
+  const MealsHandler = {
+    canHandle: isIntent('MealsIntent'),
+    async handle (h) {
+      const dateValue = readSlot(h, 'date').value
+      const slotRead = readSlot(h, 'mealSlot')
+      const slotKey = parseMealSlot(slotRead.id, slotRead.value)
+      const slot = slotKey === 'LUNCH' ? 'lunch' : slotKey === 'DINNER' ? 'dinner' : null
+      const today = api.today()
+      // Sans date : aujourd'hui si un repas est précisé, sinon les 7 prochains jours
+      const period = dateValue ? parseAlexaPeriod(dateValue) : (slot ? { start: today, end: today } : { start: today, end: addDays(today, 6) })
+      if (!period) return elicit(h, 'date', t('alexa.askPreciseDay'))
+
+      const meals = (await api.plannedMeals(period)).filter(m => !slot || m.slot === slot)
+      const singleDay = period.start === period.end
+
+      // Un repas précis : « Ce soir, c'est raclette. »
+      if (singleDay && slot) {
+        const when = slotMoment(api, period.start, slot)
+        return finish(h, api, meals.length > 0
+          ? t('alexa.query.meals.one', { when: capitalizeFirst(when), dish: joinList(t, meals.map(m => m.dish)) })
+          : t('alexa.query.meals.noneAt', { when }))
+      }
+      if (meals.length === 0) {
+        if (singleDay) return finish(h, api, t('alexa.query.meals.noneOn', { day: dayLabel(api, period.start) }))
+        return finish(h, api, dateValue
+          ? t('alexa.query.meals.nonePeriod', { start: readableDate(t, period.start), end: readableDate(t, period.end) })
+          : t('alexa.query.meals.nonePlanned'))
+      }
+      const list = meals.slice(0, 10).map(m => t('alexa.query.meals.item', {
+        when: singleDay ? t(`alexa.query.meals.slot.${m.slot}`) : slotMoment(api, m.date, m.slot),
+        dish: m.dish
+      }))
+      const rest = meals.length - list.length
+      const fullList = list.join(' ; ') + (rest > 0 ? ` ; ${t('alexa.query.tasks.more', { n: rest })}` : '')
+      return finish(h, api, singleDay
+        ? t('alexa.query.meals.listOn', { day: capitalizeFirst(dayLabel(api, period.start)), list: fullList })
+        : t('alexa.query.meals.list', { list: fullList }))
+    }
+  }
+
   const HelpHandler = {
     canHandle: isIntent('AMAZON.HelpIntent'),
     handle: (h) => h.responseBuilder.speak(t('alexa.help')).reprompt(t('alexa.reprompt')).getResponse()
@@ -227,7 +360,9 @@ export const buildHandlers = (api) => {
       presenceHandler('AbsenceNightIntent', 'absence', 'NIGHT'),
       presenceHandler('PresenceIntent', 'presence'),
       presenceHandler('PresenceNightIntent', 'presence', 'NIGHT'),
-      AddGuestHandler, HelpHandler, StopHandler, FallbackHandler, SessionEndedHandler
+      AddGuestHandler,
+      whoIsHomeHandler('WhoIsHomeIntent'), whoIsHomeHandler('WhoSleepsIntent', 'NIGHT'), TasksHandler, MealsHandler,
+      HelpHandler, StopHandler, FallbackHandler, SessionEndedHandler
     ],
     errorHandler: ErrorHandler
   }

@@ -134,3 +134,29 @@ export const matchMember = (members, spoken, resolvedId = null) => {
   const close = members.filter(m => levenshtein(normalize(m.firstName), query) <= tolerance)
   return pick(exact) || pick(prefix) || pick(close) || {}
 }
+
+// Jour décalé de n jours (AAAA-MM-JJ)
+export const addDays = (dateStr, n) => {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10)
+}
+
+// Période d'AMAZON.DATE pour les questions : un jour, une semaine (« 2026-W40 » : lundi → dimanche)
+// ou un week-end (« 2026-W40-WE » : samedi → dimanche). null si la valeur n'est pas exploitable.
+export const parseAlexaPeriod = (value) => {
+  const day = parseAlexaDate(value)
+  if (day) return { start: day, end: day }
+  const match = /^(\d{4})-W(\d{2})(-WE)?$/.exec(String(value || '').trim())
+  if (!match) return null
+  const [, year, week, weekend] = match
+  // Lundi de la semaine ISO : la semaine 1 contient le 4 janvier
+  const jan4 = new Date(Date.UTC(Number(year), 0, 4))
+  const monday = new Date(jan4)
+  monday.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7) + (Number(week) - 1) * 7)
+  const start = monday.toISOString().slice(0, 10)
+  return weekend ? { start: addDays(start, 5), end: addDays(start, 6) } : { start, end: addDays(start, 6) }
+}
+
+// Heure locale (0-23) dans le fuseau de la famille
+export const currentHour = (timezone = process.env.DIGEST_TIMEZONE || 'Europe/Paris', now = new Date()) =>
+  Number(new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', hourCycle: 'h23' }).format(now))
