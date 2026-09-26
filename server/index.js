@@ -5867,6 +5867,10 @@ if (fs.existsSync(distPath)) {
     if (req.path.startsWith('/api')) {
       return next()
     }
+    // Fichier absent (image, script…) : vraie erreur 404 plutôt que la page de l'application
+    if (/\.[a-z0-9]+$/i.test(req.path)) {
+      return res.status(404).end()
+    }
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
     res.sendFile(path.join(distPath, 'index.html'))
   })

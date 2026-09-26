@@ -63,7 +63,7 @@ export default defineConfig({
         // Les adresses du serveur ouvertes directement dans le navigateur (retour de l'autorisation
         // Amazon, fichiers .ics des emails…) doivent atteindre le serveur : sans cette exclusion, le
         // service worker y répond avec la page de l'application, qui renvoie alors à l'accueil.
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [/^\/api\//, /\/[^/]+\.[a-z0-9]+$/i],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
