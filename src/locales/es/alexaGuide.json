@@ -39,8 +39,6 @@
     "endpoint": {
       "title": "Conectar la skill con FamilyGest",
       "menu": "En el menú de la izquierda: «Build › Endpoint» y elija «HTTPS».",
-      "agenda": "«Alexa, pide a {name} los próximos eventos» (o «… qué hay en la agenda mañana»)",
-      "summary": "«Alexa, pide a {name} el resumen del día»: eventos, quién está en cada comida y qué se come",
       "url": "En «Default Region», pegue la dirección de la skill copiada en el paso 2.",
       "cert": "En la lista de debajo, elija «My development endpoint has a certificate from a trusted certificate authority» y luego «Save»."
     },
@@ -60,6 +58,8 @@
       "who": "«Alexa, demande à {name} qui mange à la maison ce soir» (quién está en casa)",
       "tasks": "«Alexa, demande à {name} quelles sont les tâches en cours» (tareas pendientes)",
       "menu": "«Alexa, demande à {name} ce qu’on mange cette semaine» (comidas previstas)",
+      "agenda": "«Alexa, pide a {name} los próximos eventos» (o «… qué hay en la agenda mañana»)",
+      "summary": "«Alexa, pide a {name} el resumen del día»: eventos, quién está en cada comida y qué se come",
       "conversation": "Para encadenar varias peticiones: «Alexa, ouvre {name}», luego sus peticiones una tras otra y «c’est tout» para terminar."
     },
     "maintenance": {

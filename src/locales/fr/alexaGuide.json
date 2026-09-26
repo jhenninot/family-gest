@@ -39,8 +39,6 @@
     "endpoint": {
       "title": "Relier la skill à FamilyGest",
       "menu": "Dans le menu de gauche : « Build › Endpoint », puis choisissez « HTTPS ».",
-      "agenda": "« Alexa, demande à {name} quels sont les événements à venir » (ou « … ce qu'il y a dans l'agenda demain »)",
-      "summary": "« Alexa, demande à {name} le récapitulatif du jour » : événements, qui est là à chaque repas et ce qu'on mange",
       "url": "Dans « Default Region », collez l'adresse de la skill copiée à l'étape 2.",
       "cert": "Dans la liste juste en dessous, choisissez « My development endpoint has a certificate from a trusted certificate authority », puis « Save »."
     },
@@ -60,6 +58,8 @@
       "who": "« Alexa, demande à {name} qui mange à la maison ce soir »",
       "tasks": "« Alexa, demande à {name} quelles sont les tâches en cours » (ou « … les tâches de Paul »)",
       "menu": "« Alexa, demande à {name} ce qu'on mange cette semaine »",
+      "agenda": "« Alexa, demande à {name} quels sont les événements à venir » (ou « … ce qu'il y a dans l'agenda demain »)",
+      "summary": "« Alexa, demande à {name} le récapitulatif du jour » : événements, qui est là à chaque repas et ce qu'on mange",
       "conversation": "Pour enchaîner plusieurs demandes : « Alexa, ouvre {name} », puis vos demandes l'une après l'autre, et « c'est tout » pour terminer."
     },
     "maintenance": {
