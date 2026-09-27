@@ -86,6 +86,14 @@ const EXTRA_SAMPLES = {
   AddMealIntent: [
     'au {mealSlot} [{date}] on mange {dish}',
     '{date} au {mealSlot} on mange {dish}',
+    // « Demain midi on mange des croquettes », « ce soir c'est raclette »
+    '{date} {mealSlot} on mange {dish}',
+    '{mealSlot} [{date}] on mange {dish}',
+    '{date} {mealSlot} ce sera {dish}',
+    '{mealSlot} [{date}] ce sera {dish}',
+    "{date} {mealSlot} c'est {dish}",
+    "{mealSlot} [{date}] c'est {dish}",
+    'pour le {mealSlot} [de] {date} on mange {dish}',
     'on fait {dish} [{date}] au {mealSlot}',
     'on fait {dish} au {mealSlot} [{date}]',
     'on fait {dish} {date} {mealSlot}',
@@ -193,6 +201,12 @@ const EXTRA_SAMPLES = {
     'les tâches pour {member}'
   ],
   MealsIntent: [
+    // Question posée dans le même ordre que l'ajout (« demain midi on mange quoi ? »)
+    '{date} [au] {mealSlot} on mange quoi',
+    '[au] {mealSlot} [{date}] on mange quoi',
+    '{date} on mange quoi',
+    "{date} [au] {mealSlot} c'est quoi",
+    "[au] {mealSlot} [{date}] c'est quoi",
     "qu'est-ce qu'on a au menu [{date}] [{mealSlot}]",
     "qu'y a-t-il au menu [{date}] [{mealSlot}]",
     "c'est quoi le menu [{date}] [{mealSlot}]",
