@@ -12,5 +12,21 @@
   "errors": {
     "failed": "Sign-in error",
     "unreachable": "Unable to reach the authentication server"
+  },
+  "google": {
+    "or": "or",
+    "continue": "Continue with Google",
+    "signingIn": "Signing in…",
+    "errors": {
+      "no_account": "No FamilyGest account uses the address {email}. Sign in with the Google account of your FamilyGest address, or ask for an invitation.",
+      "email_not_verified": "Google has not confirmed this account's email address.",
+      "invite_mismatch": "The invitation was sent to another address than {email}: choose the Google account matching the invitation.",
+      "invite_invalid": "This invitation is no longer valid.",
+      "quota": "The family has reached its maximum number of members.",
+      "not_configured": "Google sign-in is not enabled.",
+      "expired": "The Google sign-in expired, please try again.",
+      "denied": "Google sign-in cancelled.",
+      "failed": "Google sign-in failed, please try again."
+    }
   }
 }

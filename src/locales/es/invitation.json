@@ -30,5 +30,8 @@
     "notFound": "Invitación no encontrada o caducada",
     "acceptFailed": "Error al aceptar la invitación",
     "finalizeFailed": "Error al finalizar el registro"
-  }
+  },
+  "acceptWithGoogle": "Aceptar con Google",
+  "googleHint": "Use la cuenta de Google de la dirección {email}: no hace falta crear una contraseña.",
+  "createWithPassword": "Crear una cuenta con contraseña"
 }

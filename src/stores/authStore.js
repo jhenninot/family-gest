@@ -124,6 +124,25 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Connexion avec Google : le serveur renvoie un jeton, le profil est ensuite chargé comme au
+  // rafraîchissement de session (voir server/auth/google.js)
+  const loginWithToken = async (newToken) => {
+    error.value = ''
+    token.value = newToken
+    localStorage.setItem('familygest_token', newToken)
+    const ok = await refreshSession()
+    if (!ok || !user.value) return false
+    const fams = user.value.families || []
+    if (fams.length === 0) {
+      localStorage.removeItem('familygest_active_slug')
+    } else if (fams.length === 1) {
+      localStorage.setItem('familygest_active_slug', fams[0].slug)
+    } else if (!fams.some(f => f.slug === localStorage.getItem('familygest_active_slug'))) {
+      localStorage.removeItem('familygest_active_slug')
+    }
+    return true
+  }
+
   const refreshSession = async () => {
     if (!token.value) return false
     try {
@@ -211,6 +230,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     setAuth,
     setToken,
+    loginWithToken,
     refreshSession,
     updateProfile,
     exportMyData,

@@ -1,4 +1,6 @@
 {
+  "googleClientId": "The Google client ID must end with .apps.googleusercontent.com",
+  "googleIncomplete": "Enter the client ID and the client secret before enabling Google sign-in",
   "voiceEmpty": "No sentence received",
   "voiceFailed": "The voice assistant could not process the request",
   "invalidLogLevel": "Unknown log level",

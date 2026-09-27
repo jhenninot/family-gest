@@ -30,5 +30,8 @@
     "notFound": "Invitation introuvable ou expirée",
     "acceptFailed": "Erreur lors de l'acceptation",
     "finalizeFailed": "Erreur lors de la finalisation"
-  }
+  },
+  "acceptWithGoogle": "Accepter avec Google",
+  "googleHint": "Utilisez le compte Google de l'adresse {email} : pas besoin de créer de mot de passe.",
+  "createWithPassword": "Créer un compte avec un mot de passe"
 }

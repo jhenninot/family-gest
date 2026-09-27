@@ -335,5 +335,28 @@
     "promote": "Nommer administrateur",
     "demote": "Retirer les droits",
     "error": "Erreur lors de la modification des droits"
+  },
+  "google": {
+    "title": "Connexion avec Google",
+    "statusOn": "Activée",
+    "statusOff": "Désactivée",
+    "intro": "Permet aux membres de se connecter avec leur compte Google, si son adresse e-mail est celle de leur compte FamilyGest (ou d'une invitation). Le mot de passe reste utilisable.",
+    "guideTitle": "Créer l'identifiant chez Google (une seule fois, gratuit)",
+    "steps": {
+      "project": "Ouvrez la console Google Cloud et créez un projet (par exemple « FamilyGest ») :",
+      "consent": "Menu « API et services › Écran de consentement OAuth » (ou « Google Auth Platform ») : type « Externe », nom de l'application « FamilyGest », votre adresse d'assistance. Les autorisations par défaut (e-mail, profil) suffisent.",
+      "publish": "Dans « Audience », cliquez sur « Publier l'application » (en production) : sinon, seuls les utilisateurs de test ajoutés à la main pourront se connecter. Aucune validation de Google n'est nécessaire pour ces autorisations.",
+      "client": "Menu « Identifiants › Créer des identifiants › ID client OAuth », type « Application Web ».",
+      "redirect": "Dans « URI de redirection autorisés », ajoutez l'adresse de retour ci-dessous, puis créez.",
+      "copy": "Copiez l'ID client et le code secret du client ici, cochez « Activer » et enregistrez."
+    },
+    "redirectUri": "Adresse de retour à déclarer chez Google",
+    "copy": "Copier",
+    "copied": "Copiée !",
+    "clientId": "ID client",
+    "clientSecret": "Code secret du client",
+    "secretKept": "•••••••• (enregistré — laisser vide pour le garder)",
+    "enable": "Activer la connexion avec Google",
+    "saved": "Réglages enregistrés."
   }
 }

@@ -1,4 +1,6 @@
 {
+  "googleClientId": "El ID de cliente de Google debe terminar en .apps.googleusercontent.com",
+  "googleIncomplete": "Indique el ID de cliente y el secreto antes de activar el inicio de sesión con Google",
   "voiceEmpty": "No se ha recibido ninguna frase",
   "voiceFailed": "El asistente de voz no ha podido procesar la solicitud",
   "invalidLogLevel": "Nivel de registro desconocido",

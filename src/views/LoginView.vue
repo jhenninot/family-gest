@@ -14,6 +14,11 @@
         <AlertCircle :size="18" />
         <span>{{ authStore.error }}</span>
       </div>
+      <!-- Échec de la connexion avec Google (retour de server/auth/google.js) -->
+      <div v-else-if="googleError" class="error-alert">
+        <AlertCircle :size="18" />
+        <span>{{ googleError }}</span>
+      </div>
 
       <!-- Login Form -->
       <form @submit.prevent="handleLogin" class="login-form">
@@ -53,6 +58,8 @@
         </button>
       </form>
 
+      <GoogleSignInButton />
+
       <div class="login-footer">
         <button 
           type="button" 
@@ -77,8 +84,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
@@ -86,11 +93,20 @@ import { Mail, Lock, AlertCircle, RefreshCw } from '@lucide/vue'
 import { forceAppRefresh } from '../utils/cacheHelper'
 import BrandLogo from '../components/BrandLogo.vue'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
+import GoogleSignInButton from '../components/GoogleSignInButton.vue'
 
 const router = useRouter()
 const { t } = useI18n()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
+
+const route = useRoute()
+const GOOGLE_ERRORS = ['no_account', 'email_not_verified', 'invite_mismatch', 'invite_invalid', 'quota', 'not_configured', 'expired', 'denied', 'failed']
+const googleError = computed(() => {
+  const code = route.query.googleError
+  if (!code) return ''
+  return t(`login.google.errors.${GOOGLE_ERRORS.includes(code) ? code : 'failed'}`, { email: route.query.email || '' })
+})
 
 const email = ref('')
 const password = ref('')

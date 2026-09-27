@@ -12,5 +12,21 @@
   "errors": {
     "failed": "Erreur lors de la connexion",
     "unreachable": "Impossible de contacter le serveur d'authentification"
+  },
+  "google": {
+    "or": "ou",
+    "continue": "Continuer avec Google",
+    "signingIn": "Connexion en cours…",
+    "errors": {
+      "no_account": "Aucun compte FamilyGest n'utilise l'adresse {email}. Connectez-vous avec le compte Google de votre adresse FamilyGest, ou demandez une invitation.",
+      "email_not_verified": "Google n'a pas confirmé l'adresse e-mail de ce compte.",
+      "invite_mismatch": "L'invitation a été envoyée à une autre adresse que {email} : choisissez le compte Google correspondant à l'invitation.",
+      "invite_invalid": "Cette invitation n'est plus valable.",
+      "quota": "La famille a atteint son nombre maximum de membres.",
+      "not_configured": "La connexion avec Google n'est pas activée.",
+      "expired": "La connexion avec Google a expiré, veuillez réessayer.",
+      "denied": "Connexion avec Google annulée.",
+      "failed": "La connexion avec Google n'a pas abouti, veuillez réessayer."
+    }
   }
 }

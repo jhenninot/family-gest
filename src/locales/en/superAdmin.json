@@ -335,5 +335,28 @@
     "promote": "Make administrator",
     "demote": "Remove rights",
     "error": "Error while updating rights"
+  },
+  "google": {
+    "title": "Sign in with Google",
+    "statusOn": "Enabled",
+    "statusOff": "Disabled",
+    "intro": "Lets members sign in with their Google account, if its email address is the one of their FamilyGest account (or of an invitation). Passwords remain usable.",
+    "guideTitle": "Create the credentials at Google (once, free)",
+    "steps": {
+      "project": "Open the Google Cloud console and create a project (for example “FamilyGest”):",
+      "consent": "Menu “APIs & Services › OAuth consent screen” (or “Google Auth Platform”): type “External”, app name “FamilyGest”, your support address. The default scopes (email, profile) are enough.",
+      "publish": "In “Audience”, click “Publish app” (in production): otherwise only manually added test users can sign in. No Google verification is needed for these scopes.",
+      "client": "Menu “Credentials › Create credentials › OAuth client ID”, type “Web application”.",
+      "redirect": "Under “Authorized redirect URIs”, add the return address below, then create.",
+      "copy": "Copy the client ID and client secret here, tick “Enable” and save."
+    },
+    "redirectUri": "Return address to declare at Google",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "clientId": "Client ID",
+    "clientSecret": "Client secret",
+    "secretKept": "•••••••• (saved — leave empty to keep it)",
+    "enable": "Enable Google sign-in",
+    "saved": "Settings saved."
   }
 }

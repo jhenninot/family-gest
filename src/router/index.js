@@ -13,6 +13,13 @@ const routes = [
     meta: { titleKey: 'routes.login', public: true }
   },
   {
+    // Retour de la connexion avec Google (jeton ou erreur dans le fragment de l'adresse)
+    path: '/auth/google',
+    name: 'google-callback',
+    component: () => import('../views/GoogleCallbackView.vue'),
+    meta: { titleKey: 'routes.login', public: true }
+  },
+  {
     path: '/set-password',
     name: 'set-password',
     component: () => import('../views/SetPasswordView.vue'),

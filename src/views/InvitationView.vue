@@ -48,10 +48,16 @@
             <router-link :to="`/login?redirect=/invitation/${token}`" class="btn btn-primary btn-block">
               {{ t('invitation.signInToAccept') }}
             </router-link>
+            <GoogleSignInButton :invite="token" :label="t('invitation.acceptWithGoogle')" />
           </div>
         </div>
 
         <!-- CAS 2: NOUVEL UTILISATEUR -->
+        <div v-else-if="!showPasswordForm && googleAvailable" class="google-invite">
+          <GoogleSignInButton :invite="token" :label="t('invitation.acceptWithGoogle')" :separator="false" />
+          <p class="text-muted text-center google-invite-hint">{{ t('invitation.googleHint', { email: invitationData.email || invitationData.invitation?.email }) }}</p>
+          <button type="button" class="btn btn-secondary btn-block" @click="showPasswordForm = true">{{ t('invitation.createWithPassword') }}</button>
+        </div>
         <form v-else @submit.prevent="handleAcceptNew" class="new-user-form">
           <div class="form-group">
             <label class="form-label">{{ t('invitation.email') }}</label>
@@ -167,6 +173,8 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import GoogleSignInButton from '../components/GoogleSignInButton.vue'
+import { isGoogleAuthEnabled } from '../utils/googleAuthStatus'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { signupLanguage } from '../i18n'
@@ -213,6 +221,11 @@ const formData = reactive({
 const passwordMismatch = computed(() => {
   return formData.confirmPassword && formData.password !== formData.confirmPassword
 })
+
+// Invitation d'un nouveau membre : accepter avec Google (si configuré) ou créer un mot de passe
+const showPasswordForm = ref(false)
+const googleAvailable = ref(false)
+isGoogleAuthEnabled().then(enabled => { googleAvailable.value = enabled })
 
 onMounted(async () => {
   try {
@@ -516,5 +529,16 @@ const handleAcceptNew = async () => {
   display: flex;
   justify-content: center;
   margin-top: 0.75rem;
+}
+
+.google-invite {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.google-invite-hint {
+  font-size: 0.85rem;
+  margin: 0;
 }
 </style>

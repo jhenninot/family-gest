@@ -12,5 +12,21 @@
   "errors": {
     "failed": "Error al iniciar sesión",
     "unreachable": "No se puede contactar con el servidor de autenticación"
+  },
+  "google": {
+    "or": "o",
+    "continue": "Continuar con Google",
+    "signingIn": "Iniciando sesión…",
+    "errors": {
+      "no_account": "Ninguna cuenta de FamilyGest usa la dirección {email}. Inicie sesión con la cuenta de Google de su dirección de FamilyGest o pida una invitación.",
+      "email_not_verified": "Google no ha confirmado la dirección de correo de esta cuenta.",
+      "invite_mismatch": "La invitación se envió a otra dirección distinta de {email}: elija la cuenta de Google que corresponde a la invitación.",
+      "invite_invalid": "Esta invitación ya no es válida.",
+      "quota": "La familia ha alcanzado su número máximo de miembros.",
+      "not_configured": "El inicio de sesión con Google no está activado.",
+      "expired": "El inicio de sesión con Google ha caducado, inténtelo de nuevo.",
+      "denied": "Inicio de sesión con Google cancelado.",
+      "failed": "El inicio de sesión con Google no se ha completado, inténtelo de nuevo."
+    }
   }
 }

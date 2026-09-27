@@ -531,6 +531,8 @@
           </div>
         </form>
       </div>
+      <!-- Connexion avec Google -->
+      <GoogleAuthSettings />
     </div>
 
     <!-- TAB 4: ALERT LOGS -->
@@ -1215,6 +1217,7 @@ import { intlLocale } from '../i18n/format'
 import { translateValue } from '../i18n/values'
 import UserAvatar from '../components/UserAvatar.vue'
 import ServerLogsPanel from '../components/ServerLogsPanel.vue'
+import GoogleAuthSettings from '../components/GoogleAuthSettings.vue'
 import { 
   ShieldAlert, 
   Home, 

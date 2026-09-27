@@ -44,6 +44,7 @@ import { handlePushFailure, handlePushSuccess } from './utils/pushFailures.js'
 import { mountMcpServer } from './mcp/index.js'
 import { mountAlexaSkill } from './alexa/index.js'
 import { mountVoiceAssistant } from './voice/index.js'
+import { mountGoogleAuth, googleRedirectUri, isGoogleAuthReady } from './auth/google.js'
 import { buildInteractionModel, normalizeInvocationName, DEFAULT_INVOCATION_NAME } from './alexa/interactionModel.js'
 import { oauthReturnUrl, isSyncConfigured, isSyncConnected, familyModel, modelHash, startAuthorization, completeAuthorization, pushModel, forgetAccessToken, startAlexaSyncScheduler } from './alexa/sync.js'
 import { getFamilyMembersList } from './mcp/resolveMember.js'
@@ -1074,6 +1075,28 @@ app.post('/api/push/unsubscribe', requireAuth, async (req, res) => {
 // === AUTHENTICATION ROUTES ===
 
 // POST /api/auth/login (Connexion par email & mot de passe)
+// Invitations en attente à l'adresse de l'utilisateur : rattachement automatique à la connexion
+// (mot de passe ou Google)
+const attachPendingInvitations = async (user) => {
+  const pendingInvs = await FamilyInvitation.find({ email: user.email.toLowerCase().trim(), status: 'pending' })
+  for (const inv of pendingInvs) {
+    const already = await FamilyMember.findOne({ familyId: inv.familyId, userId: user.id })
+    if (!already) {
+      const m = new FamilyMember({
+        familyId: inv.familyId,
+        userId: user.id,
+        userRef: user._id,
+        role: inv.role || 'Membre',
+        isAdmin: Boolean(inv.isAdmin),
+        usualPresence: user.usualPresence || 'present'
+      })
+      await m.save()
+    }
+    inv.status = 'accepted'
+    await inv.save()
+  }
+}
+
 app.post('/api/auth/login', authRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body
@@ -1096,23 +1119,7 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
     const token = generateToken(user.id, user.email, user.isAdmin, user.isSuperAdmin)
 
     // Auto-rattachement des invitations en attente pour cet utilisateur
-    const pendingInvs = await FamilyInvitation.find({ email: user.email.toLowerCase().trim(), status: 'pending' })
-    for (const inv of pendingInvs) {
-      const already = await FamilyMember.findOne({ familyId: inv.familyId, userId: user.id })
-      if (!already) {
-        const m = new FamilyMember({
-          familyId: inv.familyId,
-          userId: user.id,
-          userRef: user._id,
-          role: inv.role || 'Membre',
-          isAdmin: Boolean(inv.isAdmin),
-          usualPresence: user.usualPresence || 'present'
-        })
-        await m.save()
-      }
-      inv.status = 'accepted'
-      await inv.save()
-    }
+    await attachPendingInvitations(user)
 
     // Récupérer les familles de l'utilisateur
     const memberships = await FamilyMember.find({ userId: user.id })
@@ -2592,6 +2599,57 @@ app.post('/api/super-admin/smtp/test', authRateLimiter, requireAuth, requireSupe
   } catch (err) {
     res.status(500).json({ error: req.t('errors.sendFailed', { message: err.message }) })
   }
+})
+
+// === CONNEXION AVEC GOOGLE (réglages Super Admin, voir server/auth/google.js) ===
+
+app.get('/api/super-admin/google-auth', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const config = await GlobalConfig.findOne()
+    res.json({
+      clientId: config?.googleClientId || '',
+      hasSecret: Boolean(config?.googleClientSecret),
+      enabled: Boolean(config?.googleAuthEnabled),
+      ready: isGoogleAuthReady(config),
+      redirectUri: googleRedirectUri(await publicBaseUrl(req))
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/super-admin/google-auth', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const clientId = String(req.body?.clientId || '').trim()
+    const clientSecret = String(req.body?.clientSecret || '').trim()
+    const enabled = Boolean(req.body?.enabled)
+    if (clientId && !/^[\w.-]+\.apps\.googleusercontent\.com$/.test(clientId)) {
+      return res.status(400).json({ error: req.t('errors.googleClientId') })
+    }
+    let config = await GlobalConfig.findOne()
+    if (!config) config = new GlobalConfig()
+    config.googleClientId = clientId
+    // Le secret n'est jamais renvoyé : champ vide = on garde celui déjà enregistré
+    if (clientSecret) config.googleClientSecret = clientSecret
+    if (enabled && (!clientId || !config.googleClientSecret)) {
+      return res.status(400).json({ error: req.t('errors.googleIncomplete') })
+    }
+    config.googleAuthEnabled = enabled
+    await config.save()
+    console.log(`[Google] Connexion avec Google ${enabled ? 'activée' : 'désactivée'}`)
+    res.json({ clientId, hasSecret: Boolean(config.googleClientSecret), enabled, ready: isGoogleAuthReady(config), redirectUri: googleRedirectUri(await publicBaseUrl(req)) })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+mountGoogleAuth(app, {
+  User, Family, FamilyMember, FamilyInvitation,
+  getConfig: () => GlobalConfig.findOne(),
+  publicBaseUrl: (req) => publicBaseUrl(req),
+  generateToken,
+  attachPendingInvitations,
+  normalizeLanguage
 })
 
 // === JOURNAL DES ALERTES (console Super Admin) ===

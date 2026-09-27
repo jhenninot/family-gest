@@ -1,4 +1,6 @@
 {
+  "googleClientId": "L'ID client Google doit se terminer par .apps.googleusercontent.com",
+  "googleIncomplete": "Renseignez l'ID client et le code secret avant d'activer la connexion avec Google",
   "voiceEmpty": "Aucune phrase reçue",
   "voiceFailed": "L'assistant vocal n'a pas pu traiter la demande",
   "invalidLogLevel": "Niveau de journal inconnu",

@@ -335,5 +335,28 @@
     "promote": "Nombrar administrador",
     "demote": "Quitar los derechos",
     "error": "Error al modificar los derechos"
+  },
+  "google": {
+    "title": "Inicio de sesión con Google",
+    "statusOn": "Activado",
+    "statusOff": "Desactivado",
+    "intro": "Permite a los miembros iniciar sesión con su cuenta de Google, si su dirección de correo es la de su cuenta de FamilyGest (o la de una invitación). La contraseña sigue siendo válida.",
+    "guideTitle": "Crear las credenciales en Google (una sola vez, gratis)",
+    "steps": {
+      "project": "Abra la consola de Google Cloud y cree un proyecto (por ejemplo «FamilyGest»):",
+      "consent": "Menú «API y servicios › Pantalla de consentimiento de OAuth» (o «Google Auth Platform»): tipo «Externo», nombre de la aplicación «FamilyGest», su dirección de asistencia. Los permisos por defecto (correo, perfil) bastan.",
+      "publish": "En «Público», haga clic en «Publicar aplicación» (en producción): si no, solo los usuarios de prueba añadidos a mano podrán iniciar sesión. Google no necesita verificar estos permisos.",
+      "client": "Menú «Credenciales › Crear credenciales › ID de cliente de OAuth», tipo «Aplicación web».",
+      "redirect": "En «URI de redireccionamiento autorizados», añada la dirección de retorno de abajo y cree.",
+      "copy": "Copie aquí el ID de cliente y el secreto, marque «Activar» y guarde."
+    },
+    "redirectUri": "Dirección de retorno que declarar en Google",
+    "copy": "Copiar",
+    "copied": "¡Copiada!",
+    "clientId": "ID de cliente",
+    "clientSecret": "Secreto del cliente",
+    "secretKept": "•••••••• (guardado — dejar vacío para conservarlo)",
+    "enable": "Activar el inicio de sesión con Google",
+    "saved": "Ajustes guardados."
   }
 }

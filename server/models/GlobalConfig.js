@@ -26,6 +26,7 @@ Dernière mise à jour : [date — à compléter]
 
 2. Données collectées
 - Données de compte : nom, prénom, email, mot de passe (chiffré), avatar (emoji ou photo importée), couleur de profil, rôle familial, préférences de notification.
+- Connexion avec Google (facultative) : identifiant du compte Google relié ; seules l'adresse e-mail, le prénom et le nom fournis par Google sont utilisés, aucun accès aux données Google n'est demandé.
 - Données d'activité familiale : tâches, événements de calendrier, listes de courses, présences/absences, invités aux repas, points de récompense — rattachées à votre foyer.
 - Données techniques : abonnements aux notifications push (navigateur), journal des alertes envoyées (email/push), conservé 90 jours puis supprimé automatiquement.
 - Journal technique du serveur (erreurs et fonctionnement, sans le contenu saisi) : 24 heures pour les informations courantes, 30 jours pour les erreurs, puis suppression automatique.
@@ -119,6 +120,21 @@ const globalConfigSchema = new mongoose.Schema({
   lastDigestRunDate: {
     type: String,
     default: null
+  },
+  // Connexion avec Google (server/auth/google.js) : identifiant OAuth créé dans la console Google Cloud
+  googleClientId: {
+    type: String,
+    default: ''
+  },
+  googleClientSecret: {
+    type: String,
+    default: '',
+    set: encryptSecret,
+    get: decryptSecret
+  },
+  googleAuthEnabled: {
+    type: Boolean,
+    default: false
   },
   // Journal technique (server/logging/logger.js) : niveau minimal gardé, et fin du mode debug
   logLevel: {

@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema({
   color: { type: String, default: '#6366f1' },
   points: { type: Number, default: 0 },
   lastLogin: { type: Date, default: Date.now },
+  // Compte Google relié (identifiant « sub »), renseigné à la première connexion avec Google
+  googleId: { type: String, default: null, index: { sparse: true } },
   welcomeToken: { type: String, default: null },
   welcomeTokenExpires: { type: Date, default: null },
   // Champs historiques (dépréciés) — remplacés par notificationPreferences ci-dessous.
