@@ -94,7 +94,11 @@ const EXTRA_SAMPLES = {
     'mets au menu {dish} [{date}] [au] [{mealSlot}]',
     "le menu du {mealSlot} [{date}] c'est {dish}",
     'planifie {dish} pour le {mealSlot} [{date}]',
-    'ajoute le plat {dish} [au] {mealSlot} [{date}]'
+    'ajoute le plat {dish} [au] {mealSlot} [{date}]',
+    // Sans le repas : il est demandé ensuite (« Pour le déjeuner ou le dîner ? »)
+    'mets {dish} [au menu] {date}',
+    'prévois {dish} [pour] {date}',
+    'on mange {dish} {date}'
   ],
   AbsenceIntent: [
     '{member} sera absent [{date}] [le] {slotOne} [et {slotTwo}]',

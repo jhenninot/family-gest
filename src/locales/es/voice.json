@@ -1,0 +1,25 @@
+{
+  "open": "Asistente de voz",
+  "title": "Asistente de voz",
+  "introVoice": "Hable después de la señal o escriba su petición (en francés). Por ejemplo:",
+  "introText": "Escriba su petición en francés (el dictado no está disponible en este navegador). Por ejemplo:",
+  "listening": "Le escucho…",
+  "thinking": "Un momento…",
+  "typePlaceholder": "Escribir una petición…",
+  "send": "Enviar",
+  "listen": "Hablar",
+  "stopListening": "Dejar de escuchar",
+  "speakReplies": "Leer las respuestas en voz alta",
+  "muteReplies": "No leer las respuestas",
+  "micDenied": "Micrófono bloqueado: autorícelo en los ajustes del navegador o escriba su petición.",
+  "micError": "El dictado no ha funcionado, inténtelo de nuevo o escriba su petición.",
+  "failed": "La petición no ha podido completarse.",
+  "examples": {
+    "shopping": "Achète du lait et du pain",
+    "event": "Ajoute dentiste mardi à 15 heures",
+    "meal": "Mets des lasagnes au dîner de jeudi",
+    "absence": "Paul ne sera pas là demain midi",
+    "menu": "Qu'est-ce qu'on mange ce soir ?",
+    "summary": "Le récapitulatif du jour"
+  }
+}

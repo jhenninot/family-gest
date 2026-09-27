@@ -219,6 +219,9 @@
       </router-view>
     </main>
 
+    <!-- Assistant vocal (bouton micro), mêmes commandes que la skill Alexa -->
+    <VoiceAssistant v-if="authStore.isAuthenticated && !isAuthPage" />
+
     <!-- Bannière d'installation PWA -->
     <PwaInstallPrompt />
 
@@ -245,6 +248,7 @@ import UserProfileModal from './components/UserProfileModal.vue'
 import PwaInstallPrompt from './components/PwaInstallPrompt.vue'
 import DevicePushPrompt from './components/DevicePushPrompt.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
+import VoiceAssistant from './components/VoiceAssistant.vue'
 import { useScreenSwipe } from './composables/useScreenSwipe'
 import { useIsMobile } from './composables/useIsMobile'
 

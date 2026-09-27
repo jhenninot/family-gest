@@ -1,0 +1,25 @@
+{
+  "open": "Voice assistant",
+  "title": "Voice assistant",
+  "introVoice": "Speak after the signal, or type your request (in French). For example:",
+  "introText": "Type your request in French (dictation is not available in this browser). For example:",
+  "listening": "Listening…",
+  "thinking": "One moment…",
+  "typePlaceholder": "Type a request…",
+  "send": "Send",
+  "listen": "Speak",
+  "stopListening": "Stop listening",
+  "speakReplies": "Read replies aloud",
+  "muteReplies": "Stop reading replies",
+  "micDenied": "Microphone blocked: allow it in the browser settings, or type your request.",
+  "micError": "Dictation failed, try again or type your request.",
+  "failed": "The request failed.",
+  "examples": {
+    "shopping": "Achète du lait et du pain",
+    "event": "Ajoute dentiste mardi à 15 heures",
+    "meal": "Mets des lasagnes au dîner de jeudi",
+    "absence": "Paul ne sera pas là demain midi",
+    "menu": "Qu'est-ce qu'on mange ce soir ?",
+    "summary": "Le récapitulatif du jour"
+  }
+}

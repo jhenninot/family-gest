@@ -1,4 +1,5 @@
 {
+  "voiceNotUnderstood": "Je n'ai pas compris.",
   "longAbsenceDeleted": "Absence longue supprimée avec succès",
   "absenceDeletedNoSlot": "Absence supprimée car aucun créneau n'est sélectionné",
   "absenceDeleted": "Absence supprimée",

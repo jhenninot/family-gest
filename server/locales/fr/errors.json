@@ -1,4 +1,6 @@
 {
+  "voiceEmpty": "Aucune phrase reçue",
+  "voiceFailed": "L'assistant vocal n'a pas pu traiter la demande",
   "invalidLogLevel": "Niveau de journal inconnu",
   "familyNotFound": "Famille introuvable",
   "userNotFound": "Utilisateur non trouvé",

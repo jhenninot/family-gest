@@ -167,5 +167,9 @@
     "memberOn": "{member} le {date} ({slots})",
     "mealFor": "Pour le {slot} du {date}",
     "on": "Le {date} ({slots})"
+  },
+  "voice": {
+    "added": "{text} • Ajouté via l'assistant vocal",
+    "declared": "{text} • Déclaré via l'assistant vocal"
   }
 }

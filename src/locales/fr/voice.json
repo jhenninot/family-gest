@@ -1,0 +1,25 @@
+{
+  "open": "Assistant vocal",
+  "title": "Assistant vocal",
+  "introVoice": "Parlez après le signal, ou écrivez votre demande. Par exemple :",
+  "introText": "Écrivez votre demande (la dictée n'est pas disponible sur ce navigateur). Par exemple :",
+  "listening": "Je vous écoute…",
+  "thinking": "Un instant…",
+  "typePlaceholder": "Écrire une demande…",
+  "send": "Envoyer",
+  "listen": "Parler",
+  "stopListening": "Arrêter l'écoute",
+  "speakReplies": "Lire les réponses à voix haute",
+  "muteReplies": "Ne plus lire les réponses",
+  "micDenied": "Micro refusé : autorisez-le dans les réglages du navigateur, ou écrivez votre demande.",
+  "micError": "La dictée n'a pas fonctionné, réessayez ou écrivez votre demande.",
+  "failed": "La demande n'a pas abouti.",
+  "examples": {
+    "shopping": "Achète du lait et du pain",
+    "event": "Ajoute dentiste mardi à 15 heures",
+    "meal": "Mets des lasagnes au dîner de jeudi",
+    "absence": "Paul ne sera pas là demain midi",
+    "menu": "Qu'est-ce qu'on mange ce soir ?",
+    "summary": "Le récapitulatif du jour"
+  }
+}

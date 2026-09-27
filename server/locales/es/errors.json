@@ -1,4 +1,6 @@
 {
+  "voiceEmpty": "No se ha recibido ninguna frase",
+  "voiceFailed": "El asistente de voz no ha podido procesar la solicitud",
   "invalidLogLevel": "Nivel de registro desconocido",
   "familyNotFound": "Familia no encontrada",
   "userNotFound": "Usuario no encontrado",

@@ -1,4 +1,5 @@
 {
+  "voiceNotUnderstood": "I didn't understand.",
   "longAbsenceDeleted": "Long absence deleted",
   "absenceDeletedNoSlot": "Absence deleted because no slot is selected",
   "absenceDeleted": "Absence deleted",

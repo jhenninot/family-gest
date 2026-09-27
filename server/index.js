@@ -42,6 +42,7 @@ import { ALERT_ACTIONS, ALERT_ACTIONS_LIST, ACTION_CATEGORY_BY_CODE } from './co
 import webpush from 'web-push'
 import { mountMcpServer } from './mcp/index.js'
 import { mountAlexaSkill } from './alexa/index.js'
+import { mountVoiceAssistant } from './voice/index.js'
 import { buildInteractionModel, normalizeInvocationName, DEFAULT_INVOCATION_NAME } from './alexa/interactionModel.js'
 import { oauthReturnUrl, isSyncConfigured, isSyncConnected, familyModel, modelHash, startAuthorization, completeAuthorization, pushModel, forgetAccessToken, startAlexaSyncScheduler } from './alexa/sync.js'
 import { getFamilyMembersList } from './mcp/resolveMember.js'
@@ -5895,14 +5896,17 @@ app.get('/api/family-settings/alexa-connector/interaction-model', requireAuth, a
   }
 })
 
-mountAlexaSkill(app, {
+// Skill Alexa et assistant vocal de l'application : mêmes dialogues, mêmes écritures
+const voiceCtx = {
   dispatchFamilyAlert,
   ALERT_ACTIONS,
   upsertAbsenceRecord,
   createEventOrSeries,
   createMealGuestsBatch,
   getOrSeedShoppingCategories
-})
+}
+mountAlexaSkill(app, voiceCtx)
+mountVoiceAssistant(app, voiceCtx, { requireAuth, attachFamilyContext })
 
 // === STATIC FILES & SPA FALLBACK (Production / Docker) ===
 const distPath = path.resolve(__dirname, '../dist')

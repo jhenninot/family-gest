@@ -18,7 +18,8 @@ import { todayStr } from './parsing.js'
 
 const normalize = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 
-export const createAlexaApi = (req, ctx, lang) => {
+// channel : 'alexa' (skill) ou 'voice' (assistant vocal de l'application), repris dans les notifications
+export const createAlexaApi = (req, ctx, lang, { channel = 'alexa' } = {}) => {
   const { family, alexaActor: actor } = req
   const familyId = family._id
   const actorId = actor?.id ?? null
@@ -97,7 +98,7 @@ export const createAlexaApi = (req, ctx, lang) => {
       notify({
         action: ctx.ALERT_ACTIONS.EVENT_CREATED,
         title: (tr) => tr('notify.event.createdTitle', { title: event.title }),
-        body: (tr) => tr('notify.alexa.added', {
+        body: (tr) => tr(`notify.${channel}.added`, {
           text: event.time ? tr('notify.event.whenTime', { date: readableDate(tr, event.date), time: event.time }) : readableDate(tr, event.date)
         }),
         targetType: 'event',
@@ -133,7 +134,7 @@ export const createAlexaApi = (req, ctx, lang) => {
       notify({
         action: ctx.ALERT_ACTIONS.MEAL_CREATED,
         title: (tr) => tr('notify.meal.title', { dish }),
-        body: (tr) => tr('notify.alexa.added', { text: tr('notify.alexa.mealFor', { slot: tr(`notify.meal.slot.${slot}`), date: readableDate(tr, date) }) }),
+        body: (tr) => tr(`notify.${channel}.added`, { text: tr('notify.alexa.mealFor', { slot: tr(`notify.meal.slot.${slot}`), date: readableDate(tr, date) }) }),
         targetType: 'meal',
         targetId: meal.id
       })
@@ -147,7 +148,7 @@ export const createAlexaApi = (req, ctx, lang) => {
       notify({
         action: type === 'presence' ? ctx.ALERT_ACTIONS.PRESENCE_CREATED : ctx.ALERT_ACTIONS.ABSENCE_CREATED,
         title: (tr) => tr(`notify.mcp.${type === 'presence' ? 'presence' : 'absence'}Title`, { member: member.firstName }),
-        body: (tr) => tr('notify.alexa.declared', {
+        body: (tr) => tr(`notify.${channel}.declared`, {
           text: tr('notify.alexa.memberOn', { member: member.firstName, date: readableDate(tr, date), slots: slotList(tr, { lunch, dinner, night }) })
         }),
         targetType: 'absence',
@@ -170,7 +171,7 @@ export const createAlexaApi = (req, ctx, lang) => {
       notify({
         action: ctx.ALERT_ACTIONS.ABSENCE_CREATED,
         title: (tr) => tr('notify.mcp.absenceTitle', { member: member.firstName }),
-        body: (tr) => tr('notify.alexa.declared', {
+        body: (tr) => tr(`notify.${channel}.declared`, {
           text: tr('notify.alexa.memberOn', { member: member.firstName, date: readableDate(tr, date), slots: slotList(tr, { lunch: slots.includes('lunch'), dinner: slots.includes('dinner'), night: false }) })
         }),
         targetType: 'absence',
@@ -184,7 +185,7 @@ export const createAlexaApi = (req, ctx, lang) => {
       notify({
         action: ctx.ALERT_ACTIONS.MEAL_GUEST_CREATED,
         title: (tr) => tr('notify.guest.title', { names: names.join(', '), n: names.length }),
-        body: (tr) => tr('notify.alexa.added', { text: tr('notify.alexa.on', { date: readableDate(tr, date), slots: slotList(tr, { lunch, dinner, night }) }) }),
+        body: (tr) => tr(`notify.${channel}.added`, { text: tr('notify.alexa.on', { date: readableDate(tr, date), slots: slotList(tr, { lunch, dinner, night }) }) }),
         targetType: 'meal_guest',
         targetId: guests[0]?.id
       })
