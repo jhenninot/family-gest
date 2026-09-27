@@ -1,5 +1,5 @@
 import { buildInteractionModel } from '../alexa/interactionModel.js'
-import { DATE_SOURCE, TIME_SOURCE, parseFrenchDate, parseFrenchTime } from './frenchTime.js'
+import { DATE_SOURCE, DAY_NUM, TIME_SOURCE, parseFrenchDate, parseFrenchTime, dayBeforeEnd } from './frenchTime.js'
 
 // Compréhension des commandes vocales de l'application, sans IA : les phrases du modèle de
 // dialogue de la skill Alexa (server/alexa/interactionModel.js) deviennent des expressions
@@ -82,12 +82,14 @@ export const buildNlu = ({ members = [] } = {}) => {
     let literalLength = 0
     const slots = []
     const words = []
-    for (const part of parts) {
+    for (const [index, part] of parts.entries()) {
       const slot = /^\{(\w+)\}$/.exec(part)
       if (slot) {
         const type = slotTypes[intentName]?.[slot[1]] || 'AMAZON.SearchQuery'
-        slots.push({ name: slot[1], type })
-        source += `(?<${slot[1]}>${slotSource(type)})`
+        // « du 20 au 27 octobre » : le premier jour peut être un simple numéro (mois du dernier jour)
+        const dayOnly = type === 'AMAZON.DATE' && /^\s*(?:au|jusqu'au)\s*$/.test(parts[index + 1] || '') && parts[index + 2] === '{endDate}'
+        slots.push({ name: slot[1], type, dayOnly })
+        source += `(?<${slot[1]}>${dayOnly ? `${DATE_SOURCE}|${DAY_NUM}` : slotSource(type)})`
       } else if (part) {
         const literal = normalizeChars(part)
         literalLength += literal.replace(/\s+/g, '').length
@@ -138,10 +140,13 @@ export const buildNlu = ({ members = [] } = {}) => {
       let structured = 0
       let freeLength = 0
       let valid = true
-      for (const { name, type } of pattern.slots) {
+      const endRange = m.indices.groups?.endDate
+      const endValue = endRange ? slotValue('AMAZON.DATE', '', normalized.slice(endRange[0], endRange[1]), today)?.value : null
+      for (const { name, type, dayOnly } of pattern.slots) {
         const range = m.indices.groups?.[name]
         if (!range) continue
-        const value = slotValue(type, text.slice(range[0], range[1]), normalized.slice(range[0], range[1]), today)
+        const dayOnlyValue = dayOnly ? dayBeforeEnd(normalized.slice(range[0], range[1]), endValue) : null
+        const value = dayOnlyValue ? { value: dayOnlyValue } : slotValue(type, text.slice(range[0], range[1]), normalized.slice(range[0], range[1]), today)
         if (!value) { valid = false; break }
         slots[name] = value
         if (STRUCTURED.has(type)) structured += type === 'MemberName' && !value.id ? 0.5 : 1

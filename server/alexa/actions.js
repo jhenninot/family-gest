@@ -99,13 +99,15 @@ export const createAlexaApi = (req, ctx, lang, { channel = 'alexa' } = {}) => {
 
     // --- Ajouts ---
 
-    async addEvent ({ title, date, time, endTime = '', memberIds = [] }) {
-      const { event } = await ctx.createEventOrSeries({ familyId, body: { title, date, time: time || '', endTime: endTime || '', memberIds }, declaredBy: actorId, lang })
+    async addEvent ({ title, date, endDate = null, time, endTime = '', memberIds = [] }) {
+      const { event } = await ctx.createEventOrSeries({ familyId, body: { title, date, endDate, time: time || '', endTime: endTime || '', memberIds }, declaredBy: actorId, lang })
       notify({
         action: ctx.ALERT_ACTIONS.EVENT_CREATED,
         title: (tr) => tr('notify.event.createdTitle', { title: event.title }),
         body: (tr) => tr(`notify.${channel}.added`, {
-          text: event.time ? tr('notify.event.whenTime', { date: readableDate(tr, event.date), time: event.time }) : readableDate(tr, event.date)
+          text: event.endDate
+            ? tr('notify.event.whenDays', { start: readableDate(tr, event.date), end: readableDate(tr, event.endDate) })
+            : event.time ? tr('notify.event.whenTime', { date: readableDate(tr, event.date), time: event.time }) : readableDate(tr, event.date)
         }),
         targetType: 'event',
         targetId: event.id
@@ -161,6 +163,29 @@ export const createAlexaApi = (req, ctx, lang, { channel = 'alexa' } = {}) => {
         targetId: absence.id
       })
       return absence
+    },
+
+    // Événement sur plusieurs jours : une absence longue par personne, du déjeuner du premier jour à
+    // la nuit du dernier (comme la case « générer une absence » de l'application)
+    async addEventLongAbsences ({ eventId, members }) {
+      const event = await Event.findOne({ familyId, id: eventId })
+      if (!event?.endDate) return []
+      const created = await ctx.syncEventLongAbsences({
+        familyId, event, memberIds: members.map(m => m.id), declaredBy: actorId, lang
+      })
+      for (const la of created) {
+        const member = members.find(m => m.id === la.memberId)
+        notify({
+          action: ctx.ALERT_ACTIONS.ABSENCE_CREATED,
+          title: (tr) => tr('notify.mcp.absenceTitle', { member: member?.firstName || '' }),
+          body: (tr) => tr(`notify.${channel}.declared`, {
+            text: `${member?.firstName || ''} : ${tr('notify.event.whenDays', { start: readableDate(tr, la.startDate), end: readableDate(tr, la.endDate) })}`
+          }),
+          targetType: 'absence',
+          targetId: la.id
+        })
+      }
+      return created
     },
 
     // Absence liée à un événement (comme la case « générer une absence » de l'application) ; les

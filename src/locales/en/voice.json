@@ -17,6 +17,7 @@
   "examples": {
     "shopping": "Achète du lait et du pain",
     "event": "Ajoute dentiste mardi à 15 heures",
+    "trip": "Paul et Léa partent en vacances du 20 au 27 octobre",
     "meal": "Mets des lasagnes au dîner de jeudi",
     "absence": "Paul ne sera pas là demain midi",
     "menu": "Qu'est-ce qu'on mange ce soir ?",

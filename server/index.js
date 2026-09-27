@@ -6031,6 +6031,7 @@ const voiceCtx = {
   ALERT_ACTIONS,
   upsertAbsenceRecord,
   createEventOrSeries,
+  syncEventLongAbsences,
   createMealGuestsBatch,
   getOrSeedShoppingCategories
 }

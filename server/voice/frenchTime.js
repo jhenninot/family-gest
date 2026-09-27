@@ -26,7 +26,7 @@ export const toNumber = (text) => {
 
 const W = WEEKDAYS.join('|')
 const M = MONTHS.join('|')
-const DAY_NUM = `(?:\\d{1,2}(?:er)?|${NUMBER_ALT})`
+export const DAY_NUM = `(?:\\d{1,2}(?:er)?|${NUMBER_ALT})`
 const WEEKEND = 'week ?end'
 
 // --- Dates ---
@@ -112,6 +112,17 @@ export const parseFrenchDate = (text, today) => {
     return addDays(today, diff)
   }
   return null
+}
+
+// « du 20 au 27 octobre » : premier jour dit sans mois, pris dans le mois du dernier jour (ou le
+// mois d'avant s'il le dépasse). Renvoie null si le texte n'est pas un simple numéro de jour.
+export const dayBeforeEnd = (text, endDate) => {
+  const day = toNumber(String(text).trim().replace(/^le /, ''))
+  if (!day || !endDate) return null
+  const [y, m] = endDate.split('-').map(Number)
+  const sameMonth = validDate(y, m, day)
+  if (sameMonth && sameMonth <= endDate) return sameMonth
+  return m === 1 ? validDate(y - 1, 12, day) : validDate(y, m - 1, day)
 }
 
 // --- Heures ---

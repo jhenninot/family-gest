@@ -43,8 +43,12 @@
       "dinner": "la cena"
     },
     "absenceQuestion": "Coincide con {meals}: ¿anoto la ausencia de {member}?",
-    "absenceDone": "Anotado: {member} no estará en {meals}, {date}.",
-    "noAbsence": "De acuerdo, sin ausencia."
+    "absenceDone": "Anotado: {member} no estará en {meals}, {date}. | Anotado: {member} no estarán en {meals}, {date}.",
+    "noAbsence": "De acuerdo, sin ausencia.",
+    "days": "del {start} al {end}",
+    "daysAbsenceQuestion": "¿Marco a {members} como ausente durante todo el evento? | ¿Marco a {members} como ausentes durante todo el evento?",
+    "daysAbsenceDone": "Hecho: {members} no estará del {start} al {end}. | Hecho: {members} no estarán del {start} al {end}.",
+    "badRange": "No he entendido las fechas. ¿Desde cuándo hasta cuándo?"
   },
   "shopping": {
     "askItems": "¿Qué hay que añadir a la lista de la compra?",

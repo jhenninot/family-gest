@@ -71,7 +71,22 @@ const EXTRA_SAMPLES = {
     'mets {title} au calendrier [{date}] [à {time}]',
     'on a {title} {date} [à {time}]',
     'il y a {title} {date} [à {time}]',
-    '{title} le {date} [à {time}]'
+    '{title} le {date} [à {time}]',
+    // Sur plusieurs jours (« vacances du 20 au 27 octobre »)
+    "note {title} du {date} au {endDate}",
+    "mets {title} [dans l'agenda] du {date} au {endDate}",
+    'crée un événement {title} du {date} au {endDate}',
+    "ajoute {title} du {date} jusqu'au {endDate}",
+    'on part en {title} du {date} au {endDate}',
+    'on sera en {title} du {date} au {endDate}',
+    'on est en {title} du {date} au {endDate}',
+    '{member} part en {title} du {date} au {endDate}',
+    '{member} sera en {title} du {date} au {endDate}',
+    ...forSeveral([
+      '{who} partent en {title} du {date} au {endDate}',
+      '{who} seront en {title} du {date} au {endDate}'
+    ]),
+    '{title} du {date} au {endDate}'
   ],
   AddShoppingIntent: [
     'achète {items}',
@@ -319,10 +334,13 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
         { name: 'title', type: 'EventTitle' },
         // Titre dicté en réponse à « Quel est le titre de l'événement ? » : texte libre (recherche)
         { name: 'guidedTitle', type: 'AMAZON.SearchQuery', samples: ['{guidedTitle}', "c'est {guidedTitle}", "l'événement {guidedTitle}", 'le titre est {guidedTitle}', "il s'appelle {guidedTitle}", "ça s'appelle {guidedTitle}"] },
-        { ...date, samples: ['{date}', 'le {date}', 'pour {date}', "c'est {date}"] },
+        { ...date, samples: ['{date}', 'le {date}', 'pour {date}', "c'est {date}", 'du {date} au {endDate}', "du {date} jusqu'au {endDate}"] },
+        // Dernier jour d'un événement sur plusieurs jours
+        { name: 'endDate', type: 'AMAZON.DATE' },
         { name: 'time', type: 'AMAZON.TIME', samples: ['{time}', 'à {time}', 'ça commence à {time}', 'il commence à {time}', 'de {time}'] },
         { name: 'endTime', type: 'AMAZON.TIME', samples: ['{endTime}', 'à {endTime}', "jusqu'à {endTime}", 'ça finit à {endTime}', 'il se termine à {endTime}', 'vers {endTime}'] },
-        { name: 'member', type: 'MemberName', samples: ['{member}', 'pour {member}', "c'est pour {member}", 'avec {member}'] }
+        { name: 'member', type: 'MemberName', samples: ['{member}', 'pour {member}', "c'est pour {member}", 'avec {member}', ...forSeveral(['{who}', 'pour {who}', "c'est pour {who}"])] },
+        ...moreMembers
       ],
       samples: expand([
         // Sans titre : ajout guidé (titre, jour, début, fin, personne)
@@ -346,6 +364,9 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
         'ajoute {title} pour {member} [{date}] [à {time}]',
         'ajoute {title} {date} de {time} à {endTime}',
         'ajoute {title} pour {member} {date} de {time} à {endTime}',
+        'ajoute {title} du {date} au {endDate}',
+        'ajoute {title} pour {member} du {date} au {endDate}',
+        ...forSeveral(['ajoute {title} pour {who} du {date} au {endDate}', 'ajoute {title} pour {who} [{date}] [à {time}]']),
         "ajoute {title} [à l'agenda] {date} [à {time}]",
         "ajoute {title} à l'agenda",
         "ajoute l'événement {title} [{date}] [à {time}]",
@@ -629,7 +650,7 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
       dialog: {
         intents: [
           // Ajout d'événement piloté par la skill (SKILL_RESPONSE) : elle choisit les questions à poser
-          dialogIntent('AddEventIntent', [['title', 'EventTitle', null], ['guidedTitle', 'AMAZON.SearchQuery', 'Elicit.Event.Title'], ['date', 'AMAZON.DATE', 'Elicit.Event.Date'], ['time', 'AMAZON.TIME', 'Elicit.Event.Time'], ['endTime', 'AMAZON.TIME', 'Elicit.Event.EndTime'], ['member', 'MemberName', 'Elicit.Event.Member']], 'SKILL_RESPONSE'),
+          dialogIntent('AddEventIntent', [['title', 'EventTitle', null], ['guidedTitle', 'AMAZON.SearchQuery', 'Elicit.Event.Title'], ['date', 'AMAZON.DATE', 'Elicit.Event.Date'], ['time', 'AMAZON.TIME', 'Elicit.Event.Time'], ['endTime', 'AMAZON.TIME', 'Elicit.Event.EndTime'], ['member', 'MemberName', 'Elicit.Event.Member'], ['memberTwo', 'MemberName', null], ['memberThree', 'MemberName', null], ['endDate', 'AMAZON.DATE', null]], 'SKILL_RESPONSE'),
           dialogIntent('AddShoppingIntent', [['items', 'ShoppingItems', 'Elicit.Shopping.Items']]),
           dialogIntent('AddMealIntent', [['dish', 'DishName', 'Elicit.Meal.Dish'], ['date', 'AMAZON.DATE', null], ['mealSlot', 'MealSlot', 'Elicit.Meal.Slot']]),
           dialogIntent('AbsenceIntent', [['member', 'MemberName', 'Elicit.Member'], ['memberTwo', 'MemberName', null], ['memberThree', 'MemberName', null], ['date', 'AMAZON.DATE', null], ['slotOne', 'MealSlot', 'Elicit.Presence.Slot'], ['slotTwo', 'MealSlot', null]]),

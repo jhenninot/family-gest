@@ -55,6 +55,18 @@ const elicit = (handlerInput, slotName, speech) => handlerInput.responseBuilder
   .addElicitSlotDirective(slotName, Alexa.getRequest(handlerInput.requestEnvelope).intent)
   .getResponse()
 
+// Période « du {date} au {endDate} » : le dernier jour doit suivre le premier. Une fin comprise
+// avant le début (« du 28 décembre au 3 janvier » rapporté à cette année) passe à l'année suivante,
+// si la période ne dépasse pas trois mois ; le même jour donne un événement d'un jour. null si la
+// période est incohérente.
+const alignDateRange = (start, end) => {
+  if (!start || !end) return null
+  if (end === start) return { start, end: '' }
+  if (end > start) return { start, end }
+  const nextYear = `${Number(end.slice(0, 4)) + 1}${end.slice(4)}`
+  return nextYear > start && addDays(start, 92) >= nextYear ? { start, end: nextYear } : null
+}
+
 const isIntent = (...names) => (handlerInput) =>
   Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
   names.includes(Alexa.getIntentName(handlerInput.requestEnvelope))
@@ -143,14 +155,18 @@ export const buildHandlers = (api) => {
   // (« ajoute un événement »), Alexa guide : titre, jour, heure de début, heure de fin, personne ;
   // les trois dernières peuvent être passées (« toute la journée », « je ne sais pas », « toute la
   // famille »). L'avancement est gardé dans la session (eventFlow).
-  const EVENT_SLOTS = ['title', 'guidedTitle', 'date', 'time', 'endTime', 'member']
+  // Sur plusieurs jours (« vacances du 20 au 27 octobre », aussi en réponse à « Pour quel jour ? ») :
+  // pas d'heures, et l'absence proposée couvre toute la période (absences longues).
+  const EVENT_SLOTS = ['title', 'guidedTitle', 'date', 'endDate', 'time', 'endTime', 'member', 'memberTwo', 'memberThree']
+  const MEMBER_SLOTS = ['member', 'memberTwo', 'memberThree']
   const GENERIC_EVENT_TITLE = /^(?:un |une |l')?(?:nouvel |nouveau |autre )?(?:événement|evenement|rendez-vous|rendez vous|rdv)$/i
 
   const eventIntent = (flow) => ({
     name: 'AddEventIntent',
     confirmationStatus: 'NONE',
     slots: Object.fromEntries(EVENT_SLOTS.map(name => {
-      const value = name === 'member' ? flow.memberName : name === 'guidedTitle' ? '' : flow[name]
+      const memberIndex = MEMBER_SLOTS.indexOf(name)
+      const value = memberIndex >= 0 ? flow.members[memberIndex]?.firstName : name === 'guidedTitle' ? '' : flow[name]
       return [name, { name, confirmationStatus: 'NONE', ...(value ? { value } : {}) }]
     }))
   })
@@ -170,38 +186,45 @@ export const buildHandlers = (api) => {
     const ask = (slotName, key) => askEvent(h, flow, slotName, `${notice ? notice + ' ' : ''}${t(`alexa.event.guide.${key}`)}`)
     if (!flow.title) return ask('guidedTitle', 'title')
     if (!flow.date) return ask('date', 'date')
+    const multiDay = Boolean(flow.endDate)
     if (flow.guided) {
-      if (!flow.time && !flow.asked.time) { flow.asked.time = true; return ask('time', 'time') }
-      if (flow.time && !flow.endTime && !flow.asked.endTime) { flow.asked.endTime = true; return ask('endTime', 'endTime') }
-      if (flow.memberId == null && !flow.asked.member) { flow.asked.member = true; return ask('member', 'member') }
+      if (!multiDay && !flow.time && !flow.asked.time) { flow.asked.time = true; return ask('time', 'time') }
+      if (!multiDay && flow.time && !flow.endTime && !flow.asked.endTime) { flow.asked.endTime = true; return ask('endTime', 'endTime') }
+      if (flow.members.length === 0 && !flow.asked.member) { flow.asked.member = true; return ask('member', 'member') }
     }
 
     const title = flow.title.charAt(0).toUpperCase() + flow.title.slice(1)
     const event = await api.addEvent({
       title,
       date: flow.date,
-      time: flow.time || '',
-      endTime: flow.time ? (flow.endTime || '') : '',
-      memberIds: flow.memberId != null ? [flow.memberId] : []
+      endDate: flow.endDate || null,
+      time: multiDay ? '' : (flow.time || ''),
+      endTime: !multiDay && flow.time ? (flow.endTime || '') : '',
+      memberIds: flow.members.map(m => m.id)
     })
     const attrs = h.attributesManager.getSessionAttributes()
     delete attrs.eventFlow
     h.attributesManager.setSessionAttributes(attrs)
 
     const date = readableDate(t, flow.date)
+    const names = joinList(t, flow.members.map(m => m.firstName))
     let when = date
-    if (flow.time && flow.endTime) when = t('alexa.event.fromTo', { date, start: spokenTime(t, flow.time), end: spokenTime(t, flow.endTime) })
+    if (multiDay) when = t('alexa.event.days', { start: date, end: readableDate(t, flow.endDate) })
+    else if (flow.time && flow.endTime) when = t('alexa.event.fromTo', { date, start: spokenTime(t, flow.time), end: spokenTime(t, flow.endTime) })
     else if (flow.time) when = t('alexa.dateAt', { date, time: spokenTime(t, flow.time) })
-    if (flow.memberName) when += ` ${t('alexa.query.tasks.for', { name: flow.memberName })}`
+    if (names) when += ` ${t('alexa.query.tasks.for', { name: names })}`
     const done = t('alexa.event.done', { title, when })
 
-    // Comme dans l'application : un événement qui chevauche un repas propose d'y noter la personne absente
-    const slots = flow.memberId != null ? eventMealSlots(flow.time, flow.endTime) : []
-    if (slots.length > 0) {
-      const question = t('alexa.event.absenceQuestion', { meals: joinList(t, slots.map(slot => t(`alexa.event.meals.${slot}`))), member: flow.memberName })
+    // Comme dans l'application : les personnes concernées peuvent être notées absentes, pendant tout
+    // l'événement s'il dure plusieurs jours, sinon aux repas qu'il chevauche
+    const slots = multiDay ? [] : eventMealSlots(flow.time, flow.endTime)
+    if (flow.members.length > 0 && (multiDay || slots.length > 0)) {
+      const question = multiDay
+        ? t('alexa.event.daysAbsenceQuestion', { members: names, n: flow.members.length })
+        : t('alexa.event.absenceQuestion', { meals: joinList(t, slots.map(slot => t(`alexa.event.meals.${slot}`))), member: names })
       h.attributesManager.setSessionAttributes({
         ...h.attributesManager.getSessionAttributes(),
-        pendingEventAbsence: { memberId: flow.memberId, memberName: flow.memberName, date: flow.date, slots, title, eventId: event?.id ?? null }
+        pendingEventAbsence: { members: flow.members, date: flow.date, endDate: flow.endDate || null, slots, title, eventId: event?.id ?? null }
       })
       return h.responseBuilder.speak(escapeSsml(`${done} ${question}`)).reprompt(escapeSsml(question)).getResponse()
     }
@@ -215,12 +238,23 @@ export const buildHandlers = (api) => {
     async handle (h) {
       const pending = h.attributesManager.getSessionAttributes().pendingEventAbsence
       if (Alexa.getIntentName(h.requestEnvelope) !== 'AMAZON.YesIntent') return finish(h, api, t('alexa.event.noAbsence'))
-      const member = (await api.members()).find(m => m.id === pending.memberId) || { id: pending.memberId, firstName: pending.memberName }
-      await api.addEventAbsence({ member, date: pending.date, slots: pending.slots, title: pending.title, eventId: pending.eventId })
+      const known = await api.members()
+      const members = pending.members.map(p => known.find(m => m.id === p.id) || p)
+      const names = joinList(t, members.map(m => m.firstName))
+      if (pending.endDate) {
+        await api.addEventLongAbsences({ eventId: pending.eventId, members })
+        return finish(h, api, t('alexa.event.daysAbsenceDone', {
+          members: names, n: members.length, start: readableDate(t, pending.date), end: readableDate(t, pending.endDate)
+        }))
+      }
+      for (const member of members) {
+        await api.addEventAbsence({ member, date: pending.date, slots: pending.slots, title: pending.title, eventId: pending.eventId })
+      }
       return finish(h, api, t('alexa.event.absenceDone', {
-        member: member.firstName,
+        member: names,
         meals: joinList(t, pending.slots.map(slot => t(`alexa.event.meals.${slot}`))),
-        date: readableDate(t, pending.date)
+        date: readableDate(t, pending.date),
+        n: members.length
       }))
     }
   }
@@ -236,7 +270,7 @@ export const buildHandlers = (api) => {
       // Trace (sans les valeurs) pour diagnostiquer le dialogue dans les journaux du serveur
       console.debug(`[Alexa] Événement : état ${dialogState || '-'}, étape ${flow?.step || '-'}, reçu ${EVENT_SLOTS.filter(n => incoming[n].value).join(', ') || 'rien'}`)
       if (!flow || dialogState === 'STARTED') {
-        flow = { guided: !incoming.title.value || GENERIC_EVENT_TITLE.test(incoming.title.value.trim()), asked: {}, title: '', date: '', time: '', endTime: '', memberId: null, memberName: '' }
+        flow = { guided: !incoming.title.value || GENERIC_EVENT_TITLE.test(incoming.title.value.trim()), asked: {}, title: '', date: '', endDate: '', time: '', endTime: '', members: [] }
       }
 
       const title = (incoming.guidedTitle.value || incoming.title.value || '').trim()
@@ -251,6 +285,12 @@ export const buildHandlers = (api) => {
         if (!date) return askEvent(h, flow, 'date', t('alexa.event.askPreciseDate'))
         flow.date = date
       }
+      if (incoming.endDate.value) {
+        const range = alignDateRange(flow.date, parseAlexaDate(incoming.endDate.value))
+        if (!range) return askEvent(h, flow, 'date', t('alexa.event.badRange'))
+        flow.date = range.start
+        flow.endDate = range.end
+      }
       for (const name of ['time', 'endTime']) {
         if (!incoming[name].value) continue
         const time = parseAlexaTime(incoming[name].value)
@@ -262,16 +302,22 @@ export const buildHandlers = (api) => {
         return askEvent(h, flow, 'endTime', `${t('alexa.event.guide.endBeforeStart')} ${t('alexa.event.guide.endTime')}`)
       }
       if (incoming.member.value) {
-        const found = matchMember(await api.members(), incoming.member.value, incoming.member.id)
-        if (found.member) {
-          flow.memberId = found.member.id
-          flow.memberName = found.member.firstName
-        } else {
-          const question = found.candidates
-            ? t('alexa.member.ambiguous', { name: incoming.member.value, names: joinList(t, found.candidates.map(m => m.firstName)) })
-            : t('alexa.member.unknown', { name: incoming.member.value })
-          return askEvent(h, flow, 'member', question)
+        // Une à trois personnes (« pour Paul et Léa ») ; un prénom incompris fait reposer la question
+        const known = await api.members()
+        const members = []
+        for (const name of MEMBER_SLOTS) {
+          if (!incoming[name].value) continue
+          const found = matchMember(known, incoming[name].value, incoming[name].id)
+          if (!found.member) {
+            flow.members = []
+            const question = found.candidates
+              ? t('alexa.member.ambiguous', { name: incoming[name].value, names: joinList(t, found.candidates.map(m => m.firstName)) })
+              : t('alexa.member.unknown', { name: incoming[name].value })
+            return askEvent(h, flow, 'member', question)
+          }
+          if (!members.some(m => m.id === found.member.id)) members.push({ id: found.member.id, firstName: found.member.firstName })
         }
+        flow.members = members
       }
       return continueEvent(h, flow)
     }

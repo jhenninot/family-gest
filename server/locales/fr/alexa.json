@@ -43,8 +43,12 @@
       "dinner": "le dîner"
     },
     "absenceQuestion": "Il tombe pendant {meals} : faut-il noter l'absence de {member} ?",
-    "absenceDone": "C'est noté : {member} ne sera pas là pour {meals}, {date}.",
-    "noAbsence": "D'accord, pas d'absence."
+    "absenceDone": "C'est noté : {member} ne sera pas là pour {meals}, {date}. | C'est noté : {member} ne seront pas là pour {meals}, {date}.",
+    "noAbsence": "D'accord, pas d'absence.",
+    "days": "du {start} au {end}",
+    "daysAbsenceQuestion": "Faut-il noter {members} absent pendant tout l'événement ? | Faut-il noter {members} absents pendant tout l'événement ?",
+    "daysAbsenceDone": "C'est noté : {members} ne sera pas là du {start} au {end}. | C'est noté : {members} ne seront pas là du {start} au {end}.",
+    "badRange": "Je n'ai pas compris les dates. Du combien au combien ?"
   },
   "shopping": {
     "askItems": "Que faut-il ajouter à la liste de courses ?",

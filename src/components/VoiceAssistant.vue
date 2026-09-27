@@ -100,7 +100,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { currentLocale } from '../i18n'
 
-const EXAMPLES = ['shopping', 'event', 'meal', 'absence', 'menu', 'summary']
+const EXAMPLES = ['shopping', 'event', 'trip', 'meal', 'absence', 'menu', 'summary']
 const SPEAK_KEY = 'familygest_voice_speak'
 
 const { t } = useI18n()

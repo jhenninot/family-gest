@@ -4,7 +4,7 @@ Ce guide explique comment créer une skill Alexa **privée** qui permet d'ajoute
 
 | Action | Exemple de phrase |
 |---|---|
-| Un événement dans l'agenda | « Alexa, demande à gestion famille d'ajouter dentiste mardi à 15 heures », ou pas à pas : « Alexa, demande à gestion famille d'ajouter un événement » |
+| Un événement dans l'agenda | « Alexa, demande à gestion famille d'ajouter dentiste mardi à 15 heures », ou pas à pas : « Alexa, demande à gestion famille d'ajouter un événement ». Sur plusieurs jours : « … d'ajouter vacances pour Paul et Léa du 20 au 27 octobre » (Alexa propose ensuite de les noter absents pendant toute la période) |
 | Des articles sur la liste de courses | « Alexa, demande à gestion famille d'acheter du lait, des œufs et deux baguettes » |
 | Un plat au menu de la semaine | « Alexa, demande à gestion famille de mettre des lasagnes au dîner de jeudi » |
 | Une absence | « Alexa, demande à gestion famille : Paul ne sera pas là demain midi » (ou « Paul et Léa ne seront pas là… ») |

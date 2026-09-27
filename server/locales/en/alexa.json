@@ -44,7 +44,11 @@
     },
     "absenceQuestion": "It overlaps {meals}: should I mark {member} as away?",
     "absenceDone": "Done: {member} will be away for {meals}, {date}.",
-    "noAbsence": "OK, no absence."
+    "noAbsence": "OK, no absence.",
+    "days": "from {start} to {end}",
+    "daysAbsenceQuestion": "Should I mark {members} as away for the whole event?",
+    "daysAbsenceDone": "Done: {members} will be away from {start} to {end}.",
+    "badRange": "I didn't understand the dates. From when to when?"
   },
   "shopping": {
     "askItems": "What should I add to the shopping list?",
