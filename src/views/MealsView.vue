@@ -3,7 +3,7 @@
     <!-- Week Navigator Bar -->
     <div class="glass-card week-nav-bar margin-bottom-lg">
       <div class="week-nav-controls">
-        <button @click="prevWeek" class="btn-nav-arrow" :title="t('calendar.prevWeek')">
+        <button @click="slidePrevWeek" class="btn-nav-arrow" :title="t('calendar.prevWeek')">
           <ChevronLeft :size="20" />
         </button>
 
@@ -15,7 +15,7 @@
           <span v-if="isViewingCurrentWeek" class="badge badge-amber badge-sm">{{ t('meals.thisWeek') }}</span>
         </div>
 
-        <button @click="nextWeek" class="btn-nav-arrow" :title="t('calendar.nextWeek')">
+        <button @click="slideNextWeek" class="btn-nav-arrow" :title="t('calendar.nextWeek')">
           <ChevronRight :size="20" />
         </button>
       </div>
@@ -955,7 +955,7 @@ const nextWeek = () => {
 
 // Navigation tactile par swipe (gauche = semaine suivante, droite = semaine précédente)
 const mealsViewRef = ref(null)
-useSwipeNavigation({
+const { slide } = useSwipeNavigation({
   target: mealsViewRef,
   // Le contenu de la période suit le doigt puis glisse vers la suivante
   slideSelector: '.week-grid',
@@ -966,15 +966,23 @@ useSwipeNavigation({
   isBlocked: () => isGestureSuppressed()
 })
 
-const goToCurrentWeek = () => {
-  currentMonday.value = getMonday(new Date())
+// Boutons et choix de date : même glissement que le swipe (vers la gauche = semaine suivante)
+const slideToWeek = (monday) => {
+  const dayStart = (d) => new Date(d).setHours(0, 0, 0, 0)
+  const current = dayStart(currentMonday.value)
+  const target = dayStart(monday)
+  slide(target > current ? 'left' : target < current ? 'right' : null, () => { currentMonday.value = monday })
 }
+const slidePrevWeek = () => slide('right', prevWeek)
+const slideNextWeek = () => slide('left', nextWeek)
+
+const goToCurrentWeek = () => slideToWeek(getMonday(new Date()))
 
 const onDateSelected = (e) => {
   if (e.target.value) {
     const parts = e.target.value.split('-')
     const picked = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
-    currentMonday.value = getMonday(picked)
+    slideToWeek(getMonday(picked))
   }
 }
 

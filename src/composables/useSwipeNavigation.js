@@ -18,6 +18,8 @@ import { onMounted, onUnmounted, watch, unref, nextTick } from 'vue'
  * @param {number} [options.maxVerticalRatio=0.75] - Ratio vertical max autorisé (|deltaY| / |deltaX|) pour ignorer le défilement vertical
  * @param {number} [options.maxDuration=700] - Durée maximale d'un geste vif ; un geste plus lent
  *   compte quand même s'il a parcouru un quart de la largeur (le contenu suit alors le doigt)
+ * Renvoie { slide(direction, callback) } pour animer de la même façon les boutons de navigation.
+ *
  * @param {Function} [options.isBlocked] - Prédicat ; si vrai, le geste est ignoré. Sert à céder
  *   la priorité à un autre geste en cours, typiquement un glisser-déposer d'élément : sans cela,
  *   déplacer une carte de quelques dizaines de pixels changerait aussi de semaine.
@@ -97,6 +99,7 @@ export function useSwipeNavigation({
       callback()
       return
     }
+    clip(true)
     animating = true
     try {
       const width = unref(target)?.clientWidth || window.innerWidth
@@ -117,6 +120,17 @@ export function useSwipeNavigation({
       clip(false)
       animating = false
     }
+  }
+
+  // Même glissement pour les flèches et « Aujourd'hui » : direction 'left' (période suivante),
+  // 'right' (précédente) ou null (pas d'animation, par exemple déjà sur la bonne période)
+  const slide = (direction, callback) => {
+    if (animating || !direction) {
+      if (!animating) callback()
+      return
+    }
+    slides = findSlides()
+    slideTo(direction, callback)
   }
 
   const handleTouchStart = (e) => {
@@ -248,4 +262,6 @@ export function useSwipeNavigation({
     if (oldEl) detachListeners()
     if (newEl) attachListeners(newEl)
   })
+
+  return { slide }
 }

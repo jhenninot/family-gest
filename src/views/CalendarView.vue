@@ -31,13 +31,13 @@
           </div>
 
           <div class="calendar-nav-controls">
-            <button @click="prevPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.prevWeek') : t('calendar.prevMonth')">
+            <button @click="slidePrev" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.prevWeek') : t('calendar.prevMonth')">
               <ChevronLeft :size="22" />
             </button>
-            <button @click="goToToday" class="btn-today-nav">
+            <button @click="slideToToday" class="btn-today-nav">
               {{ t('common.today') }}
             </button>
-            <button @click="nextPeriod" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.nextWeek') : t('calendar.nextMonth')">
+            <button @click="slideNext" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.nextWeek') : t('calendar.nextMonth')">
               <ChevronRight :size="22" />
             </button>
           </div>
@@ -696,7 +696,7 @@ const nextPeriod = () => {
 
 // Navigation tactile par swipe (gauche = période suivante, droite = période précédente)
 const calendarViewRef = ref(null)
-useSwipeNavigation({
+const { slide } = useSwipeNavigation({
   target: calendarViewRef,
   // Le contenu de la période suit le doigt puis glisse vers la suivante
   slideSelector: '.calendar-days-grid, .week-days-columns',
@@ -726,6 +726,17 @@ const goToToday = () => {
   currentYear.value = todayDate.getFullYear()
   currentMonth.value = todayDate.getMonth()
   currentMonday.value = getMonday(new Date())
+}
+
+// Boutons de navigation : même glissement que le swipe (vers la gauche = période suivante)
+const slidePrev = () => slide('right', prevPeriod)
+const slideNext = () => slide('left', nextPeriod)
+const slideToToday = () => {
+  const dayStart = (d) => new Date(d).setHours(0, 0, 0, 0)
+  const [current, target] = calendarViewMode.value === 'week'
+    ? [dayStart(currentMonday.value), dayStart(getMonday(new Date()))]
+    : [currentYear.value * 12 + currentMonth.value, todayDate.getFullYear() * 12 + todayDate.getMonth()]
+  slide(target > current ? 'left' : target < current ? 'right' : null, goToToday)
 }
 
 const weekDays = computed(() => {
