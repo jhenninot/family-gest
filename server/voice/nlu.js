@@ -15,7 +15,7 @@ export const normalizeChars = (text) => {
   for (const c of String(text)) {
     let n = c.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
     if (c === '’' || c === '`' || c === 'ʼ') n = "'"
-    else if (/[-–—_]/.test(c)) n = ' '
+    else if (/[-–—_]/.test(c) || /\s/.test(c)) n = ' ' // dont les espaces insécables de la dictée (« 11 h »)
     else if (/[.,!?;«»"()…]/.test(c)) n = ' '
     // Un caractère d'origine donne exactement un caractère (ou deux pour ceux hors BMP, inchangés)
     if (n.length !== c.length) n = c.length === 2 ? c : (n[0] || ' ')
@@ -167,10 +167,16 @@ export const buildNlu = ({ members = [] } = {}) => {
       const slot = intent?.slots?.find(s => s.name === slotName)
       if (!slot) return null
       const samples = new Set([...(slot.samples || []), `{${slotName}}`, `le {${slotName}}`, `pour {${slotName}}`, `c'est {${slotName}}`, `à {${slotName}}`, `au {${slotName}}`])
+      if (slot.type === 'AMAZON.TIME') {
+        ['vers {s}', '{s} pile', 'à {s} pile', 'aux alentours de {s}'].forEach(f => samples.add(f.replace('{s}', `{${slotName}}`)))
+        // Début et fin dits d'un coup en réponse à l'heure de début
+        if (slotName === 'time' && slotTypes[intentName]?.endTime) ['de {time} à {endTime}', 'de {time} jusqu\'à {endTime}', 'entre {time} et {endTime}'].forEach(f => samples.add(f))
+      }
       answerCache.set(key, [...samples].map(sample => compile(intentName, sample)))
     }
     const found = bestMatch(answerCache.get(key), text, today)
-    return found?.slots?.[slotName] || null
+    // Tous les créneaux reconnus (le demandé, plus éventuellement l'heure de fin), ou null
+    return found?.slots?.[slotName] ? found.slots : null
   }
 
   // Questions obligatoires posées par Alexa elle-même (délégation du dialogue) : on les reproduit

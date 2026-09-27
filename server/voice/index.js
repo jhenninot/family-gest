@@ -96,7 +96,7 @@ export const processVoiceCommand = async ({ text, session, pending, nlu, api, la
     const answer = nlu.matchSlotAnswer(pendingIntent.name, pending.slot, text, today)
     if (answer) {
       intent = pendingIntent
-      intent.slots[pending.slot] = toSlot(pending.slot, answer)
+      for (const [name, value] of Object.entries(answer)) intent.slots[name] = toSlot(name, value)
       answering = true
     }
   }
