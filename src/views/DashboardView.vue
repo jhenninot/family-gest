@@ -3,7 +3,7 @@
 
 
     <!-- Summary Metrics Grid -->
-    <!-- Summary Metrics Grid : 1. Présence, 2. Courses, 3. Tâches, 4. Calendrier -->
+    <!-- Summary Metrics Grid : 1. Présence, 1 bis. Repas du jour, 2. Courses, 3. Tâches, 4. Calendrier -->
     <div class="grid-4 metric-grid">
       <!-- Card 1: Présence (Absences & Repas aujourd'hui) -->
       <router-link :to="getPath('/absences')" class="glass-card metric-card clickable-card">
@@ -18,6 +18,28 @@
           <span class="metric-subtext">
             {{ formatTodayAbsencesSubtext() }}
           </span>
+        </div>
+      </router-link>
+
+      <!-- Card 1 bis : Repas du jour (plats prévus midi et soir) -->
+      <router-link :to="getPath('/meals')" class="glass-card metric-card clickable-card">
+        <div class="metric-icon-wrapper rose">
+          <Utensils :size="22" />
+        </div>
+        <div class="metric-details">
+          <span class="metric-label">{{ t('dashboard.todayMeals') }}</span>
+          <div class="today-meal-lines">
+            <div class="today-meal-line">
+              <Sun :size="15" class="slot-row-icon-lunch" />
+              <span class="today-meal-slot">{{ t('dashboard.slots.lunchSub') }}</span>
+              <span class="today-meal-dish" :class="{ empty: todayLunchMeals.length === 0 }">{{ dishList(todayLunchMeals) }}</span>
+            </div>
+            <div class="today-meal-line">
+              <Sunset :size="15" class="slot-row-icon-dinner" />
+              <span class="today-meal-slot">{{ t('dashboard.slots.dinnerSub') }}</span>
+              <span class="today-meal-dish" :class="{ empty: todayDinnerMeals.length === 0 }">{{ dishList(todayDinnerMeals) }}</span>
+            </div>
+          </div>
         </div>
       </router-link>
 
@@ -622,6 +644,8 @@ const todayMealsCardValue = computed(() => {
 const todayMeals = computed(() => (store.getMealsForDate ? store.getMealsForDate(store.todayStr) : { lunch: [], dinner: [] }))
 const todayLunchMeals = computed(() => todayMeals.value.lunch || [])
 const todayDinnerMeals = computed(() => todayMeals.value.dinner || [])
+// « Poulet rôti, Salade » ou « Rien de prévu »
+const dishList = (meals) => meals.length > 0 ? meals.map(m => m.dish).join(', ') : t('dashboard.noDishPlanned')
 
 const formatTodayAbsencesSubtext = () => {
   const parts = []
@@ -732,6 +756,56 @@ const getMemberFirstName = (memberId) => {
 .metric-icon-wrapper.purple { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
 .metric-icon-wrapper.emerald { background: linear-gradient(135deg, #10b981, #34d399); }
 .metric-icon-wrapper.amber { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+.metric-icon-wrapper.rose { background: linear-gradient(135deg, #f43f5e, #fb7185); }
+
+/* Cinq cartes de synthèse : 3 + 2 sur écran moyen, une seule ligne sur grand écran */
+@media (min-width: 1025px) {
+  .metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1600px) {
+  .metric-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+.today-meal-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.today-meal-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.4rem;
+  min-width: 0;
+}
+
+.today-meal-line svg {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.today-meal-slot {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.today-meal-dish {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+.today-meal-dish.empty {
+  font-weight: 500;
+  color: var(--text-muted);
+}
 
 .metric-details {
   display: flex;

@@ -3,6 +3,8 @@
   "taskProgress": "Progreso de las tareas",
   "pendingTasks": "{n} tarea pendiente | {n} tareas pendientes",
   "todayEvents": "Eventos de hoy",
+  "todayMeals": "Comidas del día",
+  "noDishPlanned": "Nada previsto",
   "presenceAndMeals": "Presencia y comidas",
   "manageMeals": "Gestionar las comidas de la semana",
   "menus": "Menús",
