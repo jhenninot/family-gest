@@ -114,6 +114,13 @@ async function generateIcons() {
     console.log(`✓ Created public/alexa-icon-${size}.png`);
   }
 
+  // Logo de l'écran de consentement Google (connexion avec Google) : carré 120 × 120
+  await sharp(Buffer.from(fullBleedSvg))
+    .resize(120, 120)
+    .png()
+    .toFile(path.resolve('public/google-consent-logo-120.png'));
+  console.log('✓ Created public/google-consent-logo-120.png');
+
   console.log('All icons generated successfully!');
 }
 
