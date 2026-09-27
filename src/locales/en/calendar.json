@@ -65,7 +65,13 @@
     "dateOnlyThisOccurrence": "Only applies to “This occurrence”",
     "everyDays": "Every day | Every {n} days",
     "everyWeeks": "Every week | Every {n} weeks",
-    "everyMonths": "Every month | Every {n} months"
+    "everyMonths": "Every month | Every {n} months",
+    "multiDay": "Over several days",
+    "endDate": "Last day",
+    "generateAbsenceDays": "Create an absence for this member during the event | Create an absence for these members during the event",
+    "absenceFrom": "Away from {date}",
+    "absenceUntil": "Until {date} included",
+    "absenceDaysHint": "The absences show up in “Presence” as a long absence; they follow the event dates."
   },
   "scope": {
     "description": "This action can apply to this occurrence only, or to the whole series.",
@@ -78,10 +84,13 @@
     "pastDate": "You cannot add an event on a past date.",
     "endDateRequired": "Please enter an end date for the recurrence.",
     "endDateBeforeStart": "The recurrence end date must be on or after the event date.",
-    "createFailed": "Error while creating the event."
+    "createFailed": "Error while creating the event.",
+    "endDateMultiDay": "The last day must be after the start date."
   },
   "delete": {
     "title": "Delete the event",
     "message": "Do you really want to delete the event “{title}”?"
-  }
+  },
+  "dateRange": "from {start} to {end}",
+  "untilDate": "until {date}"
 }

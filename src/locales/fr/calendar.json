@@ -65,7 +65,13 @@
     "dateOnlyThisOccurrence": "S'applique uniquement à « Cette occurrence »",
     "everyDays": "Tous les jours | Tous les {n} jours",
     "everyWeeks": "Toutes les semaines | Toutes les {n} semaines",
-    "everyMonths": "Tous les mois | Tous les {n} mois"
+    "everyMonths": "Tous les mois | Tous les {n} mois",
+    "multiDay": "Sur plusieurs jours",
+    "endDate": "Dernier jour",
+    "generateAbsenceDays": "Générer une absence pour ce membre pendant l'événement | Générer une absence pour ces membres pendant l'événement",
+    "absenceFrom": "Absent à partir du {date}",
+    "absenceUntil": "Jusqu'au {date} inclus",
+    "absenceDaysHint": "Les absences apparaissent dans « Présences » comme une absence longue ; elles suivent les dates de l'événement."
   },
   "scope": {
     "description": "Cette action peut s'appliquer uniquement à cette occurrence, ou à toute la série.",
@@ -78,10 +84,13 @@
     "pastDate": "Impossible d'ajouter un événement à une date passée.",
     "endDateRequired": "Veuillez indiquer une date de fin pour la récurrence.",
     "endDateBeforeStart": "La date de fin de récurrence doit être postérieure ou égale à la date de l'événement.",
-    "createFailed": "Erreur lors de la création de l'événement."
+    "createFailed": "Erreur lors de la création de l'événement.",
+    "endDateMultiDay": "Le dernier jour doit être après la date de début."
   },
   "delete": {
     "title": "Supprimer l'événement",
     "message": "Voulez-vous vraiment supprimer l'événement « {title} » ?"
-  }
+  },
+  "dateRange": "du {start} au {end}",
+  "untilDate": "jusqu'au {date}"
 }

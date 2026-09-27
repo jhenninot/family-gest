@@ -485,9 +485,12 @@ const sendFamilyInvitationEmail = async ({ email, family, invitationToken, isExi
 }
 
 // Helpers pour le formatage iCalendar (.ics) et Google Agenda côté serveur
-const formatServerEventDates = (dateStr, timeStr, endTimeStr) => {
+const formatServerEventDates = (dateStr, timeStr, endTimeStr, endDateStr = null) => {
   if (!dateStr) return { start: '', end: '', isAllDay: true }
   const [year, month, day] = dateStr.split('-').map(Number)
+  // Événement sur plusieurs jours : l'heure de fin et la fin de journée portent sur le dernier jour
+  const [ey, em, ed] = (endDateStr && endDateStr > dateStr ? endDateStr : dateStr).split('-').map(Number)
+  const multiDay = Boolean(endDateStr && endDateStr > dateStr)
   const pad = (n) => String(n).padStart(2, '0')
 
   if (timeStr && timeStr.includes(':')) {
@@ -497,10 +500,10 @@ const formatServerEventDates = (dateStr, timeStr, endTimeStr) => {
     let endDate
     if (endTimeStr && endTimeStr.includes(':')) {
       const [endHours, endMinutes] = endTimeStr.split(':').map(Number)
-      endDate = new Date(year, month - 1, day, endHours, endMinutes, 0)
+      endDate = new Date(ey, em - 1, ed, endHours, endMinutes, 0)
       if (endDate <= startDate) endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
     } else {
-      endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+      endDate = multiDay ? new Date(ey, em - 1, ed, 23, 59, 0) : new Date(startDate.getTime() + 60 * 60 * 1000)
     }
 
     const formatCompact = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
@@ -512,7 +515,7 @@ const formatServerEventDates = (dateStr, timeStr, endTimeStr) => {
     }
   } else {
     const start = `${year}${pad(month)}${pad(day)}`
-    const nextDay = new Date(year, month - 1, day + 1)
+    const nextDay = new Date(ey, em - 1, ed + 1)
     const end = `${nextDay.getFullYear()}${pad(nextDay.getMonth() + 1)}${pad(nextDay.getDate())}`
     return { start, end, isAllDay: true }
   }
@@ -520,7 +523,7 @@ const formatServerEventDates = (dateStr, timeStr, endTimeStr) => {
 
 const generateServerGoogleCalendarUrl = (event, lang = null) => {
   const t = translator(lang)
-  const { start, end } = formatServerEventDates(event.date, event.time, event.endTime)
+  const { start, end } = formatServerEventDates(event.date, event.time, event.endTime, event.endDate)
   const title = encodeURIComponent(event.title || t('calendar.eventFallback'))
   const location = encodeURIComponent(event.location || '')
   let detailsText = t('calendar.eventFallback')
@@ -532,7 +535,7 @@ const generateServerGoogleCalendarUrl = (event, lang = null) => {
 
 const generateServerIcsContent = (event, lang = null) => {
   const t = translator(lang)
-  const { start, end, isAllDay } = formatServerEventDates(event.date, event.time, event.endTime)
+  const { start, end, isAllDay } = formatServerEventDates(event.date, event.time, event.endTime, event.endDate)
   const now = new Date()
   const pad = (n) => String(n).padStart(2, '0')
   const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
@@ -3782,6 +3785,42 @@ app.get('/api/events', requireAuth, attachFamilyContext, async (req, res) => {
   }
 })
 
+// Événement sur plusieurs jours : date de fin postérieure à la date de début, sinon null
+const normalizeEventEndDate = (date, endDate) =>
+  (typeof endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(endDate) && date && endDate > date) ? endDate : null
+
+// Absences longues liées à un événement sur plusieurs jours : une par personne, du premier au dernier
+// jour (repas de départ et de retour au choix). Les précédentes sont remplacées.
+const syncEventLongAbsences = async ({ familyId, event, memberIds, startSlot, endSlot, declaredBy, lang }) => {
+  const previous = await LongAbsence.find({ familyId, eventId: event.id })
+  for (const la of previous) await Absence.deleteMany({ familyId, longAbsenceId: la.id })
+  await LongAbsence.deleteMany({ familyId, eventId: event.id })
+  if (!event.endDate || !memberIds || memberIds.length === 0) return []
+
+  const validSlot = (slot, fallback) => (['lunch', 'dinner', 'night'].includes(slot) ? slot : fallback)
+  const sSlot = validSlot(startSlot, 'lunch')
+  const eSlot = validSlot(endSlot, 'night')
+  const note = t(lang, 'notes.eventAbsence', { title: event.title })
+  const created = []
+  // Identifiants distincts pour chaque personne : ses lignes quotidiennes se suivent (un bloc de
+  // 1 000 par personne, bien plus que la durée d'un événement)
+  const base = Date.now()
+  const members = [...new Set(memberIds.map(Number))]
+  for (const [index, memberId] of members.entries()) {
+    const longAbsence = await LongAbsence.create({
+      familyId, id: base + index, memberId, startDate: event.date, startSlot: sSlot, endDate: event.endDate, endSlot: eSlot,
+      note, declaredBy: declaredBy ?? null, eventId: event.id
+    })
+    await regenerateLongAbsenceDailyRows({
+      familyId, longAbsenceId: longAbsence.id, memberId, startDate: event.date, startSlot: sSlot,
+      endDate: event.endDate, endSlot: eSlot, note, declaredBy: declaredBy ?? null,
+      firstRowId: base + (index + 1) * 1000
+    })
+    created.push(longAbsence)
+  }
+  return created
+}
+
 // Crée un événement simple, ou une série récurrente (fan-out via getRecurrenceDates) avec génération
 // optionnelle d'absences liées. Ne construit aucune notification — le contenu push/email diffère selon
 // le contexte (route HTTP vs outil MCP) et reste à la charge de l'appelant. Partagée par la route HTTP
@@ -3874,6 +3913,7 @@ const createEventOrSeries = async ({ familyId, body, declaredBy, lang = null }) 
     id: Date.now(),
     title,
     date,
+    endDate: normalizeEventEndDate(date, body.endDate),
     time,
     endTime,
     category: category || 'Famille',
@@ -3885,12 +3925,24 @@ const createEventOrSeries = async ({ familyId, body, declaredBy, lang = null }) 
   })
   await newEvent.save()
 
-  return { isRecurring: false, event: newEvent }
+  // Sur plusieurs jours : absences longues pour les participants (repas de départ et de retour)
+  let longAbsences = []
+  if (newEvent.endDate && generateAbsence && memberIdsInput.length > 0) {
+    longAbsences = await syncEventLongAbsences({
+      familyId, event: newEvent, memberIds: memberIdsInput,
+      startSlot: body.absenceStartSlot, endSlot: body.absenceEndSlot, declaredBy, lang
+    })
+  }
+
+  return { isRecurring: false, event: newEvent, longAbsences }
 }
 
 // « vendredi 25 septembre à 15:00 - 17:00 »
 const eventWhen = (t, event) => {
   const date = readableDate(t, event.date)
+  if (event.endDate && event.endDate > event.date) {
+    return t('notify.event.whenDays', { start: date, end: readableDate(t, event.endDate) })
+  }
   if (!event.time) return date
   return event.endTime
     ? t('notify.event.whenRange', { date, start: event.time, end: event.endTime })
@@ -4078,6 +4130,7 @@ const updateEventOrSeries = async ({ familyId, eventId, body, declaredBy, lang =
 
   if (title) event.title = title.trim()
   if (date) event.date = date
+  if (body.endDate !== undefined || date) event.endDate = normalizeEventEndDate(event.date, body.endDate !== undefined ? body.endDate : event.endDate)
   if (time !== undefined) event.time = time
   if (endTime !== undefined) event.endTime = endTime
   if (category) event.category = category
@@ -4090,6 +4143,23 @@ const updateEventOrSeries = async ({ familyId, eventId, body, declaredBy, lang =
     event.icsToken = crypto.randomBytes(24).toString('hex')
   }
   await event.save()
+
+  // Absences longues liées : recréées si demandé, suivent les nouvelles dates sinon, supprimées si
+  // l'événement ne dure plus qu'un jour ou si on ne veut plus d'absences
+  const linked = await LongAbsence.find({ familyId, eventId: event.id })
+  if (!event.endDate || generateAbsence === false) {
+    if (linked.length > 0) await syncEventLongAbsences({ familyId, event: { ...event.toObject(), endDate: null }, memberIds: [] })
+  } else if (generateAbsence === true) {
+    await syncEventLongAbsences({
+      familyId, event, memberIds: event.memberIds,
+      startSlot: body.absenceStartSlot, endSlot: body.absenceEndSlot, declaredBy, lang
+    })
+  } else if (linked.length > 0) {
+    await syncEventLongAbsences({
+      familyId, event, memberIds: linked.map(la => la.memberId),
+      startSlot: linked[0].startSlot, endSlot: linked[0].endSlot, declaredBy, lang
+    })
+  }
 
   return { isSeries: false, event }
 }
@@ -4108,6 +4178,10 @@ const deleteEventOrSeries = async ({ familyId, eventId, scope }) => {
 
   const deleted = await Event.deleteOne({ id: Number(eventId), familyId })
   await Absence.deleteMany({ eventId: Number(eventId), familyId })
+  // Absences longues d'un événement sur plusieurs jours, et leurs lignes quotidiennes
+  const linkedLong = await LongAbsence.find({ familyId, eventId: Number(eventId) })
+  for (const la of linkedLong) await Absence.deleteMany({ familyId, longAbsenceId: la.id })
+  await LongAbsence.deleteMany({ familyId, eventId: Number(eventId) })
   return { deletedSeries: false, deletedCount: deleted.deletedCount }
 }
 
@@ -4637,12 +4711,12 @@ const computeSlotsForDate = (dateStr, startDate, startSlot, endDate, endSlot) =>
 // (Re)génère les lignes Absence journalières couvrant une absence longue. Supprime d'abord toute
 // ligne déjà taguée avec ce longAbsenceId (no-op à la création, purge+régénération à la modification),
 // ce qui rend la fonction idempotente et réutilisable telle quelle par create/update_long_absence (MCP).
-const regenerateLongAbsenceDailyRows = async ({ familyId, longAbsenceId, memberId, startDate, startSlot, endDate, endSlot, note, declaredBy }) => {
+const regenerateLongAbsenceDailyRows = async ({ familyId, longAbsenceId, memberId, startDate, startSlot, endDate, endSlot, note, declaredBy, firstRowId = null }) => {
   await Absence.deleteMany({ familyId, longAbsenceId })
 
   const dates = getDatesRange(startDate, endDate)
   const rows = []
-  let baseId = Date.now() + 1
+  let baseId = firstRowId ?? (Date.now() + 1)
 
   for (const dStr of dates) {
     const { lunch, dinner, night } = computeSlotsForDate(dStr, startDate, startSlot, endDate, endSlot)

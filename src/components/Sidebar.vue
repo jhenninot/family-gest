@@ -124,6 +124,7 @@ import {
 import HouseUser from './icons/HouseUser.vue'
 import FamilySwitcher from './FamilySwitcher.vue'
 import BrandLogo from './BrandLogo.vue'
+import { eventOverlaps } from '../utils/events'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -175,7 +176,7 @@ const upcomingEventsCount = computed(() => {
   cutoff.setDate(cutoff.getDate() + 6)
   const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`
 
-  return store.events.filter(e => e.date >= today && e.date <= cutoffStr).length
+  return store.events.filter(e => eventOverlaps(e, today, cutoffStr)).length
 })
 
 </script>

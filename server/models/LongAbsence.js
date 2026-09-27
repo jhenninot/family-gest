@@ -9,7 +9,9 @@ const longAbsenceSchema = new mongoose.Schema({
   endDate: { type: String, required: true }, // Format YYYY-MM-DD
   endSlot: { type: String, enum: ['lunch', 'dinner', 'night'], default: 'night' },
   note: { type: String, default: '', trim: true },
-  declaredBy: { type: Number, default: null }
+  declaredBy: { type: Number, default: null },
+  // Absence générée par un événement sur plusieurs jours (supprimée ou mise à jour avec lui)
+  eventId: { type: Number, default: null, index: true }
 }, { timestamps: true })
 
 longAbsenceSchema.index({ familyId: 1, id: 1 }, { unique: true })

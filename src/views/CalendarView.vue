@@ -118,13 +118,14 @@
                 :title="`${ev.title} (${formatEventTime(ev) || t('calendar.allDay')})`"
               >
                 <div class="week-event-top">
-                  <span v-if="ev.time" class="week-event-time">{{ formatEventTime(ev) }}</span>
+                  <span v-if="ev.time && !isMultiDayEvent(ev)" class="week-event-time">{{ formatEventTime(ev) }}</span>
                   <span class="week-event-cat" :style="{ color: ev.color }">{{ translateValue('eventCategory', ev.category) }}</span>
                 </div>
                 <span class="week-event-title">
                   <span v-if="ev.recurrenceId" :title="t('calendar.recurringEvent')">🔁</span>
                   {{ ev.title }}
                 </span>
+                <span v-if="isMultiDayEvent(ev)" class="week-event-range">📆 {{ formatEventRange(ev) }}</span>
                 <span v-if="ev.location" class="week-event-loc">📍 {{ translateValue('location', ev.location) }}</span>
               </div>
 
@@ -181,6 +182,17 @@
             <div class="form-group">
               <label class="form-label">{{ t('calendar.form.endTime') }}</label>
               <input v-model="newEvent.endTime" @input="newEventEndTimeTouched = true" type="time" class="form-input" />
+            </div>
+          </div>
+
+          <div class="form-group checkbox-group" v-if="!newEvent.isRecurring">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="newEvent.multiDay" @change="handleMultiDayToggle(newEvent)" />
+              <span>📆 {{ t('calendar.form.multiDay') }}</span>
+            </label>
+            <div v-if="newEvent.multiDay" class="multi-day-end">
+              <label class="form-label">{{ t('calendar.form.endDate') }}</label>
+              <input v-model="newEvent.endDate" type="date" :min="nextDay(newEvent.date)" required class="form-input" />
             </div>
           </div>
 
@@ -250,10 +262,25 @@
 
             <label class="checkbox-label">
               <input type="checkbox" v-model="newEvent.generateAbsence" />
-              <span>{{ t('calendar.form.generateAbsence', newEvent.memberIds.length) }}</span>
+              <span>{{ t(newEvent.multiDay ? 'calendar.form.generateAbsenceDays' : 'calendar.form.generateAbsence', newEvent.memberIds.length) }}</span>
             </label>
 
-            <div v-if="newEvent.generateAbsence" class="absence-slots-row">
+            <div v-if="newEvent.generateAbsence && newEvent.multiDay" class="absence-days-row">
+              <div class="form-group">
+                <label class="form-label">{{ t('calendar.form.absenceFrom', { date: formatDate(newEvent.date) }) }}</label>
+                <select v-model="newEvent.absenceStartSlot" class="form-select">
+                  <option v-for="slot in SLOT_OPTIONS" :key="slot" :value="slot">{{ slotLabel(slot) }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">{{ t('calendar.form.absenceUntil', { date: formatDate(newEvent.endDate) }) }}</label>
+                <select v-model="newEvent.absenceEndSlot" class="form-select">
+                  <option v-for="slot in SLOT_OPTIONS" :key="slot" :value="slot">{{ slotLabel(slot) }}</option>
+                </select>
+              </div>
+              <p class="field-hint">{{ t('calendar.form.absenceDaysHint') }}</p>
+            </div>
+            <div v-else-if="newEvent.generateAbsence" class="absence-slots-row">
               <label class="slot-chip" :class="{ selected: newEvent.absenceSlots.lunch }">
                 <input type="checkbox" v-model="newEvent.absenceSlots.lunch" />
                 <Sun :size="14" />
@@ -270,12 +297,12 @@
                 <span>{{ t('dashboard.slots.night') }}</span>
               </label>
             </div>
-            <span v-if="newEvent.generateAbsence && !hasAnySlot(newEvent.absenceSlots)" class="text-error">
+            <span v-if="newEvent.generateAbsence && !newEvent.multiDay && !hasAnySlot(newEvent.absenceSlots)" class="text-error">
               {{ t('calendar.form.selectSlot') }}
             </span>
           </div>
 
-          <div class="form-group checkbox-group">
+          <div v-if="!newEvent.multiDay" class="form-group checkbox-group">
             <label class="checkbox-label">
               <input type="checkbox" v-model="newEvent.isRecurring" />
               <span>🔁 {{ t('calendar.recurringEvent') }}</span>
@@ -354,6 +381,17 @@
             </div>
           </div>
 
+          <div class="form-group checkbox-group" v-if="!editEventForm.recurrenceId">
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="editEventForm.multiDay" @change="handleMultiDayToggle(editEventForm)" />
+              <span>📆 {{ t('calendar.form.multiDay') }}</span>
+            </label>
+            <div v-if="editEventForm.multiDay" class="multi-day-end">
+              <label class="form-label">{{ t('calendar.form.endDate') }}</label>
+              <input v-model="editEventForm.endDate" type="date" :min="nextDay(editEventForm.date)" required class="form-input" />
+            </div>
+          </div>
+
           <div class="grid-2">
             <div class="form-group">
               <label class="form-label">{{ t('tasks.form.category') }}</label>
@@ -420,10 +458,25 @@
 
             <label class="checkbox-label">
               <input type="checkbox" v-model="editEventForm.generateAbsence" />
-              <span>{{ t('calendar.form.generateAbsence', editEventForm.memberIds.length) }}</span>
+              <span>{{ t(editEventForm.multiDay ? 'calendar.form.generateAbsenceDays' : 'calendar.form.generateAbsence', editEventForm.memberIds.length) }}</span>
             </label>
 
-            <div v-if="editEventForm.generateAbsence" class="absence-slots-row">
+            <div v-if="editEventForm.generateAbsence && editEventForm.multiDay" class="absence-days-row">
+              <div class="form-group">
+                <label class="form-label">{{ t('calendar.form.absenceFrom', { date: formatDate(editEventForm.date) }) }}</label>
+                <select v-model="editEventForm.absenceStartSlot" class="form-select">
+                  <option v-for="slot in SLOT_OPTIONS" :key="slot" :value="slot">{{ slotLabel(slot) }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">{{ t('calendar.form.absenceUntil', { date: formatDate(editEventForm.endDate) }) }}</label>
+                <select v-model="editEventForm.absenceEndSlot" class="form-select">
+                  <option v-for="slot in SLOT_OPTIONS" :key="slot" :value="slot">{{ slotLabel(slot) }}</option>
+                </select>
+              </div>
+              <p class="field-hint">{{ t('calendar.form.absenceDaysHint') }}</p>
+            </div>
+            <div v-else-if="editEventForm.generateAbsence" class="absence-slots-row">
               <label class="slot-chip" :class="{ selected: editEventForm.absenceSlots.lunch }">
                 <input type="checkbox" v-model="editEventForm.absenceSlots.lunch" />
                 <Sun :size="14" />
@@ -440,7 +493,7 @@
                 <span>{{ t('dashboard.slots.night') }}</span>
               </label>
             </div>
-            <span v-if="editEventForm.generateAbsence && !hasAnySlot(editEventForm.absenceSlots)" class="text-error">
+            <span v-if="editEventForm.generateAbsence && !editEventForm.multiDay && !hasAnySlot(editEventForm.absenceSlots)" class="text-error">
               {{ t('calendar.form.selectSlot') }}
             </span>
           </div>
@@ -480,7 +533,7 @@
               <span class="badge" :style="{ backgroundColor: justAddedEvent.color + '25', color: justAddedEvent.color }">
                 {{ translateValue('eventCategory', justAddedEvent.category) }}
               </span>
-              <span>📅 {{ formatDate(justAddedEvent.date) }}</span>
+              <span>📅 {{ isMultiDayEvent(justAddedEvent) ? formatEventRange(justAddedEvent) : formatDate(justAddedEvent.date) }}</span>
               <span v-if="justAddedEvent.time">⏰ {{ formatEventTime(justAddedEvent) }}</span>
               <span v-if="justAddedEvent.location">📍 {{ translateValue('location', justAddedEvent.location) }}</span>
             </div>
@@ -551,6 +604,10 @@
                 </div>
               </div>
               <div class="timeline-meta">
+                <div class="meta-tag" v-if="isMultiDayEvent(ev)">
+                  <CalendarRange :size="14" />
+                  <span>{{ formatEventRange(ev) }}</span>
+                </div>
                 <div class="meta-tag" v-if="ev.time">
                   <Clock :size="14" />
                   <span>{{ formatEventTime(ev) }}</span>
@@ -643,6 +700,7 @@ import {
   BedDouble
 } from '@lucide/vue'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
+import { eventOnDate, isMultiDayEvent } from '../utils/events'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -753,7 +811,7 @@ const buildDay = (d) => {
   const monthNamesList = intlMonthNames('short')
   const todayStr = store.todayStr
   const dateStr = formatDateStr(d.getFullYear(), d.getMonth(), d.getDate())
-  const events = store.events.filter(e => e.date === dateStr).sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+  const events = store.events.filter(e => eventOnDate(e, dateStr)).sort((a, b) => (a.time || '').localeCompare(b.time || ''))
 
   return {
     name: dayNames[(d.getDay() + 6) % 7],
@@ -845,6 +903,10 @@ const editEventForm = ref({
   memberIds: [],
   generateAbsence: false,
   absenceSlots: { lunch: false, dinner: false, night: false },
+  multiDay: false,
+  endDate: '',
+  absenceStartSlot: 'lunch',
+  absenceEndSlot: 'night',
   recurrenceId: null
 })
 
@@ -912,6 +974,10 @@ const newEvent = ref({
   memberIds: currentUserMemberId.value ? [currentUserMemberId.value] : [],
   generateAbsence: false,
   absenceSlots: { lunch: false, dinner: false, night: false },
+  multiDay: false,
+  endDate: '',
+  absenceStartSlot: 'lunch',
+  absenceEndSlot: 'night',
   isRecurring: false,
   recurrenceFrequency: 'weekly',
   recurrenceInterval: 1,
@@ -944,6 +1010,37 @@ const handleAtHomeToggle = (formRef) => {
 
 const newEventEndTimeTouched = ref(false)
 
+// Événement sur plusieurs jours (vacances…) : dernier jour après la date de début, sans heures par
+// défaut ; les absences générées sont des absences longues côté serveur (repas de départ et de retour)
+const SLOT_OPTIONS = ['lunch', 'dinner', 'night']
+const slotLabel = (slot) => t(slot === 'lunch' ? 'dashboard.slots.lunchSub' : slot === 'dinner' ? 'dashboard.slots.dinnerSub' : 'dashboard.slots.night')
+
+const nextDay = (dateStr) => {
+  if (!dateStr) return ''
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const next = new Date(y, m - 1, d + 1)
+  return formatDateStr(next.getFullYear(), next.getMonth(), next.getDate())
+}
+
+const handleMultiDayToggle = (formRef) => {
+  if (!formRef.multiDay) return
+  if (!formRef.endDate || formRef.endDate <= formRef.date) formRef.endDate = nextDay(formRef.date)
+  formRef.time = ''
+  formRef.endTime = ''
+  formRef.isRecurring = false
+}
+
+// La date de début dépasse le dernier jour : celui-ci suit
+watch(() => newEvent.value.date, (date) => {
+  if (newEvent.value.multiDay && newEvent.value.endDate <= date) newEvent.value.endDate = nextDay(date)
+})
+watch(() => editEventForm.value.date, (date) => {
+  if (editEventForm.value.multiDay && editEventForm.value.endDate <= date) editEventForm.value.endDate = nextDay(date)
+})
+
+const formatShortDate = (dateStr) => intlFormatDate(new Date(`${dateStr}T00:00:00`), { day: 'numeric', month: 'short' })
+const formatEventRange = (ev) => t('calendar.dateRange', { start: formatShortDate(ev.date), end: formatShortDate(ev.endDate) })
+
 // Pré-coche l'utilisateur courant dès que la liste des membres de la famille est disponible
 watch(currentUserMemberId, (id) => {
   if (id && !showAddModal.value && newEvent.value.memberIds.length === 0) {
@@ -953,7 +1050,7 @@ watch(currentUserMemberId, (id) => {
 
 // Pas de suggestion/pré-remplissage d'absence si l'événement a lieu à la maison
 const newEventSuggestedSlots = computed(() => {
-  if (newEvent.value.atHome) return []
+  if (newEvent.value.atHome || newEvent.value.multiDay) return []
   return getSuggestedSlots(newEvent.value.time, newEvent.value.endTime)
 })
 
@@ -970,7 +1067,7 @@ watch(newEventSuggestedSlots, (slots) => {
 
 // Pas de suggestion/pré-remplissage d'absence si l'événement a lieu à la maison
 const editEventSuggestedSlots = computed(() => {
-  if (editEventForm.value.atHome) return []
+  if (editEventForm.value.atHome || editEventForm.value.multiDay) return []
   return getSuggestedSlots(editEventForm.value.time, editEventForm.value.endTime)
 })
 
@@ -1015,12 +1112,12 @@ const getMemberAvatar = (id) => {
 
 const hasEventOnDay = (dayNum) => {
   const targetDate = formatDateStr(currentYear.value, currentMonth.value, dayNum)
-  return store.events.some(e => e.date === targetDate)
+  return store.events.some(e => eventOnDate(e, targetDate))
 }
 
 const getEventsOnDay = (dayNum) => {
   const targetDate = formatDateStr(currentYear.value, currentMonth.value, dayNum)
-  return store.events.filter(e => e.date === targetDate)
+  return store.events.filter(e => eventOnDate(e, targetDate))
 }
 
 const openedFromDayModal = ref(false)
@@ -1029,7 +1126,7 @@ const handleDayClick = (dayNum) => {
   selectedDayNumber.value = dayNum
   const targetDate = formatDateStr(currentYear.value, currentMonth.value, dayNum)
   selectedDayDateStr.value = targetDate
-  selectedDayEvents.value = store.events.filter(e => e.date === targetDate)
+  selectedDayEvents.value = store.events.filter(e => eventOnDate(e, targetDate))
   showDayEventsModal.value = true
 }
 
@@ -1049,7 +1146,7 @@ const handleSelectEvent = (event) => {
 const cancelEditModal = () => {
   showEditModal.value = false
   if (openedFromDayModal.value && selectedDayDateStr.value) {
-    selectedDayEvents.value = store.events.filter(e => e.date === selectedDayDateStr.value)
+    selectedDayEvents.value = store.events.filter(e => eventOnDate(e, selectedDayDateStr.value))
     showDayEventsModal.value = true
     openedFromDayModal.value = false
   }
@@ -1113,11 +1210,26 @@ const handleAddEvent = async () => {
     }
   }
 
+  if (newEvent.value.multiDay && !newEvent.value.isRecurring && !(newEvent.value.endDate > newEvent.value.date)) {
+    alert(t('calendar.errors.endDateMultiDay'))
+    return
+  }
+
   const {
     generateAbsence, absenceSlots, atHome, _prevLocation,
     isRecurring, recurrenceFrequency, recurrenceInterval, recurrenceEndDate,
+    multiDay, endDate, absenceStartSlot, absenceEndSlot,
     ...eventPayload
   } = newEvent.value
+
+  // Plusieurs jours : le serveur crée une absence longue par personne concernée
+  const isMultiDay = multiDay && !isRecurring
+  if (isMultiDay) {
+    eventPayload.endDate = endDate
+    if (generateAbsence && eventPayload.memberIds.length > 0) {
+      Object.assign(eventPayload, { generateAbsence: true, absenceStartSlot, absenceEndSlot })
+    }
+  }
 
   if (isRecurring) {
     eventPayload.recurrence = {
@@ -1148,7 +1260,7 @@ const handleAddEvent = async () => {
   } else {
     createdEvent = (res && res.event) ? res.event : eventPayload
     recurringCreationSummary.value = null
-    if (generateAbsence && eventPayload.memberIds.length > 0 && hasAnySlot(absenceSlots)) {
+    if (!isMultiDay && generateAbsence && eventPayload.memberIds.length > 0 && hasAnySlot(absenceSlots)) {
       await generateAbsencesForEvent(eventPayload.memberIds, eventPayload.date, eventPayload.title, absenceSlots, createdEvent.id)
     }
   }
@@ -1171,6 +1283,10 @@ const handleAddEvent = async () => {
     memberIds: currentUserMemberId.value ? [currentUserMemberId.value] : [],
     generateAbsence: false,
     absenceSlots: { lunch: false, dinner: false, night: false },
+    multiDay: false,
+    endDate: '',
+    absenceStartSlot: 'lunch',
+    absenceEndSlot: 'night',
     isRecurring: false,
     recurrenceFrequency: 'weekly',
     recurrenceInterval: 1,
@@ -1181,6 +1297,7 @@ const handleAddEvent = async () => {
 
 const openEditModal = (event) => {
   editingEventId.value = event.id
+  const linked = (store.longAbsences || []).filter(la => la.eventId === event.id)
   editEventForm.value = {
     title: event.title || '',
     date: event.date || '',
@@ -1192,8 +1309,13 @@ const openEditModal = (event) => {
     _prevLocation: '',
     color: event.color || '#8b5cf6',
     memberIds: Array.isArray(event.memberIds) ? [...event.memberIds] : [],
-    generateAbsence: false,
+    // Plusieurs jours : case cochée si des absences longues sont déjà liées à l'événement
+    generateAbsence: isMultiDayEvent(event) && linked.length > 0,
     absenceSlots: { lunch: false, dinner: false, night: false },
+    multiDay: isMultiDayEvent(event),
+    endDate: isMultiDayEvent(event) ? event.endDate : '',
+    absenceStartSlot: linked[0]?.startSlot || 'lunch',
+    absenceEndSlot: linked[0]?.endSlot || 'night',
     recurrenceId: event.recurrenceId || null
   }
   showEditModal.value = true
@@ -1206,7 +1328,26 @@ const handleUpdateEvent = async () => {
     ? await askRecurrenceScope(t('calendar.scope.editQuestion'))
     : 'this'
 
-  const { generateAbsence, absenceSlots, atHome, _prevLocation, recurrenceId, ...eventPayload } = editEventForm.value
+  if (editEventForm.value.multiDay && !editEventForm.value.recurrenceId && !(editEventForm.value.endDate > editEventForm.value.date)) {
+    alert(t('calendar.errors.endDateMultiDay'))
+    return
+  }
+
+  const {
+    generateAbsence, absenceSlots, atHome, _prevLocation, recurrenceId,
+    multiDay, endDate, absenceStartSlot, absenceEndSlot,
+    ...eventPayload
+  } = editEventForm.value
+
+  // Plusieurs jours : absences longues recréées (case cochée) ou supprimées (décochée) par le serveur
+  const isMultiDay = multiDay && !recurrenceId
+  if (!recurrenceId) {
+    eventPayload.endDate = isMultiDay ? endDate : null
+    if (isMultiDay) {
+      eventPayload.generateAbsence = Boolean(generateAbsence && eventPayload.memberIds.length > 0)
+      if (eventPayload.generateAbsence) Object.assign(eventPayload, { absenceStartSlot, absenceEndSlot })
+    }
+  }
 
   if (scope === 'series') {
     delete eventPayload.date // la date reste propre à chaque occurrence
@@ -1218,7 +1359,7 @@ const handleUpdateEvent = async () => {
   const res = await store.updateEvent(editingEventId.value, eventPayload)
   showEditModal.value = false
 
-  if (scope === 'this' && generateAbsence && eventPayload.memberIds.length > 0 && hasAnySlot(absenceSlots)) {
+  if (scope === 'this' && !isMultiDay && generateAbsence && eventPayload.memberIds.length > 0 && hasAnySlot(absenceSlots)) {
     await generateAbsencesForEvent(eventPayload.memberIds, eventPayload.date, eventPayload.title, absenceSlots, editingEventId.value)
   }
 
@@ -1284,6 +1425,38 @@ const handleDeleteFromDay = async (id) => {
 
 <style scoped>
 .text-purple { color: var(--accent-purple); }
+
+.multi-day-end {
+  margin-top: 0.6rem;
+  max-width: 260px;
+}
+
+.absence-days-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+
+.absence-days-row .form-group {
+  margin-bottom: 0;
+}
+
+.absence-days-row .field-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .absence-days-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.week-event-range {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
 
 .section-card {
   padding: 1.5rem;

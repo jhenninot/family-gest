@@ -12,7 +12,11 @@ export const gatherFamilyDigestSection = async (ctx, family, user, todayStr) => 
     getMealSlotPresence(ctx, family, todayStr, 'dinner'),
     getMealSlotPresence(ctx, family, todayStr, 'night'),
     ctx.Task.find({ familyId: family._id, assignedTo: user.id, completed: false }),
-    ctx.Event.find({ familyId: family._id, date: todayStr }).sort({ time: 1 }),
+    ctx.Event.find({
+      familyId: family._id,
+      date: { $lte: todayStr },
+      $or: [{ date: todayStr }, { endDate: { $gte: todayStr } }]
+    }).sort({ time: 1 }),
     ctx.ShoppingItem.find({ familyId: family._id, checked: false }).sort({ category: 1, name: 1 })
   ])
 

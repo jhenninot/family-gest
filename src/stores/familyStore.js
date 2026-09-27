@@ -635,6 +635,22 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  // Absences (quotidiennes et longues) rechargées après un événement sur plusieurs jours : le
+  // serveur crée, déplace ou supprime les absences longues qui lui sont liées
+  const refreshAbsences = async () => {
+    try {
+      const headers = getHeaders()
+      const [absencesRes, longAbsencesRes] = await Promise.all([
+        fetch('/api/absences', { headers }),
+        fetch('/api/long-absences', { headers })
+      ])
+      if (absencesRes.ok) absences.value = await absencesRes.json()
+      if (longAbsencesRes.ok) longAbsences.value = await longAbsencesRes.json()
+    } catch (err) {
+      console.error('Erreur refreshAbsences API', err)
+    }
+  }
+
   const addEvent = async (eventData) => {
     try {
       const res = await fetch('/api/events', {
@@ -650,6 +666,7 @@ export const useFamilyStore = defineStore('family', () => {
           return { success: true, events: data.events, truncated: data.truncated }
         }
         events.value.push(data)
+        if (data.endDate && eventData.generateAbsence) await refreshAbsences()
         return { success: true, event: data }
       } else {
         const err = await res.json().catch(() => ({}))
@@ -683,9 +700,11 @@ export const useFamilyStore = defineStore('family', () => {
           return { success: true, events: data.events }
         }
         const index = events.value.findIndex(e => e.id === Number(id))
+        const hadLongAbsences = longAbsences.value.some(la => la.eventId === Number(id))
         if (index !== -1) {
           events.value[index] = data
         }
+        if (hadLongAbsences || (data.endDate && eventData.generateAbsence)) await refreshAbsences()
         return { success: true, event: data }
       } else {
         const err = await res.json().catch(() => ({}))
@@ -713,6 +732,11 @@ export const useFamilyStore = defineStore('family', () => {
         } else {
           events.value = events.value.filter(e => e.id !== id)
           absences.value = absences.value.filter(a => a.eventId !== id)
+          const linked = new Set(longAbsences.value.filter(la => la.eventId === id).map(la => la.id))
+          if (linked.size > 0) {
+            longAbsences.value = longAbsences.value.filter(la => !linked.has(la.id))
+            absences.value = absences.value.filter(a => !linked.has(a.longAbsenceId))
+          }
         }
       }
     } catch (err) {
@@ -1307,6 +1331,7 @@ export const useFamilyStore = defineStore('family', () => {
     updateTask,
     deleteTask,
     addEvent,
+    refreshAbsences,
     updateEvent,
     deleteEvent,
     addShoppingItem,

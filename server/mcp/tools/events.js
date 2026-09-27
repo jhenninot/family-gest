@@ -32,21 +32,23 @@ export const registerEventTools = (server, req, ctx) => {
       endDate: z.string().optional().describe('Date de fin (YYYY-MM-DD), incluse')
     }
   }, async ({ startDate, endDate }) => {
+    // Un événement sur plusieurs jours (endDate) est retenu s'il chevauche la plage
     const filter = { familyId }
-    if (startDate && endDate) filter.date = { $gte: startDate, $lte: endDate }
-    else if (startDate) filter.date = { $gte: startDate }
-    else if (endDate) filter.date = { $lte: endDate }
+    if (endDate) filter.date = { $lte: endDate }
+    if (startDate) filter.$or = [{ date: { $gte: startDate } }, { endDate: { $gte: startDate } }]
     const events = await Event.find(filter).sort({ date: 1 })
     return jsonResult(events)
   })
 
   server.registerTool('create_event', {
     title: 'Créer un événement',
-    description: 'Crée un événement au calendrier familial, ponctuel ou récurrent (quotidien/hebdomadaire/mensuel). ' +
-      "Peut générer automatiquement des absences liées pour les membres concernés (generateAbsence + absenceSlots).",
+    description: 'Crée un événement au calendrier familial, ponctuel, sur plusieurs jours (endDate) ou récurrent (quotidien/hebdomadaire/mensuel). ' +
+      "Peut générer automatiquement des absences liées pour les membres concernés (generateAbsence + absenceSlots ; " +
+      "pour un événement sur plusieurs jours : absences longues du premier au dernier jour, absenceStartSlot/absenceEndSlot).",
     inputSchema: {
       title: z.string().describe('Titre de l\'événement'),
       date: z.string().describe('Date (YYYY-MM-DD)'),
+      endDate: z.string().optional().describe('Dernier jour (YYYY-MM-DD) d\'un événement sur plusieurs jours, ex. des vacances'),
       time: z.string().optional().describe('Heure de début (HH:MM)'),
       endTime: z.string().optional().describe('Heure de fin (HH:MM)'),
       category: z.string().optional(),
@@ -64,7 +66,9 @@ export const registerEventTools = (server, req, ctx) => {
         lunch: z.boolean().optional(),
         dinner: z.boolean().optional(),
         night: z.boolean().optional()
-      }).optional()
+      }).optional(),
+      absenceStartSlot: z.enum(['lunch', 'dinner', 'night']).optional().describe('Plusieurs jours : premier repas d\'absence le premier jour (défaut lunch)'),
+      absenceEndSlot: z.enum(['lunch', 'dinner', 'night']).optional().describe('Plusieurs jours : dernier créneau d\'absence le dernier jour (défaut night)')
     }
   }, async (input) => {
     const assignedTo = await resolveMemberIdOrNull(familyId, input.assignedTo)
@@ -105,6 +109,7 @@ export const registerEventTools = (server, req, ctx) => {
       scope: z.enum(['single', 'series']).optional(),
       title: z.string().optional(),
       date: z.string().optional(),
+      endDate: z.string().nullable().optional().describe('Dernier jour (YYYY-MM-DD) ; null pour revenir à un seul jour'),
       time: z.string().optional(),
       endTime: z.string().optional(),
       category: z.string().optional(),
@@ -117,7 +122,9 @@ export const registerEventTools = (server, req, ctx) => {
         lunch: z.boolean().optional(),
         dinner: z.boolean().optional(),
         night: z.boolean().optional()
-      }).optional()
+      }).optional(),
+      absenceStartSlot: z.enum(['lunch', 'dinner', 'night']).optional().describe('Plusieurs jours : premier repas d\'absence le premier jour (défaut lunch)'),
+      absenceEndSlot: z.enum(['lunch', 'dinner', 'night']).optional().describe('Plusieurs jours : dernier créneau d\'absence le dernier jour (défaut night)')
     }
   }, async ({ id, ...input }) => {
     const assignedTo = await resolveMemberIdOrNull(familyId, input.assignedTo)

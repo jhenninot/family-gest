@@ -131,6 +131,7 @@
     },
     "events": {
       "at": "{title} at {time}",
+      "until": "until {date}",
       "noneOn": "No events are planned {day}.",
       "nonePeriod": "No events are planned from {start} to {end}.",
       "noneSoon": "No events are planned for the next two weeks.",

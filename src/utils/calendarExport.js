@@ -5,10 +5,13 @@ import { translateValue } from '../i18n/values'
 /**
  * Formate une date (YYYY-MM-DD) et une heure (HH:mm) en date ISO compacte pour Google Calendar et iCalendar
  */
-function parseEventDates(dateStr, timeStr, endTimeStr) {
+function parseEventDates(dateStr, timeStr, endTimeStr, endDateStr = null) {
   if (!dateStr) return { start: '', end: '', isAllDay: true }
 
   const [year, month, day] = dateStr.split('-').map(Number)
+  // Événement sur plusieurs jours : l'heure de fin et la fin de journée portent sur le dernier jour
+  const [ey, em, ed] = (endDateStr && endDateStr > dateStr ? endDateStr : dateStr).split('-').map(Number)
+  const multiDay = Boolean(endDateStr && endDateStr > dateStr)
 
   if (timeStr && timeStr.includes(':')) {
     const [hours, minutes] = timeStr.split(':').map(Number)
@@ -17,11 +20,11 @@ function parseEventDates(dateStr, timeStr, endTimeStr) {
     let endDate
     if (endTimeStr && endTimeStr.includes(':')) {
       const [endHours, endMinutes] = endTimeStr.split(':').map(Number)
-      endDate = new Date(year, month - 1, day, endHours, endMinutes, 0)
+      endDate = new Date(ey, em - 1, ed, endHours, endMinutes, 0)
       if (endDate <= startDate) endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
     } else {
       // Par défaut, durée de 1 heure
-      endDate = new Date(startDate.getTime() + 60 * 60 * 1000)
+      endDate = multiDay ? new Date(ey, em - 1, ed, 23, 59, 0) : new Date(startDate.getTime() + 60 * 60 * 1000)
     }
 
     const formatCompact = (d) => {
@@ -39,7 +42,7 @@ function parseEventDates(dateStr, timeStr, endTimeStr) {
     const pad = (n) => String(n).padStart(2, '0')
     const start = `${year}${pad(month)}${pad(day)}`
     // Date de fin exclusive pour Google (jour suivant)
-    const nextDay = new Date(year, month - 1, day + 1)
+    const nextDay = new Date(ey, em - 1, ed + 1)
     const end = `${nextDay.getFullYear()}${pad(nextDay.getMonth() + 1)}${pad(nextDay.getDate())}`
 
     return { start, end, isAllDay: true }
@@ -50,7 +53,7 @@ function parseEventDates(dateStr, timeStr, endTimeStr) {
  * Génère le lien Web direct vers Google Agenda
  */
 export function getGoogleCalendarUrl(event) {
-  const { start, end } = parseEventDates(event.date, event.time, event.endTime)
+  const { start, end } = parseEventDates(event.date, event.time, event.endTime, event.endDate)
   const title = encodeURIComponent(event.title || t('calendarExport.defaultTitle'))
   const location = encodeURIComponent(event.location || '')
   
@@ -73,7 +76,7 @@ export function openGoogleCalendar(event) {
  * Génère le contenu d'un fichier standard .ics (iCalendar)
  */
 export function generateIcsContent(event) {
-  const { start, end, isAllDay } = parseEventDates(event.date, event.time, event.endTime)
+  const { start, end, isAllDay } = parseEventDates(event.date, event.time, event.endTime, event.endDate)
   const now = new Date()
   const pad = (n) => String(n).padStart(2, '0')
   const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`

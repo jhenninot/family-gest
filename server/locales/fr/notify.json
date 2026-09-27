@@ -93,7 +93,8 @@
     "pushView": "Voir",
     "pushGoogle": "Google Agenda",
     "pushViewCalendar": "Voir l'agenda",
-    "pushUpdate": "Mettre à jour"
+    "pushUpdate": "Mettre à jour",
+    "whenDays": "du {start} au {end}"
   },
   "presence": {
     "title": "Présence confirmée : {member}",

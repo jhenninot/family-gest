@@ -535,6 +535,7 @@ export const buildHandlers = (api) => {
   // « le dentiste à 15 heures pour Paul »
   const describeEvent = (event) => {
     let text = event.time ? t('alexa.query.events.at', { title: event.title, time: spokenTime(t, event.time) }) : event.title
+    if (event.endDate) text += ` ${t('alexa.query.events.until', { date: readableDate(t, event.endDate) })}`
     if (event.members.length > 0) text += ` ${t('alexa.query.tasks.for', { name: joinList(t, event.members) })}`
     return text
   }

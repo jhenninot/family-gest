@@ -5,6 +5,8 @@ const eventSchema = new mongoose.Schema({
   id: { type: Number, required: true },
   title: { type: String, required: true },
   date: { type: String, required: true },
+  // Dernier jour d'un événement sur plusieurs jours (YYYY-MM-DD, après date), null sinon
+  endDate: { type: String, default: null },
   time: { type: String },
   endTime: { type: String },
   category: { type: String, default: 'Famille' },

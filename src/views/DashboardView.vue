@@ -451,8 +451,12 @@
               <div class="event-details">
                 <span class="event-item-title">{{ event.title }}</span>
                 <div class="event-meta-info">
-                  <Clock :size="14" />
-                  <span>{{ event.time }}</span>
+                  <template v-if="isMultiDayEvent(event)">
+                    <Calendar :size="14" />
+                    <span>{{ t('calendar.untilDate', { date: `${getDayNumber(event.endDate)} ${getMonthShort(event.endDate)}` }) }}</span>
+                  </template>
+                  <Clock v-if="event.time" :size="14" :class="{ 'margin-left-xs': isMultiDayEvent(event) }" />
+                  <span v-if="event.time">{{ event.time }}</span>
                   <MapPin :size="14" class="margin-left-xs" />
                   <span>{{ event.location }}</span>
                 </div>
@@ -514,6 +518,7 @@ import {
 import HouseUser from '../components/icons/HouseUser.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
+import { eventOnDate, eventOverlaps, isMultiDayEvent } from '../utils/events'
 
 const route = useRoute()
 const router = useRouter()
@@ -550,7 +555,7 @@ const dashboardEvents = computed(() => {
   const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`
 
   return (store.events || [])
-    .filter(e => e.date >= today && e.date <= cutoffStr)
+    .filter(e => eventOverlaps(e, today, cutoffStr))
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5)
 })
@@ -558,7 +563,7 @@ const dashboardEvents = computed(() => {
 const todayEvents = computed(() => {
   const today = store.todayStr
   return (store.events || [])
-    .filter(e => e.date === today)
+    .filter(e => eventOnDate(e, today))
     .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
 })
 

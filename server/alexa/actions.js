@@ -77,13 +77,19 @@ export const createAlexaApi = (req, ctx, lang, { channel = 'alexa' } = {}) => {
         .sort((a, b) => a.date.localeCompare(b.date) || (a.slot === 'lunch' ? -1 : 1))
     },
 
-    // Événements de l'agenda entre deux dates incluses, dans l'ordre (sans heure en premier dans la journée)
+    // Événements de l'agenda entre deux dates incluses, dans l'ordre (sans heure en premier dans la
+    // journée). Un événement sur plusieurs jours commencé avant la période y figure à son premier jour.
     async upcomingEvents ({ start, end }) {
-      const events = await Event.find({ familyId, date: { $gte: start, $lte: end } })
+      const events = await Event.find({
+        familyId,
+        date: { $lte: end },
+        $or: [{ endDate: { $gte: start } }, { endDate: null, date: { $gte: start } }]
+      })
       const names = new Map((await this.members()).map(m => [m.id, m.firstName]))
       return events
         .map(e => ({
-          date: e.date,
+          date: e.date < start ? start : e.date,
+          endDate: e.endDate && e.endDate > e.date ? e.endDate : null,
           time: e.time || '',
           title: e.title,
           members: [...new Set([...(e.memberIds || []), e.assignedTo].filter(id => id != null))].map(id => names.get(id)).filter(Boolean)
