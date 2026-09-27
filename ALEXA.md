@@ -7,7 +7,7 @@ Ce guide explique comment créer une skill Alexa **privée** qui permet d'ajoute
 | Un événement dans l'agenda | « Alexa, demande à gestion famille d'ajouter dentiste mardi à 15 heures », ou pas à pas : « Alexa, demande à gestion famille d'ajouter un événement » |
 | Des articles sur la liste de courses | « Alexa, demande à gestion famille d'acheter du lait, des œufs et deux baguettes » |
 | Un plat au menu de la semaine | « Alexa, demande à gestion famille de mettre des lasagnes au dîner de jeudi » |
-| Une absence | « Alexa, demande à gestion famille : Paul ne sera pas là demain midi » |
+| Une absence | « Alexa, demande à gestion famille : Paul ne sera pas là demain midi » (ou « Paul et Léa ne seront pas là… ») |
 | Une présence exceptionnelle | « Alexa, demande à gestion famille : Léa sera là ce soir » |
 | Un invité | « Alexa, demande à gestion famille : Mamie vient dîner samedi » |
 
@@ -72,7 +72,7 @@ C'est tout : la skill fonctionne aussitôt sur vos enceintes Echo (dans l'applic
 - En conversation : « **Alexa, ouvre gestion famille** », puis enchaînez les demandes ; Alexa répond « Autre chose ? » après chacune. Dites « c'est tout » ou « stop » pour terminer.
 - **Événement pas à pas** : « ajoute un événement » (ou « nouveau rendez-vous ») sans titre lance un dialogue guidé : titre, jour, heure de début, heure de fin, puis la personne concernée. Répondez « toute la journée » (pas d'heure), « je ne sais pas » (pas d'heure de fin) ou « toute la famille » (personne en particulier) pour passer une étape. En une phrase, on peut aussi tout dire d'un coup : « ajoute piscine pour Léa samedi de 10 heures à 11 heures ». Comme dans l'application, si l'événement d'une personne chevauche le déjeuner (12 h-14 h) ou le dîner (20 h-22 h), Alexa propose de noter son absence à ce repas : répondez « oui » ou « non ».
 - S'il manque une information, Alexa la demande (« Pour quel jour ? », « Pour le déjeuner ou le dîner ? »). Sans jour précisé, les repas, présences et invités sont pour **aujourd'hui**.
-- Les absences et présences se font toujours avec un **prénom** : « Paul ne sera pas là… ». Vous pouvez en indiquer plusieurs moments (« midi et soir », « toute la journée ») ; « Paul ne dort pas à la maison vendredi » concerne la nuit.
+- Les absences et présences se font toujours avec un **prénom**, jusqu'à trois à la fois : « Paul ne sera pas là… », « Paul et Léa ne seront pas là ce soir », « Paul, Léa et Marie seront là demain midi ». Vous pouvez en indiquer plusieurs moments (« midi et soir », « toute la journée ») ; « Paul ne dort pas à la maison vendredi » concerne la nuit.
 - **Courses** : évitez « à ma liste de courses », qu'Alexa a tendance à envoyer vers la liste d'achats d'Amazon. Préférez « d'**acheter** du lait », « qu'il faut du lait » ou « d'ajouter du lait **aux courses** ». En conversation (skill ouverte), « ajoute du lait » suffit toujours.
 - Plusieurs articles ou invités d'un coup : « du lait, du beurre et des œufs », « Mamie et Papi ». Un article déjà présent sur la liste n'est pas ajouté en double ; les articles dictés vont dans le rayon « Autre ».
 - « Alexa, demande à gestion famille de l'aide » donne des exemples.

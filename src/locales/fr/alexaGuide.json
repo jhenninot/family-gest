@@ -53,7 +53,7 @@
       "event": "« Alexa, demande à {name} d'ajouter dentiste mardi à 15 heures » — ou simplement « … d'ajouter un événement » : Alexa demande le titre, le jour, les heures de début et de fin, puis la personne",
       "shopping": "« Alexa, demande à {name} d'acheter du lait et des œufs » — évitez « à ma liste de courses », souvent capté par la liste d'achats d'Amazon",
       "meal": "« Alexa, demande à {name} de mettre des lasagnes au dîner de jeudi »",
-      "absence": "« Alexa, demande à {name} : Paul ne sera pas là demain midi » (toujours avec un prénom) ; « … Léa sera là ce soir » pour une présence",
+      "absence": "« Alexa, demande à {name} : Paul ne sera pas là demain midi » (toujours avec un prénom) ; « … Léa sera là ce soir » pour une présence ; pour plusieurs personnes : « … Paul et Léa ne seront pas là ce soir »",
       "guest": "« Alexa, demande à {name} : Mamie vient dîner samedi »",
       "who": "« Alexa, demande à {name} qui mange à la maison ce soir »",
       "tasks": "« Alexa, demande à {name} quelles sont les tâches en cours » (ou « … les tâches de Paul »)",

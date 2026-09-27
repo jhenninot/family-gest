@@ -58,10 +58,12 @@
   },
   "presence": {
     "askSlot": "Pour le midi, le soir ou la nuit ?",
-    "done": "C'est noté : {member} sera là {date}, {slots}."
+    "done": "C'est noté : {member} sera là {date}, {slots}.",
+    "doneMany": "C'est noté : {member} seront là {date}, {slots}."
   },
   "absence": {
-    "done": "C'est noté : {member} ne sera pas là {date}, {slots}."
+    "done": "C'est noté : {member} ne sera pas là {date}, {slots}.",
+    "doneMany": "C'est noté : {member} ne seront pas là {date}, {slots}."
   },
   "guest": {
     "askNames": "Qui est invité ?",

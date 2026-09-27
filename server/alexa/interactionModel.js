@@ -50,6 +50,12 @@ const MEAL_SLOT_VALUES = [
   { id: 'ALL_DAY', name: { value: 'toute la journée', synonyms: ['la journée', 'toute la journée et la nuit'] } }
 ]
 
+// Phrases au pluriel pour deux ou trois personnes : {who} = « Paul et Léa » ou « Paul, Léa et Marie »
+const forSeveral = (templates) => templates.flatMap(tpl => [
+  tpl.replace('{who}', '{member} et {memberTwo}'),
+  tpl.replace('{who}', '{member} {memberTwo} et {memberThree}')
+])
+
 // Formulations supplémentaires (synonymes), ajoutées aux phrases de base de chaque intention
 const EXTRA_SAMPLES = {
   AddEventIntent: [
@@ -109,6 +115,16 @@ const EXTRA_SAMPLES = {
     'on mange {dish} {date}'
   ],
   AbsenceIntent: [
+    ...forSeveral([
+      '{who} ne seront pas là [{date}] [le] {slotOne} [et {slotTwo}]',
+      '{who} ne seront pas là {slotOne} [et {slotTwo}] {date}',
+      '{who} ne seront pas là {date}',
+      '{who} ne sont pas là [{date}] [le] {slotOne} [et {slotTwo}]',
+      '{who} seront absents [{date}] [le] {slotOne} [et {slotTwo}]',
+      '{who} ne mangent pas à la maison [{date}] [le] {slotOne} [et {slotTwo}]',
+      '{who} ne mangeront pas à la maison [{date}] [le] {slotOne} [et {slotTwo}]',
+      '{who} ne rentrent pas [{date}] [le] {slotOne} [et {slotTwo}]'
+    ]),
     '{member} sera absent [{date}] [le] {slotOne} [et {slotTwo}]',
     '{member} sera absente [{date}] [le] {slotOne} [et {slotTwo}]',
     '{member} sera absent {date}',
@@ -124,6 +140,11 @@ const EXTRA_SAMPLES = {
     'note une absence pour {member} [{date}] [le] {slotOne} [et {slotTwo}]'
   ],
   AbsenceNightIntent: [
+    ...forSeveral([
+      '{who} ne dorment pas à la maison [{date}]',
+      '{who} dorment ailleurs [{date}]',
+      '{who} ne dormiront pas à la maison [{date}]'
+    ]),
     '{member} ne rentre pas dormir [{date}]',
     '{member} ne dort pas là [{date}]',
     '{member} dort chez des amis [{date}]',
@@ -133,6 +154,15 @@ const EXTRA_SAMPLES = {
     '{member} passe la nuit ailleurs [{date}]'
   ],
   PresenceIntent: [
+    ...forSeveral([
+      '{who} seront là [{date}] [le] {slotOne} [et {slotTwo}]',
+      '{who} seront là {slotOne} [et {slotTwo}] {date}',
+      '{who} seront là {date}',
+      '{who} sont là [{date}] [le] {slotOne} [et {slotTwo}]',
+      '{who} mangent à la maison [{date}] [le] {slotOne} [et {slotTwo}]',
+      '{who} mangeront à la maison [{date}] [le] {slotOne} [et {slotTwo}]',
+      '{who} rentrent [{date}] [le] {slotOne} [et {slotTwo}]'
+    ]),
     '{member} sera à la maison [{date}] [le] {slotOne} [et {slotTwo}]',
     '{member} mange avec nous [{date}] [le] {slotOne} [et {slotTwo}]',
     '{member} rentre manger [{date}] [le] {slotOne}',
@@ -142,6 +172,11 @@ const EXTRA_SAMPLES = {
     'déclare une présence pour {member} [{date}] [le] {slotOne} [et {slotTwo}]'
   ],
   PresenceNightIntent: [
+    ...forSeveral([
+      '{who} dorment à la maison [{date}]',
+      '{who} dormiront à la maison [{date}]',
+      '{who} rentrent dormir [{date}]'
+    ]),
     '{member} dort ici [{date}]',
     '{member} passe la nuit à la maison [{date}]'
   ],
@@ -274,6 +309,8 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
   if (memberValues.length === 0) memberValues.push({ id: 'EXEMPLE', name: { value: 'Camille' } })
 
   const date = { name: 'date', type: 'AMAZON.DATE' }
+  // Deuxième et troisième prénoms (« Paul et Léa ne seront pas là ce soir »)
+  const moreMembers = [{ name: 'memberTwo', type: 'MemberName' }, { name: 'memberThree', type: 'MemberName' }]
   const intents = [
     {
       name: 'AddEventIntent',
@@ -358,7 +395,7 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
     },
     {
       name: 'AbsenceIntent',
-      slots: [{ name: 'member', type: 'MemberName' }, { ...date }, { name: 'slotOne', type: 'MealSlot' }, { name: 'slotTwo', type: 'MealSlot' }],
+      slots: [{ name: 'member', type: 'MemberName' }, ...moreMembers, { ...date }, { name: 'slotOne', type: 'MealSlot' }, { name: 'slotTwo', type: 'MealSlot' }],
       samples: expand([
         '{member} ne sera pas là [{date}] [le] {slotOne} [et {slotTwo}]',
         '{member} ne sera pas là {slotOne} [et {slotTwo}] {date}',
@@ -373,7 +410,7 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
     },
     {
       name: 'AbsenceNightIntent',
-      slots: [{ name: 'member', type: 'MemberName' }, { ...date }],
+      slots: [{ name: 'member', type: 'MemberName' }, ...moreMembers, { ...date }],
       samples: expand([
         '{member} ne dort pas à la maison [{date}]',
         '{member} dort ailleurs [{date}]',
@@ -382,7 +419,7 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
     },
     {
       name: 'PresenceIntent',
-      slots: [{ name: 'member', type: 'MemberName' }, { ...date }, { name: 'slotOne', type: 'MealSlot' }, { name: 'slotTwo', type: 'MealSlot' }],
+      slots: [{ name: 'member', type: 'MemberName' }, ...moreMembers, { ...date }, { name: 'slotOne', type: 'MealSlot' }, { name: 'slotTwo', type: 'MealSlot' }],
       samples: expand([
         '{member} sera là [{date}] [le] {slotOne} [et {slotTwo}]',
         '{member} sera là {slotOne} [et {slotTwo}] {date}',
@@ -397,7 +434,7 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
     },
     {
       name: 'PresenceNightIntent',
-      slots: [{ name: 'member', type: 'MemberName' }, { ...date }],
+      slots: [{ name: 'member', type: 'MemberName' }, ...moreMembers, { ...date }],
       samples: expand([
         '{member} dort à la maison [{date}]',
         '{member} rentre dormir [{date}]'
@@ -595,10 +632,10 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
           dialogIntent('AddEventIntent', [['title', 'EventTitle', null], ['guidedTitle', 'AMAZON.SearchQuery', 'Elicit.Event.Title'], ['date', 'AMAZON.DATE', 'Elicit.Event.Date'], ['time', 'AMAZON.TIME', 'Elicit.Event.Time'], ['endTime', 'AMAZON.TIME', 'Elicit.Event.EndTime'], ['member', 'MemberName', 'Elicit.Event.Member']], 'SKILL_RESPONSE'),
           dialogIntent('AddShoppingIntent', [['items', 'ShoppingItems', 'Elicit.Shopping.Items']]),
           dialogIntent('AddMealIntent', [['dish', 'DishName', 'Elicit.Meal.Dish'], ['date', 'AMAZON.DATE', null], ['mealSlot', 'MealSlot', 'Elicit.Meal.Slot']]),
-          dialogIntent('AbsenceIntent', [['member', 'MemberName', 'Elicit.Member'], ['date', 'AMAZON.DATE', null], ['slotOne', 'MealSlot', 'Elicit.Presence.Slot'], ['slotTwo', 'MealSlot', null]]),
-          dialogIntent('AbsenceNightIntent', [['member', 'MemberName', 'Elicit.Member'], ['date', 'AMAZON.DATE', null]]),
-          dialogIntent('PresenceIntent', [['member', 'MemberName', 'Elicit.Member'], ['date', 'AMAZON.DATE', null], ['slotOne', 'MealSlot', 'Elicit.Presence.Slot'], ['slotTwo', 'MealSlot', null]]),
-          dialogIntent('PresenceNightIntent', [['member', 'MemberName', 'Elicit.Member'], ['date', 'AMAZON.DATE', null]]),
+          dialogIntent('AbsenceIntent', [['member', 'MemberName', 'Elicit.Member'], ['memberTwo', 'MemberName', null], ['memberThree', 'MemberName', null], ['date', 'AMAZON.DATE', null], ['slotOne', 'MealSlot', 'Elicit.Presence.Slot'], ['slotTwo', 'MealSlot', null]]),
+          dialogIntent('AbsenceNightIntent', [['member', 'MemberName', 'Elicit.Member'], ['memberTwo', 'MemberName', null], ['memberThree', 'MemberName', null], ['date', 'AMAZON.DATE', null]]),
+          dialogIntent('PresenceIntent', [['member', 'MemberName', 'Elicit.Member'], ['memberTwo', 'MemberName', null], ['memberThree', 'MemberName', null], ['date', 'AMAZON.DATE', null], ['slotOne', 'MealSlot', 'Elicit.Presence.Slot'], ['slotTwo', 'MealSlot', null]]),
+          dialogIntent('PresenceNightIntent', [['member', 'MemberName', 'Elicit.Member'], ['memberTwo', 'MemberName', null], ['memberThree', 'MemberName', null], ['date', 'AMAZON.DATE', null]]),
           dialogIntent('AddGuestIntent', [['guests', 'GuestNames', 'Elicit.Guest.Names'], ['date', 'AMAZON.DATE', null], ['slotOne', 'MealSlot', 'Elicit.Guest.Slot'], ['slotTwo', 'MealSlot', null]])
         ],
         delegationStrategy: 'ALWAYS'

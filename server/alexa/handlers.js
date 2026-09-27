@@ -68,14 +68,26 @@ const optionalDate = (handlerInput, api) => {
 }
 
 // Membre désigné par son prénom, ou réponse qui redemande de qui il s'agit
-const resolveMemberOrElicit = async (handlerInput, api) => {
-  const { value, id } = readSlot(handlerInput, 'member')
+const resolveMemberOrElicit = async (handlerInput, api, slotName = 'member') => {
+  const { value, id } = readSlot(handlerInput, slotName)
   const found = matchMember(await api.members(), value, id)
   if (found.member) return { member: found.member }
   if (found.candidates) {
-    return { response: elicit(handlerInput, 'member', api.t('alexa.member.ambiguous', { name: value, names: joinList(api.t, found.candidates.map(m => m.firstName)) })) }
+    return { response: elicit(handlerInput, slotName, api.t('alexa.member.ambiguous', { name: value, names: joinList(api.t, found.candidates.map(m => m.firstName)) })) }
   }
-  return { response: elicit(handlerInput, 'member', api.t('alexa.member.unknown', { name: value || '' })) }
+  return { response: elicit(handlerInput, slotName, api.t('alexa.member.unknown', { name: value || '' })) }
+}
+
+// Un à trois prénoms (« Paul, Léa et Marie ne seront pas là ») ; chacun doit être reconnu
+const resolveMembersOrElicit = async (handlerInput, api) => {
+  const members = []
+  for (const slotName of ['member', 'memberTwo', 'memberThree']) {
+    if (slotName !== 'member' && !readSlot(handlerInput, slotName).value) continue
+    const { member, response } = await resolveMemberOrElicit(handlerInput, api, slotName)
+    if (response) return { response }
+    if (!members.some(m => m.id === member.id)) members.push(member)
+  }
+  return { members }
 }
 
 // Créneaux dits (« midi et soir », « toute la journée ») ; forcedSlot pour les intentions « nuit »
@@ -309,7 +321,7 @@ export const buildHandlers = (api) => {
   const presenceHandler = (intentName, type, forcedSlot = null) => ({
     canHandle: isIntent(intentName),
     async handle (h) {
-      const { member, response } = await resolveMemberOrElicit(h, api)
+      const { members, response } = await resolveMembersOrElicit(h, api)
       if (response) return response
       const { date, invalid } = optionalDate(h, api)
       if (invalid) return elicit(h, 'date', t('alexa.askPreciseDay'))
@@ -317,9 +329,9 @@ export const buildHandlers = (api) => {
       if (slots.length === 0) return elicit(h, 'slotOne', t('alexa.presence.askSlot'))
 
       const flags = slotsToFlags(slots)
-      await api.declarePresence({ member, date, type, ...flags })
-      return finish(h, api, t(`alexa.${type}.done`, {
-        member: member.firstName,
+      for (const member of members) await api.declarePresence({ member, date, type, ...flags })
+      return finish(h, api, t(`alexa.${type}.${members.length > 1 ? 'doneMany' : 'done'}`, {
+        member: joinList(t, members.map(m => m.firstName)),
         date: readableDate(t, date),
         slots: joinList(t, slotNames(t, flags))
       }))

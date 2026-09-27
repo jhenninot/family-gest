@@ -58,10 +58,12 @@
   },
   "presence": {
     "askSlot": "¿A mediodía, por la noche o para dormir?",
-    "done": "Anotado: {member} estará {date}, {slots}."
+    "done": "Anotado: {member} estará {date}, {slots}.",
+    "doneMany": "Anotado: {member} estarán {date}, {slots}."
   },
   "absence": {
-    "done": "Anotado: {member} no estará {date}, {slots}."
+    "done": "Anotado: {member} no estará {date}, {slots}.",
+    "doneMany": "Anotado: {member} no estarán {date}, {slots}."
   },
   "guest": {
     "askNames": "¿Quién está invitado?",

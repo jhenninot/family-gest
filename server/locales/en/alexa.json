@@ -58,10 +58,12 @@
   },
   "presence": {
     "askSlot": "For lunch, dinner or overnight?",
-    "done": "Done: {member} will be home {date}, {slots}."
+    "done": "Done: {member} will be home {date}, {slots}.",
+    "doneMany": "Done: {member} will be home {date}, {slots}."
   },
   "absence": {
-    "done": "Done: {member} will be away {date}, {slots}."
+    "done": "Done: {member} will be away {date}, {slots}.",
+    "doneMany": "Done: {member} will be away {date}, {slots}."
   },
   "guest": {
     "askNames": "Who is invited?",
