@@ -549,3 +549,30 @@ body.is-dragging-item {
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* Liste continue de jours (mobile : agenda, repas, présences), voir useRollingDays */
+.btn-previous-days {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md, 12px);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-previous-days:active {
+  background: var(--bg-tertiary);
+}
+
+.rolling-sentinel {
+  height: 1px;
+}

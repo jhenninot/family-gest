@@ -228,7 +228,8 @@ export function useSwipeNavigation({
   }
 
   const attachListeners = (el) => {
-    if (!el) return
+    // Sans action de balayage, seule l'animation des boutons (slide) est utilisée
+    if (!el || (typeof onSwipeLeft !== 'function' && typeof onSwipeRight !== 'function')) return
     el.addEventListener('touchstart', handleTouchStart, { passive: true })
     el.addEventListener('touchmove', handleTouchMove, { passive: true })
     el.addEventListener('touchend', handleTouchEnd, { passive: true })

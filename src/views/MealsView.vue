@@ -3,26 +3,34 @@
     <!-- Week Navigator Bar -->
     <div class="glass-card week-nav-bar margin-bottom-lg">
       <div class="week-nav-controls">
-        <button @click="slidePrevWeek" class="btn-nav-arrow" :title="t('calendar.prevWeek')">
+        <button v-if="!isMobile" @click="slidePrevWeek" class="btn-nav-arrow" :title="t('calendar.prevWeek')">
           <ChevronLeft :size="20" />
         </button>
 
         <div class="week-info">
           <div class="week-title-row">
             <Calendar :size="18" class="text-amber" />
-            <span class="week-range-text">{{ currentWeekRangeLabel }}</span>
+            <span class="week-range-text">{{ isMobile ? t('calendar.upcomingDays') : currentWeekRangeLabel }}</span>
           </div>
-          <span v-if="isViewingCurrentWeek" class="badge badge-amber badge-sm">{{ t('meals.thisWeek') }}</span>
+          <span v-if="!isMobile && isViewingCurrentWeek" class="badge badge-amber badge-sm">{{ t('meals.thisWeek') }}</span>
         </div>
 
-        <button @click="slideNextWeek" class="btn-nav-arrow" :title="t('calendar.nextWeek')">
+        <button v-if="!isMobile" @click="slideNextWeek" class="btn-nav-arrow" :title="t('calendar.nextWeek')">
           <ChevronRight :size="20" />
         </button>
       </div>
 
       <div class="week-nav-actions">
+        <!-- Mobile : liste continue de jours, « Aujourd'hui » y ramène -->
+        <button
+          v-if="isMobile"
+          @click="rolling.scrollToToday('.meals-view [data-day-today]')"
+          class="btn-today-pill"
+        >
+          {{ t('common.today') }}
+        </button>
         <button 
-          v-if="!isViewingCurrentWeek" 
+          v-else-if="!isViewingCurrentWeek" 
           @click="goToCurrentWeek" 
           class="btn-today-pill"
           :title="t('meals.backToCurrentWeek')"
@@ -43,20 +51,27 @@
         </label>
 
         <!-- Week Stats -->
-        <div class="week-stats-pill">
+        <div v-if="!isMobile" class="week-stats-pill">
           <ChefHat :size="16" class="text-amber" />
           <span>{{ t('meals.plannedCount', { n: weekMealsCount }, weekMealsCount) }}</span>
         </div>
       </div>
     </div>
 
-    <!-- 7 Days Grid -->
+    <!-- Mobile : jours précédents (la liste commence aujourd'hui) -->
+    <button v-if="isMobile" type="button" class="btn-previous-days" @click="rolling.loadPrevious('.meals-view .day-column')">
+      <ChevronUp :size="16" /> {{ t('calendar.previousDays') }}
+    </button>
+
+    <!-- 7 Days Grid (ordinateur) ou liste continue de jours (mobile) -->
     <div class="week-grid">
       <div 
-        v-for="day in weekDays" 
+        v-for="day in displayedDays" 
         :key="day.dateStr"
         class="glass-card day-column"
         :class="{ 'is-today': day.isToday, 'is-past': day.isPast }"
+        :data-day="day.dateStr"
+        :data-day-today="day.isToday ? '' : null"
       >
         <!-- Day Column Header -->
         <div class="day-col-header">
@@ -307,6 +322,8 @@
         </div>
       </div>
     </div>
+    <!-- Mobile : les jours suivants se chargent en approchant du bas -->
+    <div v-if="isMobile" :ref="rolling.sentinel" class="rolling-sentinel" aria-hidden="true"></div>
 
     <!-- ============================================== -->
     <!-- MODALE 1 : Détail du Repas & Ingrédients       -->
@@ -718,7 +735,7 @@
             <label class="form-label">{{ t('meals.form.day') }}</label>
             <select v-model="form.date" class="form-select" required>
               <option 
-                v-for="d in weekDays" 
+                v-for="d in formDays" 
                 :key="d.dateStr" 
                 :value="d.dateStr"
                 :disabled="!isEditing && d.isPast"
@@ -872,6 +889,8 @@
 
 <script setup>
 import { ref, computed, nextTick } from 'vue'
+import { useIsMobile } from '../composables/useIsMobile'
+import { useRollingDays } from '../composables/useRollingDays'
 import { useFamilyStore } from '../stores/familyStore'
 import { useAuthStore } from '../stores/authStore'
 import { useI18n } from 'vue-i18n'
@@ -881,6 +900,7 @@ import {
   Utensils, 
   Plus, 
   ChevronLeft, 
+  ChevronUp,
   ChevronRight, 
   Calendar, 
   CalendarDays, 
@@ -953,17 +973,11 @@ const nextWeek = () => {
   currentMonday.value = d
 }
 
-// Navigation tactile par swipe (gauche = semaine suivante, droite = semaine précédente)
 const mealsViewRef = ref(null)
+// Animation des flèches (ordinateur) ; sur mobile, le balayage horizontal change d'écran
 const { slide } = useSwipeNavigation({
   target: mealsViewRef,
-  // Le contenu de la période suit le doigt puis glisse vers la suivante
-  slideSelector: '.week-grid',
-  onSwipeLeft: nextWeek,
-  onSwipeRight: prevWeek,
-  // Sans ce garde, déplacer une carte de quelques dizaines de pixels à l'horizontale
-  // changerait aussi de semaine, et le plat partirait dans une semaine qu'on ne voit plus.
-  isBlocked: () => isGestureSuppressed()
+  slideSelector: '.week-grid'
 })
 
 // Boutons et choix de date : même glissement que le swipe (vers la gauche = semaine suivante)
@@ -980,56 +994,75 @@ const goToCurrentWeek = () => slideToWeek(getMonday(new Date()))
 
 const onDateSelected = (e) => {
   if (e.target.value) {
+    if (isMobile.value) {
+      rolling.jumpTo(e.target.value, (d) => `.meals-view [data-day="${d}"]`)
+      return
+    }
     const parts = e.target.value.split('-')
     const picked = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
     slideToWeek(getMonday(picked))
   }
 }
 
+// Mobile : liste continue de jours à partir d'aujourd'hui (voir useRollingDays)
+const isMobile = useIsMobile()
+const rolling = useRollingDays({ enabled: isMobile, today: computed(() => store.todayStr) })
+
 const isViewingCurrentWeek = computed(() => {
   const thisWeekMonday = getMonday(new Date())
   return formatDateStr(thisWeekMonday) === currentMondayStr.value
 })
 
-// Découpage des 7 jours de la semaine (Lundi au Dimanche)
-const weekDays = computed(() => {
-  const days = []
+// Un jour affiché (colonne sur ordinateur, carte de la liste sur mobile)
+const buildDay = (d) => {
   const dayNames = weekdayNames('long')
   const monthNames = intlMonthNames('short')
   const fullMonthNames = intlMonthNames('long')
-
-  const base = new Date(currentMonday.value)
   const todayStr = store.todayStr
+  const dateStr = formatDateStr(d)
 
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(base)
-    d.setDate(base.getDate() + i)
-    const dateStr = formatDateStr(d)
+  const dayMeals = store.meals.filter(m => m.date === dateStr)
+  const lunchMeals = dayMeals.filter(m => m.slot === 'lunch')
+  const dinnerMeals = dayMeals.filter(m => m.slot === 'dinner')
 
-    const dayMeals = store.meals.filter(m => m.date === dateStr)
-    const lunchMeals = dayMeals.filter(m => m.slot === 'lunch')
-    const dinnerMeals = dayMeals.filter(m => m.slot === 'dinner')
+  const lunchPresence = store.getMealSlotPresence(dateStr, 'lunch')
+  const dinnerPresence = store.getMealSlotPresence(dateStr, 'dinner')
 
-    const lunchPresence = store.getMealSlotPresence(dateStr, 'lunch')
-    const dinnerPresence = store.getMealSlotPresence(dateStr, 'dinner')
-
-    days.push({
-      name: dayNames[i],
-      dateStr,
-      dayNum: d.getDate(),
-      monthShort: monthNames[d.getMonth()],
-      monthName: fullMonthNames[d.getMonth()],
-      isToday: dateStr === todayStr,
-      isPast: dateStr < todayStr,
-      lunchMeals,
-      dinnerMeals,
-      lunchPresence,
-      dinnerPresence
-    })
+  return {
+    name: dayNames[(d.getDay() + 6) % 7],
+    dateStr,
+    dayNum: d.getDate(),
+    monthShort: monthNames[d.getMonth()],
+    monthName: fullMonthNames[d.getMonth()],
+    isToday: dateStr === todayStr,
+    isPast: dateStr < todayStr,
+    lunchMeals,
+    dinnerMeals,
+    lunchPresence,
+    dinnerPresence
   }
+}
 
-  return days
+const parseDateStr = (dateStr) => {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+// Les 7 jours de la semaine (lundi au dimanche) à partir d'un lundi
+const buildWeek = (monday) => Array.from({ length: 7 }, (_, i) => {
+  const d = new Date(monday)
+  d.setDate(monday.getDate() + i)
+  return buildDay(d)
 })
+
+// Découpage des 7 jours de la semaine (Lundi au Dimanche)
+const weekDays = computed(() => buildWeek(new Date(currentMonday.value)))
+
+// Jours affichés : la semaine sur ordinateur, la liste continue sur mobile
+const displayedDays = computed(() => isMobile.value ? rolling.dates.value.map(dateStr => buildDay(parseDateStr(dateStr))) : weekDays.value)
+
+// Jours proposés dans le formulaire : la semaine du jour choisi (sur mobile, il n'y a plus de semaine affichée)
+const formDays = computed(() => isMobile.value && form.value?.date ? buildWeek(getMonday(parseDateStr(form.value.date))) : weekDays.value)
 
 // === Glisser-déposer d'un plat d'un créneau vers un autre ===
 //
@@ -1229,7 +1262,7 @@ const openAddModal = (dateStr = null, slot = 'lunch') => {
   let targetDate = dateStr
   if (!targetDate) {
     const todayStr = store.todayStr
-    const isTodayInWeek = weekDays.value.some(d => d.dateStr === todayStr)
+    const isTodayInWeek = isMobile.value || weekDays.value.some(d => d.dateStr === todayStr)
     const futureDays = weekDays.value.filter(d => !d.isPast)
     targetDate = isTodayInWeek ? todayStr : (futureDays[0]?.dateStr || todayStr)
   }

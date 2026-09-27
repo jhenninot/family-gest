@@ -211,9 +211,9 @@
     <Sidebar v-if="authStore.isAuthenticated && !isAuthPage" />
 
     <!-- Main View Content -->
-    <main class="main-content" :class="{ 'full-width': !authStore.isAuthenticated || isAuthPage }">
+    <main ref="mainContentRef" class="main-content" :class="{ 'full-width': !authStore.isAuthenticated || isAuthPage }">
       <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
+        <transition :name="routeTransition" mode="out-in" @after-enter="routeTransition = 'fade'">
           <component :is="Component" />
         </transition>
       </router-view>
@@ -245,9 +245,41 @@ import UserProfileModal from './components/UserProfileModal.vue'
 import PwaInstallPrompt from './components/PwaInstallPrompt.vue'
 import DevicePushPrompt from './components/DevicePushPrompt.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
+import { useScreenSwipe } from './composables/useScreenSwipe'
+import { useIsMobile } from './composables/useIsMobile'
 
 const route = useRoute()
 const router = useRouter()
+
+// === Balayage horizontal entre les écrans (mobile), dans l'ordre du menu ===
+const SCREEN_ROUTES = [
+  ['family-dashboard', 'family-dashboard-explicit'],
+  ['family-absences'],
+  ['family-meals'],
+  ['family-shopping'],
+  ['family-tasks'],
+  ['family-calendar']
+]
+const SCREEN_PATHS = ['', '/absences', '/meals', '/shopping', '/tasks', '/calendar']
+const mainContentRef = ref(null)
+const routeTransition = ref('fade')
+const isNavMobile = useIsMobile('(max-width: 900px)')
+const screenIndex = () => SCREEN_ROUTES.findIndex(names => names.includes(route.name))
+useScreenSwipe({
+  target: mainContentRef,
+  enabled: () => isNavMobile.value && authStore.isAuthenticated && screenIndex() !== -1,
+  neighbour: (direction) => {
+    const next = screenIndex() + direction
+    return next >= 0 && next < SCREEN_PATHS.length
+  },
+  onNavigate: (direction) => {
+    const slug = route.params.familySlug
+    const next = screenIndex() + direction
+    if (!slug || next < 0 || next >= SCREEN_PATHS.length) return
+    routeTransition.value = direction > 0 ? 'screen-next' : 'screen-prev'
+    router.push(`/${slug}${SCREEN_PATHS[next]}`).then(() => window.scrollTo(0, 0))
+  }
+})
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
 const { t } = useI18n()
@@ -932,6 +964,35 @@ onUnmounted(() => {
 
 .auth-page-container {
   display: block;
+}
+
+/* Changement d'écran par balayage (mobile) : la page sortante est déjà glissée hors de l'écran
+   par useScreenSwipe, la nouvelle arrive du côté opposé au geste */
+.screen-next-enter-active,
+.screen-prev-enter-active {
+  transition: transform 0.24s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.24s ease;
+}
+
+.screen-next-enter-from {
+  transform: translateX(35%);
+  opacity: 0;
+}
+
+.screen-prev-enter-from {
+  transform: translateX(-35%);
+  opacity: 0;
+}
+
+.screen-next-leave-to,
+.screen-prev-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-next-enter-active,
+  .screen-prev-enter-active {
+    transition: none;
+  }
 }
 
 /* Transition between routes */

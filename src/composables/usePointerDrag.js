@@ -26,6 +26,12 @@ import { ref, onUnmounted } from 'vue'
  * @param {number}   [options.edgeSize]        - Bande near-bord déclenchant le défilement auto (px)
  * @param {number}   [options.maxScrollSpeed]  - Vitesse max du défilement auto (px/frame)
  */
+// État partagé par toutes les instances : le balayage entre écrans (App.vue) doit lui aussi
+// céder la place à un glisser-déposer en cours ou tout juste terminé.
+let globalSuppressUntil = 0
+export const isAnyDragGestureActive = () =>
+  document.body.classList.contains('is-dragging-item') || Date.now() < globalSuppressUntil
+
 export function usePointerDrag ({
   dropSelector = '[data-drop-zone]',
   canDrop = () => true,
@@ -187,6 +193,7 @@ export function usePointerDrag ({
       // Le détecteur de swipe examine le geste à touchend, qui arrive après notre pointerup :
       // la fenêtre d'inhibition doit donc survivre quelques centaines de millisecondes.
       suppressUntil.value = Date.now() + 600
+      globalSuppressUntil = suppressUntil.value
       armClickSwallow()
       if (data && typeof onDrop === 'function') await onDrop(payload, data)
     }
@@ -196,7 +203,10 @@ export function usePointerDrag ({
   const onPointerCancel = () => {
     const wasDragging = Boolean(dragPayload.value)
     cancelDrag()
-    if (wasDragging) suppressUntil.value = Date.now() + 600
+    if (wasDragging) {
+      suppressUntil.value = Date.now() + 600
+      globalSuppressUntil = suppressUntil.value
+    }
     detachWindowListeners()
   }
 

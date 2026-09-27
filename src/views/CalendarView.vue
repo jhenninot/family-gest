@@ -4,7 +4,7 @@
     <div class="glass-card section-card calendar-card">
       <div class="section-card-header flex-between">
         <div class="calendar-nav-title">
-          <h2>{{ calendarViewMode === 'week' ? currentWeekLabel : `${currentMonthName} ${currentYear}` }}</h2>
+          <h2>{{ rollingActive ? t('calendar.upcomingDays') : calendarViewMode === 'week' ? currentWeekLabel : `${currentMonthName} ${currentYear}` }}</h2>
         </div>
 
         <div class="calendar-header-actions">
@@ -31,13 +31,13 @@
           </div>
 
           <div class="calendar-nav-controls">
-            <button @click="slidePrev" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.prevWeek') : t('calendar.prevMonth')">
+            <button v-if="!rollingActive" @click="slidePrev" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.prevWeek') : t('calendar.prevMonth')">
               <ChevronLeft :size="22" />
             </button>
-            <button @click="slideToToday" class="btn-today-nav">
+            <button @click="goToTodayOrScroll" class="btn-today-nav">
               {{ t('common.today') }}
             </button>
-            <button @click="slideNext" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.nextWeek') : t('calendar.nextMonth')">
+            <button v-if="!rollingActive" @click="slideNext" class="btn-cal-nav" :title="calendarViewMode === 'week' ? t('calendar.nextWeek') : t('calendar.nextMonth')">
               <ChevronRight :size="22" />
             </button>
           </div>
@@ -83,11 +83,17 @@
 
       <!-- 2. WEEKLY CALENDAR VIEW -->
       <div v-else-if="calendarViewMode === 'week'" class="calendar-week-view">
+        <!-- Mobile : jours précédents (la liste commence aujourd'hui) -->
+        <button v-if="rollingActive" type="button" class="btn-previous-days" @click="rolling.loadPrevious('.calendar-view .week-day-column')">
+          <ChevronUp :size="16" /> {{ t('calendar.previousDays') }}
+        </button>
         <div class="week-days-columns">
           <div 
-            v-for="day in weekDays" 
+            v-for="day in displayedWeekDays" 
             :key="day.dateStr"
             class="week-day-column"
+              :data-day="day.dateStr"
+              :data-day-today="day.isToday ? '' : null"
             :class="{ 'is-today': day.isToday, 'is-past': day.isPast }"
             @click="handleWeekDayClick(day)"
             :title="t('calendar.seeDayEvents', { day: `${day.name} ${day.dayNum} ${day.monthShort}` })"
@@ -136,6 +142,8 @@
             </div>
           </div>
         </div>
+        <!-- Mobile : les jours suivants se chargent en approchant du bas -->
+        <div v-if="rollingActive" :ref="rolling.sentinel" class="rolling-sentinel" aria-hidden="true"></div>
       </div>
     </div>
 
@@ -607,6 +615,8 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useIsMobile } from '../composables/useIsMobile'
+import { useRollingDays } from '../composables/useRollingDays'
 import { useFamilyStore } from '../stores/familyStore'
 import { useAuthStore } from '../stores/authStore'
 import { useI18n } from 'vue-i18n'
@@ -615,6 +625,7 @@ import { EVENT_CATEGORY_VALUES, translateValue } from '../i18n/values'
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft,
+  ChevronUp,
   ChevronRight,
   Plus, 
   Trash2, 
@@ -694,14 +705,11 @@ const nextPeriod = () => {
   }
 }
 
-// Navigation tactile par swipe (gauche = période suivante, droite = période précédente)
 const calendarViewRef = ref(null)
+// Animation des flèches ; sur mobile, le balayage horizontal change d'écran
 const { slide } = useSwipeNavigation({
   target: calendarViewRef,
-  // Le contenu de la période suit le doigt puis glisse vers la suivante
-  slideSelector: '.calendar-days-grid, .week-days-columns',
-  onSwipeLeft: nextPeriod,
-  onSwipeRight: prevPeriod
+  slideSelector: '.calendar-days-grid, .week-days-columns'
 })
 
 const prevMonth = () => {
@@ -739,32 +747,48 @@ const slideToToday = () => {
   slide(target > current ? 'left' : target < current ? 'right' : null, goToToday)
 }
 
-const weekDays = computed(() => {
-  const days = []
+// Un jour affiché (colonne de la semaine sur ordinateur, carte de la liste sur mobile)
+const buildDay = (d) => {
   const dayNames = weekdayNames('long')
   const monthNamesList = intlMonthNames('short')
-  const base = new Date(currentMonday.value)
   const todayStr = store.todayStr
+  const dateStr = formatDateStr(d.getFullYear(), d.getMonth(), d.getDate())
+  const events = store.events.filter(e => e.date === dateStr).sort((a, b) => (a.time || '').localeCompare(b.time || ''))
 
-  for (let i = 0; i < 7; i++) {
+  return {
+    name: dayNames[(d.getDay() + 6) % 7],
+    shortName: dayNames[(d.getDay() + 6) % 7].slice(0, 3),
+    dateStr,
+    dayNum: d.getDate(),
+    monthShort: monthNamesList[d.getMonth()],
+    isToday: dateStr === todayStr,
+    isPast: dateStr < todayStr,
+    events
+  }
+}
+
+const weekDays = computed(() => {
+  const base = new Date(currentMonday.value)
+  return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(base)
     d.setDate(base.getDate() + i)
-    const dateStr = formatDateStr(d.getFullYear(), d.getMonth(), d.getDate())
-    const events = store.events.filter(e => e.date === dateStr).sort((a, b) => (a.time || '').localeCompare(b.time || ''))
-
-    days.push({
-      name: dayNames[i],
-      shortName: dayNames[i].slice(0, 3),
-      dateStr,
-      dayNum: d.getDate(),
-      monthShort: monthNamesList[d.getMonth()],
-      isToday: dateStr === todayStr,
-      isPast: dateStr < todayStr,
-      events
-    })
-  }
-  return days
+    return buildDay(d)
+  })
 })
+
+// Mobile, vue semaine : liste continue de jours à partir d'aujourd'hui (voir useRollingDays)
+const isMobile = useIsMobile()
+const rollingActive = computed(() => isMobile.value && calendarViewMode.value === 'week')
+const rolling = useRollingDays({ enabled: rollingActive, today: computed(() => store.todayStr) })
+const displayedWeekDays = computed(() => rollingActive.value
+  ? rolling.dates.value.map(dateStr => {
+    const [y, m, day] = dateStr.split('-').map(Number)
+    return buildDay(new Date(y, m - 1, day))
+  })
+  : weekDays.value)
+
+// « Aujourd'hui » : retour en haut de la liste sur mobile, sinon glissement vers la bonne période
+const goToTodayOrScroll = () => rollingActive.value ? rolling.scrollToToday('.calendar-view [data-day-today]') : slideToToday()
 
 const currentWeekLabel = computed(() => {
   if (weekDays.value.length === 0) return ''
