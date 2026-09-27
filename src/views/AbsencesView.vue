@@ -547,14 +547,36 @@
         <form @submit.prevent="handleSubmit">
           <!-- Member selection -->
           <div class="form-group">
-            <label class="form-label">{{ t('absences.form.member') }}</label>
-            <select v-model="form.memberId" class="form-select" required>
-              <option v-for="m in store.members" :key="m.id" :value="m.id">
-                {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ usualAbsenceHint(m) }} {{ m.id === authStore.user?.id ? `• ${t('absences.me')}` : '' }}
-              </option>
-            </select>
-            <span v-if="form.memberId !== authStore.user?.id" class="help-subtext text-indigo">
-              👋 <i18n-t :keypath="form.type === 'presence' ? 'absences.form.declaringPresenceFor' : 'absences.form.declaringAbsenceFor'" tag="span"><template #name><strong>{{ getMemberName(form.memberId) }}</strong></template></i18n-t>
+            <!-- Modification : une seule personne ; création : une ou plusieurs -->
+            <template v-if="editingId">
+              <label class="form-label">{{ t('absences.form.member') }}</label>
+              <select v-model="form.memberId" class="form-select" required>
+                <option v-for="m in store.members" :key="m.id" :value="m.id">
+                  {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} {{ usualAbsenceHint(m) }} {{ m.id === authStore.user?.id ? `• ${t('absences.me')}` : '' }}
+                </option>
+              </select>
+            </template>
+            <template v-else>
+              <label class="form-label">{{ t('absences.form.members') }}</label>
+              <div class="member-select-list">
+                <button
+                  v-for="m in store.members"
+                  :key="m.id"
+                  type="button"
+                  class="member-select-chip"
+                  :class="{ selected: form.memberIds.includes(m.id) }"
+                  :title="usualAbsenceHint(m)"
+                  :aria-pressed="form.memberIds.includes(m.id)"
+                  @click="toggleFormMember(m.id)"
+                >
+                  <UserAvatar :avatar="m.avatar" :name="m.firstName || m.name" size="xs" />
+                  <span>{{ m.firstName || m.name }}{{ m.id === authStore.user?.id ? ` (${t('absences.me')})` : '' }}</span>
+                </button>
+              </div>
+              <span v-if="form.memberIds.length === 0" class="help-subtext text-error">{{ t('absences.form.chooseMember') }}</span>
+            </template>
+            <span v-if="!isSelfOnly && formMemberIds.length > 0" class="help-subtext text-indigo">
+              👋 <i18n-t :keypath="form.type === 'presence' ? 'absences.form.declaringPresenceFor' : 'absences.form.declaringAbsenceFor'" tag="span"><template #name><strong>{{ formMemberNames }}</strong></template></i18n-t>
             </span>
           </div>
 
@@ -574,8 +596,8 @@
           <div class="form-group">
             <label class="form-label">
               {{ form.type === 'presence' 
-                ? (form.memberId === authStore.user?.id ? t('absences.form.slotsPresentSelf') : t('absences.form.slotsPresentOther', { name: getMemberFirstName(form.memberId) })) 
-                : (form.memberId === authStore.user?.id ? t('absences.form.slotsAbsentSelf') : t('absences.form.slotsAbsentOther', { name: getMemberFirstName(form.memberId) })) }}
+                ? (isSelfOnly ? t('absences.form.slotsPresentSelf') : formMemberIds.length > 1 ? t('absences.form.slotsPresentMany', { names: formMemberNames }) : t('absences.form.slotsPresentOther', { name: formMemberNames })) 
+                : (isSelfOnly ? t('absences.form.slotsAbsentSelf') : formMemberIds.length > 1 ? t('absences.form.slotsAbsentMany', { names: formMemberNames }) : t('absences.form.slotsAbsentOther', { name: formMemberNames })) }}
             </label>
             <div class="slots-toggle-grid">
               <!-- Déjeuner -->
@@ -1531,7 +1553,7 @@ import { useIsMobile } from '../composables/useIsMobile'
 import { useRollingDays } from '../composables/useRollingDays'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { formatDate as intlFormatDate, weekdayNames, monthNames as intlMonthNames } from '../i18n/format'
+import { formatDate as intlFormatDate, weekdayNames, monthNames as intlMonthNames, intlLocale } from '../i18n/format'
 import { dayLabel, slotLabel, slotInlineLabel, describePresence } from '../i18n/presence'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
@@ -2027,6 +2049,7 @@ const openAddModal = (defaultDate = null, defaultType = null, defaultMemberId = 
   form.value = {
     type: initialType,
     memberId: initialMemberId,
+    memberIds: [initialMemberId],
     date: effectiveDate,
     lunch: false,
     dinner: false,
@@ -2058,16 +2081,35 @@ const handleSubmit = async () => {
     return
   }
 
+  if (!editingId.value && formMemberIds.value.length === 0) return
+
   saving.value = true
 
   if (editingId.value) {
     await store.updateAbsence(editingId.value, form.value)
   } else {
-    await store.addAbsence(form.value)
+    // Une déclaration par personne choisie (mêmes date et créneaux)
+    const { memberIds, ...data } = form.value
+    for (const memberId of memberIds) {
+      await store.addAbsence({ ...data, memberId })
+    }
   }
 
   saving.value = false
   showModal.value = false
+}
+
+// Personnes concernées par le formulaire (plusieurs en création, une en modification)
+const formMemberIds = computed(() => editingId.value ? [form.value.memberId] : (form.value.memberIds || []))
+const isSelfOnly = computed(() => formMemberIds.value.length === 1 && formMemberIds.value[0] === authStore.user?.id)
+const formMemberNames = computed(() => new Intl.ListFormat(intlLocale(), { type: 'conjunction' }).format(formMemberIds.value.map(id => getMemberFirstName(id))))
+const toggleFormMember = (id) => {
+  const ids = form.value.memberIds
+  const index = ids.indexOf(id)
+  if (index === -1) ids.push(id)
+  else ids.splice(index, 1)
+  // Premier membre choisi : sert aux indications d'absences habituelles
+  if (ids.length > 0) form.value.memberId = ids[0]
 }
 
 const handleDelete = async (idOrObj) => {
@@ -4851,5 +4893,44 @@ const handleSelectDeclarationType = (type) => {
 .declaration-option-card:hover .declaration-arrow {
   transform: translateX(3px);
   color: var(--text-primary);
+}
+
+/* Choix de plusieurs membres (déclaration d'absence ou de présence) */
+.member-select-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.member-select-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem 0.35rem 0.35rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.member-select-chip:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.member-select-chip.selected {
+  background: var(--accent-primary-light, rgba(99, 102, 241, 0.12));
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.presence-modal-theme .member-select-chip.selected {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10b981;
+  color: #059669;
 }
 </style>

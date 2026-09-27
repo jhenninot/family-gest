@@ -68,7 +68,11 @@
     "presenceNotePlaceholder": "Ex : De retour pour le week-end, vacances…",
     "absenceNotePlaceholder": "Ex : Invité chez Lucas, déplacement boulot, soirée…",
     "submitPresence": "Confirmer la présence",
-    "submitAbsence": "Signaler l'absence"
+    "submitAbsence": "Signaler l'absence",
+    "members": "Personnes concernées",
+    "chooseMember": "Choisissez au moins une personne.",
+    "slotsPresentMany": "Créneau(x) où {names} seront présent(e)s :",
+    "slotsAbsentMany": "Créneau(x) où {names} seront absent(e)s :"
   },
   "me": "Moi",
   "guestForm": {

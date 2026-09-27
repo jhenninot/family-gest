@@ -68,7 +68,11 @@
     "presenceNotePlaceholder": "Ej.: De vuelta para el fin de semana, vacaciones…",
     "absenceNotePlaceholder": "Ej.: En casa de Lucas, viaje de trabajo, salida…",
     "submitPresence": "Confirmar la presencia",
-    "submitAbsence": "Señalar la ausencia"
+    "submitAbsence": "Señalar la ausencia",
+    "members": "Personas afectadas",
+    "chooseMember": "Elija al menos una persona.",
+    "slotsPresentMany": "Franja(s) en que {names} estarán:",
+    "slotsAbsentMany": "Franja(s) en que {names} no estarán:"
   },
   "me": "Yo",
   "guestForm": {

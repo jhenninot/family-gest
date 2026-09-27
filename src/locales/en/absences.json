@@ -68,7 +68,11 @@
     "presenceNotePlaceholder": "E.g. Back for the weekend, holidays…",
     "absenceNotePlaceholder": "E.g. At Lucas's, business trip, evening out…",
     "submitPresence": "Confirm the presence",
-    "submitAbsence": "Report the absence"
+    "submitAbsence": "Report the absence",
+    "members": "People concerned",
+    "chooseMember": "Choose at least one person.",
+    "slotsPresentMany": "Slot(s) when {names} will be home:",
+    "slotsAbsentMany": "Slot(s) when {names} will be away:"
   },
   "me": "Me",
   "guestForm": {
