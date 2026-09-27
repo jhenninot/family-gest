@@ -122,7 +122,12 @@ export const installConsoleCapture = () => {
     if (method !== 'debug' || rank('debug') >= rank(currentLevel())) original[method](...args)
     if (capturing) return
     capturing = true
-    try { record(level, formatArgs(args)) } catch { /* le journal ne doit jamais faire échouer l'appelant */ } finally { capturing = false }
+    // Avertissements de Node ou des bibliothèques (« (node:1) [MONGOOSE] Warning: … ») écrits sur la
+    // sortie d'erreur : ce sont des avertissements, pas des erreurs
+    try {
+      const text = formatArgs(args)
+      record(level === 'error' && /^\(node:\d+\) (?:\[\w+\] )?(?:\w+)?Warning/.test(text) ? 'warn' : level, text)
+    } catch { /* le journal ne doit jamais faire échouer l'appelant */ } finally { capturing = false }
   }
   console.debug = wrap('debug', 'debug')
   console.log = wrap('log', 'info')

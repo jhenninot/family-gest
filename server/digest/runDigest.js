@@ -1,4 +1,5 @@
 import { gatherFamilyDigestSection } from './gatherFamilyData.js'
+import { handlePushFailure, handlePushSuccess } from '../utils/pushFailures.js'
 import { buildDigestEmailHtml, buildDigestPushPayload } from './templates.js'
 import { translator } from '../i18n/index.js'
 
@@ -61,10 +62,9 @@ const sendDigestPush = async (ctx, user, familySections) => {
     try {
       await ctx.webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth } }, payload)
       delivered = true
+      await handlePushSuccess(ctx.PushSubscription, sub)
     } catch (err) {
-      if (err.statusCode === 404 || err.statusCode === 410) {
-        await ctx.PushSubscription.deleteOne({ _id: sub._id })
-      }
+      await handlePushFailure(ctx.PushSubscription, sub, err)
     }
   }))
 

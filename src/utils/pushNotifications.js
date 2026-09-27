@@ -40,6 +40,12 @@ export function getNotificationPermission() {
 /**
  * Récupère la clé publique VAPID depuis le serveur
  */
+// Compare la clé d'un abonnement existant (ArrayBuffer) à la clé VAPID actuelle
+const sameKey = (buffer, expected) => {
+  const actual = new Uint8Array(buffer)
+  return actual.length === expected.length && actual.every((byte, i) => byte === expected[i])
+}
+
 export async function getVapidPublicKey() {
   try {
     const res = await fetch('/api/push/vapid-public-key')
@@ -158,9 +164,16 @@ export async function subscribeUserToPush(customToken = null) {
     const registration = await navigator.serviceWorker.ready
 
     // 4. Récupérer ou créer la souscription push
+    const convertedVapidKey = urlBase64ToUint8Array(publicKey)
     let subscription = await registration.pushManager.getSubscription()
+    // Abonnement créé avec une autre clé VAPID (clés du serveur régénérées) : il serait refusé à
+    // chaque envoi (code 403), on le remplace
+    const currentKey = subscription?.options?.applicationServerKey
+    if (subscription && currentKey && !sameKey(currentKey, convertedVapidKey)) {
+      await subscription.unsubscribe().catch(() => {})
+      subscription = null
+    }
     if (!subscription) {
-      const convertedVapidKey = urlBase64ToUint8Array(publicKey)
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: convertedVapidKey

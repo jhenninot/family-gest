@@ -49,7 +49,6 @@ const familyInvitationSchema = new mongoose.Schema({
   }
 }, { timestamps: true })
 
-familyInvitationSchema.index({ token: 1 })
 familyInvitationSchema.index({ email: 1, familyId: 1 })
 
 export default mongoose.model('FamilyInvitation', familyInvitationSchema)

@@ -7,7 +7,9 @@ const pushSubscriptionSchema = new mongoose.Schema({
     p256dh: { type: String, required: true },
     auth: { type: String, required: true }
   },
-  userAgent: { type: String, default: '' }
+  userAgent: { type: String, default: '' },
+  // Refus consécutifs du service de notification (voir server/utils/pushFailures.js)
+  failureCount: { type: Number, default: 0 }
 }, { timestamps: true })
 
 export default mongoose.model('PushSubscription', pushSubscriptionSchema)

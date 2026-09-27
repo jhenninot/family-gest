@@ -39,6 +39,5 @@ const familySchema = new mongoose.Schema({
   }
 }, { timestamps: true })
 
-familySchema.index({ slug: 1 })
 
 export default mongoose.model('Family', familySchema)

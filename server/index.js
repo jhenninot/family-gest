@@ -40,6 +40,7 @@ import McpConnector from './models/McpConnector.js'
 import MealieConfig from './models/MealieConfig.js'
 import { ALERT_ACTIONS, ALERT_ACTIONS_LIST, ACTION_CATEGORY_BY_CODE } from './constants/alertActions.js'
 import webpush from 'web-push'
+import { handlePushFailure, handlePushSuccess } from './utils/pushFailures.js'
 import { mountMcpServer } from './mcp/index.js'
 import { mountAlexaSkill } from './alexa/index.js'
 import { mountVoiceAssistant } from './voice/index.js'
@@ -935,13 +936,9 @@ const sendPushNotification = async ({
           }
         }, payloadFor(languageByUserId.get(sub.userId)))
         deliveredUserIds.add(sub.userId)
+        await handlePushSuccess(PushSubscription, sub)
       } catch (err) {
-        if (err.statusCode === 404 || err.statusCode === 410) {
-          console.log(`[WebPush] Nettoyage souscription obsolète : ${sub.endpoint.substring(0, 45)}...`)
-          await PushSubscription.deleteOne({ _id: sub._id })
-        } else {
-          console.error(`[WebPush] Erreur envoi push:`, err.message)
-        }
+        await handlePushFailure(PushSubscription, sub, err)
       }
     })
 
