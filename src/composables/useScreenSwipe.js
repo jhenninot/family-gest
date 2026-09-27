@@ -7,8 +7,9 @@ import { isAnyDragGestureActive } from './usePointerDrag'
  * côté opposé (transition de route choisie par l'appelant via onNavigate). Un geste trop court
  * ou vers un bord sans écran voisin la ramène en place.
  *
- * Le geste est ignoré quand il commence sur un élément interactif, une fenêtre modale ou une
- * zone qui défile horizontalement, et pendant un glisser-déposer (plats des repas).
+ * Le geste est ignoré quand il commence sur un champ de saisie, une fenêtre modale ou une zone qui
+ * défile horizontalement, et pendant un glisser-déposer (plats des repas). Il peut partir d'un lien
+ * ou d'un bouton (cartes du tableau de bord) : le clic qui suivrait un glissement est alors annulé.
  *
  * @param {Object} options
  * @param {import('vue').Ref<HTMLElement>} options.target - Zone qui écoute les gestes (contenu principal)
@@ -40,7 +41,7 @@ export function useScreenSwipe ({ target, enabled, neighbour, onNavigate }) {
   }
 
   const ignoredStart = (el) => !el?.closest || Boolean(
-    el.closest('button, input, select, textarea, a, label, [contenteditable], .modal-overlay, .modal-content, [data-no-screen-swipe]')
+    el.closest('input, select, textarea, [contenteditable], .modal-overlay, .modal-content, [data-no-screen-swipe]')
   ) || scrollsHorizontally(el)
 
   const setPage = (transform, opacity, transition = 'none') => {
@@ -102,7 +103,18 @@ export function useScreenSwipe ({ target, enabled, neighbour, onNavigate }) {
     setPage(`translateX(${shown}px)`, String(1 - Math.min(Math.abs(shown) / width, 1) * 0.4))
   }
 
+  // Un glissement commencé sur un lien ou une carte ne doit pas aussi l'ouvrir
+  const swallowClick = (e) => {
+    e.stopPropagation()
+    e.preventDefault()
+  }
+  const blockNextClick = () => {
+    document.addEventListener('click', swallowClick, { capture: true, once: true })
+    setTimeout(() => document.removeEventListener('click', swallowClick, { capture: true }), 400)
+  }
+
   const onTouchEnd = async (e) => {
+    if (startTime && axis === 'x') blockNextClick()
     if (!startTime || e.changedTouches.length !== 1) return
     const dx = e.changedTouches[0].clientX - startX
     const dy = e.changedTouches[0].clientY - startY
