@@ -21,5 +21,6 @@
     "absence": "Paul ne sera pas là demain midi",
     "menu": "Qu'est-ce qu'on mange ce soir ?",
     "summary": "Le récapitulatif du jour"
-  }
+  },
+  "nothingHeard": "I didn't hear anything: tap the microphone to answer."
 }

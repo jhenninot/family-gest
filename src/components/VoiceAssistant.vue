@@ -163,6 +163,7 @@ const startListening = () => {
   recognition.continuous = false
   recognition.maxAlternatives = 1
   let finalText = ''
+  let lastHeard = ''
   recognition.onresult = (event) => {
     let partial = ''
     for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -171,6 +172,7 @@ const startListening = () => {
       else partial += result[0].transcript
     }
     interim.value = (finalText + partial).trim()
+    if (interim.value) lastHeard = interim.value
     scrollDown()
   }
   recognition.onerror = (event) => {
@@ -181,7 +183,11 @@ const startListening = () => {
     listening.value = false
     interim.value = ''
     recognition = null
-    if (finalText.trim()) send(finalText.trim(), true)
+    // Sur Android, un mot très court (« midi ») peut rester « provisoire » jusqu'à la fin de
+    // l'écoute : on envoie alors le dernier texte entendu plutôt que de ne rien faire
+    const heard = finalText.trim() || lastHeard.trim()
+    if (heard) send(heard, true)
+    else if (!error.value && conversation.pending) error.value = t('voice.nothingHeard')
   }
   try {
     recognition.start()
