@@ -37,15 +37,15 @@ export function getNotificationPermission() {
   return Notification.permission
 }
 
-/**
- * Récupère la clé publique VAPID depuis le serveur
- */
 // Compare la clé d'un abonnement existant (ArrayBuffer) à la clé VAPID actuelle
 const sameKey = (buffer, expected) => {
   const actual = new Uint8Array(buffer)
   return actual.length === expected.length && actual.every((byte, i) => byte === expected[i])
 }
 
+/**
+ * Récupère la clé publique VAPID depuis le serveur
+ */
 export async function getVapidPublicKey() {
   try {
     const res = await fetch('/api/push/vapid-public-key')
