@@ -1733,6 +1733,8 @@ const nextPeriod = () => {
 const absencesViewRef = ref(null)
 useSwipeNavigation({
   target: absencesViewRef,
+  // Le contenu de la période suit le doigt puis glisse vers la suivante
+  slideSelector: '.calendar-days-grid, .week-days-columns',
   onSwipeLeft: nextPeriod,
   onSwipeRight: prevPeriod
 })

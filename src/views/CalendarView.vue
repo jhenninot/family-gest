@@ -698,6 +698,8 @@ const nextPeriod = () => {
 const calendarViewRef = ref(null)
 useSwipeNavigation({
   target: calendarViewRef,
+  // Le contenu de la période suit le doigt puis glisse vers la suivante
+  slideSelector: '.calendar-days-grid, .week-days-columns',
   onSwipeLeft: nextPeriod,
   onSwipeRight: prevPeriod
 })

@@ -957,6 +957,8 @@ const nextWeek = () => {
 const mealsViewRef = ref(null)
 useSwipeNavigation({
   target: mealsViewRef,
+  // Le contenu de la période suit le doigt puis glisse vers la suivante
+  slideSelector: '.week-grid',
   onSwipeLeft: nextWeek,
   onSwipeRight: prevWeek,
   // Sans ce garde, déplacer une carte de quelques dizaines de pixels à l'horizontale
