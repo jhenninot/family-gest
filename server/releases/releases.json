@@ -2,6 +2,9 @@
   {
     "version": "2026.09.30",
     "date": "2026-09-30",
+    "minor": [
+      2
+    ],
     "notes": {
       "fr": [
         "Agenda : un événement peut durer plusieurs jours (vacances du… au…), avec les absences des participants créées automatiquement.",

@@ -130,5 +130,6 @@
   "alexaClientSecret": "El Client Secret del perfil de seguridad es obligatorio.",
   "alexaSyncNotConfigured": "Indique primero el identificador de la skill y el perfil de seguridad de Amazon.",
   "alexaSyncNotConnected": "FamilyGest aún no está autorizado a actualizar la skill en Amazon.",
-  "releaseNotFound": "Versión no encontrada."
+  "releaseNotFound": "Versión no encontrada.",
+  "releaseNothingSelected": "Ningún punto seleccionado."
 }

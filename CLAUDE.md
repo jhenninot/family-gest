@@ -85,7 +85,7 @@ Email delivery is a single global configuration (see `Migration.md` §4): the pl
 
 ### Release announcements
 
-**Add an entry at the top of `server/releases/releases.json` (version `YYYY.MM.DD`, notes in fr/en/es) for every user-visible change.** At startup `checkPendingRelease()` (`server/index.js`) pushes the latest unhandled version once to the super admins (`GlobalConfig.releaseProposedVersion`); they review it in Super Admin › Nouveautés (`src/components/ReleasePanel.vue`) and publish it (push/email per the `appUpdates` notification preference) or dismiss it. The app shows the latest published notes once per device in `src/components/WhatsNewModal.vue` (`/api/releases/latest`, `?whatsnew=1` forces it).
+**Add an entry at the top of `server/releases/releases.json` (version `YYYY.MM.DD`, notes in fr/en/es, the three lists aligned item by item) for every user-visible change; list the indexes of fixes/minor items in `minor` (unticked by default).** At startup `checkPendingRelease()` (`server/index.js`) pushes the latest unhandled version once to the super admins (`GlobalConfig.releaseProposedVersion`); they review it in Super Admin › Nouveautés (`src/components/ReleasePanel.vue`), tick the items to announce (`GlobalConfig.releasePublishedNotes`) and publish them (push/email per the `appUpdates` notification preference) or dismiss it. The app shows the latest published notes once per device in `src/components/WhatsNewModal.vue` (`/api/releases/latest`, `?whatsnew=1` forces it).
 
 ### Alert logging
 

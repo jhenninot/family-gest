@@ -375,8 +375,11 @@
     "republish": "Send to users again",
     "dismiss": "Don't publish",
     "confirmTitle": "Publish the new features",
-    "confirmMessage": "Notify all users about the new features of version {version}, according to their notification preferences?",
+    "confirmMessage": "Notify all users about the ticked item of version {version}, according to their notification preferences? | Notify all users about the {n} ticked items of version {version}, according to their notification preferences?",
     "published": "New features published: {push} push notification(s), {email} email(s).",
-    "dismissed": "Version dismissed: users will not be notified."
+    "dismissed": "Version dismissed: users will not be notified.",
+    "chooseHint": "Untick the items users do not need to know about (fixes, details): only ticked items are announced.",
+    "selectedCount": "{n} of {total} item will be announced | {n} of {total} items will be announced",
+    "noneSelected": "Tick at least one item, or choose “Don't publish”."
   }
 }

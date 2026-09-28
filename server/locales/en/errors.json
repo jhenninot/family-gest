@@ -130,5 +130,6 @@
   "alexaClientSecret": "The security profile Client Secret is required.",
   "alexaSyncNotConfigured": "First enter the skill ID and the Amazon security profile.",
   "alexaSyncNotConnected": "FamilyGest is not yet authorised to update the skill at Amazon.",
-  "releaseNotFound": "Version not found."
+  "releaseNotFound": "Version not found.",
+  "releaseNothingSelected": "No item selected."
 }

@@ -151,6 +151,8 @@ const globalConfigSchema = new mongoose.Schema({
   releaseProposedVersion: { type: String, default: null },
   releasePublishedVersion: { type: String, default: null },
   releasePublishedAt: { type: Date, default: null },
+  // Rangs des points publiés (le Super Admin peut en écarter) ; null = tous
+  releasePublishedNotes: { type: [Number], default: undefined },
   releaseDismissedVersion: { type: String, default: null },
   // Contenu légal (RGPD) édité par le Super Administrateur, affiché publiquement sur
   // /mentions-legales et /confidentialite (texte brut, mis en forme via white-space: pre-wrap).

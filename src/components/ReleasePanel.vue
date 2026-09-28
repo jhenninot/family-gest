@@ -30,9 +30,18 @@
           @click="previewLang = lang"
         >{{ lang.toUpperCase() }}</button>
       </div>
+      <p class="release-muted">{{ t('superAdmin.releases.chooseHint') }}</p>
       <ul class="release-notes">
-        <li v-for="(note, i) in (data.release.notes[previewLang] || data.release.notes.fr)" :key="i">{{ note }}</li>
+        <li v-for="(note, i) in (data.release.notes[previewLang] || data.release.notes.fr)" :key="i">
+          <label class="release-note" :class="{ off: !selected.includes(i) }">
+            <input v-model="selected" type="checkbox" :value="i" />
+            <span>{{ note }}</span>
+          </label>
+        </li>
       </ul>
+      <p class="release-count" :class="{ error: selected.length === 0 }">
+        {{ selected.length === 0 ? t('superAdmin.releases.noneSelected') : t('superAdmin.releases.selectedCount', { n: selected.length, total: data.release.notes.fr.length }) }}
+      </p>
 
       <p v-if="message" class="release-message" :class="{ error: messageIsError }">{{ message }}</p>
 
@@ -40,7 +49,7 @@
         <button v-if="data.state === 'pending'" type="button" class="btn btn-secondary" :disabled="busy" @click="dismiss">
           {{ t('superAdmin.releases.dismiss') }}
         </button>
-        <button type="button" class="btn btn-primary" :disabled="busy" @click="publish">
+        <button type="button" class="btn btn-primary" :disabled="busy || selected.length === 0" @click="publish">
           <Send :size="16" />
           {{ data.state === 'published' ? t('superAdmin.releases.republish') : t('superAdmin.releases.publish') }}
         </button>
@@ -65,6 +74,8 @@ const { confirm } = useConfirm()
 
 const LANGS = ['fr', 'en', 'es']
 const data = reactive({ release: null, state: 'none', publishedAt: null })
+// Rangs des points à publier (listes alignées entre les langues)
+const selected = ref([])
 const loading = ref(true)
 const busy = ref(false)
 const previewLang = ref('fr')
@@ -78,18 +89,22 @@ const load = async () => {
   loading.value = true
   try {
     const res = await fetch('/api/super-admin/releases', { headers: headers() })
-    if (res.ok) Object.assign(data, await res.json())
+    if (res.ok) {
+      const body = await res.json()
+      Object.assign(data, body)
+      selected.value = Array.isArray(body.selection) ? [...body.selection] : []
+    }
   } catch { /* panneau vide */ } finally {
     loading.value = false
   }
 }
 onMounted(load)
 
-const post = async (action) => {
+const post = async (action, payload = {}) => {
   busy.value = true
   message.value = ''
   try {
-    const res = await fetch(`/api/super-admin/releases/${encodeURIComponent(data.release.version)}/${action}`, { method: 'POST', headers: headers() })
+    const res = await fetch(`/api/super-admin/releases/${encodeURIComponent(data.release.version)}/${action}`, { method: 'POST', headers: headers(), body: JSON.stringify(payload) })
     const body = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(body.error || res.statusText)
     return body
@@ -105,12 +120,12 @@ const post = async (action) => {
 const publish = async () => {
   const ok = await confirm({
     title: t('superAdmin.releases.confirmTitle'),
-    message: t('superAdmin.releases.confirmMessage', { version: data.release.version }),
+    message: t('superAdmin.releases.confirmMessage', { version: data.release.version, n: selected.value.length }),
     confirmText: t('superAdmin.releases.publish'),
     type: 'primary'
   })
   if (!ok) return
-  const result = await post('publish')
+  const result = await post('publish', { notes: [...selected.value].sort((a, b) => a - b) })
   if (!result) return
   messageIsError.value = false
   message.value = t('superAdmin.releases.published', { push: result.push, email: result.email })
@@ -200,13 +215,48 @@ const dismiss = async () => {
 }
 
 .release-notes {
+  list-style: none;
   margin: 0;
-  padding-left: 1.25rem;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.5rem;
   line-height: 1.5;
   color: var(--text-secondary);
+}
+
+.release-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 10px);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.release-note input {
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+}
+
+.release-note.off {
+  opacity: 0.55;
+}
+
+.release-note.off span {
+  text-decoration: line-through;
+}
+
+.release-count {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.release-count.error {
+  color: #dc2626;
 }
 
 .release-message {

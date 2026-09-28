@@ -375,8 +375,11 @@
     "republish": "Reenviar a los usuarios",
     "dismiss": "No publicar",
     "confirmTitle": "Publicar las novedades",
-    "confirmMessage": "¿Avisar a todos los usuarios de las novedades de la versión {version}, según sus preferencias de notificación?",
+    "confirmMessage": "¿Avisar a todos los usuarios del punto marcado de la versión {version}, según sus preferencias de notificación? | ¿Avisar a todos los usuarios de los {n} puntos marcados de la versión {version}, según sus preferencias de notificación?",
     "published": "Novedades publicadas: {push} notificación(es) push, {email} correo(s).",
-    "dismissed": "Versión descartada: los usuarios no serán avisados."
+    "dismissed": "Versión descartada: los usuarios no serán avisados.",
+    "chooseHint": "Desmarque los puntos sin interés para los usuarios (correcciones, detalles): solo se anuncian los puntos marcados.",
+    "selectedCount": "Se anunciará {n} punto de {total} | Se anunciarán {n} puntos de {total}",
+    "noneSelected": "Marque al menos un punto, o elija «No publicar»."
   }
 }

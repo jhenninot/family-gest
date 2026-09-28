@@ -48,7 +48,7 @@ import { mountGoogleAuth, googleRedirectUri, isGoogleAuthReady } from './auth/go
 import { buildInteractionModel, normalizeInvocationName, DEFAULT_INVOCATION_NAME } from './alexa/interactionModel.js'
 import { oauthReturnUrl, isSyncConfigured, isSyncConnected, familyModel, modelHash, startAuthorization, completeAuthorization, pushModel, forgetAccessToken, startAlexaSyncScheduler } from './alexa/sync.js'
 import { getFamilyMembersList } from './mcp/resolveMember.js'
-import { latestRelease, releaseByVersion, notesFor, releaseState, needsProposal } from './releases/index.js'
+import { latestRelease, releaseByVersion, notesFor, releaseState, needsProposal, normalizeSelection, defaultSelection } from './releases/index.js'
 import AlexaConnector from './models/AlexaConnector.js'
 import { migrateNotificationPreferences } from './scripts/migrate-notification-preferences.js'
 import { migrateUsualPresenceGrid } from './scripts/migrate-usual-presence-grid.js'
@@ -2651,11 +2651,18 @@ const checkPendingRelease = async () => {
 
 app.get('/api/super-admin/releases', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
-    const config = await GlobalConfig.findOne().select('releasePublishedVersion releasePublishedAt releaseDismissedVersion').lean()
+    const config = await GlobalConfig.findOne().select('releasePublishedVersion releasePublishedAt releasePublishedNotes releaseDismissedVersion').lean()
     const release = latestRelease()
+    const state = releaseState(config, release)
     res.json({
-      release: release ? { version: release.version, date: release.date || null, notes: release.notes } : null,
-      state: releaseState(config, release),
+      release: release
+        ? { version: release.version, date: release.date || null, notes: Object.fromEntries(['fr', 'en', 'es'].map(lang => [lang, notesFor(release, lang)])) }
+        : null,
+      state,
+      // Points cochés : ceux déjà publiés, sinon tous sauf les points mineurs
+      selection: state === 'published' && Array.isArray(config?.releasePublishedNotes) && config.releasePublishedNotes.length > 0
+        ? config.releasePublishedNotes
+        : defaultSelection(release),
       publishedVersion: config?.releasePublishedVersion || null,
       publishedAt: config?.releasePublishedAt || null
     })
@@ -2670,13 +2677,16 @@ app.post('/api/super-admin/releases/:version/publish', requireAuth, requireSuper
     if (!release) return res.status(404).json({ error: req.t('errors.releaseNotFound') })
     const config = await GlobalConfig.findOne()
     if (!config) return res.status(500).json({ error: req.t('errors.releaseNotFound') })
+    // Points choisis par le Super Admin (tous si rien n'est précisé)
+    const selection = normalizeSelection(release, req.body?.notes) ?? release.notes.fr.map((_, i) => i)
+    if (selection.length === 0) return res.status(400).json({ error: req.t('errors.releaseNothingSelected') })
 
     const action = ALERT_ACTIONS.APP_UPDATE_PUBLISHED.code
-    const listHtml = (t) => `<ul style="padding-left: 20px; margin: 0; line-height: 1.6;">${notesFor(release, t.lang).map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
+    const listHtml = (t) => `<ul style="padding-left: 20px; margin: 0; line-height: 1.6;">${notesFor(release, t.lang, selection).map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
     const [push, email] = await Promise.all([
       sendPushNotification({
         title: (t) => t('notify.release.publishedTitle'),
-        body: (t) => notesFor(release, t.lang).join(' • '),
+        body: (t) => notesFor(release, t.lang, selection).join(' • '),
         url: '/?whatsnew=1',
         action
       }),
@@ -2692,6 +2702,7 @@ app.post('/api/super-admin/releases/:version/publish', requireAuth, requireSuper
     ])
     config.releasePublishedVersion = release.version
     config.releasePublishedAt = new Date()
+    config.releasePublishedNotes = selection
     await config.save()
     await logAlertEntry({
       actor: await User.findOne({ id: req.user.id }).select('id firstName lastName'),
@@ -2702,7 +2713,7 @@ app.post('/api/super-admin/releases/:version/publish', requireAuth, requireSuper
       targetId: release.version,
       channels: [toAlertChannelLog('push', push), toAlertChannelLog('email', email)]
     })
-    res.json({ state: 'published', publishedAt: config.releasePublishedAt, push: push?.count || 0, email: email?.count || 0 })
+    res.json({ state: 'published', publishedAt: config.releasePublishedAt, selection, push: push?.count || 0, email: email?.count || 0 })
   } catch (err) {
     console.error('[Releases] Publication impossible :', err.message)
     res.status(500).json({ error: err.message })
@@ -2722,10 +2733,12 @@ app.post('/api/super-admin/releases/:version/dismiss', requireAuth, requireSuper
 // Dernière version publiée, pour la fenêtre « Quoi de neuf ? » de l'application
 app.get('/api/releases/latest', requireAuth, async (req, res) => {
   try {
-    const config = await GlobalConfig.findOne().select('releasePublishedVersion releasePublishedAt').lean()
+    const config = await GlobalConfig.findOne().select('releasePublishedVersion releasePublishedAt releasePublishedNotes').lean()
     const release = config?.releasePublishedVersion ? releaseByVersion(config.releasePublishedVersion) : null
     if (!release) return res.json({ release: null })
-    res.json({ release: { version: release.version, date: release.date || null, notes: notesFor(release, req.lang), publishedAt: config.releasePublishedAt } })
+    // Seulement les points publiés (tous pour une publication antérieure à la sélection)
+    const selection = Array.isArray(config.releasePublishedNotes) && config.releasePublishedNotes.length > 0 ? config.releasePublishedNotes : null
+    res.json({ release: { version: release.version, date: release.date || null, notes: notesFor(release, req.lang, selection), publishedAt: config.releasePublishedAt } })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
