@@ -1,8 +1,8 @@
 {
   "notFound": "Página no encontrada.",
   "pill": "Para familias, por invitación",
-  "title": "La organización familiar, por fin sencilla",
-  "lead": "Presencias (incluso en custodia compartida), comidas, compras, tareas y agenda: todo lo que hace funcionar la casa, compartido entre todos los miembros de la familia, en el teléfono de cada uno.",
+  "title": "¿Quién come en casa esta noche? Lo sabe sin preguntar.",
+  "lead": "FamilyGest aligera la carga mental de quien organiza la casa: presencias, comidas y compras se comparten con toda la familia, en el teléfono de cada uno. Incluso en custodia compartida.",
   "contact": "Contactarme",
   "inviteOnly": "Acceso solo por invitación",
   "demo": {
@@ -20,50 +20,50 @@
     "custodyKids": "Lea y Tom en casa",
     "custodyNext": "Con el otro progenitor desde el lunes"
   },
+  "questionsTitle": "Las preguntas que ya no hará",
   "questions": {
-    "who": "¿Quién come en casa esta noche?",
+    "who": "¿Comes aquí esta noche?",
     "kids": "¿Los niños están con nosotros esta semana?",
-    "what": "¿Qué comemos esta semana?",
-    "shopping": "¿Alguien se acordó de comprar leche?"
+    "shopping": "¿Queda leche?"
   },
-  "questionsAnswer": "FamilyGest responde a estas preguntas por usted.",
-  "featuresTitle": "Todo lo que la familia necesita",
+  "questionsAnswer": "Con FamilyGest, cada uno lo ve en su teléfono, sin tener que preguntar.",
+  "featuresTitle": "Lo esencial, en tres gestos",
   "features": {
     "presence": {
-      "title": "Presencias y cubiertos",
-      "text": "Cada uno indica cuándo está ausente o presente, a mediodía, por la noche y para dormir. Siempre sabe cuántos serán a la mesa, invitados incluidos."
+      "title": "Quién está, comida, cena y noche",
+      "text": "Cada uno indica sus ausencias (o presencias) en un gesto. Siempre sabe cuántos serán a la mesa, invitados incluidos."
     },
     "meals": {
-      "title": "Menús de la semana",
-      "text": "Planifique las comidas, encuentre sus recetas y añada los ingredientes a la lista de la compra con un gesto."
+      "title": "Las comidas de la semana",
+      "text": "Planifique los menús, encuentre sus recetas y organice comidas con invitados: eligen la fecha desde un simple enlace."
+    },
+    "shopping": {
+      "title": "Una lista de la compra común",
+      "text": "Una sola lista para toda la familia, ordenada por pasillo y actualizada al instante. Los ingredientes de los menús se añaden en un gesto."
     },
     "polls": {
       "title": "Comidas por organizar",
-      "text": "Proponga varias fechas a sus invitados: votan desde un simple enlace de WhatsApp, sin instalar nada. Usted fija la fecha y todo queda anotado."
-    },
-    "shopping": {
-      "title": "Lista de la compra compartida",
-      "text": "Una sola lista para toda la familia, ordenada por sección y actualizada en directo por cada uno."
+      "text": "Proponga varias fechas; sus invitados votan por WhatsApp sin instalar nada."
     },
     "tasks": {
-      "title": "Tareas y ayuda mutua",
-      "text": "Reparta las tareas con plazos y recordatorios, y siga lo que queda por hacer."
+      "title": "Tareas",
+      "text": "Reparta las tareas, con plazos y recordatorios."
     },
     "calendar": {
       "title": "Agenda familiar",
-      "text": "Citas, salidas, vacaciones de varios días: la agenda común, exportable a Google o Apple."
+      "text": "Citas, salidas, vacaciones: una agenda común, exportable a Google o Apple."
     },
     "voice": {
-      "title": "Con la voz",
-      "text": "«Añade leche a la compra», «Paul no estará mañana a mediodía»: hable con la aplicación o con Alexa."
+      "title": "Por voz",
+      "text": "«Paul no estará mañana a mediodía»: hable con la app o con Alexa."
     },
     "notifications": {
-      "title": "Siempre al tanto",
-      "text": "Notificaciones en el teléfono y resumen diario por correo, según las preferencias de cada uno."
+      "title": "Siempre al día",
+      "text": "Notificaciones y resumen diario por email, según las preferencias de cada uno."
     }
   },
   "custody": {
-    "pill": "Custodia compartida",
+    "pill": "Familias reconstituidas",
     "title": "¿Una semana de cada dos? Está previsto.",
     "text": "Cada uno configura una sola vez su presencia habitual, día a día, comida, cena y noche, con una semana A y una semana B. FamilyGest sabe quién está en casa cada día: solo queda indicar las excepciones.",
     "points": {
@@ -77,6 +77,22 @@
     "home": "En casa",
     "away": "Con el otro progenitor"
   },
+  "audienceTitle": "Pensado para",
+  "audience": {
+    "teens": {
+      "title": "Familias con adolescentes",
+      "text": "Deporte, salidas, estudios, horarios cambiantes: cada uno dice si está, y quien cocina sabe cuántos cubiertos preparar."
+    },
+    "blended": {
+      "title": "Familias reconstituidas",
+      "text": "Semana A, semana B: las presencias siguen el ritmo de la custodia, sin volver a introducir nada cada semana."
+    },
+    "hosts": {
+      "title": "Familias que reciben",
+      "text": "Abuelos, amigos, fines de semana: proponga fechas, cuente los invitados y prepare la compra."
+    }
+  },
+  "moreTitle": "Y además, para descubrir con el uso",
   "stepsTitle": "Cómo funciona",
   "steps": {
     "invite": {

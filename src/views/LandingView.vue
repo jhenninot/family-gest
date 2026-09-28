@@ -59,17 +59,18 @@
         </div>
       </header>
 
-      <!-- Questions du quotidien -->
+      <!-- Les questions qu'on ne pose plus -->
       <section class="landing-questions">
+        <p class="landing-questions-title">{{ t('landing.questionsTitle') }}</p>
         <p v-for="q in QUESTIONS" :key="q" class="landing-question">« {{ t(`landing.questions.${q}`) }} »</p>
         <p class="landing-answer">{{ t('landing.questionsAnswer') }}</p>
       </section>
 
-      <!-- Modules -->
+      <!-- L'essentiel : trois bénéfices -->
       <section class="landing-section">
         <h2>{{ t('landing.featuresTitle') }}</h2>
-        <div class="landing-features">
-          <article v-for="f in FEATURES" :key="f.key" class="landing-feature">
+        <div class="landing-features landing-features-main">
+          <article v-for="f in MAIN_FEATURES" :key="f.key" class="landing-feature">
             <span class="feature-icon" :style="{ background: f.color }">{{ f.icon }}</span>
             <h3>{{ t(`landing.features.${f.key}.title`) }}</h3>
             <p>{{ t(`landing.features.${f.key}.text`) }}</p>
@@ -102,6 +103,34 @@
             </div>
           </div>
         </div>
+      </section>
+
+      <!-- Pour qui -->
+      <section class="landing-section">
+        <h2>{{ t('landing.audienceTitle') }}</h2>
+        <div class="landing-audience">
+          <article v-for="a in AUDIENCE" :key="a.key" class="audience-card">
+            <span class="audience-icon">{{ a.icon }}</span>
+            <div>
+              <h3>{{ t(`landing.audience.${a.key}.title`) }}</h3>
+              <p>{{ t(`landing.audience.${a.key}.text`) }}</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Et aussi : les bonus, découverts à l'usage -->
+      <section class="landing-section">
+        <h2>{{ t('landing.moreTitle') }}</h2>
+        <ul class="landing-more">
+          <li v-for="f in MORE_FEATURES" :key="f.key">
+            <span class="more-icon">{{ f.icon }}</span>
+            <div>
+              <strong>{{ t(`landing.features.${f.key}.title`) }}</strong>
+              <span>{{ t(`landing.features.${f.key}.text`) }}</span>
+            </div>
+          </li>
+        </ul>
       </section>
 
       <!-- Comment ça marche -->
@@ -156,7 +185,7 @@ const { t } = useI18n()
 const route = useRoute()
 
 
-const QUESTIONS = ['who', 'kids', 'what', 'shopping']
+const QUESTIONS = ['who', 'kids', 'shopping']
 const CUSTODY_POINTS = ['rhythm', 'slots', 'exceptions']
 // Semaine A : à la maison toute la semaine ; semaine B : seulement le mercredi
 const CUSTODY_WEEKS = [
@@ -164,15 +193,23 @@ const CUSTODY_WEEKS = [
   { key: 'weekB', days: [false, false, true, false, false, false, false] }
 ]
 const dayLetters = computed(() => weekdayNames('narrow'))
-const FEATURES = [
+// Les trois bénéfices mis en avant ; le reste est présenté comme des bonus
+const MAIN_FEATURES = [
   { key: 'presence', icon: '🏠', color: 'linear-gradient(135deg, #10b981, #34d399)' },
   { key: 'meals', icon: '🍽️', color: 'linear-gradient(135deg, #f43f5e, #fb7185)' },
-  { key: 'polls', icon: '🗳️', color: 'linear-gradient(135deg, #f97316, #fb923c)' },
-  { key: 'shopping', icon: '🛒', color: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },
-  { key: 'tasks', icon: '✅', color: 'linear-gradient(135deg, #6366f1, #818cf8)' },
-  { key: 'calendar', icon: '📅', color: 'linear-gradient(135deg, #8b5cf6, #a78bfa)' },
-  { key: 'voice', icon: '🎙️', color: 'linear-gradient(135deg, #0ea5e9, #38bdf8)' },
-  { key: 'notifications', icon: '🔔', color: 'linear-gradient(135deg, #ec4899, #f472b6)' }
+  { key: 'shopping', icon: '🛒', color: 'linear-gradient(135deg, #f59e0b, #fbbf24)' }
+]
+const MORE_FEATURES = [
+  { key: 'polls', icon: '🗳️' },
+  { key: 'calendar', icon: '📅' },
+  { key: 'tasks', icon: '✅' },
+  { key: 'voice', icon: '🎙️' },
+  { key: 'notifications', icon: '🔔' }
+]
+const AUDIENCE = [
+  { key: 'teens', icon: '🧑‍🎓' },
+  { key: 'blended', icon: '🔁' },
+  { key: 'hosts', icon: '🥂' }
 ]
 const STEPS = ['invite', 'install', 'organise']
 
@@ -431,6 +468,10 @@ const contact = () => {
   gap: 1rem;
 }
 
+.landing-features-main {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
 .landing-feature {
   padding: 1.3rem;
   border-radius: 18px;
@@ -575,6 +616,83 @@ const contact = () => {
 
 .custody-legend .dot.home {
   background: #14b8a6;
+}
+
+/* Questions */
+.landing-questions-title {
+  margin: 0 0 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* Pour qui */
+.landing-audience {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.audience-card {
+  display: flex;
+  gap: 0.9rem;
+  padding: 1.2rem;
+  border-radius: 18px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.audience-icon {
+  flex-shrink: 0;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.audience-card h3 {
+  margin: 0.1rem 0 0.35rem;
+  font-size: 1.02rem;
+}
+
+.audience-card p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* Et aussi */
+.landing-more {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0.4rem 1.5rem;
+}
+
+.landing-more li {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.landing-more .more-icon {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+}
+
+.landing-more strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.landing-more span {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
 }
 
 .landing-steps {

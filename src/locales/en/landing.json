@@ -1,8 +1,8 @@
 {
   "notFound": "Page not found.",
   "pill": "For families, by invitation",
-  "title": "Family organisation, finally simple",
-  "lead": "Presence (even with shared custody), meals, shopping, tasks and calendar: everything that keeps the home running, shared between all family members, on everyone’s phone.",
+  "title": "Who’s eating at home tonight? You know without asking.",
+  "lead": "FamilyGest lightens the mental load of whoever keeps the house running: presence, meals and shopping are shared with the whole family, on everyone’s phone. Even with shared custody.",
   "contact": "Contact me",
   "inviteOnly": "Access by invitation only",
   "demo": {
@@ -20,50 +20,50 @@
     "custodyKids": "Lea and Tom at home",
     "custodyNext": "At the other parent’s from Monday"
   },
+  "questionsTitle": "Questions you will stop asking",
   "questions": {
-    "who": "Who is eating at home tonight?",
+    "who": "Are you eating here tonight?",
     "kids": "Are the kids with us this week?",
-    "what": "What are we eating this week?",
-    "shopping": "Did anyone remember to buy milk?"
+    "shopping": "Is there any milk left?"
   },
-  "questionsAnswer": "FamilyGest answers these questions for you.",
-  "featuresTitle": "Everything the family needs",
+  "questionsAnswer": "With FamilyGest, everyone sees it on their phone, without having to ask.",
+  "featuresTitle": "The essentials, in three taps",
   "features": {
     "presence": {
-      "title": "Presence and place settings",
-      "text": "Everyone says when they are away or at home, for lunch, dinner and the night. You always know how many will be at the table, guests included."
+      "title": "Who’s home, lunch, dinner and night",
+      "text": "Everyone reports when they are away (or home) in one tap. You always know how many will be at the table, guests included."
     },
     "meals": {
-      "title": "Weekly menus",
-      "text": "Plan meals, find your recipes and add the ingredients to the shopping list in one tap."
+      "title": "This week’s meals",
+      "text": "Plan the menus, find your recipes, and organise meals with guests: they pick the date from a simple link."
+    },
+    "shopping": {
+      "title": "One shared shopping list",
+      "text": "A single list for the whole family, sorted by aisle, updated live. Menu ingredients are added in one tap."
     },
     "polls": {
       "title": "Meals to organise",
-      "text": "Suggest several dates to your guests: they vote from a simple WhatsApp link, without installing anything. You set the date and everything is recorded."
-    },
-    "shopping": {
-      "title": "Shared shopping list",
-      "text": "One list for the whole family, sorted by aisle, updated live by everyone."
+      "text": "Suggest several dates; your guests vote on WhatsApp without installing anything."
     },
     "tasks": {
-      "title": "Tasks and teamwork",
-      "text": "Share out the tasks with due dates and reminders, and keep track of what is left to do."
+      "title": "Tasks",
+      "text": "Share out the tasks, with due dates and reminders."
     },
     "calendar": {
       "title": "Family calendar",
-      "text": "Appointments, outings, multi-day holidays: the shared calendar, exportable to Google or Apple."
+      "text": "Appointments, outings, holidays: a shared calendar, exportable to Google or Apple."
     },
     "voice": {
       "title": "By voice",
-      "text": "“Add milk to the shopping list”, “Paul won’t be here for lunch tomorrow”: talk to the app or to Alexa."
+      "text": "“Paul won’t be here for lunch tomorrow”: talk to the app or to Alexa."
     },
     "notifications": {
       "title": "Always in the loop",
-      "text": "Phone notifications and a daily summary by email, according to each person’s preferences."
+      "text": "Notifications and a daily summary by email, according to everyone’s preferences."
     }
   },
   "custody": {
-    "pill": "Shared custody",
+    "pill": "Blended families",
     "title": "Every other week? It’s covered.",
     "text": "Everyone sets their usual presence once, day by day, lunch, dinner and night, with a week A and a week B. FamilyGest knows who is home each day: all that is left is to report the exceptions.",
     "points": {
@@ -77,6 +77,22 @@
     "home": "At home",
     "away": "At the other parent’s"
   },
+  "audienceTitle": "Designed for",
+  "audience": {
+    "teens": {
+      "title": "Families with teenagers",
+      "text": "Sport, parties, studies, changing schedules: everyone says whether they are home, and whoever cooks knows how many to plan for."
+    },
+    "blended": {
+      "title": "Blended families",
+      "text": "Week A, week B: presence follows the custody rhythm, with nothing to re-enter from one week to the next."
+    },
+    "hosts": {
+      "title": "Families who entertain",
+      "text": "Grandparents, friends, weekends: suggest dates, count the guests and prepare the shopping."
+    }
+  },
+  "moreTitle": "And more, to discover along the way",
   "stepsTitle": "How it works",
   "steps": {
     "invite": {

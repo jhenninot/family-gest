@@ -1,8 +1,8 @@
 {
   "notFound": "Page introuvable.",
   "pill": "Pour les familles, sur invitation",
-  "title": "L'organisation de la famille, enfin simple",
-  "lead": "Présences (même en garde alternée), repas, courses, tâches et agenda : tout ce qui fait tourner la maison, partagé entre tous les membres de la famille, sur le téléphone de chacun.",
+  "title": "Qui mange à la maison ce soir ? Vous le savez sans demander.",
+  "lead": "FamilyGest allège la charge mentale de celui ou celle qui organise : présences, repas et courses sont partagés avec toute la famille, sur le téléphone de chacun. Même en garde alternée.",
   "contact": "Me contacter",
   "inviteOnly": "Accès sur invitation uniquement",
   "demo": {
@@ -20,50 +20,50 @@
     "custodyKids": "Léa et Tom à la maison",
     "custodyNext": "Chez l’autre parent dès lundi"
   },
+  "questionsTitle": "Les questions que vous ne poserez plus",
   "questions": {
-    "who": "Qui mange à la maison ce soir ?",
+    "who": "Tu manges là ce soir ?",
     "kids": "Les enfants sont chez nous cette semaine ?",
-    "what": "Qu'est-ce qu'on mange cette semaine ?",
-    "shopping": "Quelqu’un a pensé à racheter du lait ?"
+    "shopping": "Il reste du lait ?"
   },
-  "questionsAnswer": "FamilyGest répond à ces questions à votre place.",
-  "featuresTitle": "Tout ce dont la famille a besoin",
+  "questionsAnswer": "Avec FamilyGest, chacun le voit sur son téléphone, sans avoir à demander.",
+  "featuresTitle": "L’essentiel, en trois gestes",
   "features": {
     "presence": {
-      "title": "Présences et couverts",
-      "text": "Chacun indique quand il est absent ou présent, midi, soir et nuit. Vous savez toujours combien vous serez à table, invités compris."
+      "title": "Qui est là, midi, soir et nuit",
+      "text": "Chacun signale ses absences (ou ses présences) en un geste. Vous savez toujours combien vous serez à table, invités compris."
     },
     "meals": {
-      "title": "Menus de la semaine",
-      "text": "Planifiez les repas, retrouvez vos recettes et ajoutez les ingrédients à la liste de courses en un geste."
+      "title": "Les repas de la semaine",
+      "text": "Planifiez les menus, retrouvez vos recettes, et organisez les repas avec vos invités : ils choisissent la date depuis un simple lien."
+    },
+    "shopping": {
+      "title": "Une liste de courses commune",
+      "text": "Une seule liste pour toute la famille, rangée par rayon, mise à jour en direct. Les ingrédients des menus s’y ajoutent en un geste."
     },
     "polls": {
       "title": "Repas à organiser",
-      "text": "Proposez plusieurs dates à vos invités : ils votent depuis un simple lien WhatsApp, sans rien installer. Vous fixez la date, tout est noté."
-    },
-    "shopping": {
-      "title": "Liste de courses partagée",
-      "text": "Une seule liste pour toute la famille, rangée par rayon, mise à jour en direct par chacun."
+      "text": "Proposez plusieurs dates, vos invités votent sur WhatsApp sans rien installer."
     },
     "tasks": {
-      "title": "Tâches et entraide",
-      "text": "Répartissez les tâches, avec échéances et rappels, et suivez ce qui reste à faire."
+      "title": "Tâches",
+      "text": "Répartissez les tâches, avec échéances et rappels."
     },
     "calendar": {
       "title": "Agenda familial",
-      "text": "Rendez-vous, sorties, vacances sur plusieurs jours : l'agenda commun, exportable vers Google ou Apple."
+      "text": "Rendez-vous, sorties, vacances : un agenda commun, exportable vers Google ou Apple."
     },
     "voice": {
       "title": "À la voix",
-      "text": "« Ajoute du lait aux courses », « Paul ne sera pas là demain midi » : parlez à l’appli ou à Alexa."
+      "text": "« Paul ne sera pas là demain midi » : parlez à l’appli ou à Alexa."
     },
     "notifications": {
       "title": "Toujours au courant",
-      "text": "Notifications sur le téléphone et récapitulatif du jour par email, selon les préférences de chacun."
+      "text": "Notifications et récapitulatif du jour par email, selon les préférences de chacun."
     }
   },
   "custody": {
-    "pill": "Garde alternée",
+    "pill": "Familles recomposées",
     "title": "Une semaine sur deux ? C’est prévu.",
     "text": "Chacun règle une seule fois sa présence habituelle, jour par jour, midi, soir et nuit, avec une semaine A et une semaine B. FamilyGest sait qui est à la maison chaque jour : il ne reste qu’à signaler les exceptions.",
     "points": {
@@ -77,6 +77,22 @@
     "home": "À la maison",
     "away": "Chez l’autre parent"
   },
+  "audienceTitle": "Pensé pour",
+  "audience": {
+    "teens": {
+      "title": "Les familles avec ados",
+      "text": "Sport, soirées, études, horaires qui changent : chacun dit s’il est là, et celui qui cuisine sait combien il y aura de couverts."
+    },
+    "blended": {
+      "title": "Les familles recomposées",
+      "text": "Semaine A, semaine B : les présences suivent le rythme de la garde, sans rien ressaisir d’une semaine sur l’autre."
+    },
+    "hosts": {
+      "title": "Les familles qui reçoivent",
+      "text": "Grands-parents, amis, week-ends : proposez des dates, comptez les invités et préparez les courses."
+    }
+  },
+  "moreTitle": "Et aussi, à découvrir à l’usage",
   "stepsTitle": "Comment ça marche",
   "steps": {
     "invite": {
