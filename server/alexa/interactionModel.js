@@ -523,6 +523,28 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
       ])
     },
     {
+      // Absences déclarées à venir (absences longues et jours isolés), d'une personne ou de tous
+      name: 'AbsencesQueryIntent',
+      slots: [{ name: 'member', type: 'MemberName' }, { ...date }],
+      samples: expand([
+        'quelles sont les [prochaines] absences [de {member}] [{date}]',
+        'quelles sont les absences à venir [de {member}]',
+        'quelles absences sont prévues [pour {member}] [{date}]',
+        'les [prochaines] absences [de {member}] [{date}]',
+        'la liste des absences [de {member}] [{date}]',
+        "quand est-ce que {member} n'est pas là",
+        'quand est-ce que {member} ne sera pas là',
+        "quand {member} n'est pas là",
+        'quand {member} ne sera pas là',
+        'quand est-ce que {member} est absent',
+        'quand est-ce que {member} est absente',
+        'quand {member} sera absent',
+        'quand {member} sera absente',
+        'est-ce que {member} a des absences [prévues] [{date}]',
+        'qui sera absent prochainement'
+      ])
+    },
+    {
       name: 'MealsIntent',
       slots: [{ ...date }, { name: 'mealSlot', type: 'MealSlot' }],
       samples: expand([

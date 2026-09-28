@@ -77,6 +77,22 @@ const envelope = ({ intent, dialogState, attributes, isNew, lang }) => ({
   }
 })
 
+// Retire les suites de un à quatre mots dites deux fois de suite (hésitation de la dictée)
+export const collapseRepeats = (text) => {
+  const words = String(text).trim().split(/\s+/)
+  const key = (w) => w.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9']/g, '')
+  for (let n = 4; n >= 1; n--) {
+    for (let i = 0; i + 2 * n <= words.length; i++) {
+      const same = words.slice(i, i + n).every((w, k) => key(w) && key(w) === key(words[i + n + k]))
+      if (same) {
+        words.splice(i + n, n)
+        i--
+      }
+    }
+  }
+  return words.join(' ')
+}
+
 const plainSpeech = (outputSpeech) => String(outputSpeech?.ssml || outputSpeech?.text || '').replace(/<[^>]+>/g, '').trim()
 
 // Traite une phrase : compréhension, questions obligatoires, puis dialogue de la skill.
@@ -101,7 +117,9 @@ export const processVoiceCommand = async ({ text, session, pending, nlu, api, la
     }
   }
   if (!intent) {
-    const found = nlu.match(text, today)
+    // Dictée qui bégaie (« les prochaines les prochaines absences ») : second essai sans la répétition
+    const collapsed = collapseRepeats(text)
+    const found = nlu.match(text, today) || (collapsed !== text ? nlu.match(collapsed, today) : null)
     if (found) {
       intent = buildIntent(nlu, found.intent, found.slots)
     } else if (pending?.prompt) {

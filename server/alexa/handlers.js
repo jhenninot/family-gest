@@ -502,6 +502,44 @@ export const buildHandlers = (api) => {
   })
 
   // « Quelles sont les tâches en cours ? », « Qu'est-ce que Paul doit faire ? »
+  // « Quelles sont les prochaines absences de Camille ? » : absences déclarées (longues ou d'un
+  // jour) dans la période dite, sinon les 30 prochains jours
+  const AbsencesQueryHandler = {
+    canHandle: isIntent('AbsencesQueryIntent'),
+    async handle (h) {
+      let member = null
+      if (readSlot(h, 'member').value) {
+        const found = await resolveMemberOrElicit(h, api)
+        if (found.response) return found.response
+        member = found.member
+      }
+      const dateValue = readSlot(h, 'date').value
+      const today = api.today()
+      const period = dateValue ? parseAlexaPeriod(dateValue) : { start: today, end: addDays(today, 29) }
+      if (!period) return elicit(h, 'date', t('alexa.askPreciseDay'))
+
+      const absences = await api.upcomingAbsences({ ...period, memberId: member?.id ?? null })
+      if (absences.length === 0) {
+        const key = dateValue ? 'nonePeriod' : 'noneSoon'
+        return finish(h, api, t(`alexa.query.absences.${key}${member ? 'For' : ''}`, {
+          member: member?.firstName, start: readableDate(t, period.start), end: readableDate(t, period.end)
+        }))
+      }
+      const describe = (a) => {
+        const when = a.endDate
+          ? t('alexa.event.days', { start: readableDate(t, a.startDate), end: readableDate(t, a.endDate) })
+          : `${dayLabel(api, a.startDate)}, ${joinList(t, slotNames(t, a))}`
+        return member ? when : `${a.firstName} ${when}`
+      }
+      const shown = absences.slice(0, 6).map(describe)
+      const rest = absences.length - shown.length
+      const list = shown.join(' ; ') + (rest > 0 ? ` ; ${t('alexa.query.tasks.more', { n: rest })}` : '')
+      return finish(h, api, member
+        ? t('alexa.query.absences.listFor', { member: member.firstName, list, n: absences.length })
+        : t('alexa.query.absences.list', { list, n: absences.length }))
+    }
+  }
+
   const TasksHandler = {
     canHandle: isIntent('TasksIntent'),
     async handle (h) {
@@ -698,7 +736,7 @@ export const buildHandlers = (api) => {
       presenceHandler('PresenceIntent', 'presence'),
       presenceHandler('PresenceNightIntent', 'presence', 'NIGHT'),
       AddGuestHandler,
-      whoIsHomeHandler('WhoIsHomeIntent'), whoIsHomeHandler('WhoSleepsIntent', 'NIGHT'), TasksHandler, MealsHandler, EventsHandler, DaySummaryHandler,
+      whoIsHomeHandler('WhoIsHomeIntent'), whoIsHomeHandler('WhoSleepsIntent', 'NIGHT'), TasksHandler, AbsencesQueryHandler, MealsHandler, EventsHandler, DaySummaryHandler,
       HelpHandler, StopHandler, FallbackHandler, SessionEndedHandler
     ],
     errorHandler: ErrorHandler

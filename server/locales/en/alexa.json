@@ -148,6 +148,14 @@
       "absent": "{names} will be away. | {names} will be away.",
       "menu": "On the menu: {dish}.",
       "noMenu": "No dish is planned."
+    },
+    "absences": {
+      "noneSoon": "No absences are planned in the next 30 days.",
+      "noneSoonFor": "No absences are planned for {member} in the next 30 days.",
+      "nonePeriod": "No absences are planned from {start} to {end}.",
+      "nonePeriodFor": "No absences are planned for {member} from {start} to {end}.",
+      "list": "One planned absence: {list}. | {n} planned absences: {list}.",
+      "listFor": "{member} has one planned absence: {list}. | {member} has {n} planned absences: {list}."
     }
   },
   "oauth": {

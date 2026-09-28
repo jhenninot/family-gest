@@ -148,6 +148,14 @@
       "absent": "{names} no estará. | {names} no estarán.",
       "menu": "En el menú: {dish}.",
       "noMenu": "No hay ningún plato previsto."
+    },
+    "absences": {
+      "noneSoon": "No hay ausencias previstas en los próximos 30 días.",
+      "noneSoonFor": "No hay ausencias previstas de {member} en los próximos 30 días.",
+      "nonePeriod": "No hay ausencias previstas del {start} al {end}.",
+      "nonePeriodFor": "No hay ausencias previstas de {member} del {start} al {end}.",
+      "list": "Una ausencia prevista: {list}. | {n} ausencias previstas: {list}.",
+      "listFor": "{member} tiene una ausencia prevista: {list}. | {member} tiene {n} ausencias previstas: {list}."
     }
   },
   "oauth": {

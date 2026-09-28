@@ -6,6 +6,7 @@ import FamilyMember from '../models/FamilyMember.js'
 import Absence from '../models/Absence.js'
 import MealGuest from '../models/MealGuest.js'
 import Event from '../models/Event.js'
+import LongAbsence from '../models/LongAbsence.js'
 import { getMealSlotPresence } from '../digest/mealPresence.js'
 import { translator, readableDate } from '../i18n/index.js'
 import { getFamilyMembersList } from '../mcp/resolveMember.js'
@@ -95,6 +96,26 @@ export const createAlexaApi = (req, ctx, lang, { channel = 'alexa' } = {}) => {
           members: [...new Set([...(e.memberIds || []), e.assignedTo].filter(id => id != null))].map(id => names.get(id)).filter(Boolean)
         }))
         .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+    },
+
+    // Absences déclarées qui touchent la période : les absences longues en une fois (du … au …), les
+    // autres jour par jour avec leurs repas. Les absences habituelles (semaine type) n'y sont pas.
+    async upcomingAbsences ({ start, end, memberId = null }) {
+      const who = memberId != null ? { memberId } : {}
+      const [longs, days] = await Promise.all([
+        LongAbsence.find({ familyId, ...who, startDate: { $lte: end }, endDate: { $gte: start } }),
+        Absence.find({ familyId, ...who, type: 'absence', longAbsenceId: null, date: { $gte: start, $lte: end } })
+      ])
+      const names = new Map((await this.members()).map(m => [m.id, m.firstName]))
+      const items = [
+        ...longs.map(la => ({ memberId: la.memberId, startDate: la.startDate, endDate: la.endDate })),
+        ...days.filter(a => a.lunch || a.dinner || a.night)
+          .map(a => ({ memberId: a.memberId, startDate: a.date, endDate: null, lunch: a.lunch, dinner: a.dinner, night: a.night }))
+      ]
+      return items
+        .filter(a => names.has(a.memberId))
+        .map(a => ({ ...a, firstName: names.get(a.memberId) }))
+        .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.firstName.localeCompare(b.firstName))
     },
 
     // --- Ajouts ---

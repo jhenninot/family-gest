@@ -75,7 +75,7 @@
     "done": "C'est noté, on attend {names} {date}, {slots}."
   },
   "welcome": "Oui, je vous écoute.",
-  "help": "Vous pouvez dire par exemple : ajoute dentiste mardi à 15 heures. Achète du lait et des œufs. Mets des lasagnes au dîner de jeudi. Paul ne sera pas là demain midi. Mamie vient dîner samedi. Vous pouvez aussi demander : qui mange à la maison ce soir ? Quelles sont les tâches en cours ? Qu'est-ce qu'on mange cette semaine ? Quels sont les événements à venir ? Le récapitulatif du jour. Que voulez-vous faire ?",
+  "help": "Vous pouvez dire par exemple : ajoute dentiste mardi à 15 heures. Achète du lait et des œufs. Mets des lasagnes au dîner de jeudi. Paul ne sera pas là demain midi. Mamie vient dîner samedi. Vous pouvez aussi demander : qui mange à la maison ce soir ? Quelles sont les tâches en cours ? Quelles sont les prochaines absences de Paul ? Qu'est-ce qu'on mange cette semaine ? Quels sont les événements à venir ? Le récapitulatif du jour. Que voulez-vous faire ?",
   "query": {
     "today": "aujourd'hui",
     "tomorrow": "demain",
@@ -148,6 +148,14 @@
       "absent": "{names} ne sera pas là. | {names} ne seront pas là.",
       "menu": "Au menu : {dish}.",
       "noMenu": "Aucun plat n'est prévu."
+    },
+    "absences": {
+      "noneSoon": "Aucune absence n'est prévue dans les 30 prochains jours.",
+      "noneSoonFor": "Aucune absence de {member} n'est prévue dans les 30 prochains jours.",
+      "nonePeriod": "Aucune absence n'est prévue du {start} au {end}.",
+      "nonePeriodFor": "Aucune absence de {member} n'est prévue du {start} au {end}.",
+      "list": "Une absence prévue : {list}. | {n} absences prévues : {list}.",
+      "listFor": "{member} a une absence prévue : {list}. | {member} a {n} absences prévues : {list}."
     }
   },
   "oauth": {
