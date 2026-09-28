@@ -53,6 +53,13 @@ export const createAlexaApi = (req, ctx, lang, { channel = 'alexa' } = {}) => {
       return membersCache
     },
 
+    // Personne qui parle : connue seulement dans l'assistant de l'application (compte connecté) ;
+    // la skill Alexa agit au nom de l'auteur du jeton, qui n'est pas forcément celui qui parle
+    async currentMember () {
+      if (channel !== 'voice' || actorId == null) return null
+      return (await this.members()).find(m => m.id === actorId) || null
+    },
+
     // --- Questions (lecture seule) ---
 
     // Qui est à la maison à un créneau : même calcul que le récapitulatif quotidien et l'application

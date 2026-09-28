@@ -505,10 +505,14 @@ export const buildHandlers = (api) => {
   // « Quelles sont les prochaines absences de Camille ? » : absences déclarées (longues ou d'un
   // jour) dans la période dite, sinon les 30 prochains jours
   const AbsencesQueryHandler = {
-    canHandle: isIntent('AbsencesQueryIntent'),
+    canHandle: isIntent('AbsencesQueryIntent', 'MyAbsencesQueryIntent'),
     async handle (h) {
       let member = null
-      if (readSlot(h, 'member').value) {
+      if (Alexa.getIntentName(h.requestEnvelope) === 'MyAbsencesQueryIntent') {
+        // « mes absences » : la personne connectée dans l'application ; Alexa ne sait pas qui parle
+        member = await api.currentMember()
+        if (!member) return h.responseBuilder.speak(t('alexa.query.absences.whoAsk')).reprompt(t('alexa.query.absences.whoAsk')).getResponse()
+      } else if (readSlot(h, 'member').value) {
         const found = await resolveMemberOrElicit(h, api)
         if (found.response) return found.response
         member = found.member

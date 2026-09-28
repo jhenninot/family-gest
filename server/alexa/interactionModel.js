@@ -545,6 +545,23 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
       ])
     },
     {
+      // Même question à la première personne : la personne connectée (assistant de l'application)
+      name: 'MyAbsencesQueryIntent',
+      slots: [{ ...date }],
+      samples: expand([
+        'quelles sont mes [prochaines] absences [{date}]',
+        'mes [prochaines] absences [{date}]',
+        "quand est-ce que je ne suis pas là",
+        'quand est-ce que je ne serai pas là',
+        'quand est-ce que je suis absent',
+        'quand est-ce que je suis absente',
+        'quand je ne suis pas là',
+        'quand je ne serai pas là',
+        "est-ce que j'ai des absences [prévues] [{date}]",
+        "quelles absences j'ai [{date}]"
+      ])
+    },
+    {
       name: 'MealsIntent',
       slots: [{ ...date }, { name: 'mealSlot', type: 'MealSlot' }],
       samples: expand([

@@ -155,7 +155,8 @@
       "nonePeriod": "Aucune absence n'est prévue du {start} au {end}.",
       "nonePeriodFor": "Aucune absence de {member} n'est prévue du {start} au {end}.",
       "list": "Une absence prévue : {list}. | {n} absences prévues : {list}.",
-      "listFor": "{member} a une absence prévue : {list}. | {member} a {n} absences prévues : {list}."
+      "listFor": "{member} a une absence prévue : {list}. | {member} a {n} absences prévues : {list}.",
+      "whoAsk": "Pour qui ? Demandez par exemple : quelles sont les prochaines absences de Paul ?"
     }
   },
   "oauth": {
