@@ -58,6 +58,7 @@
   "smtpNotConfigured": "The SMTP email server is not configured yet. Go to Administration to set it up.",
   "firstNameRequired": "A first name is required for a new account",
   "familyNameEmpty": "The family name cannot be empty",
+  "familyMustBeDeactivated": "The family must be deactivated before it can be deleted",
   "password": {
     "required": "A password is required.",
     "lowercase": "The password must contain at least one lowercase letter (a-z).",

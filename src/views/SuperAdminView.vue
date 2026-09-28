@@ -161,6 +161,15 @@
                 >
                   <ExternalLink :size="16" />
                 </button>
+                <!-- Suppression possible uniquement une fois la famille désactivée -->
+                <button
+                  @click="deleteFamily(fam)"
+                  class="btn-icon btn-icon-sm text-danger"
+                  :disabled="fam.isActive"
+                  :title="fam.isActive ? t('superAdmin.families.deleteDisabled') : t('superAdmin.families.delete')"
+                >
+                  <Trash2 :size="16" />
+                </button>
               </td>
             </tr>
           </tbody>
@@ -2281,6 +2290,31 @@ const toggleFamilyActive = async (fam) => {
     }
   } catch (err) {
     console.error('Erreur toggleFamilyActive', err)
+  }
+}
+
+const deleteFamily = async (fam) => {
+  if (fam.isActive) return
+  const name = `<strong>${escapeHtml(fam.name)}</strong>`
+  const ok = await confirm({
+    title: t('superAdmin.families.delete'),
+    message: t('superAdmin.families.deleteMessage', { name }),
+    warning: t('superAdmin.families.deleteWarning'),
+    confirmText: t('superAdmin.families.deleteShort'),
+    type: 'danger'
+  })
+  if (!ok) return
+  try {
+    const res = await fetch(`/api/super-admin/families/${fam._id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authStore.token}` }
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || res.statusText)
+    if (localStorage.getItem('familygest_active_slug') === fam.slug) localStorage.removeItem('familygest_active_slug')
+    await fetchFamilies()
+  } catch (err) {
+    alert(err.message)
   }
 }
 

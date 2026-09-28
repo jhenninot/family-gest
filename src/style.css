@@ -294,6 +294,11 @@ a {
   height: 32px;
 }
 
+.btn-icon:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* Boutons icone compacts pour lignes de liste / tableau (distincts du .btn-icon 40px) */
 .btn-icon-ghost,
 .btn-icon-chip {

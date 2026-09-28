@@ -44,7 +44,12 @@
     "activateMessage": "¿Seguro que quiere activar la familia {name}?",
     "deactivateWarning": "Los miembros de esta familia no podrán acceder a ella mientras esté desactivada.",
     "deactivateShort": "Desactivar",
-    "activateShort": "Activar"
+    "activateShort": "Activar",
+    "delete": "Eliminar la familia",
+    "deleteDisabled": "Desactive primero la familia para poder eliminarla",
+    "deleteMessage": "¿Eliminar definitivamente la familia {name}?",
+    "deleteWarning": "Todos sus datos (miembros, tareas, agenda, compras, presencias, comidas, invitados, conectores…) se borrarán sin posibilidad de recuperarlos. Las cuentas de usuario se conservan.",
+    "deleteShort": "Eliminar definitivamente"
   },
   "users": {
     "loading": "Cargando usuarios…",

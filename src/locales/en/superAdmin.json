@@ -44,7 +44,12 @@
     "activateMessage": "Are you sure you want to enable the family {name}?",
     "deactivateWarning": "Members of this family will not be able to access it while it is disabled.",
     "deactivateShort": "Disable",
-    "activateShort": "Enable"
+    "activateShort": "Enable",
+    "delete": "Delete the family",
+    "deleteDisabled": "Deactivate the family first to be able to delete it",
+    "deleteMessage": "Permanently delete the family {name}?",
+    "deleteWarning": "All its data (members, tasks, calendar, shopping, presence, meals, guests, connectors…) will be erased with no way back. User accounts are kept.",
+    "deleteShort": "Delete permanently"
   },
   "users": {
     "loading": "Loading users…",

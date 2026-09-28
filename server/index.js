@@ -1987,6 +1987,28 @@ app.put('/api/super-admin/families/:id', requireAuth, requireSuperAdmin, async (
   }
 })
 
+// DELETE /api/super-admin/families/:id (Suppression définitive d'une famille et de toutes ses
+// données). Refusée tant que la famille est active : il faut d'abord la désactiver. Les comptes
+// utilisateurs (globaux) sont conservés ; le journal des alertes aussi (purge automatique).
+app.delete('/api/super-admin/families/:id', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const family = await Family.findById(req.params.id)
+    if (!family) return res.status(404).json({ error: req.t('errors.familyNotFound') })
+    if (family.isActive) return res.status(400).json({ error: req.t('errors.familyMustBeDeactivated') })
+
+    const familyId = family._id
+    await Promise.all([
+      FamilyMember, FamilyInvitation, Task, Event, ShoppingItem, ShoppingCategory, Shortcut,
+      Absence, LongAbsence, MealGuest, MealPoll, Meal, McpConnector, MealieConfig, AlexaConnector
+    ].map(Model => Model.deleteMany({ familyId })))
+    await Family.deleteOne({ _id: familyId })
+    console.log(`[Famille] Famille supprimée par le Super Admin : ${family.slug}`)
+    res.json({ deleted: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // POST /api/super-admin/families/:id/import (Importer des données JSON dans une famille)
 app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin, async (req, res) => {
   try {

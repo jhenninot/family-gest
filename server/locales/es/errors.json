@@ -58,6 +58,7 @@
   "smtpNotConfigured": "El servidor de email SMTP aún no está configurado. Vaya a Administración para configurarlo.",
   "firstNameRequired": "El nombre es obligatorio para una cuenta nueva",
   "familyNameEmpty": "El nombre de la familia no puede estar vacío",
+  "familyMustBeDeactivated": "La familia debe desactivarse antes de poder eliminarla",
   "password": {
     "required": "La contraseña es obligatoria.",
     "lowercase": "La contraseña debe contener al menos una letra minúscula (a-z).",
