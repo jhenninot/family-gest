@@ -381,5 +381,33 @@
     "chooseHint": "Untick the items users do not need to know about (fixes, details): only ticked items are announced.",
     "selectedCount": "{n} of {total} item will be announced | {n} of {total} items will be announced",
     "noneSelected": "Tick at least one item, or choose “Don't publish”."
+  },
+  "landing": {
+    "title": "Presentation page",
+    "statusOn": "Online",
+    "statusOff": "Offline",
+    "intro": "A page presenting FamilyGest, at a secret address you share yourself (WhatsApp, email, QR code). Like the whole site, it is never indexed by search engines, and it only offers a “Contact me” button.",
+    "link": "Secret page address",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "open": "Open the page",
+    "regenerate": "Change the address",
+    "regenerateMessage": "A new secret address will be created: the old link will stop working for those who received it.",
+    "regenerated": "New address created.",
+    "contactType": "“Contact me” button",
+    "contactValue": "Contact",
+    "types": {
+      "email": "Email",
+      "whatsapp": "WhatsApp",
+      "url": "Link (https)"
+    },
+    "placeholders": {
+      "email": "you{'@'}example.com",
+      "whatsapp": "+44 7700 900123",
+      "url": "https://…"
+    },
+    "contactHint": "The contact does not appear in plain text in the page: it is only revealed on click, to avoid robots that harvest addresses.",
+    "enable": "Put the page online",
+    "saved": "Settings saved."
   }
 }

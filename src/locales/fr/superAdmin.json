@@ -381,5 +381,33 @@
     "chooseHint": "Décochez les points sans intérêt pour les utilisateurs (corrections, détails) : seuls les points cochés sont annoncés.",
     "selectedCount": "{n} point sur {total} sera annoncé | {n} points sur {total} seront annoncés",
     "noneSelected": "Cochez au moins un point, ou choisissez « Ne pas publier »."
+  },
+  "landing": {
+    "title": "Page de présentation",
+    "statusOn": "En ligne",
+    "statusOff": "Hors ligne",
+    "intro": "Une page qui présente FamilyGest, à une adresse secrète que vous partagez vous-même (WhatsApp, email, QR code). Elle n'est jamais référencée par les moteurs de recherche, comme tout le site, et ne propose qu'un bouton « Me contacter ».",
+    "link": "Adresse secrète de la page",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "open": "Ouvrir la page",
+    "regenerate": "Changer l'adresse",
+    "regenerateMessage": "Une nouvelle adresse secrète sera créée : l'ancien lien ne fonctionnera plus pour ceux qui l'ont reçu.",
+    "regenerated": "Nouvelle adresse créée.",
+    "contactType": "Bouton « Me contacter »",
+    "contactValue": "Contact",
+    "types": {
+      "email": "Email",
+      "whatsapp": "WhatsApp",
+      "url": "Lien (https)"
+    },
+    "placeholders": {
+      "email": "vous{'@'}exemple.fr",
+      "whatsapp": "+33 6 12 34 56 78",
+      "url": "https://…"
+    },
+    "contactHint": "Le contact n'apparaît pas en clair dans la page : il n'est révélé qu'au clic, pour éviter les robots qui collectent les adresses.",
+    "enable": "Mettre la page en ligne",
+    "saved": "Réglages enregistrés."
   }
 }

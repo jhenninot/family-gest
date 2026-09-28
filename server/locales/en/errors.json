@@ -136,5 +136,7 @@
   "mealPollTitleRequired": "Give the meal a name.",
   "mealPollBadDate": "This date is not one of the options.",
   "mealPollClosed": "The date of this meal is already set: voting is closed.",
-  "mealPollUnknownGuest": "Choose your name from the list."
+  "mealPollUnknownGuest": "Choose your name from the list.",
+  "landingContact": "Invalid contact: an email address, a WhatsApp number (with country code, e.g. +44 7…) or an https link.",
+  "landingNotFound": "Page not found."
 }

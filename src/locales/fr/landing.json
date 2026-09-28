@@ -1,0 +1,80 @@
+{
+  "notFound": "Page introuvable.",
+  "pill": "Pour les familles, sur invitation",
+  "title": "L'organisation de la famille, enfin simple",
+  "lead": "Présences, repas, courses, tâches et agenda : tout ce qui fait tourner la maison, partagé entre tous les membres de la famille, sur le téléphone de chacun.",
+  "contact": "Me contacter",
+  "inviteOnly": "Accès sur invitation uniquement",
+  "demo": {
+    "tonight": "Ce soir",
+    "atTable": "5 à table",
+    "guests": "dont Mamie et Papi",
+    "menu": "Au menu",
+    "dish": "Lasagnes maison",
+    "poll": "Repas à organiser",
+    "pollTitle": "Dîner avec les Dupont",
+    "pollVotes": "3 personnes disponibles samedi",
+    "shopping": "Courses",
+    "shoppingItems": "6 articles, dont 2 urgents"
+  },
+  "questions": {
+    "who": "Qui mange à la maison ce soir ?",
+    "what": "Qu'est-ce qu'on mange cette semaine ?",
+    "shopping": "Quelqu’un a pensé à racheter du lait ?"
+  },
+  "questionsAnswer": "FamilyGest répond à ces questions à votre place.",
+  "featuresTitle": "Tout ce dont la famille a besoin",
+  "features": {
+    "presence": {
+      "title": "Présences et couverts",
+      "text": "Chacun indique quand il est absent ou présent, midi, soir et nuit. Vous savez toujours combien vous serez à table, invités compris."
+    },
+    "meals": {
+      "title": "Menus de la semaine",
+      "text": "Planifiez les repas, retrouvez vos recettes et ajoutez les ingrédients à la liste de courses en un geste."
+    },
+    "polls": {
+      "title": "Repas à organiser",
+      "text": "Proposez plusieurs dates à vos invités : ils votent depuis un simple lien WhatsApp, sans rien installer. Vous fixez la date, tout est noté."
+    },
+    "shopping": {
+      "title": "Liste de courses partagée",
+      "text": "Une seule liste pour toute la famille, rangée par rayon, mise à jour en direct par chacun."
+    },
+    "tasks": {
+      "title": "Tâches et entraide",
+      "text": "Répartissez les corvées, avec échéances et rappels, et suivez ce qui reste à faire."
+    },
+    "calendar": {
+      "title": "Agenda familial",
+      "text": "Rendez-vous, sorties, vacances sur plusieurs jours : l'agenda commun, exportable vers Google ou Apple."
+    },
+    "voice": {
+      "title": "À la voix",
+      "text": "« Ajoute du lait aux courses », « Paul ne sera pas là demain midi » : parlez à l’appli ou à Alexa."
+    },
+    "notifications": {
+      "title": "Toujours au courant",
+      "text": "Notifications sur le téléphone et récapitulatif du jour par email, selon les préférences de chacun."
+    }
+  },
+  "stepsTitle": "Comment ça marche",
+  "steps": {
+    "invite": {
+      "title": "Je vous invite",
+      "text": "Vous recevez une invitation pour votre famille, et chaque membre crée son compte en quelques secondes."
+    },
+    "install": {
+      "title": "Vous l'installez",
+      "text": "Aucun store : l'application s'ajoute à l'écran d'accueil du téléphone en deux touches, comme une vraie appli."
+    },
+    "organise": {
+      "title": "Tout le monde s’organise",
+      "text": "Présences, repas, courses et agenda se remplissent au fil de la semaine, et chacun voit la même chose."
+    }
+  },
+  "privacyTitle": "Vos données restent privées",
+  "privacyText": "Application familiale hébergée à titre privé : aucune publicité, aucune revente de données. Chaque famille ne voit que ses propres informations.",
+  "finalTitle": "Envie de l’essayer ?",
+  "finalText": "Écrivez-moi : je vous ouvre un espace pour votre famille."
+}

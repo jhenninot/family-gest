@@ -1,0 +1,80 @@
+{
+  "notFound": "Page not found.",
+  "pill": "For families, by invitation",
+  "title": "Family organisation, finally simple",
+  "lead": "Presence, meals, shopping, chores and calendar: everything that keeps the home running, shared between all family members, on everyone’s phone.",
+  "contact": "Contact me",
+  "inviteOnly": "Access by invitation only",
+  "demo": {
+    "tonight": "Tonight",
+    "atTable": "5 at the table",
+    "guests": "including Grandma and Grandpa",
+    "menu": "On the menu",
+    "dish": "Homemade lasagne",
+    "poll": "Meal to organise",
+    "pollTitle": "Dinner with the Smiths",
+    "pollVotes": "3 people available on Saturday",
+    "shopping": "Shopping",
+    "shoppingItems": "6 items, 2 of them urgent"
+  },
+  "questions": {
+    "who": "Who is eating at home tonight?",
+    "what": "What are we eating this week?",
+    "shopping": "Did anyone remember to buy milk?"
+  },
+  "questionsAnswer": "FamilyGest answers these questions for you.",
+  "featuresTitle": "Everything the family needs",
+  "features": {
+    "presence": {
+      "title": "Presence and place settings",
+      "text": "Everyone says when they are away or at home, for lunch, dinner and the night. You always know how many will be at the table, guests included."
+    },
+    "meals": {
+      "title": "Weekly menus",
+      "text": "Plan meals, find your recipes and add the ingredients to the shopping list in one tap."
+    },
+    "polls": {
+      "title": "Meals to organise",
+      "text": "Suggest several dates to your guests: they vote from a simple WhatsApp link, without installing anything. You set the date and everything is recorded."
+    },
+    "shopping": {
+      "title": "Shared shopping list",
+      "text": "One list for the whole family, sorted by aisle, updated live by everyone."
+    },
+    "tasks": {
+      "title": "Chores and teamwork",
+      "text": "Share out the chores with due dates and reminders, and keep track of what is left to do."
+    },
+    "calendar": {
+      "title": "Family calendar",
+      "text": "Appointments, outings, multi-day holidays: the shared calendar, exportable to Google or Apple."
+    },
+    "voice": {
+      "title": "By voice",
+      "text": "“Add milk to the shopping list”, “Paul won’t be here for lunch tomorrow”: talk to the app or to Alexa."
+    },
+    "notifications": {
+      "title": "Always in the loop",
+      "text": "Phone notifications and a daily summary by email, according to each person’s preferences."
+    }
+  },
+  "stepsTitle": "How it works",
+  "steps": {
+    "invite": {
+      "title": "I invite you",
+      "text": "You receive an invitation for your family, and each member creates their account in seconds."
+    },
+    "install": {
+      "title": "You install it",
+      "text": "No app store: the app is added to the phone’s home screen in two taps, just like a real app."
+    },
+    "organise": {
+      "title": "Everyone gets organised",
+      "text": "Presence, meals, shopping and calendar fill up during the week, and everyone sees the same thing."
+    }
+  },
+  "privacyTitle": "Your data stays private",
+  "privacyText": "A privately hosted family app: no advertising, no data resale. Each family only sees its own information.",
+  "finalTitle": "Want to try it?",
+  "finalText": "Write to me: I will open a space for your family."
+}

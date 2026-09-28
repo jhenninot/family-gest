@@ -311,7 +311,7 @@ const isRefreshing = ref(false)
 
 const isAuthPage = computed(() => {
   return route.name === 'login' || route.name === 'set-password' || route.path === '/login' || route.path === '/set-password' ||
-    route.name === 'legal-notice' || route.name === 'privacy-policy' || route.name === 'meal-poll-vote'
+    route.name === 'legal-notice' || route.name === 'privacy-policy' || route.name === 'meal-poll-vote' || route.name === 'landing'
 })
 
 const displayName = computed(() => {

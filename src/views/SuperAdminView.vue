@@ -546,6 +546,8 @@
       </div>
       <!-- Connexion avec Google -->
       <GoogleAuthSettings />
+      <!-- Page de présentation non référencée -->
+      <LandingSettings />
     </div>
 
     <!-- TAB 4: ALERT LOGS -->
@@ -1232,6 +1234,7 @@ import UserAvatar from '../components/UserAvatar.vue'
 import ServerLogsPanel from '../components/ServerLogsPanel.vue'
 import ReleasePanel from '../components/ReleasePanel.vue'
 import GoogleAuthSettings from '../components/GoogleAuthSettings.vue'
+import LandingSettings from '../components/LandingSettings.vue'
 import { 
   ShieldAlert, 
   Home, 

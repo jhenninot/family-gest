@@ -82,6 +82,13 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }))
 
+// Aucune page du site ne doit être indexée par les moteurs de recherche (application privée,
+// page de présentation partagée à la main) : voir aussi public/robots.txt et index.html
+app.use((req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet')
+  next()
+})
+
 // CORS : par défaut ouvert (le frontend est servi par ce même serveur en production, donc
 // aucune requête cross-origin n'est nécessaire). Si des origines sont explicitement listées
 // via CORS_ORIGIN (ex: déploiement frontend/backend séparés), on restreint à cette liste.
@@ -2741,6 +2748,96 @@ app.get('/api/releases/latest', requireAuth, async (req, res) => {
     // Seulement les points publiés (tous pour une publication antérieure à la sélection)
     const selection = Array.isArray(config.releasePublishedNotes) && config.releasePublishedNotes.length > 0 ? config.releasePublishedNotes : null
     res.json({ release: { version: release.version, date: release.date || null, notes: notesFor(release, req.lang, selection), publishedAt: config.releasePublishedAt } })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// === PAGE DE PRÉSENTATION (/decouvrir/<clé>, lien secret géré par le Super Admin) ===
+
+const newLandingKey = () => crypto.randomBytes(9).toString('base64url')
+
+// Lien du bouton « Me contacter », ou null si le contact n'est pas utilisable
+const landingContactHref = (type, value) => {
+  const v = String(value || '').trim()
+  if (!v) return null
+  if (type === 'email') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? `mailto:${v}?subject=${encodeURIComponent('FamilyGest')}` : null
+  if (type === 'whatsapp') {
+    const digits = v.replace(/[^\d]/g, '').replace(/^00/, '')
+    return digits.length >= 8 ? `https://wa.me/${digits}` : null
+  }
+  return /^https:\/\/[^\s]+$/.test(v) ? v : null
+}
+
+const landingSettingsJson = (config) => ({
+  enabled: Boolean(config?.landingEnabled),
+  key: config?.landingKey || null,
+  contactType: config?.landingContactType || 'email',
+  contactValue: config?.landingContactValue || '',
+  contactReady: Boolean(landingContactHref(config?.landingContactType, config?.landingContactValue))
+})
+
+app.get('/api/super-admin/landing', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    res.json(landingSettingsJson(await GlobalConfig.findOne()))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/super-admin/landing', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    let config = await GlobalConfig.findOne()
+    if (!config) config = new GlobalConfig()
+    const { enabled, contactType, contactValue } = req.body || {}
+    if (contactType !== undefined) config.landingContactType = ['email', 'whatsapp', 'url'].includes(contactType) ? contactType : 'email'
+    if (contactValue !== undefined) config.landingContactValue = String(contactValue).trim().slice(0, 300)
+    if (config.landingContactValue && !landingContactHref(config.landingContactType, config.landingContactValue)) {
+      return res.status(400).json({ error: req.t('errors.landingContact') })
+    }
+    if (enabled !== undefined) config.landingEnabled = Boolean(enabled)
+    if (config.landingEnabled && !config.landingKey) config.landingKey = newLandingKey()
+    await config.save()
+    res.json(landingSettingsJson(config))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Nouvelle adresse secrète : l'ancien lien cesse aussitôt de fonctionner
+app.post('/api/super-admin/landing/regenerate', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    let config = await GlobalConfig.findOne()
+    if (!config) config = new GlobalConfig()
+    config.landingKey = newLandingKey()
+    await config.save()
+    res.json(landingSettingsJson(config))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+const landingRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: (req) => ({ error: req.t('errors.tooManyAttempts') })
+})
+
+// Page publique : 404 si désactivée ou clé inconnue (rien ne révèle son existence). Le lien de
+// contact est encodé pour ne pas apparaître en clair aux robots qui collectent les adresses.
+app.get('/api/public/landing/:key', landingRateLimiter, async (req, res) => {
+  try {
+    const config = await GlobalConfig.findOne().select('landingEnabled landingKey landingContactType landingContactValue').lean()
+    const key = String(req.params.key || '')
+    if (!config?.landingEnabled || !config.landingKey || key.length !== config.landingKey.length ||
+      !crypto.timingSafeEqual(Buffer.from(key), Buffer.from(config.landingKey))) {
+      return res.status(404).json({ error: req.t('errors.landingNotFound') })
+    }
+    const href = landingContactHref(config.landingContactType, config.landingContactValue)
+    res.setHeader('Cache-Control', 'no-store')
+    res.json({ contact: href ? Buffer.from(href).toString('base64') : null, contactType: config.landingContactType })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

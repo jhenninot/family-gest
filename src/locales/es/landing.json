@@ -1,0 +1,80 @@
+{
+  "notFound": "Página no encontrada.",
+  "pill": "Para familias, por invitación",
+  "title": "La organización familiar, por fin sencilla",
+  "lead": "Presencias, comidas, compras, tareas y agenda: todo lo que hace funcionar la casa, compartido entre todos los miembros de la familia, en el teléfono de cada uno.",
+  "contact": "Contactarme",
+  "inviteOnly": "Acceso solo por invitación",
+  "demo": {
+    "tonight": "Esta noche",
+    "atTable": "5 a la mesa",
+    "guests": "incluidos los abuelos",
+    "menu": "En el menú",
+    "dish": "Lasaña casera",
+    "poll": "Comida por organizar",
+    "pollTitle": "Cena con los García",
+    "pollVotes": "3 personas disponibles el sábado",
+    "shopping": "Compras",
+    "shoppingItems": "6 artículos, 2 urgentes"
+  },
+  "questions": {
+    "who": "¿Quién come en casa esta noche?",
+    "what": "¿Qué comemos esta semana?",
+    "shopping": "¿Alguien se acordó de comprar leche?"
+  },
+  "questionsAnswer": "FamilyGest responde a estas preguntas por usted.",
+  "featuresTitle": "Todo lo que la familia necesita",
+  "features": {
+    "presence": {
+      "title": "Presencias y cubiertos",
+      "text": "Cada uno indica cuándo está ausente o presente, a mediodía, por la noche y para dormir. Siempre sabe cuántos serán a la mesa, invitados incluidos."
+    },
+    "meals": {
+      "title": "Menús de la semana",
+      "text": "Planifique las comidas, encuentre sus recetas y añada los ingredientes a la lista de la compra con un gesto."
+    },
+    "polls": {
+      "title": "Comidas por organizar",
+      "text": "Proponga varias fechas a sus invitados: votan desde un simple enlace de WhatsApp, sin instalar nada. Usted fija la fecha y todo queda anotado."
+    },
+    "shopping": {
+      "title": "Lista de la compra compartida",
+      "text": "Una sola lista para toda la familia, ordenada por sección y actualizada en directo por cada uno."
+    },
+    "tasks": {
+      "title": "Tareas y ayuda mutua",
+      "text": "Reparta las tareas con plazos y recordatorios, y siga lo que queda por hacer."
+    },
+    "calendar": {
+      "title": "Agenda familiar",
+      "text": "Citas, salidas, vacaciones de varios días: la agenda común, exportable a Google o Apple."
+    },
+    "voice": {
+      "title": "Con la voz",
+      "text": "«Añade leche a la compra», «Paul no estará mañana a mediodía»: hable con la aplicación o con Alexa."
+    },
+    "notifications": {
+      "title": "Siempre al tanto",
+      "text": "Notificaciones en el teléfono y resumen diario por correo, según las preferencias de cada uno."
+    }
+  },
+  "stepsTitle": "Cómo funciona",
+  "steps": {
+    "invite": {
+      "title": "Le invito",
+      "text": "Recibe una invitación para su familia y cada miembro crea su cuenta en unos segundos."
+    },
+    "install": {
+      "title": "La instala",
+      "text": "Sin tienda de aplicaciones: la aplicación se añade a la pantalla de inicio del teléfono en dos toques, como una aplicación de verdad."
+    },
+    "organise": {
+      "title": "Todos se organizan",
+      "text": "Presencias, comidas, compras y agenda se van completando durante la semana, y todos ven lo mismo."
+    }
+  },
+  "privacyTitle": "Sus datos siguen siendo privados",
+  "privacyText": "Aplicación familiar alojada de forma privada: sin publicidad ni reventa de datos. Cada familia solo ve su propia información.",
+  "finalTitle": "¿Le apetece probarla?",
+  "finalText": "Escríbame: le abro un espacio para su familia."
+}

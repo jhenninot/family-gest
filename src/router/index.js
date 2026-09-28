@@ -32,6 +32,13 @@ const routes = [
     meta: { titleKey: 'routes.invitation', public: true }
   },
   {
+    // Page de présentation, à l'adresse secrète réglée par le Super Admin (jamais indexée)
+    path: '/decouvrir/:key',
+    name: 'landing',
+    component: () => import('../views/LandingView.vue'),
+    meta: { titleKey: 'routes.landing', public: true }
+  },
+  {
     // Vote public d'un repas à organiser (lien partagé, sans compte)
     path: '/sondage/:token',
     name: 'meal-poll-vote',

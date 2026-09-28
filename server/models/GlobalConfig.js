@@ -154,6 +154,12 @@ const globalConfigSchema = new mongoose.Schema({
   // Rangs des points publiés (le Super Admin peut en écarter) ; null = tous
   releasePublishedNotes: { type: [Number], default: undefined },
   releaseDismissedVersion: { type: String, default: null },
+  // Page de présentation (/decouvrir/<clé>) : non référencée, accessible seulement par son lien
+  // secret, avec un unique bouton « Me contacter » (email, WhatsApp ou lien)
+  landingEnabled: { type: Boolean, default: false },
+  landingKey: { type: String, default: null },
+  landingContactType: { type: String, enum: ['email', 'whatsapp', 'url'], default: 'email' },
+  landingContactValue: { type: String, default: '' },
   // Contenu légal (RGPD) édité par le Super Administrateur, affiché publiquement sur
   // /mentions-legales et /confidentialite (texte brut, mis en forme via white-space: pre-wrap).
   legalNotice: {
