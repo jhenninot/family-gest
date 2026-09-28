@@ -33,7 +33,7 @@ import Absence from './models/Absence.js'
 import LongAbsence from './models/LongAbsence.js'
 import MealGuest from './models/MealGuest.js'
 import MealPoll from './models/MealPoll.js'
-import { sanitizeDates, mergeGuests, pruneVotes, applyGuestVote, summarize, guestsForDate, publicView, expandGuestNames } from './mealPolls/logic.js'
+import { sanitizeDates, mergeGuests, pruneVotes, applyGuestVote, summarize, guestsForDate, publicView } from './mealPolls/logic.js'
 import Meal from './models/Meal.js'
 import PushConfig from './models/PushConfig.js'
 import PushSubscription from './models/PushSubscription.js'
@@ -58,7 +58,7 @@ import { startDigestScheduler, mountDigestAdminRoutes } from './digest/index.js'
 import { escapeHtml } from './digest/templates.js'
 import { t, normalizeLanguage, languageMiddleware, TranslatableError, localizeError, translator, localize, DEFAULT_LANGUAGE, formatDateOnly, readableDate, translateValue } from './i18n/index.js'
 import { LEVELS as LOG_LEVELS, DEBUG_DURATION_MS, configureLogger, getLogSettings, queryLogs, httpLogMiddleware, logger } from './logging/logger.js'
-import { normalizeUsualPresenceConfig, summarizeUsualPresence, mondayOf, DEFAULT_WEEK_ANCHOR } from '../shared/presence.js'
+import { normalizeUsualPresenceConfig, summarizeUsualPresence, mondayOf, DEFAULT_WEEK_ANCHOR, guestCountOf } from '../shared/presence.js'
 
 dotenv.config()
 
@@ -5103,26 +5103,38 @@ app.delete('/api/long-absences/:id', requireAuth, attachFamilyContext, async (re
 
 // Crée un ou plusieurs invités (batch depuis `name` comma-separated ou `names[]`) pour un repas.
 // Partagée par la route HTTP et l'outil MCP add_meal_guests.
-const createMealGuestsBatch = async ({ familyId, name, names, date, lunch, dinner, night, invitedBy, note, fallbackHostId }) => {
-  let guestNames = []
-  if (Array.isArray(names) && names.length > 0) {
-    guestNames = names.map(n => String(n).trim()).filter(Boolean)
-  } else if (name && typeof name === 'string') {
-    guestNames = name.split(',').map(n => n.trim()).filter(Boolean)
+// Chaque invité peut compter plusieurs personnes : `count` (appliqué à chaque nom) ou
+// `guests: [{ name, count }]` (repas à organiser : un couple = une ligne de 2).
+const createMealGuestsBatch = async ({ familyId, name, names, guests, count, date, lunch, dinner, night, invitedBy, note, fallbackHostId }) => {
+  let entries = []
+  if (Array.isArray(guests) && guests.length > 0) {
+    entries = guests.map(g => ({ name: String(g?.name ?? '').trim(), count: guestCountOf(g) }))
+  } else {
+    let guestNames = []
+    if (Array.isArray(names) && names.length > 0) {
+      guestNames = names.map(n => String(n).trim())
+    } else if (name && typeof name === 'string') {
+      guestNames = name.split(',').map(n => n.trim())
+    }
+    entries = guestNames.map(n => ({ name: n, count: guestCountOf({ count }) }))
   }
+  entries = entries.filter(e => e.name)
 
-  if (guestNames.length === 0) {
+  if (entries.length === 0) {
     throw new TranslatableError('errors.guestNameRequired')
   }
 
   const hostId = invitedBy ? Number(invitedBy) : fallbackHostId
 
   const createdGuests = []
-  for (let i = 0; i < guestNames.length; i++) {
+  // Identifiants consécutifs : sans collision entre les invités d'un même lot
+  const baseId = Date.now() * 10 + Math.floor(Math.random() * 10)
+  for (let i = 0; i < entries.length; i++) {
     const newGuest = new MealGuest({
       familyId,
-      id: Date.now() + i + Math.floor(Math.random() * 100),
-      name: guestNames[i],
+      id: baseId + i * 10,
+      name: entries[i].name,
+      count: entries[i].count,
       date: date.trim(),
       lunch: Boolean(lunch),
       dinner: Boolean(dinner),
@@ -5148,7 +5160,7 @@ app.get('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) =
 
 app.post('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const { name, names, date, lunch, dinner, night, invitedBy, note } = req.body
+    const { name, names, count, date, lunch, dinner, night, invitedBy, note } = req.body
 
     if (!date) {
       return res.status(400).json({ error: req.t('errors.dateRequired') })
@@ -5161,7 +5173,7 @@ app.post('/api/meal-guests', requireAuth, attachFamilyContext, async (req, res) 
     let createdGuests
     try {
       createdGuests = await createMealGuestsBatch({
-        familyId: req.family._id, name, names, date, lunch, dinner, night, invitedBy, note,
+        familyId: req.family._id, name, names, count, date, lunch, dinner, night, invitedBy, note,
         fallbackHostId: req.user.id
       })
     } catch (e) {
@@ -5241,8 +5253,9 @@ app.put('/api/meal-guests/:id', requireAuth, attachFamilyContext, async (req, re
     const guest = await MealGuest.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!guest) return res.status(404).json({ error: req.t('errors.guestNotFound') })
 
-    const { name, date, lunch, dinner, night, invitedBy, note } = req.body
+    const { name, count, date, lunch, dinner, night, invitedBy, note } = req.body
     if (name) guest.name = name.trim()
+    if (count !== undefined) guest.count = guestCountOf({ count })
     if (date) guest.date = date.trim()
     if (lunch !== undefined) guest.lunch = Boolean(lunch)
     if (dinner !== undefined) guest.dinner = Boolean(dinner)
@@ -5365,7 +5378,7 @@ app.post('/api/meal-polls/:id/close', requireAuth, attachFamilyContext, async (r
     if (createGuests && chosen.length > 0) {
       const created = await createMealGuestsBatch({
         familyId: req.family._id,
-        names: expandGuestNames(chosen),
+        guests: chosen.map(g => ({ name: g.name, count: g.count })),
         date,
         lunch: poll.slot === 'lunch',
         dinner: poll.slot === 'dinner',

@@ -8,7 +8,7 @@
 //
 // Point de vigilance : la comparaison se fait sur FamilyMember.userId (= User.id), jamais sur
 // FamilyMember._id — c'est l'espace d'identifiants utilisé par Absence.memberId/MealGuest.
-import { isUsuallyPresent, pickDeclaredRecord, resolveSlot } from '../../shared/presence.js'
+import { isUsuallyPresent, pickDeclaredRecord, resolveSlot, guestCountOf, guestPeople } from '../../shared/presence.js'
 
 export const getMealSlotPresence = async (ctx, family, dateStr, slot) => {
   const familyId = family._id
@@ -46,13 +46,13 @@ export const getMealSlotPresence = async (ctx, family, dateStr, slot) => {
   }
 
   const guests = await ctx.MealGuest.find({ familyId, date: dateStr, [slot]: true })
-  const guestsInfo = guests.map(g => ({ id: g.id, name: g.name, note: g.note || '' }))
+  const guestsInfo = guests.map(g => ({ id: g.id, name: g.name, count: guestCountOf(g), note: g.note || '' }))
 
   return {
     presentMembers,
     absentMembers,
     exceptionalPresences,
     guests: guestsInfo,
-    headcount: presentMembers.length + guestsInfo.length
+    headcount: presentMembers.length + guestPeople(guestsInfo)
   }
 }

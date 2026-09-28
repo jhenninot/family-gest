@@ -30,6 +30,7 @@ export const registerMealGuestTools = (server, req, ctx) => {
     description: "Ajoute un ou plusieurs invités pour une date et des créneaux donnés (midi/soir/nuit).",
     inputSchema: {
       names: z.array(z.string()).describe("Noms des invités (personnes extérieures à la famille)"),
+      count: z.number().int().min(1).max(20).optional().describe('Nombre de personnes pour chaque nom (ex : 2 pour « les Dupont » ; 1 par défaut)'),
       date: z.string().describe('Date (YYYY-MM-DD)'),
       lunch: z.boolean().optional(),
       dinner: z.boolean().optional(),
@@ -37,14 +38,14 @@ export const registerMealGuestTools = (server, req, ctx) => {
       invitedBy: z.string().optional().describe('Nom ou id du membre qui invite'),
       note: z.string().optional()
     }
-  }, async ({ names, date, lunch, dinner, night, invitedBy, note }) => {
+  }, async ({ names, count, date, lunch, dinner, night, invitedBy, note }) => {
     if (!lunch && !dinner && !night) {
       throw new Error('Veuillez sélectionner au moins un créneau (midi, soir ou nuit)')
     }
     const invitedByMember = invitedBy ? await resolveMember(familyId, invitedBy) : null
 
     const createdGuests = await createMealGuestsBatch({
-      familyId, names, date, lunch, dinner, night,
+      familyId, names, count, date, lunch, dinner, night,
       invitedBy: invitedByMember?.id,
       note,
       fallbackHostId: req.mcpFallbackActor?.id ?? null
@@ -67,6 +68,7 @@ export const registerMealGuestTools = (server, req, ctx) => {
     inputSchema: {
       id: z.number(),
       name: z.string().optional(),
+      count: z.number().int().min(1).max(20).optional().describe('Nombre de personnes sur cette ligne'),
       date: z.string().optional(),
       lunch: z.boolean().optional(),
       dinner: z.boolean().optional(),
@@ -74,11 +76,12 @@ export const registerMealGuestTools = (server, req, ctx) => {
       invitedBy: z.string().optional(),
       note: z.string().optional()
     }
-  }, async ({ id, name, date, lunch, dinner, night, invitedBy, note }) => {
+  }, async ({ id, name, count, date, lunch, dinner, night, invitedBy, note }) => {
     const guest = await MealGuest.findOne({ id: Number(id), familyId })
     if (!guest) throw new Error('Invité non trouvé')
 
     if (name) guest.name = name.trim()
+    if (count !== undefined) guest.count = count
     if (date) guest.date = date.trim()
     if (lunch !== undefined) guest.lunch = Boolean(lunch)
     if (dinner !== undefined) guest.dinner = Boolean(dinner)

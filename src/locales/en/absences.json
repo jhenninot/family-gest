@@ -88,7 +88,8 @@
     "wholeFamily": "The whole family",
     "note": "Note / dietary requirements (optional)",
     "notePlaceholder": "E.g. Vegetarian, gluten-free, arrives at 7pm…",
-    "submit": "Add the guest"
+    "submit": "Add the guest",
+    "people": "Number of people"
   },
   "day": {
     "declareTitle": "Declare an absence, long absence, guest or presence",

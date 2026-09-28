@@ -76,7 +76,10 @@
     "declarePresent": "Mark {name} as present for this meal",
     "presentBtn": "Present",
     "noAbsence": "No absence declared.",
-    "usuallyAbsent": "Usually absent ({n})"
+    "usuallyAbsent": "Usually absent ({n})",
+    "people": "Number of people",
+    "lessPeople": "One person less",
+    "morePeople": "One more person"
   },
   "form": {
     "moment": "Meal",

@@ -10,7 +10,8 @@ export const escapeHtml = (s) => String(s ?? '')
 const renderMealLine = (t, slot, meal) => {
   const dishStr = meal.dish ? `<strong>${escapeHtml(meal.dish)}</strong>` : `<em>${t('digest.noDish')}</em>`
   const presentStr = meal.presentMembers.length > 0 ? meal.presentMembers.map(m => escapeHtml(m.name)).join(', ') : t('digest.nobody')
-  const guestsStr = meal.guests.length > 0 ? ` + ${t('digest.guests', { names: meal.guests.map(g => escapeHtml(g.name)).join(', '), n: meal.guests.length })}` : ''
+  const guestName = (g) => escapeHtml(g.count > 1 ? `${g.name} ×${g.count}` : g.name)
+  const guestsStr = meal.guests.length > 0 ? ` + ${t('digest.guests', { names: meal.guests.map(guestName).join(', '), n: meal.guests.reduce((n, g) => n + (g.count || 1), 0) })}` : ''
   return `<li><strong>${t('digest.label', { label: t(`digest.slots.${slot}`) })}</strong> ${dishStr} — ${t('digest.present', { names: presentStr })}${guestsStr} (${t('digest.headcount', { n: meal.headcount })})</li>`
 }
 

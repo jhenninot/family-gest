@@ -5,6 +5,7 @@ import { t } from '../i18n'
 import { themePreference as themePreferenceRef, isDarkMode as isDarkModeRef, setThemePreference } from '../utils/theme.js'
 import {
   DEFAULT_WEEK_ANCHOR,
+  guestPeople,
   isUsuallyPresent,
   mondayOf,
   pickDeclaredRecord,
@@ -378,8 +379,9 @@ export const useFamilyStore = defineStore('family', () => {
       guests: dayGuests,
       presentMembersCount: presentMembers.length,
       absentMembersCount: absentMembers.length,
-      guestsCount: dayGuests.length,
-      headcount: presentMembers.length + dayGuests.length
+      // Un invité peut compter plusieurs personnes (MealGuest.count)
+      guestsCount: guestPeople(dayGuests),
+      headcount: presentMembers.length + guestPeople(dayGuests)
     }
   }
 

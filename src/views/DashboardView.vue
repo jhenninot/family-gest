@@ -159,7 +159,7 @@
 
                 <!-- Invités -->
                 <div v-if="todayLunchPresence.guests.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label guest-badge">{{ t('dashboard.guestsLabel', { n: todayLunchPresence.guests.length }) }}</span>
+                  <span class="detail-badge-label guest-badge">{{ t('dashboard.guestsLabel', { n: todayLunchPresence.guestsCount }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="g in todayLunchPresence.guests" 
@@ -167,7 +167,7 @@
                       class="person-tag guest-tag"
                       :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('dashboard.guest')"
                     >
-                      👥 {{ g.name }}
+                      👥 {{ guestLabel(g) }}
                     </span>
                   </div>
                 </div>
@@ -238,7 +238,7 @@
 
                 <!-- Invités -->
                 <div v-if="todayDinnerPresence.guests.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label guest-badge">{{ t('dashboard.guestsLabel', { n: todayDinnerPresence.guests.length }) }}</span>
+                  <span class="detail-badge-label guest-badge">{{ t('dashboard.guestsLabel', { n: todayDinnerPresence.guestsCount }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="g in todayDinnerPresence.guests" 
@@ -246,7 +246,7 @@
                       class="person-tag guest-tag"
                       :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('dashboard.guest')"
                     >
-                      👥 {{ g.name }}
+                      👥 {{ guestLabel(g) }}
                     </span>
                   </div>
                 </div>
@@ -317,7 +317,7 @@
 
                 <!-- Invités (dorment à la maison) -->
                 <div v-if="todayNightPresence.guests.length > 0" class="slot-detail-item">
-                  <span class="detail-badge-label guest-badge">{{ t('dashboard.guestsLabel', { n: todayNightPresence.guests.length }) }}</span>
+                  <span class="detail-badge-label guest-badge">{{ t('dashboard.guestsLabel', { n: todayNightPresence.guestsCount }) }}</span>
                   <div class="detail-tags-list">
                     <span 
                       v-for="g in todayNightPresence.guests" 
@@ -325,7 +325,7 @@
                       class="person-tag guest-tag"
                       :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('dashboard.sleepsHome')"
                     >
-                      👥 {{ g.name }}
+                      👥 {{ guestLabel(g) }}
                     </span>
                   </div>
                 </div>
@@ -598,6 +598,7 @@ import HouseUser from '../components/icons/HouseUser.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 import { eventOnDate, eventOverlaps, isMultiDayEvent } from '../utils/events'
+import { guestLabel } from '../utils/guests'
 
 const route = useRoute()
 const router = useRouter()

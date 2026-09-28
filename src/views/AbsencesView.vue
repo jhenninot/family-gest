@@ -76,7 +76,7 @@
                   :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('absences.today.guest')"
                   @click="openEditGuestModal(g)"
                 >
-                  👥 {{ g.name }}
+                  👥 {{ guestLabel(g) }}
                 </span>
               </div>
             </div>
@@ -147,7 +147,7 @@
                   :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('absences.today.guest')"
                   @click="openEditGuestModal(g)"
                 >
-                  👥 {{ g.name }}
+                  👥 {{ guestLabel(g) }}
                 </span>
               </div>
             </div>
@@ -218,7 +218,7 @@
                   :title="g.note ? t('dashboard.guestNote', { note: g.note }) : t('dashboard.sleepsHome')"
                   @click="openEditGuestModal(g)"
                 >
-                  👥 {{ g.name }}
+                  👥 {{ guestLabel(g) }}
                 </span>
               </div>
             </div>
@@ -429,7 +429,7 @@
                       class="mini-chip chip-guest"
                       :title="t('absences.calendar.guestName', { name: g.name })"
                     >
-                      👥 {{ g.name }}
+                      👥 {{ guestLabel(g) }}
                     </span>
                     <span 
                       v-if="day.lunchPresence.exceptionalPresences.length === 0 && day.lunchPresence.absentMembers.length === 0 && day.lunchPresence.guests.length === 0" 
@@ -471,7 +471,7 @@
                       class="mini-chip chip-guest"
                       :title="t('absences.calendar.guestName', { name: g.name })"
                     >
-                      👥 {{ g.name }}
+                      👥 {{ guestLabel(g) }}
                     </span>
                     <span 
                       v-if="day.dinnerPresence.exceptionalPresences.length === 0 && day.dinnerPresence.absentMembers.length === 0 && day.dinnerPresence.guests.length === 0" 
@@ -513,7 +513,7 @@
                       class="mini-chip chip-guest"
                       :title="t('absences.calendar.guestName', { name: g.name })"
                     >
-                      👥 {{ g.name }}
+                      👥 {{ guestLabel(g) }}
                     </span>
                     <span 
                       v-if="day.nightPresence.exceptionalPresences.length === 0 && day.nightPresence.absentMembers.length === 0 && day.nightPresence.guests.length === 0" 
@@ -707,6 +707,12 @@
               class="form-input" 
             />
             <span class="field-help-text">{{ t('absences.guestForm.nameHelp') }}</span>
+          </div>
+
+          <!-- Nombre de personnes (un couple = 2) : une seule ligne, plusieurs couverts -->
+          <div class="form-group">
+            <label class="form-label" for="guest-count">{{ t('absences.guestForm.people') }}</label>
+            <input id="guest-count" v-model.number="guestForm.count" type="number" min="1" max="20" class="form-input guest-count-field" />
           </div>
 
           <!-- Date -->
@@ -933,7 +939,7 @@
                     <div v-for="g in selectedDayLunchGuests" :key="'lunch-gst-' + g.id" class="slot-person-card guest">
                       <span class="person-avatar">👥</span>
                       <div class="person-info">
-                        <strong>{{ g.name }}</strong>
+                        <strong>{{ guestLabel(g) }}</strong>
                         <span v-if="g.invitedBy" class="person-host">{{ t('absences.day.invitedBy', { name: getMemberFirstName(g.invitedBy) }) }}</span>
                         <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
                       </div>
@@ -1036,7 +1042,7 @@
                     <div v-for="g in selectedDayDinnerGuests" :key="'dinner-gst-' + g.id" class="slot-person-card guest">
                       <span class="person-avatar">👥</span>
                       <div class="person-info">
-                        <strong>{{ g.name }}</strong>
+                        <strong>{{ guestLabel(g) }}</strong>
                         <span v-if="g.invitedBy" class="person-host">{{ t('absences.day.invitedBy', { name: getMemberFirstName(g.invitedBy) }) }}</span>
                         <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
                       </div>
@@ -1139,7 +1145,7 @@
                     <div v-for="g in selectedDayNightGuests" :key="'night-gst-' + g.id" class="slot-person-card guest">
                       <span class="person-avatar">👥</span>
                       <div class="person-info">
-                        <strong>{{ g.name }}</strong>
+                        <strong>{{ guestLabel(g) }}</strong>
                         <span v-if="g.invitedBy" class="person-host">{{ t('absences.day.invitedBy', { name: getMemberFirstName(g.invitedBy) }) }}</span>
                         <span v-if="g.note" class="person-note">💬 {{ g.note }}</span>
                       </div>
@@ -1578,6 +1584,7 @@ import HouseUser from '../components/icons/HouseUser.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import UsualPresenceEditor from '../components/UsualPresenceEditor.vue'
 import { SLOT_KEYS, dayKeyFor, normalizeUsualPresenceConfig } from '@shared/presence.js'
+import { guestLabel } from '../utils/guests'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -2139,6 +2146,7 @@ const openAddGuestModal = (defaultDate = null, defaultSlot = null) => {
   }
   guestForm.value = {
     name: '',
+    count: 1,
     date: initialDate,
     lunch: defaultSlot === 'lunch',
     dinner: defaultSlot === 'dinner',
@@ -2153,6 +2161,7 @@ const openEditGuestModal = (guest) => {
   editingGuestId.value = guest.id
   guestForm.value = {
     name: guest.name,
+    count: guest.count || 1,
     date: guest.date,
     lunch: Boolean(guest.lunch),
     dinner: Boolean(guest.dinner),
@@ -4953,5 +4962,9 @@ const handleSelectDeclarationType = (type) => {
 
 .presence-modal-theme .member-select-chip.selected::after {
   background: #10b981;
+}
+
+.guest-count-field {
+  max-width: 7rem;
 }
 </style>

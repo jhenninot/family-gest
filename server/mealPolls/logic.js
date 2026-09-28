@@ -91,10 +91,6 @@ export const guestsForDate = (poll, date) => {
   return poll.guests.filter(g => !declined.has(g.id))
 }
 
-// Noms des invités à créer au repas : « Les Dupont » × 2 donne « Les Dupont » et « Les Dupont +1 »
-export const expandGuestNames = (guests) => guests.flatMap(g =>
-  Array.from({ length: guestCount(g) }, (_, i) => (i === 0 ? g.name : `${g.name} +${i}`)))
-
 // Vue publique : rien d'interne (famille, identifiants de création, etc.)
 export const publicView = (poll, familyName) => ({
   title: poll.title,

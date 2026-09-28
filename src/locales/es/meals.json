@@ -76,7 +76,10 @@
     "declarePresent": "Marcar a {name} como presente en esta comida",
     "presentBtn": "Presente",
     "noAbsence": "Ninguna ausencia declarada.",
-    "usuallyAbsent": "Habitualmente ausentes ({n})"
+    "usuallyAbsent": "Habitualmente ausentes ({n})",
+    "people": "Número de personas",
+    "lessPeople": "Una persona menos",
+    "morePeople": "Una persona más"
   },
   "form": {
     "moment": "Momento de la comida",

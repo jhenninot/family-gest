@@ -3,7 +3,7 @@ import Absence from '../../models/Absence.js'
 import MealGuest from '../../models/MealGuest.js'
 import { getFamilyMembersList } from '../resolveMember.js'
 import { jsonResult } from '../toolHelpers.js'
-import { isUsuallyPresent, pickDeclaredRecord, resolveSlot } from '../../../shared/presence.js'
+import { isUsuallyPresent, pickDeclaredRecord, resolveSlot, guestCountOf, guestPeople } from '../../../shared/presence.js'
 
 export const registerAggregationTools = (server, req) => {
   const familyId = req.family._id
@@ -37,7 +37,7 @@ export const registerAggregationTools = (server, req) => {
       ;(isPresent ? present : absent).push({ id: m.id, name: m.name })
     }
 
-    const guestList = guests.map(g => ({ id: g.id, name: g.name, note: g.note }))
+    const guestList = guests.map(g => ({ id: g.id, name: g.name, count: guestCountOf(g), note: g.note }))
 
     return jsonResult({
       date,
@@ -45,7 +45,7 @@ export const registerAggregationTools = (server, req) => {
       present,
       absent,
       guests: guestList,
-      totalHeadcount: present.length + guestList.length
+      totalHeadcount: present.length + guestPeople(guestList)
     })
   })
 }

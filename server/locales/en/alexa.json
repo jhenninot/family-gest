@@ -167,5 +167,6 @@
     "back": "Back to settings",
     "unknownState": "Unknown or expired authorisation request: start \"Authorise at Amazon\" again from the FamilyGest Alexa card (in the same window, within 15 minutes).",
     "noCode": "Amazon did not return any authorisation code."
-  }
+  },
+  "guestGroup": "{name} ({n} people)"
 }

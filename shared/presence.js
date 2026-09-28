@@ -43,6 +43,12 @@ export const DAY_SHORT_LABELS = {
 // fichiers de langue). Historiquement dupliqués 3× dans server/index.js : utiliser ceux-ci.
 export const SLOT_LABELS = { lunch: 'Midi', dinner: 'Soir', night: 'Nuit' }
 
+// Invités de repas : chaque ligne peut compter plusieurs personnes (MealGuest.count, 1 à 20 ;
+// les anciennes lignes sans nombre valent 1). À utiliser pour tout décompte de couverts.
+export const MAX_GUEST_COUNT = 20
+export const guestCountOf = (guest) => Math.min(MAX_GUEST_COUNT, Math.max(1, Math.round(Number(guest?.count)) || 1))
+export const guestPeople = (guests) => (guests || []).reduce((n, g) => n + guestCountOf(g), 0)
+
 // Lundi de référence par défaut. Valeur fixe et arbitraire : elle rend la parité A/B purement
 // fonction de la date, donc déterministe et partagée, sans migration pour les familles
 // existantes. Une famille qui clique « cette semaine = Semaine A » y écrit son propre lundi.

@@ -88,7 +88,8 @@
     "wholeFamily": "Toda la familia",
     "note": "Observación / dieta (opcional)",
     "notePlaceholder": "Ej.: Vegetariano, sin gluten, llega a las 19h…",
-    "submit": "Añadir el invitado"
+    "submit": "Añadir el invitado",
+    "people": "Número de personas"
   },
   "day": {
     "declareTitle": "Declarar una ausencia, ausencia larga, invitación o presencia",

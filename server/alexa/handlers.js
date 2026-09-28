@@ -1,5 +1,6 @@
 import Alexa from 'ask-sdk-core'
 import { readableDate, formatDateOnly } from '../i18n/index.js'
+import { guestCountOf, guestPeople } from '../../shared/presence.js'
 import { parseAlexaDate, parseAlexaTime, parseMealSlot, slotsToFlags, splitSpokenList, parseShoppingEntry, parseGuestNames, matchMember, parseAlexaPeriod, addDays, currentHour, eventMealSlots } from './parsing.js'
 
 // Dialogue de la skill Alexa. Toutes les écritures passent par `api` (voir actions.js), ce qui
@@ -66,6 +67,9 @@ const alignDateRange = (start, end) => {
   const nextYear = `${Number(end.slice(0, 4)) + 1}${end.slice(4)}`
   return nextYear > start && addDays(start, 92) >= nextYear ? { start, end: nextYear } : null
 }
+
+// Invité de repas pouvant compter plusieurs personnes : « les Dupont (2 personnes) »
+const guestLabel = (t, guest) => (guestCountOf(guest) > 1 ? t('alexa.guestGroup', { name: guest.name, n: guestCountOf(guest) }) : guest.name)
 
 const isIntent = (...names) => (handlerInput) =>
   Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
@@ -487,13 +491,13 @@ export const buildHandlers = (api) => {
         const presence = await api.whoIsHome({ date: day, slot })
         const when = capitalizeFirst(slotMoment(api, day, slot))
         const members = presence.presentMembers.map(m => firstNames.get(m.id) || m.name)
-        const guests = presence.guests.map(g => g.name)
+        const guests = presence.guests.map(g => guestLabel(t, g))
         if (members.length + guests.length === 0) {
           sentences.push(t('alexa.query.who.nobody', { when }))
           continue
         }
         const names = guests.length > 0
-          ? t('alexa.query.who.withGuests', { members: joinList(t, members), guests: joinList(t, guests), n: guests.length })
+          ? t('alexa.query.who.withGuests', { members: joinList(t, members), guests: joinList(t, guests), n: guestPeople(presence.guests) })
           : joinList(t, members)
         sentences.push(t('alexa.query.who.result', { when, names, n: presence.headcount }))
       }
@@ -684,13 +688,13 @@ export const buildHandlers = (api) => {
         const when = capitalizeFirst(slotMoment(api, date, slot))
         const presentIds = new Set(presence.presentMembers.map(m => m.id))
         const present = presence.presentMembers.map(m => firstNames.get(m.id) || m.name)
-        const guests = presence.guests.map(g => g.name)
+        const guests = presence.guests.map(g => guestLabel(t, g))
         const absent = members.filter(m => !presentIds.has(m.id)).map(m => m.firstName)
         if (present.length + guests.length === 0) {
           sentences.push(t('alexa.query.who.nobody', { when }))
         } else {
           const names = guests.length > 0
-            ? t('alexa.query.who.withGuests', { members: joinList(t, present), guests: joinList(t, guests), n: guests.length })
+            ? t('alexa.query.who.withGuests', { members: joinList(t, present), guests: joinList(t, guests), n: guestPeople(presence.guests) })
             : joinList(t, present)
           sentences.push(t('alexa.query.who.result', { when, names, n: presence.headcount }))
           if (absent.length > 0) sentences.push(t('alexa.query.summary.absent', { names: joinList(t, absent), n: absent.length }))

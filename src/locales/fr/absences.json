@@ -88,7 +88,8 @@
     "wholeFamily": "Toute la famille",
     "note": "Remarque / régime alimentaire (optionnel)",
     "notePlaceholder": "Ex : Végétarien, sans gluten, arrive à 19h…",
-    "submit": "Ajouter l'invité"
+    "submit": "Ajouter l'invité",
+    "people": "Nombre de personnes"
   },
   "day": {
     "declareTitle": "Déclarer une absence, absence longue, invitation ou présence",

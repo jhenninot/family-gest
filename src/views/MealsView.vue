@@ -602,7 +602,13 @@
           <ul v-if="presenceDetail.guests.length > 0" class="presence-list">
             <li v-for="g in presenceDetail.guests" :key="'pg-' + g.id" class="presence-row">
               <span class="presence-guest-dot">+</span>
-              <span class="presence-name">{{ g.name }}</span>
+              <span class="presence-name">{{ g.name }}<span v-if="guestCountOf(g) > 1" class="presence-guest-count"> ×{{ guestCountOf(g) }}</span></span>
+              <!-- Nombre de personnes sur cette ligne (un couple = 2) -->
+              <div v-if="isPresenceEditable" class="guest-stepper" role="group" :aria-label="t('meals.presence.people')">
+                <button type="button" :disabled="guestCountOf(g) <= 1 || presenceBusyKey !== null" :aria-label="t('meals.presence.lessPeople')" @click="setGuestCount(g, guestCountOf(g) - 1)">−</button>
+                <span>{{ guestCountOf(g) }}</span>
+                <button type="button" :disabled="guestCountOf(g) >= MAX_GUEST_COUNT || presenceBusyKey !== null" :aria-label="t('meals.presence.morePeople')" @click="setGuestCount(g, guestCountOf(g) + 1)">+</button>
+              </div>
               <button
                 v-if="isPresenceEditable"
                 type="button"
@@ -623,6 +629,10 @@
               :placeholder="t('meals.presence.guestName')"
               maxlength="80"
             />
+            <label class="guest-count-input" :title="t('meals.presence.people')">
+              <Users :size="14" />
+              <input v-model.number="newGuestCount" type="number" min="1" :max="MAX_GUEST_COUNT" :aria-label="t('meals.presence.people')" />
+            </label>
             <button
               type="submit"
               class="btn btn-secondary"
@@ -942,7 +952,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 import { usePointerDrag } from '../composables/usePointerDrag'
-import { SLOT_KEYS } from '@shared/presence.js'
+import { SLOT_KEYS, guestCountOf, MAX_GUEST_COUNT } from '@shared/presence.js'
 
 const store = useFamilyStore()
 const { t } = useI18n()
@@ -1579,6 +1589,8 @@ const isPresenceEditable = computed(() =>
 const presenceBusyKey = ref(null)
 const presenceError = ref('')
 const newGuestName = ref('')
+// Nombre de personnes du nouvel invité (un couple = 2)
+const newGuestCount = ref(1)
 
 const runPresenceAction = async (key, action) => {
   presenceBusyKey.value = key
@@ -1647,6 +1659,7 @@ const addGuestToSlot = () => {
     const { dateStr, slot } = presenceModalSlot.value
     ensureSuccess(await store.addMealGuest({
       name,
+      count: guestCountOf({ count: newGuestCount.value }),
       date: dateStr,
       lunch: slot === 'lunch',
       dinner: slot === 'dinner',
@@ -1654,8 +1667,13 @@ const addGuestToSlot = () => {
       invitedBy: authStore.user?.id
     }))
     newGuestName.value = ''
+    newGuestCount.value = 1
   })
 }
+
+const setGuestCount = (guest, count) => runPresenceAction(`guest-${guest.id}`, async () => {
+  ensureSuccess(await store.updateMealGuest(guest.id, { count: guestCountOf({ count }) }))
+})
 
 // Un invité peut couvrir plusieurs créneaux (midi + soir) : on ne le retire que de celui-ci.
 const removeGuestFromSlot = (guest) => runPresenceAction(`guest-${guest.id}`, async () => {
@@ -2389,13 +2407,66 @@ button.slot-headcount-circle:hover {
 
 .presence-guest-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.4rem;
 }
 
-.presence-guest-form .form-input {
-  flex: 1;
+/* Le nom garde une largeur utilisable : sur téléphone, nombre et bouton passent dessous */
+.presence-guest-form > .form-input {
+  flex: 1 1 11rem;
   min-width: 0;
+}
+
+.guest-count-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.45rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 10px);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.guest-count-input input {
+  width: 2.4rem;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.presence-guest-count {
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.guest-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.guest-stepper button {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.guest-stepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .presence-error {

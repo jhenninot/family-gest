@@ -5,15 +5,18 @@
     "notes": {
       "fr": [
         "Repas : nouvel écran « À organiser » pour préparer un repas avec des invités. Proposez plusieurs dates (un couple ou une famille sur une seule ligne, avec le nombre de personnes), partagez le lien sur WhatsApp : chacun vote sans compte, puis fixez la date. Les invités sont alors ajoutés au repas et un événement est créé dans l'agenda.",
-        "Agenda : les dates proposées pour un repas à organiser apparaissent en pointillés, avec le nombre de personnes disponibles ; touchez-les pour ouvrir le repas."
+        "Agenda : les dates proposées pour un repas à organiser apparaissent en pointillés, avec le nombre de personnes disponibles ; touchez-les pour ouvrir le repas.",
+        "Invités : indiquez le nombre de personnes (un couple = 2) ; il est compté dans les couverts et modifiable avec − / + dans la fenêtre du repas."
       ],
       "en": [
         "Meals: new “To organise” screen to plan a meal with guests. Suggest several dates (a couple or a family on a single line, with the number of people), share the link on WhatsApp: everyone votes without an account, then set the date. The guests are then added to the meal and an event is created in the calendar.",
-        "Calendar: dates suggested for a meal to organise appear with a dashed outline, with the number of people available; tap them to open the meal."
+        "Calendar: dates suggested for a meal to organise appear with a dashed outline, with the number of people available; tap them to open the meal.",
+        "Guests: enter the number of people (a couple = 2); it counts in the place settings and can be changed with − / + in the meal window."
       ],
       "es": [
         "Comidas: nueva pantalla «Por organizar» para preparar una comida con invitados. Proponga varias fechas (una pareja o una familia en una sola línea, con el número de personas) y comparta el enlace por WhatsApp: cada uno vota sin cuenta, luego fije la fecha. Los invitados se añaden entonces a la comida y se crea un evento en la agenda.",
-        "Agenda: las fechas propuestas para una comida por organizar aparecen con borde discontinuo y el número de personas disponibles; tóquelas para abrir la comida."
+        "Agenda: las fechas propuestas para una comida por organizar aparecen con borde discontinuo y el número de personas disponibles; tóquelas para abrir la comida.",
+        "Invitados: indique el número de personas (una pareja = 2); se cuenta en los cubiertos y se puede cambiar con − / + en la ventana de la comida."
       ]
     }
   },

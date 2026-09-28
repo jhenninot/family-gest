@@ -76,7 +76,10 @@
     "declarePresent": "Déclarer {name} présent(e) à ce repas",
     "presentBtn": "Présent",
     "noAbsence": "Aucune absence déclarée.",
-    "usuallyAbsent": "Habituellement absents ({n})"
+    "usuallyAbsent": "Habituellement absents ({n})",
+    "people": "Nombre de personnes",
+    "lessPeople": "Une personne de moins",
+    "morePeople": "Une personne de plus"
   },
   "form": {
     "moment": "Moment du repas",

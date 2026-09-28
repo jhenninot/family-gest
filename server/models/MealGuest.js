@@ -4,6 +4,8 @@ const mealGuestSchema = new mongoose.Schema({
   familyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Family', index: true },
   id: { type: Number, required: true },
   name: { type: String, required: true, trim: true }, // Un seul champ pour nom et prénom
+  // Nombre de personnes (un couple = 2) : une seule ligne, plusieurs couverts. Absent = 1.
+  count: { type: Number, default: 1, min: 1, max: 20 },
   date: { type: String, required: true }, // Format YYYY-MM-DD
   lunch: { type: Boolean, default: false }, // Présent au déjeuner (midi)
   dinner: { type: Boolean, default: false }, // Présent au dîner (soir)
