@@ -715,7 +715,7 @@
 
           <!-- Nombre de personnes (un couple = 2) : une seule ligne, plusieurs couverts -->
           <div class="form-group">
-            <label class="form-label" for="guest-count">{{ t('absences.guestForm.people') }}</label>
+            <label class="form-label" for="guest-count">{{ t('absences.guestForm.people') }} <InfoTip :text="t('help.infos.guestCount')" /></label>
             <input id="guest-count" v-model.number="guestForm.count" type="number" min="1" max="20" class="form-input guest-count-field" />
           </div>
 

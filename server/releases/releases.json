@@ -1,5 +1,20 @@
 [
   {
+    "version": "2026.10.02",
+    "date": "2026-10-02",
+    "notes": {
+      "fr": [
+        "Aide : un bouton « ? » en haut à droite de chaque écran ouvre une fiche d'aide (à quoi sert l'écran, comment faire, astuces et phrases à dire au micro). Des bulles « i » expliquent les notions délicates (présence habituelle, nombre de personnes, articles urgents…) et les listes vides indiquent comment démarrer."
+      ],
+      "en": [
+        "Help: a “?” button at the top right of every screen opens a help sheet (what the screen is for, how to do things, tips and phrases to say to the microphone). “i” bubbles explain the trickier notions (usual presence, number of people, urgent items…) and empty lists explain how to get started."
+      ],
+      "es": [
+        "Ayuda: un botón «?» arriba a la derecha de cada pantalla abre una ficha de ayuda (para qué sirve la pantalla, cómo hacer las cosas, consejos y frases para decir al micrófono). Unas burbujas «i» explican las nociones delicadas (presencia habitual, número de personas, artículos urgentes…) y las listas vacías indican cómo empezar."
+      ]
+    }
+  },
+  {
     "version": "2026.10.01",
     "date": "2026-10-01",
     "notes": {

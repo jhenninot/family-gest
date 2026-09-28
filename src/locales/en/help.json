@@ -1,0 +1,281 @@
+{
+  "button": "Help for this screen",
+  "kicker": "Help",
+  "moreInfo": "More information",
+  "howto": "How do I…",
+  "tips": "Tips",
+  "voice": "By voice",
+  "voiceIntro": "Tap the microphone at the bottom of the screen and say, for example:",
+  "tips_": {
+    "swipe": "On a phone, swipe left or right to move from one screen to the next.",
+    "rolling": "On a phone, days follow one another starting today: scroll down to see more, “Previous days” to go back.",
+    "defaultPresence": "No need to fill everything in: without a report, everyone is counted according to their usual presence.",
+    "noAccount": "Your guests need neither an account nor an app: the link is enough.",
+    "conflicts": "When you suggest a date, the app warns you if it clashes with a calendar event or a date already suggested elsewhere.",
+    "voiceButton": "The microphone button lets you add an absence, a dish, a guest or shopping without typing.",
+    "fromMeals": "Ingredients added from a dish (“+ Ingredients”) land here directly, with the name of the dish.",
+    "live": "The list is shared live: what one person ticks off in the shop disappears for everyone else.",
+    "reminders": "A task with a due date becomes urgent on that date, and the person in charge gets a reminder every day until it is done.",
+    "proposals": "Dates suggested for a meal to organise appear with a dashed outline: tap them to open the meal.",
+    "adminOnly": "This screen is reserved for family administrators."
+  },
+  "topics": {
+    "presence": {
+      "title": "Presence",
+      "intro": "Who is home for lunch, dinner and the night. Everyone only reports what differs from usual, and the app works out how many place settings are needed, guests included.",
+      "howto": {
+        "absence": {
+          "q": "Report that I won't be there",
+          "a": "Tap “Declare” on the day, choose “Absence”, then the meals (lunch, dinner) and the night. The others see it straight away."
+        },
+        "longAbsence": {
+          "q": "Going away for several days (holidays, course…)",
+          "a": "“Declare” then “Long absence”: enter the first and last day, and from which meal you leave and come back. No need to report each day."
+        },
+        "guest": {
+          "q": "Invite someone for a meal",
+          "a": "Tap “+ Guest” on the meal, enter the name and the number of people (a couple = 2). Guests count in the place settings."
+        },
+        "usual": {
+          "q": "Set my usual presence",
+          "a": "Open “My usual presence”: say whether you are usually home or away, day by day, for lunch, dinner and the night. Then you only report the exceptions."
+        },
+        "alternate": {
+          "q": "Shared custody: every other week",
+          "a": "In “My usual presence”, turn on “Alternate every other week” and fill in week A and week B. The app knows which week is current."
+        }
+      },
+      "voice": {
+        "absent": "Paul won't be here for lunch tomorrow",
+        "present": "I'll be there on Saturday evening",
+        "guest": "Grandma and Grandpa are coming for lunch on Sunday",
+        "who": "Who's home tonight?"
+      }
+    },
+    "meals": {
+      "title": "Meals",
+      "intro": "This week's menus, lunch and dinner, with the number of people at the table for each meal.",
+      "howto": {
+        "dish": {
+          "q": "Plan a dish",
+          "a": "Tap “Add a dish” on lunch or dinner. If your family uses Mealie, you can search for a recipe directly."
+        },
+        "ingredients": {
+          "q": "Add the ingredients to the shopping list",
+          "a": "On the dish, tap “+ Ingredients” and tick what needs buying: it all goes to the shared shopping list."
+        },
+        "headcount": {
+          "q": "Know how many we'll be",
+          "a": "The number shown on each meal counts the members at home and the guests. Tap it to see who is there, who is away, and to correct it."
+        },
+        "guests": {
+          "q": "Add guests to a meal",
+          "a": "In the meal details, enter the guest's name and the number of people, then “Invite”. The − / + buttons change the number afterwards."
+        }
+      },
+      "voice": {
+        "dish": "Tomorrow evening we're having lasagne",
+        "menu": "What are we eating this week?",
+        "who": "How many of us tonight?"
+      }
+    },
+    "mealPlans": {
+      "title": "Meals to organise",
+      "intro": "To find a date with guests, like a poll: you suggest dates, everyone votes from a link, then you set the date.",
+      "howto": {
+        "create": {
+          "q": "Organise a meal",
+          "a": "“New meal”: give it a title, choose lunch or dinner, add the guests (with the number of people) and tap the possible dates in the calendar."
+        },
+        "share": {
+          "q": "Send the link to the guests",
+          "a": "Tap “Send on WhatsApp” or copy the link. Each guest ticks the dates when they are available."
+        },
+        "follow": {
+          "q": "Follow the answers",
+          "a": "The grid shows who is available on each date and how many people in total. You get a notification for each vote."
+        },
+        "close": {
+          "q": "Set the date",
+          "a": "Tap “Set the date” and choose the date: the guests can be added to the meal and an event created in the calendar. Guests see the chosen date on the link."
+        },
+        "reopen": {
+          "q": "Change your mind",
+          "a": "“Reopen the vote” cancels the chosen date: the guests and the event created are removed, and voting resumes."
+        }
+      }
+    },
+    "general": {
+      "title": "Welcome to FamilyGest",
+      "intro": "Everything that keeps the home running, shared between all family members.",
+      "howto": {
+        "navigate": {
+          "q": "Find a screen",
+          "a": "The menu gives access to presence, meals, shopping, tasks and the calendar. The dashboard sums up the day."
+        },
+        "family": {
+          "q": "Switch family",
+          "a": "If you belong to several families, pick one from your avatar menu at the top right."
+        },
+        "profile": {
+          "q": "Set my notifications",
+          "a": "Avatar at the top right › My profile: choose the alerts you receive (on the phone or by email) and the daily summary."
+        }
+      }
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "intro": "The day at a glance: who is home, what we're eating, urgent shopping, tasks and upcoming events.",
+      "howto": {
+        "today": {
+          "q": "See the day at a glance",
+          "a": "The top cards show how many will be at the table for lunch and dinner, who sleeps at home, and what is on the menu."
+        },
+        "cards": {
+          "q": "Go further",
+          "a": "Tap a card or “See all” to open the matching screen: presence, meals, shopping, tasks or calendar."
+        },
+        "whatsnew": {
+          "q": "Discover what's new",
+          "a": "When a new version brings new features, a “What's new?” window presents them once on each device."
+        }
+      },
+      "voice": {
+        "summary": "What's the plan for today?",
+        "who": "Who's home tonight?"
+      }
+    },
+    "shopping": {
+      "title": "Shopping list",
+      "intro": "A single list for the whole family, sorted by aisle and updated live.",
+      "howto": {
+        "add": {
+          "q": "Add an item",
+          "a": "Type the name in the field at the top, choose the aisle and quantity if needed, then confirm."
+        },
+        "check": {
+          "q": "Do the shopping",
+          "a": "In the shop, tap an item to tick it: it moves to “Already in the cart”. Tap it again to untick it."
+        },
+        "urgent": {
+          "q": "Mark an item as urgent",
+          "a": "Tick “Urgent” when adding (or editing) it: it is highlighted and counted on the dashboard."
+        },
+        "categories": {
+          "q": "Change the order of the aisles",
+          "a": "An administrator can create and reorder aisles in Settings › Shopping categories, to follow the route through the shop."
+        }
+      },
+      "voice": {
+        "add": "Add milk and eggs to the shopping",
+        "empty": "We're out of coffee"
+      }
+    },
+    "tasks": {
+      "title": "Tasks",
+      "intro": "Things to do around the house, shared out between family members.",
+      "howto": {
+        "create": {
+          "q": "Create a task",
+          "a": "“Add a task”: give it a title, assign it to a member, choose the category and priority."
+        },
+        "done": {
+          "q": "Mark a task as done",
+          "a": "Tap the box next to the task. Tap it again to set it back to do."
+        },
+        "due": {
+          "q": "Set a due date",
+          "a": "Enter a due date: on that day the task becomes urgent and the person in charge gets a reminder every day."
+        },
+        "filter": {
+          "q": "See only some tasks",
+          "a": "The filters at the top show tasks to do or done, for everyone or for one member."
+        }
+      },
+      "voice": {
+        "mine": "What are my tasks?",
+        "member": "What tasks does Paul have to do?"
+      }
+    },
+    "calendar": {
+      "title": "Calendar",
+      "intro": "The family's shared calendar: appointments, outings, holidays, birthdays.",
+      "howto": {
+        "create": {
+          "q": "Add an event",
+          "a": "Tap a day then “+ Add”: title, time (or all day), members involved."
+        },
+        "multiDay": {
+          "q": "An event over several days",
+          "a": "In the form, enter an end date: holidays, a course or a weekend appear on each day."
+        },
+        "recurring": {
+          "q": "A repeating event",
+          "a": "Choose a frequency (daily, weekly, monthly) and an end date: all the dates are created at once."
+        },
+        "absence": {
+          "q": "Count absences automatically",
+          "a": "Tick “Create an absence”: the members involved are counted as away during the event, with nothing else to report."
+        },
+        "sync": {
+          "q": "Add to my personal calendar",
+          "a": "After saving, add the event to Google Calendar or download it for Apple Calendar / Outlook (.ics)."
+        }
+      },
+      "voice": {
+        "add": "Add a dentist appointment on Tuesday at 3 pm",
+        "holidays": "We're going on holiday from 20 to 27 October",
+        "query": "What's in the calendar tomorrow?"
+      }
+    },
+    "settings": {
+      "title": "Family settings",
+      "intro": "Managing the family: members, invitations, shopping aisles and connected services.",
+      "howto": {
+        "invite": {
+          "q": "Invite a member",
+          "a": "In “Member management”, invite someone by email: they receive a link to create their account and join the family."
+        },
+        "members": {
+          "q": "Edit a member",
+          "a": "Tap a member to change their role, administrator rights or usual presence."
+        },
+        "categories": {
+          "q": "Organise the shopping aisles",
+          "a": "“Shopping categories”: add aisles and change their order to match your shop."
+        },
+        "connectors": {
+          "q": "Connect Alexa, Claude or Mealie",
+          "a": "Each service has its own section: follow the step-by-step guide. The secret link created must only be shared with trusted people."
+        },
+        "export": {
+          "q": "Back up the data",
+          "a": "“Data backup and export” downloads all the family's data in a file."
+        }
+      }
+    }
+  },
+  "infos": {
+    "usualPresence": "This is your “default” presence. Unless you report otherwise, you are counted according to this setting; then you only report the exceptions.",
+    "slots": "Lunch and dinner count the place settings; the night shows who sleeps at home.",
+    "guestCount": "One line can count several people: a couple = 2, a family of four = 4. Everyone is counted in the place settings.",
+    "generateAbsence": "The ticked members are counted as away for meals (and the night) during the event. If the event dates change, their absences follow.",
+    "urgent": "An urgent item is highlighted in the list and counted on everyone's dashboard."
+  },
+  "empty": {
+    "mealPlans": {
+      "title": "No meals to organise",
+      "text": "Want to invite friends or family? Suggest several dates: they vote from a simple WhatsApp link, without installing anything, and you set the date.",
+      "action": "Organise a meal"
+    },
+    "tasks": {
+      "title": "No tasks yet",
+      "text": "Share out what needs doing at home: each task has someone in charge and, if needed, a due date with a reminder.",
+      "action": "Add a task"
+    },
+    "shopping": {
+      "title": "Nothing to buy for now",
+      "text": "Add an item in the field above, or from a dish with “+ Ingredients”. The whole family sees the list live."
+    }
+  }
+}

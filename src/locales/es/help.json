@@ -1,0 +1,281 @@
+{
+  "button": "Ayuda sobre esta pantalla",
+  "kicker": "Ayuda",
+  "moreInfo": "Más información",
+  "howto": "Cómo…",
+  "tips": "Consejos",
+  "voice": "Por voz",
+  "voiceIntro": "Toque el micrófono en la parte inferior de la pantalla y diga, por ejemplo:",
+  "tips_": {
+    "swipe": "En el teléfono, deslice el dedo a la izquierda o a la derecha para pasar de una pantalla a otra.",
+    "rolling": "En el teléfono, los días se suceden a partir de hoy: baje para ver más, «Días anteriores» para volver atrás.",
+    "defaultPresence": "No hace falta rellenarlo todo: sin declaración, cada uno cuenta según su presencia habitual.",
+    "noAccount": "Sus invitados no necesitan cuenta ni aplicación: basta con el enlace.",
+    "conflicts": "Al proponer una fecha, la app le avisa si coincide con un evento de la agenda o con una fecha ya propuesta en otro sitio.",
+    "voiceButton": "El botón del micrófono permite añadir una ausencia, un plato, un invitado o compras sin escribir.",
+    "fromMeals": "Los ingredientes añadidos desde un plato («+ Ingredientes») llegan directamente aquí, con el nombre del plato.",
+    "live": "La lista se comparte al instante: lo que uno marca en la tienda desaparece para los demás.",
+    "reminders": "Una tarea con fecha límite pasa a urgente ese día, y la persona responsable recibe un recordatorio cada día hasta que esté hecha.",
+    "proposals": "Las fechas propuestas para una comida por organizar aparecen con borde discontinuo: tóquelas para abrir la comida.",
+    "adminOnly": "Esta pantalla está reservada a los administradores de la familia."
+  },
+  "topics": {
+    "presence": {
+      "title": "Presencias",
+      "intro": "Quién está en casa a la comida, a la cena y por la noche. Cada uno solo indica lo que cambia respecto a lo habitual, y la app calcula los cubiertos, invitados incluidos.",
+      "howto": {
+        "absence": {
+          "q": "Indicar que no estaré",
+          "a": "Toque «Declarar» en el día, elija «Ausencia» y luego las comidas (comida, cena) y la noche. Los demás lo ven al instante."
+        },
+        "longAbsence": {
+          "q": "Irse varios días (vacaciones, curso…)",
+          "a": "«Declarar» y luego «Ausencia larga»: indique el primer y el último día, y desde qué comida se va y vuelve. No hace falta declarar cada día."
+        },
+        "guest": {
+          "q": "Invitar a alguien a comer",
+          "a": "Toque «+ Invitado» en la comida, escriba el nombre y el número de personas (una pareja = 2). Los invitados cuentan en los cubiertos."
+        },
+        "usual": {
+          "q": "Configurar mi presencia habitual",
+          "a": "Abra «Mi presencia habitual»: indique si suele estar o no, día a día, en la comida, la cena y la noche. Después solo declara las excepciones."
+        },
+        "alternate": {
+          "q": "Custodia compartida: una semana de cada dos",
+          "a": "En «Mi presencia habitual», active «Alternar una semana de cada dos» y rellene la semana A y la semana B. La app sabe qué semana está en curso."
+        }
+      },
+      "voice": {
+        "absent": "Paul no estará mañana a mediodía",
+        "present": "Estaré el sábado por la noche",
+        "guest": "La abuela y el abuelo vienen a comer el domingo",
+        "who": "¿Quién está en casa esta noche?"
+      }
+    },
+    "meals": {
+      "title": "Comidas",
+      "intro": "Los menús de la semana, comida y cena, con el número de personas a la mesa en cada comida.",
+      "howto": {
+        "dish": {
+          "q": "Prever un plato",
+          "a": "Toque «Añadir un plato» en la comida o la cena. Si su familia usa Mealie, puede buscar una receta directamente."
+        },
+        "ingredients": {
+          "q": "Añadir los ingredientes a la compra",
+          "a": "En el plato, toque «+ Ingredientes» y marque lo que hay que comprar: todo va a la lista de la compra común."
+        },
+        "headcount": {
+          "q": "Saber cuántos seremos",
+          "a": "El número de cada comida cuenta los miembros presentes y los invitados. Tóquelo para ver quién está, quién no, y corregirlo."
+        },
+        "guests": {
+          "q": "Añadir invitados a una comida",
+          "a": "En el detalle de la comida, escriba el nombre del invitado y el número de personas, y luego «Invitar». Los botones − / + corrigen el número después."
+        }
+      },
+      "voice": {
+        "dish": "Mañana por la noche comemos lasaña",
+        "menu": "¿Qué comemos esta semana?",
+        "who": "¿Cuántos seremos esta noche?"
+      }
+    },
+    "mealPlans": {
+      "title": "Comidas por organizar",
+      "intro": "Para encontrar una fecha con invitados, como una encuesta: propone fechas, cada uno vota desde un enlace y luego fija la fecha.",
+      "howto": {
+        "create": {
+          "q": "Organizar una comida",
+          "a": "«Nueva comida»: ponga un título, elija comida o cena, añada los invitados (con el número de personas) y toque las fechas posibles en el calendario."
+        },
+        "share": {
+          "q": "Enviar el enlace a los invitados",
+          "a": "Toque «Enviar por WhatsApp» o copie el enlace. Cada invitado marca las fechas en las que está disponible."
+        },
+        "follow": {
+          "q": "Seguir las respuestas",
+          "a": "La tabla muestra quién está disponible en cada fecha y cuántas personas en total. Recibe una notificación con cada voto."
+        },
+        "close": {
+          "q": "Fijar la fecha",
+          "a": "Toque «Fijar la fecha» y elija la fecha: los invitados pueden añadirse a la comida y crearse un evento en la agenda. Los invitados ven la fecha elegida en el enlace."
+        },
+        "reopen": {
+          "q": "Cambiar de opinión",
+          "a": "«Reabrir la votación» anula la fecha elegida: se quitan los invitados y el evento creados, y la votación continúa."
+        }
+      }
+    },
+    "general": {
+      "title": "Bienvenido a FamilyGest",
+      "intro": "Lo esencial de la organización de la casa, compartido entre todos los miembros de la familia.",
+      "howto": {
+        "navigate": {
+          "q": "Encontrar una pantalla",
+          "a": "El menú da acceso a presencias, comidas, compras, tareas y agenda. El panel resume el día."
+        },
+        "family": {
+          "q": "Cambiar de familia",
+          "a": "Si pertenece a varias familias, elíjala en el menú de su avatar, arriba a la derecha."
+        },
+        "profile": {
+          "q": "Configurar mis notificaciones",
+          "a": "Avatar arriba a la derecha › Mi perfil: elija las alertas que recibe (en el teléfono o por email) y el resumen diario."
+        }
+      }
+    },
+    "dashboard": {
+      "title": "Panel",
+      "intro": "El resumen del día: quién está en casa, qué se come, compras urgentes, tareas y próximos eventos.",
+      "howto": {
+        "today": {
+          "q": "Ver el día de un vistazo",
+          "a": "Las tarjetas de arriba muestran cuántos serán a la mesa a mediodía y por la noche, quién duerme en casa y qué hay en el menú."
+        },
+        "cards": {
+          "q": "Ir más allá",
+          "a": "Toque una tarjeta o «Ver todo» para abrir la pantalla correspondiente: presencias, comidas, compras, tareas o agenda."
+        },
+        "whatsnew": {
+          "q": "Descubrir las novedades",
+          "a": "Cuando una nueva versión trae novedades, una ventana «¿Qué hay de nuevo?» las presenta una vez en cada dispositivo."
+        }
+      },
+      "voice": {
+        "summary": "¿Cuál es el programa de hoy?",
+        "who": "¿Quién está en casa esta noche?"
+      }
+    },
+    "shopping": {
+      "title": "Lista de la compra",
+      "intro": "Una sola lista para toda la familia, ordenada por pasillo y actualizada al instante.",
+      "howto": {
+        "add": {
+          "q": "Añadir un artículo",
+          "a": "Escriba el nombre en el campo de arriba, elija el pasillo y la cantidad si hace falta, y valide."
+        },
+        "check": {
+          "q": "Hacer la compra",
+          "a": "En la tienda, toque un artículo para marcarlo: pasa a «Ya en el carro». Tóquelo otra vez para desmarcarlo."
+        },
+        "urgent": {
+          "q": "Marcar un artículo como urgente",
+          "a": "Marque «Urgente» al añadirlo (o al modificarlo): se destaca y se cuenta en el panel."
+        },
+        "categories": {
+          "q": "Cambiar el orden de los pasillos",
+          "a": "Un administrador puede crear y reordenar los pasillos en Ajustes › Categorías de la compra, para seguir el recorrido de la tienda."
+        }
+      },
+      "voice": {
+        "add": "Añade leche y huevos a la compra",
+        "empty": "No queda café"
+      }
+    },
+    "tasks": {
+      "title": "Tareas",
+      "intro": "Las cosas por hacer en casa, repartidas entre los miembros de la familia.",
+      "howto": {
+        "create": {
+          "q": "Crear una tarea",
+          "a": "«Añadir una tarea»: ponga un título, asígnela a un miembro y elija la categoría y la prioridad."
+        },
+        "done": {
+          "q": "Marcar una tarea como hecha",
+          "a": "Toque la casilla junto a la tarea. Tóquela otra vez para volver a dejarla pendiente."
+        },
+        "due": {
+          "q": "Poner una fecha límite",
+          "a": "Indique una fecha límite: ese día la tarea pasa a urgente y la persona responsable recibe un recordatorio cada día."
+        },
+        "filter": {
+          "q": "Ver solo algunas tareas",
+          "a": "Los filtros de arriba muestran las tareas pendientes o terminadas, de todos o de un solo miembro."
+        }
+      },
+      "voice": {
+        "mine": "¿Cuáles son mis tareas?",
+        "member": "¿Qué tareas tiene Paul?"
+      }
+    },
+    "calendar": {
+      "title": "Agenda",
+      "intro": "La agenda común de la familia: citas, salidas, vacaciones, cumpleaños.",
+      "howto": {
+        "create": {
+          "q": "Añadir un evento",
+          "a": "Toque un día y luego «+ Añadir»: título, hora (o todo el día), miembros implicados."
+        },
+        "multiDay": {
+          "q": "Un evento de varios días",
+          "a": "En el formulario, indique una fecha de fin: vacaciones, un curso o un fin de semana aparecen en cada día."
+        },
+        "recurring": {
+          "q": "Un evento que se repite",
+          "a": "Elija una frecuencia (diaria, semanal, mensual) y una fecha de fin: todas las fechas se crean de una vez."
+        },
+        "absence": {
+          "q": "Contar las ausencias automáticamente",
+          "a": "Marque «Crear una ausencia»: los miembros implicados cuentan como ausentes durante el evento, sin declarar nada más."
+        },
+        "sync": {
+          "q": "Añadir a mi agenda personal",
+          "a": "Tras guardar, añada el evento a Google Calendar o descárguelo para Apple Calendar / Outlook (.ics)."
+        }
+      },
+      "voice": {
+        "add": "Añade una cita con el dentista el martes a las 15",
+        "holidays": "Nos vamos de vacaciones del 20 al 27 de octubre",
+        "query": "¿Qué hay en la agenda mañana?"
+      }
+    },
+    "settings": {
+      "title": "Ajustes de la familia",
+      "intro": "La gestión de la familia: miembros, invitaciones, pasillos de la compra y servicios conectados.",
+      "howto": {
+        "invite": {
+          "q": "Invitar a un miembro",
+          "a": "En «Gestión de miembros», invite a una persona por email: recibe un enlace para crear su cuenta y unirse a la familia."
+        },
+        "members": {
+          "q": "Modificar un miembro",
+          "a": "Toque un miembro para cambiar su rol, sus derechos de administrador o su presencia habitual."
+        },
+        "categories": {
+          "q": "Organizar los pasillos de la compra",
+          "a": "«Categorías de la compra»: añada pasillos y cambie su orden para seguir su tienda."
+        },
+        "connectors": {
+          "q": "Conectar Alexa, Claude o Mealie",
+          "a": "Cada servicio tiene su sección: siga la guía paso a paso. El enlace secreto creado solo debe compartirse con personas de confianza."
+        },
+        "export": {
+          "q": "Guardar los datos",
+          "a": "«Copia de seguridad y exportación de datos» descarga todos los datos de la familia en un archivo."
+        }
+      }
+    }
+  },
+  "infos": {
+    "usualPresence": "Es su presencia «por defecto». Si no declara nada, cuenta según este ajuste; después solo indica las excepciones.",
+    "slots": "La comida y la cena cuentan los cubiertos; la noche indica quién duerme en casa.",
+    "guestCount": "Una línea puede contar varias personas: una pareja = 2, una familia de cuatro = 4. Todos cuentan en los cubiertos.",
+    "generateAbsence": "Los miembros marcados cuentan como ausentes en las comidas (y la noche) durante el evento. Si cambian las fechas del evento, sus ausencias se ajustan.",
+    "urgent": "Un artículo urgente se destaca en la lista y se cuenta en el panel de cada uno."
+  },
+  "empty": {
+    "mealPlans": {
+      "title": "Ninguna comida por organizar",
+      "text": "¿Quiere invitar a amigos o a la familia? Propóngales varias fechas: votan desde un simple enlace de WhatsApp, sin instalar nada, y usted fija la fecha.",
+      "action": "Organizar una comida"
+    },
+    "tasks": {
+      "title": "Todavía no hay tareas",
+      "text": "Reparta lo que hay que hacer en casa: cada tarea tiene un responsable y, si hace falta, una fecha límite con recordatorio.",
+      "action": "Añadir una tarea"
+    },
+    "shopping": {
+      "title": "Nada que comprar por ahora",
+      "text": "Añada un artículo en el campo de arriba, o desde un plato con «+ Ingredientes». Toda la familia ve la lista al instante."
+    }
+  }
+}

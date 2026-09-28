@@ -100,7 +100,15 @@
       </div>
     </div>
 
-    <div v-if="filteredTasks.length === 0" class="glass-card empty-card">
+    <EmptyState
+      v-if="store.tasks.length === 0"
+      icon="✅"
+      :title="t('help.empty.tasks.title')"
+      :text="t('help.empty.tasks.text')"
+      :action-label="t('help.empty.tasks.action')"
+      @action="openAddModal"
+    />
+    <div v-else-if="filteredTasks.length === 0" class="glass-card empty-card">
       <p>{{ t('tasks.empty') }}</p>
     </div>
 
@@ -185,6 +193,7 @@ import { formatDate } from '../i18n/format'
 import { TASK_CATEGORY_VALUES, TASK_PRIORITY_VALUES, translateValue } from '../i18n/values'
 import { CheckSquare, Plus, Trash2, Pencil, CalendarClock } from '@lucide/vue'
 import UserAvatar from '../components/UserAvatar.vue'
+import EmptyState from '../components/EmptyState.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'

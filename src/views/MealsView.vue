@@ -592,6 +592,7 @@
         <div v-if="presenceDetail.guests.length > 0 || isPresenceEditable" class="presence-section">
           <h4 class="presence-section-title guest">
             {{ t('meals.presence.guests', { n: presenceDetail.guestsCount }) }}
+            <InfoTip :text="t('help.infos.guestCount')" />
           </h4>
           <ul v-if="presenceDetail.guests.length > 0" class="presence-list">
             <li v-for="g in presenceDetail.guests" :key="'pg-' + g.id" class="presence-row">
@@ -946,6 +947,7 @@ import { escapeHtml } from '../utils/escapeHtml'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 import { usePointerDrag } from '../composables/usePointerDrag'
 import { SLOT_KEYS, guestCountOf, MAX_GUEST_COUNT } from '@shared/presence.js'
+import InfoTip from '../components/InfoTip.vue'
 
 const store = useFamilyStore()
 const { t } = useI18n()

@@ -284,6 +284,7 @@
             <label class="checkbox-label">
               <input type="checkbox" v-model="newEvent.generateAbsence" />
               <span>{{ t(newEvent.multiDay ? 'calendar.form.generateAbsenceDays' : 'calendar.form.generateAbsence', newEvent.memberIds.length) }}</span>
+              <InfoTip :text="t('help.infos.generateAbsence')" />
             </label>
 
             <div v-if="newEvent.generateAbsence && newEvent.multiDay" class="absence-days-row">
@@ -744,6 +745,7 @@ import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 import UserAvatar from '../components/UserAvatar.vue'
+import InfoTip from '../components/InfoTip.vue'
 
 const store = useFamilyStore()
 const authStore = useAuthStore()

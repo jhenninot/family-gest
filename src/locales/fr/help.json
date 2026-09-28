@@ -12,7 +12,12 @@
     "defaultPresence": "Inutile de tout remplir : sans déclaration, chacun est compté selon sa présence habituelle.",
     "noAccount": "Vos invités n'ont besoin ni de compte ni d'application : le lien suffit.",
     "conflicts": "Quand vous proposez une date, l'appli vous prévient si elle tombe sur un événement de l'agenda ou une date déjà proposée ailleurs.",
-    "voiceButton": "Le bouton micro permet d'ajouter une absence, un plat, un invité ou des courses sans rien taper."
+    "voiceButton": "Le bouton micro permet d'ajouter une absence, un plat, un invité ou des courses sans rien taper.",
+    "fromMeals": "Les ingrédients ajoutés depuis un plat (« + Ingrédients ») arrivent directement ici, avec le nom du plat.",
+    "live": "La liste est partagée en direct : ce que l'un coche au magasin disparaît chez les autres.",
+    "reminders": "Une tâche avec échéance devient urgente à cette date, et la personne concernée reçoit un rappel chaque jour tant qu'elle n'est pas faite.",
+    "proposals": "Les dates proposées pour un repas à organiser apparaissent en pointillés : touchez-les pour ouvrir le repas.",
+    "adminOnly": "Cet écran est réservé aux administrateurs de la famille."
   },
   "topics": {
     "presence": {
@@ -117,17 +122,160 @@
           "a": "Avatar en haut à droite › Mon profil : choisissez les alertes que vous recevez (sur le téléphone ou par email) et le récapitulatif du jour."
         }
       }
+    },
+    "dashboard": {
+      "title": "Tableau de bord",
+      "intro": "Le résumé de la journée : qui est à la maison, ce qu'on mange, les courses urgentes, les tâches et les prochains événements.",
+      "howto": {
+        "today": {
+          "q": "Voir la journée en un coup d'œil",
+          "a": "Les cartes du haut montrent le nombre de personnes à table midi et soir, qui dort à la maison, et ce qui est au menu."
+        },
+        "cards": {
+          "q": "Aller plus loin",
+          "a": "Touchez une carte ou « Tout voir » pour ouvrir l'écran correspondant : présences, repas, courses, tâches ou agenda."
+        },
+        "whatsnew": {
+          "q": "Découvrir les nouveautés",
+          "a": "Quand une nouvelle version apporte des nouveautés, une fenêtre « Quoi de neuf ? » les présente une fois sur chaque appareil."
+        }
+      },
+      "voice": {
+        "summary": "Quel est le programme du jour ?",
+        "who": "Qui est à la maison ce soir ?"
+      }
+    },
+    "shopping": {
+      "title": "Liste de courses",
+      "intro": "Une seule liste pour toute la famille, rangée par rayon et mise à jour en direct.",
+      "howto": {
+        "add": {
+          "q": "Ajouter un article",
+          "a": "Tapez le nom dans le champ en haut, choisissez le rayon et la quantité si besoin, puis validez."
+        },
+        "check": {
+          "q": "Faire les courses",
+          "a": "Au magasin, touchez un article pour le cocher : il passe dans « Déjà dans le chariot ». Touchez-le à nouveau pour le décocher."
+        },
+        "urgent": {
+          "q": "Signaler un article urgent",
+          "a": "Cochez « Urgent » en l'ajoutant (ou en le modifiant) : il est mis en évidence et compté sur le tableau de bord."
+        },
+        "categories": {
+          "q": "Changer l'ordre des rayons",
+          "a": "Un administrateur peut créer et réordonner les rayons dans Réglages › Catégories de courses, pour suivre le parcours du magasin."
+        }
+      },
+      "voice": {
+        "add": "Rajoute du lait et des œufs aux courses",
+        "empty": "On n'a plus de café"
+      }
+    },
+    "tasks": {
+      "title": "Tâches",
+      "intro": "Les choses à faire à la maison, réparties entre les membres de la famille.",
+      "howto": {
+        "create": {
+          "q": "Créer une tâche",
+          "a": "« Ajouter une tâche » : donnez un titre, attribuez-la à un membre, choisissez la catégorie et la priorité."
+        },
+        "done": {
+          "q": "Marquer une tâche comme faite",
+          "a": "Touchez la case à côté de la tâche. Touchez-la à nouveau pour la remettre à faire."
+        },
+        "due": {
+          "q": "Donner une échéance",
+          "a": "Indiquez une date d'échéance : ce jour-là, la tâche devient urgente et la personne concernée reçoit un rappel chaque jour."
+        },
+        "filter": {
+          "q": "Ne voir que certaines tâches",
+          "a": "Les filtres en haut affichent les tâches à faire ou terminées, pour tous ou pour un seul membre."
+        }
+      },
+      "voice": {
+        "mine": "Quelles sont mes tâches ?",
+        "member": "Quelles tâches a Paul à faire ?"
+      }
+    },
+    "calendar": {
+      "title": "Agenda",
+      "intro": "L'agenda commun de la famille : rendez-vous, sorties, vacances, anniversaires.",
+      "howto": {
+        "create": {
+          "q": "Ajouter un événement",
+          "a": "Touchez un jour puis « + Ajouter » : titre, heure (ou toute la journée), membres concernés."
+        },
+        "multiDay": {
+          "q": "Un événement sur plusieurs jours",
+          "a": "Dans le formulaire, indiquez une date de fin : vacances, stage ou week-end apparaissent sur chaque jour."
+        },
+        "recurring": {
+          "q": "Un événement qui se répète",
+          "a": "Choisissez une fréquence (quotidien, hebdomadaire, mensuel) et une date de fin : toutes les dates sont créées d'un coup."
+        },
+        "absence": {
+          "q": "Compter les absences automatiquement",
+          "a": "Cochez « Générer une absence » : les membres concernés sont comptés absents pendant l'événement, sans rien déclarer en plus."
+        },
+        "sync": {
+          "q": "Ajouter à mon agenda personnel",
+          "a": "Après l'enregistrement, ajoutez l'événement à Google Agenda ou téléchargez-le pour Apple Calendrier / Outlook (.ics)."
+        }
+      },
+      "voice": {
+        "add": "Ajoute un rendez-vous dentiste mardi à 15 heures",
+        "holidays": "On part en vacances du 20 au 27 octobre",
+        "query": "Qu'est-ce qu'il y a dans l'agenda demain ?"
+      }
+    },
+    "settings": {
+      "title": "Réglages de la famille",
+      "intro": "La gestion de la famille : membres, invitations, rayons des courses et services connectés.",
+      "howto": {
+        "invite": {
+          "q": "Inviter un membre",
+          "a": "Dans « Gestion des membres », invitez une personne par son adresse email : elle reçoit un lien pour créer son compte et rejoindre la famille."
+        },
+        "members": {
+          "q": "Modifier un membre",
+          "a": "Touchez un membre pour changer son rôle, ses droits d'administrateur ou sa présence habituelle."
+        },
+        "categories": {
+          "q": "Organiser les rayons des courses",
+          "a": "« Catégories de courses » : ajoutez des rayons et changez leur ordre pour suivre votre magasin."
+        },
+        "connectors": {
+          "q": "Connecter Alexa, Claude ou Mealie",
+          "a": "Chaque service a sa section : suivez le guide pas à pas. Le lien secret créé ne doit être partagé qu'avec des personnes de confiance."
+        },
+        "export": {
+          "q": "Sauvegarder les données",
+          "a": "« Sauvegarde et export des données » télécharge toutes les données de la famille dans un fichier."
+        }
+      }
     }
   },
   "infos": {
     "usualPresence": "C'est votre présence « par défaut ». Sans déclaration de votre part, vous êtes compté(e) selon ce réglage ; vous ne signalez ensuite que les exceptions.",
-    "slots": "Midi et soir comptent les couverts ; la nuit indique qui dort à la maison."
+    "slots": "Midi et soir comptent les couverts ; la nuit indique qui dort à la maison.",
+    "guestCount": "Une ligne peut compter plusieurs personnes : un couple = 2, une famille de quatre = 4. Tout est compté dans les couverts.",
+    "generateAbsence": "Les membres cochés sont comptés absents aux repas (et la nuit) pendant l'événement. Si les dates de l'événement changent, leurs absences suivent.",
+    "urgent": "Un article urgent est mis en évidence dans la liste et compté sur le tableau de bord de chacun."
   },
   "empty": {
     "mealPlans": {
       "title": "Aucun repas à organiser",
       "text": "Vous voulez inviter des amis ou la famille ? Proposez-leur plusieurs dates : ils votent depuis un simple lien WhatsApp, sans rien installer, et vous fixez la date.",
       "action": "Organiser un repas"
+    },
+    "tasks": {
+      "title": "Aucune tâche pour l'instant",
+      "text": "Répartissez ce qu'il y a à faire à la maison : chaque tâche a un responsable et, si besoin, une échéance avec rappel.",
+      "action": "Ajouter une tâche"
+    },
+    "shopping": {
+      "title": "Rien à acheter pour l'instant",
+      "text": "Ajoutez un article dans le champ ci-dessus, ou depuis un plat avec « + Ingrédients ». Toute la famille voit la liste en direct."
     }
   }
 }

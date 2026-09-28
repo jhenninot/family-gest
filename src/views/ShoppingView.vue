@@ -32,6 +32,7 @@
         <label class="urgent-toggle">
           <input type="checkbox" v-model="newItem.urgent" />
           <span>{{ t('shopping.urgent') }} 🔥</span>
+          <InfoTip :text="t('help.infos.urgent')" />
         </label>
 
         <button type="submit" class="btn btn-primary">{{ t('common.add') }}</button>
@@ -47,9 +48,12 @@
       <span class="badge badge-amber" v-if="urgentCount > 0">{{ t('shopping.urgentCount', { n: urgentCount }, urgentCount) }} 🔥</span>
     </div>
 
-    <div v-if="pendingItems.length === 0" class="glass-card empty-state">
-      ✨ {{ t('shopping.emptyPending') }}
-    </div>
+    <EmptyState
+      v-if="pendingItems.length === 0"
+      icon="🛒"
+      :title="t('help.empty.shopping.title')"
+      :text="t('help.empty.shopping.text')"
+    />
 
     <div v-else class="categories-wrapper">
       <div 
@@ -201,6 +205,8 @@ import { translateValue } from '../i18n/values'
 import { ShoppingCart, Plus, Trash2, Pencil } from '@lucide/vue'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
+import InfoTip from '../components/InfoTip.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 const store = useFamilyStore()
 const { t } = useI18n()

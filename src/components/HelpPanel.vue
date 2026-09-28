@@ -69,12 +69,24 @@ const { t } = useI18n()
 const route = useRoute()
 
 const ROUTE_TOPICS = {
+  'family-dashboard': 'dashboard',
+  'family-dashboard-explicit': 'dashboard',
   'family-absences': 'presence',
   'family-meals': 'meals',
-  'family-meal-plans': 'mealPlans'
+  'family-meal-plans': 'mealPlans',
+  'family-shopping': 'shopping',
+  'family-tasks': 'tasks',
+  'family-calendar': 'calendar',
+  'family-settings': 'settings'
 }
 
 const TOPICS = {
+  dashboard: {
+    icon: '🏡',
+    howto: ['today', 'cards', 'whatsnew'],
+    tips: ['swipe', 'voiceButton'],
+    voice: ['summary', 'who']
+  },
   presence: {
     icon: '🏠',
     howto: ['absence', 'longAbsence', 'guest', 'usual', 'alternate'],
@@ -91,6 +103,30 @@ const TOPICS = {
     icon: '🗳️',
     howto: ['create', 'share', 'follow', 'close', 'reopen'],
     tips: ['noAccount', 'conflicts'],
+    voice: []
+  },
+  shopping: {
+    icon: '🛒',
+    howto: ['add', 'check', 'urgent', 'categories'],
+    tips: ['fromMeals', 'live'],
+    voice: ['add', 'empty']
+  },
+  tasks: {
+    icon: '✅',
+    howto: ['create', 'done', 'due', 'filter'],
+    tips: ['reminders'],
+    voice: ['mine', 'member']
+  },
+  calendar: {
+    icon: '📅',
+    howto: ['create', 'multiDay', 'recurring', 'absence', 'sync'],
+    tips: ['swipe', 'proposals'],
+    voice: ['add', 'holidays', 'query']
+  },
+  settings: {
+    icon: '⚙️',
+    howto: ['invite', 'members', 'categories', 'connectors', 'export'],
+    tips: ['adminOnly'],
     voice: []
   },
   general: {
