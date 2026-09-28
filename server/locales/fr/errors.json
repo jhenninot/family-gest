@@ -140,5 +140,14 @@
   "mealPollUnknownGuest": "Choisissez votre nom dans la liste.",
   "landingContact": "Contact invalide : une adresse email, un numéro WhatsApp (avec l'indicatif, ex. +33 6…) ou un lien https.",
   "landingNotFound": "Page introuvable.",
-  "superAdminNotFamilyMember": "Un Super Administrateur ne peut pas être ajouté à une famille depuis la console : il doit être invité par un administrateur de la famille."
+  "superAdminNotFamilyMember": "Un Super Administrateur ne peut pas être ajouté à une famille depuis la console : il doit être invité par un administrateur de la famille.",
+  "bugReportDescriptionRequired": "Décrivez le problème en quelques mots.",
+  "bugReportTooManyAttachments": "{max} pièces jointes au maximum.",
+  "bugReportAttachmentTooLarge": "Chaque pièce jointe doit faire moins de {max} Mo.",
+  "bugReportAttachmentsTooLarge": "Les pièces jointes ne doivent pas dépasser {max} Mo au total.",
+  "bugReportAttachmentType": "Seules les images (PNG, JPEG, GIF, WebP) et les PDF sont acceptés.",
+  "bugReportAttachmentInvalid": "Une pièce jointe est illisible.",
+  "bugReportUnavailable": "L'envoi d'emails n'est pas configuré sur la plateforme : le signalement n'a pas pu être envoyé.",
+  "bugReportSendFailed": "Le signalement n'a pas pu être envoyé. Réessayez plus tard.",
+  "bugReportTooMany": "Vous avez envoyé beaucoup de signalements : réessayez dans un moment."
 }

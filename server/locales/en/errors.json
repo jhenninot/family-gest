@@ -140,5 +140,14 @@
   "mealPollUnknownGuest": "Choose your name from the list.",
   "landingContact": "Invalid contact: an email address, a WhatsApp number (with country code, e.g. +44 7…) or an https link.",
   "landingNotFound": "Page not found.",
-  "superAdminNotFamilyMember": "A Super Administrator cannot be added to a family from the console: a family administrator must invite them."
+  "superAdminNotFamilyMember": "A Super Administrator cannot be added to a family from the console: a family administrator must invite them.",
+  "bugReportDescriptionRequired": "Describe the problem in a few words.",
+  "bugReportTooManyAttachments": "{max} attachments at most.",
+  "bugReportAttachmentTooLarge": "Each attachment must be smaller than {max} MB.",
+  "bugReportAttachmentsTooLarge": "Attachments must not exceed {max} MB in total.",
+  "bugReportAttachmentType": "Only images (PNG, JPEG, GIF, WebP) and PDFs are accepted.",
+  "bugReportAttachmentInvalid": "An attachment could not be read.",
+  "bugReportUnavailable": "Email sending is not configured on the platform: the report could not be sent.",
+  "bugReportSendFailed": "The report could not be sent. Please try again later.",
+  "bugReportTooMany": "You have sent many reports: please try again in a while."
 }

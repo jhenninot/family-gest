@@ -47,6 +47,14 @@
               <li v-for="key in config.voice" :key="key">« {{ t(`help.topics.${topic}.voice.${key}`) }} »</li>
             </ul>
           </section>
+
+          <!-- Un problème ? Signalement par email au Super Admin -->
+          <div class="help-bug">
+            <p>{{ t('bugReport.helpPrompt') }}</p>
+            <button type="button" class="btn btn-secondary help-bug-btn" @click="reportBug">
+              <Bug :size="16" /> {{ t('bugReport.menu') }}
+            </button>
+          </div>
         </div>
       </aside>
     </transition>
@@ -60,7 +68,8 @@
 import { computed, watch, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { X } from '@lucide/vue'
+import { X, Bug } from '@lucide/vue'
+import { useBugReport } from '../composables/useBugReport'
 
 const props = defineProps({ modelValue: { type: Boolean, default: false } })
 const emit = defineEmits(['update:modelValue'])
@@ -141,6 +150,11 @@ const topic = computed(() => ROUTE_TOPICS[route.name] || 'general')
 const config = computed(() => TOPICS[topic.value])
 
 const close = () => emit('update:modelValue', false)
+const { openBugReport } = useBugReport()
+const reportBug = () => {
+  close()
+  openBugReport()
+}
 const onKey = (e) => { if (e.key === 'Escape') close() }
 
 watch(() => props.modelValue, (open) => {
@@ -329,6 +343,27 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   color: var(--accent-primary);
   font-style: italic;
   font-size: 0.9rem;
+}
+
+.help-bug {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-color);
+  text-align: center;
+}
+
+.help-bug p {
+  margin: 0 0 0.7rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.help-bug-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .help-fade-enter-active,

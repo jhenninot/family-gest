@@ -63,5 +63,30 @@
     "title": "¡Conexión SMTP de la plataforma correcta!",
     "body": "El servidor SMTP global de FamilyGest funciona correctamente.",
     "sentFrom": "Enviado desde: {email}"
+  },
+  "bugReport": {
+    "subject": "🐞 Error señalado por {name} ({ref})",
+    "title": "Nuevo informe de error",
+    "reference": "Referencia {ref}",
+    "from": "Señalado por",
+    "family": "Familia: {family}",
+    "replyHint": "Responda directamente a este email para contactar con la persona.",
+    "description": "Lo que ha pasado",
+    "expected": "Lo que se esperaba",
+    "attachments": "Archivo adjunto ({n}) | Archivos adjuntos ({n})",
+    "noAttachment": "Ningún archivo adjunto.",
+    "technical": "Información técnica",
+    "context": {
+      "page": "Página",
+      "screen": "Pantalla",
+      "family": "Familia (URL)",
+      "version": "Versión",
+      "build": "Build",
+      "language": "Idioma",
+      "userAgent": "Navegador",
+      "viewport": "Tamaño de pantalla",
+      "online": "Conexión",
+      "time": "Fecha (dispositivo)"
+    }
   }
 }

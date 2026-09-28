@@ -140,5 +140,14 @@
   "mealPollUnknownGuest": "Elija su nombre en la lista.",
   "landingContact": "Contacto no válido: una dirección de correo, un número de WhatsApp (con prefijo, p. ej. +34 6…) o un enlace https.",
   "landingNotFound": "Página no encontrada.",
-  "superAdminNotFamilyMember": "Un Superadministrador no puede añadirse a una familia desde la consola: debe invitarlo un administrador de la familia."
+  "superAdminNotFamilyMember": "Un Superadministrador no puede añadirse a una familia desde la consola: debe invitarlo un administrador de la familia.",
+  "bugReportDescriptionRequired": "Describa el problema en pocas palabras.",
+  "bugReportTooManyAttachments": "{max} archivos adjuntos como máximo.",
+  "bugReportAttachmentTooLarge": "Cada archivo adjunto debe pesar menos de {max} MB.",
+  "bugReportAttachmentsTooLarge": "Los archivos adjuntos no deben superar {max} MB en total.",
+  "bugReportAttachmentType": "Solo se aceptan imágenes (PNG, JPEG, GIF, WebP) y PDF.",
+  "bugReportAttachmentInvalid": "No se ha podido leer un archivo adjunto.",
+  "bugReportUnavailable": "El envío de emails no está configurado en la plataforma: no se ha podido enviar el informe.",
+  "bugReportSendFailed": "No se ha podido enviar el informe. Inténtelo más tarde.",
+  "bugReportTooMany": "Ha enviado muchos informes: inténtelo de nuevo dentro de un rato."
 }

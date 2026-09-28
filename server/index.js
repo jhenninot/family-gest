@@ -56,6 +56,7 @@ import { migrateNotificationPreferences } from './scripts/migrate-notification-p
 import { migrateUsualPresenceGrid } from './scripts/migrate-usual-presence-grid.js'
 import { startDigestScheduler, mountDigestAdminRoutes } from './digest/index.js'
 import { escapeHtml } from './digest/templates.js'
+import { parseBugReport, buildBugReportEmail, BugReportError } from './bugReports/index.js'
 import { t, normalizeLanguage, languageMiddleware, TranslatableError, localizeError, translator, localize, DEFAULT_LANGUAGE, formatDateOnly, readableDate, translateValue } from './i18n/index.js'
 import { LEVELS as LOG_LEVELS, DEBUG_DURATION_MS, configureLogger, getLogSettings, queryLogs, httpLogMiddleware, logger } from './logging/logger.js'
 import { normalizeUsualPresenceConfig, summarizeUsualPresence, mondayOf, DEFAULT_WEEK_ANCHOR, guestCountOf } from '../shared/presence.js'
@@ -96,11 +97,16 @@ const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map(o => o.trim()
 app.use(cors(corsOrigins.length > 0 ? { origin: corsOrigins } : undefined))
 // Le corps brut des requêtes Alexa est conservé : leur signature porte sur ces octets exacts
 // (voir server/alexa/index.js).
-app.use(express.json({
+const jsonOptions = {
   verify: (req, _res, buf) => {
     if (req.originalUrl.startsWith('/api/alexa/')) req.rawBody = buf.toString('utf8')
   }
-}))
+}
+// Signalement de bug : pièces jointes en base64 dans le corps (12 Mo max une fois décodées, voir
+// server/bugReports/) ; toutes les autres routes gardent la limite par défaut (100 Ko).
+const defaultJsonParser = express.json(jsonOptions)
+const bugReportJsonParser = express.json({ ...jsonOptions, limit: '17mb' })
+app.use((req, res, next) => (req.path === '/api/bug-reports' ? bugReportJsonParser : defaultJsonParser)(req, res, next))
 
 // Langue des réponses (req.t) : voir server/i18n/index.js
 app.use(languageMiddleware)
@@ -139,7 +145,7 @@ const isEmailConfigUsable = (config) => {
 
 // Helper : Envoie un email via la configuration fournie — relais SMTP générique (Nodemailer),
 // ou appel direct à l'API REST Brevo (https://api.brevo.com/v3/smtp/email) si providerPreset === 'brevo-api'.
-const sendEmailWithConfig = async (config, { to, subject, html, attachments = [] }) => {
+const sendEmailWithConfig = async (config, { to, subject, html, attachments = [], replyTo = null }) => {
   const fromName = config.fromName || 'FamilyGest'
   const fromEmail = config.fromEmail || config.user
 
@@ -150,6 +156,7 @@ const sendEmailWithConfig = async (config, { to, subject, html, attachments = []
       subject,
       htmlContent: html
     }
+    if (replyTo) payload.replyTo = { email: replyTo }
     if (attachments.length > 0) {
       payload.attachment = attachments.map(a => ({
         name: a.filename,
@@ -192,7 +199,8 @@ const sendEmailWithConfig = async (config, { to, subject, html, attachments = []
     to,
     subject,
     html,
-    attachments
+    attachments,
+    ...(replyTo ? { replyTo } : {})
   })
 }
 
@@ -6093,6 +6101,75 @@ app.delete('/api/shortcuts/:id', requireAuth, attachFamilyContext, requireFamily
     res.json({ message: req.t('messages.shortcutDeleted') })
   } catch (err) {
     res.status(500).json({ error: err.message })
+  }
+})
+
+// === SIGNALEMENT DE BUG ===
+// Formulaire « Signaler un bug » (src/components/BugReportModal.vue), accessible depuis l'aide
+// « ? » et le menu de l'avatar : envoie un email avec les pièces jointes à tous les Super Admins
+// (indépendamment de leurs préférences), avec l'adresse de la personne en « Répondre à ».
+// Le contenu saisi n'est jamais écrit dans les journaux.
+const bugReportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => `user-${req.user?.id}`,
+  validate: { keyGeneratorIpFallback: false },
+  message: (req) => ({ error: req.t('errors.bugReportTooMany') })
+})
+
+app.post('/api/bug-reports', requireAuth, bugReportLimiter, async (req, res) => {
+  let report
+  try {
+    report = parseBugReport(req.body)
+  } catch (err) {
+    if (err instanceof BugReportError) return res.status(400).json({ error: req.t(err.key, err.params) })
+    return res.status(400).json({ error: req.t('errors.bugReportAttachmentInvalid') })
+  }
+  try {
+    const config = await getSmtpConfig()
+    if (!config || !config.isConfigured || !isEmailConfigUsable(config)) {
+      return res.status(503).json({ error: req.t('errors.bugReportUnavailable') })
+    }
+    const reporter = await User.findOne({ id: req.user.id }).select('id firstName lastName email')
+    const admins = await User.find({ isSuperAdmin: true }).select('id email language')
+    if (!reporter || admins.length === 0) return res.status(503).json({ error: req.t('errors.bugReportUnavailable') })
+
+    // Famille de l'écran d'où vient le signalement : son nom seulement si la personne en est membre
+    let family = null
+    const slug = report.context?.family
+    if (slug) {
+      const candidate = await Family.findOne({ slug: String(slug).toLowerCase() }).select('name slug')
+      if (candidate && await FamilyMember.exists({ familyId: candidate._id, userId: req.user.id })) family = candidate
+    }
+
+    const reference = `BUG-${Date.now().toString(36).toUpperCase()}`
+    const results = await Promise.allSettled(admins.map(admin => {
+      const { subject, html } = buildBugReportEmail({ t: translator(admin.language), report, reporter, familyName: family?.name || '', reference })
+      return sendEmailWithConfig(config, { to: admin.email, subject, html, attachments: report.attachments, replyTo: reporter.email })
+    }))
+    const sentTo = admins.filter((_, i) => results[i].status === 'fulfilled').map(a => ({ userId: a.id, email: a.email }))
+    const sent = sentTo.length
+    results.filter(r => r.status === 'rejected').forEach(r => console.error('[Bug] Envoi du signalement impossible :', r.reason?.message))
+
+    logAlertEntry({
+      family,
+      actor: reporter,
+      action: ALERT_ACTIONS.BUG_REPORT.code,
+      actionLabel: ALERT_ACTIONS.BUG_REPORT.label,
+      title: `Signalement de bug ${reference}${report.attachments.length ? ` (${report.attachments.length} pièce(s) jointe(s))` : ''}`,
+      targetType: 'bugReport',
+      targetId: reference,
+      channels: [toAlertChannelLog('email', { recipients: sentTo, success: sent > 0, reason: sent > 0 ? null : 'SEND_FAILED' })]
+    }).catch(() => {})
+
+    if (sent === 0) return res.status(502).json({ error: req.t('errors.bugReportSendFailed') })
+    console.log(`[Bug] Signalement ${reference} envoyé à ${sent} Super Admin(s)`)
+    res.status(201).json({ sent: true, reference })
+  } catch (err) {
+    console.error('[Bug] Erreur signalement :', err.message)
+    res.status(500).json({ error: req.t('errors.bugReportSendFailed') })
   }
 })
 

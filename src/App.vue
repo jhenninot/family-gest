@@ -178,6 +178,17 @@
                 </div>
               </div>
 
+              <!-- Signaler un bug (email au Super Admin, avec pièces jointes) -->
+              <button @click="openBugReportFromMenu" class="user-dropdown-item">
+                <div class="item-icon-wrapper bug-icon">
+                  <Bug :size="16" />
+                </div>
+                <div class="item-label-group">
+                  <span class="item-title">{{ t('bugReport.menu') }}</span>
+                  <span class="item-subtitle">{{ t('bugReport.menuSubtitle') }}</span>
+                </div>
+              </button>
+
               <!-- Rafraîchir l'application / Vider le cache -->
               <button @click="handleForceRefresh" class="user-dropdown-item refresh-item" :disabled="isRefreshing">
                 <div class="item-icon-wrapper refresh-icon">
@@ -234,6 +245,7 @@
     <VoiceAssistant v-if="authStore.isAuthenticated && !isAuthPage" />
 
     <HelpPanel v-if="authStore.isAuthenticated && !isAuthPage" v-model="showHelp" />
+    <BugReportModal v-if="authStore.isAuthenticated && !isAuthPage" />
 
     <!-- Nouveautés de la dernière version publiée par le Super Admin -->
     <WhatsNewModal v-if="authStore.isAuthenticated && !isAuthPage" />
@@ -254,7 +266,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from './stores/authStore'
 import { useFamilyStore } from './stores/familyStore'
-import { Sun, Moon, SunMoon, LogOut, User, Grid, ShieldAlert, Settings, RefreshCw, Languages, HelpCircle } from '@lucide/vue'
+import { Sun, Moon, SunMoon, LogOut, User, Grid, ShieldAlert, Settings, RefreshCw, Languages, HelpCircle, Bug } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import { SUPPORTED_LOCALES, LOCALE_LABELS, currentLocale, isI18nActive, setLocale } from './i18n'
 import { forceAppRefresh } from './utils/cacheHelper'
@@ -266,6 +278,8 @@ import DevicePushPrompt from './components/DevicePushPrompt.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
 import VoiceAssistant from './components/VoiceAssistant.vue'
 import HelpPanel from './components/HelpPanel.vue'
+import BugReportModal from './components/BugReportModal.vue'
+import { useBugReport } from './composables/useBugReport'
 import WhatsNewModal from './components/WhatsNewModal.vue'
 import { useScreenSwipe } from './composables/useScreenSwipe'
 import { useIsMobile } from './composables/useIsMobile'
@@ -321,6 +335,11 @@ const buildSha = __APP_BUILD_SHA__
 const showProfileModal = ref(false)
 const isUserMenuOpen = ref(false)
 const showHelp = ref(false)
+const { openBugReport } = useBugReport()
+const openBugReportFromMenu = () => {
+  closeUserMenu()
+  openBugReport()
+}
 const userMenuRef = ref(null)
 const isRefreshing = ref(false)
 

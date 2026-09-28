@@ -78,6 +78,8 @@ Email delivery is a single global configuration (see `Migration.md` §4): the pl
 
 - Contextual help: the « ? » button in `App.vue` (family routes only) opens `src/components/HelpPanel.vue`, whose sheet depends on the route (`ROUTE_TOPICS` → `TOPICS`: how-to questions, tips, voice phrases); texts in `src/locales/<lang>/help.json`, quoting the real UI labels. `InfoTip.vue` (« i » bubble, teleported to `body`, clamped to the viewport) explains tricky notions next to them; `EmptyState.vue` replaces bare empty lists with an explanation and an action. When adding a screen or renaming a button, update its help sheet.
 
+- Bug reports: « Signaler un bug » (help panel footer + avatar menu, state in `src/composables/useBugReport.js`) opens `src/components/BugReportModal.vue` (description, optional expected behaviour, up to 5 image/PDF attachments — file picker or paste, large images downscaled to JPEG client-side — and optional technical context). `POST /api/bug-reports` (rate-limited per user; the only route whose JSON body limit is raised, to 17 MB) validates with `server/bugReports/` (real file type from magic bytes, 5 MB each / 12 MB total, sanitized names) and emails every super admin in their language with the attachments and the reporter as Reply-To (`sendEmailWithConfig` `replyTo`), logged as `bug.report` in the alert journal. Report contents are never written to the server log.
+
 ### Internationalisation (fr / en / es)
 
 - One language per account (`User.language`, `null` = not chosen yet → French for emails; the UI then uses the device language and stores it on the account at the next login). `LANGUAGE_SELECTOR_ENABLED` in `src/i18n/index.js` is the global switch.

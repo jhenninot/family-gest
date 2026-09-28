@@ -63,5 +63,30 @@
     "title": "Platform SMTP connection successful!",
     "body": "The FamilyGest global SMTP server is working correctly.",
     "sentFrom": "Sent from: {email}"
+  },
+  "bugReport": {
+    "subject": "🐞 Bug reported by {name} ({ref})",
+    "title": "New bug report",
+    "reference": "Reference {ref}",
+    "from": "Reported by",
+    "family": "Family: {family}",
+    "replyHint": "Reply directly to this email to contact the person.",
+    "description": "What happened",
+    "expected": "What was expected",
+    "attachments": "Attachment ({n}) | Attachments ({n})",
+    "noAttachment": "No attachment.",
+    "technical": "Technical information",
+    "context": {
+      "page": "Page",
+      "screen": "Screen",
+      "family": "Family (URL)",
+      "version": "Version",
+      "build": "Build",
+      "language": "Language",
+      "userAgent": "Browser",
+      "viewport": "Screen size",
+      "online": "Connection",
+      "time": "Date (device)"
+    }
   }
 }

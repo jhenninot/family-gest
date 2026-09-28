@@ -63,5 +63,30 @@
     "title": "Connexion SMTP Plateforme Réussie !",
     "body": "Le serveur SMTP global de FamilyGest fonctionne correctement.",
     "sentFrom": "Expédié depuis : {email}"
+  },
+  "bugReport": {
+    "subject": "🐞 Bug signalé par {name} ({ref})",
+    "title": "Nouveau signalement de bug",
+    "reference": "Référence {ref}",
+    "from": "Signalé par",
+    "family": "Famille : {family}",
+    "replyHint": "Répondez directement à cet email pour contacter la personne.",
+    "description": "Ce qui s'est passé",
+    "expected": "Ce qui était attendu",
+    "attachments": "Pièce jointe ({n}) | Pièces jointes ({n})",
+    "noAttachment": "Aucune pièce jointe.",
+    "technical": "Informations techniques",
+    "context": {
+      "page": "Page",
+      "screen": "Écran",
+      "family": "Famille (URL)",
+      "version": "Version",
+      "build": "Build",
+      "language": "Langue",
+      "userAgent": "Navigateur",
+      "viewport": "Taille d'écran",
+      "online": "Connexion",
+      "time": "Date (appareil)"
+    }
   }
 }

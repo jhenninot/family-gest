@@ -24,7 +24,8 @@ export const ALERT_ACTIONS = {
   MEMBER_WELCOME_RESENT: { code: 'member.welcome_resent', label: 'Email de bienvenue renvoyé' },
   ACCOUNT_REGISTERED: { code: 'account.registered', label: 'Compte créé' },
   APP_UPDATE_PROPOSED: { code: 'app.update_proposed', label: 'Nouvelle version à publier (Super Admin)' },
-  APP_UPDATE_PUBLISHED: { code: 'app.update', label: "Nouveautés de l'application", category: 'appUpdates' }
+  APP_UPDATE_PUBLISHED: { code: 'app.update', label: "Nouveautés de l'application", category: 'appUpdates' },
+  BUG_REPORT: { code: 'bug.report', label: 'Signalement de bug (Super Admin)' }
 }
 
 export const ALERT_ACTIONS_LIST = Object.values(ALERT_ACTIONS)
