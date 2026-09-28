@@ -80,5 +80,11 @@
     "footer": "Organised with FamilyGest",
     "instructionsGroup": "You are answering for {n} people. For each date, tell us whether you are available."
   },
-  "peopleCount": "{n} person | {n} people"
+  "peopleCount": "{n} person | {n} people",
+  "conflicts": {
+    "proposed": "also suggested for “{title}” ({slot})",
+    "chosen": "already chosen for “{title}” ({slot})",
+    "event": "event “{title}” in the calendar",
+    "eventAt": "event “{title}” at {time} in the calendar"
+  }
 }

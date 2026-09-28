@@ -134,12 +134,22 @@
               <input id="poll-date" v-model="dateInput" type="date" class="form-input" :min="store.todayStr" />
               <button type="button" class="btn btn-secondary" :disabled="!dateInput" @click="addDate">{{ t('common.add') }}</button>
             </div>
+            <!-- Date en cours de saisie déjà prise ailleurs : prévenu avant même de l'ajouter -->
+            <ul v-if="dateInput && dateConflicts(dateInput).length" class="plan-conflicts">
+              <li v-for="(c, i) in dateConflicts(dateInput)" :key="i">⚠️ {{ c }}</li>
+            </ul>
             <div class="plan-chips">
-              <span v-for="(d, i) in editor.dates" :key="d" class="plan-chip">
+              <span v-for="(d, i) in editor.dates" :key="d" class="plan-chip" :class="{ warn: dateConflicts(d).length }">
+                <span v-if="dateConflicts(d).length" :title="dateConflicts(d).join('\n')">⚠️</span>
                 {{ shortDate(d) }}
                 <button type="button" :aria-label="t('common.delete')" @click="editor.dates.splice(i, 1)">×</button>
               </span>
             </div>
+            <ul v-if="editorConflicts.length" class="plan-conflicts">
+              <li v-for="c in editorConflicts" :key="c.date">
+                ⚠️ <strong>{{ shortDate(c.date) }}</strong> : {{ c.items.join(' ; ') }}
+              </li>
+            </ul>
             <span v-if="editor.id" class="field-hint">{{ t('mealPolls.form.datesHint') }}</span>
           </div>
 
@@ -213,6 +223,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 import { formatDate } from '../i18n/format'
 import MealPollGrid from '../components/MealPollGrid.vue'
+import { eventOnDate } from '../utils/events'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -243,6 +254,30 @@ const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 
 const toDate = (d) => new Date(`${d}T00:00:00`)
 const longDate = (d) => formatDate(toDate(d), { weekday: 'long', day: 'numeric', month: 'long' })
 const shortDate = (d) => formatDate(toDate(d), { weekday: 'short', day: 'numeric', month: 'short' })
+
+// Une date proposée qui entre en conflit : autre repas à organiser qui la propose (ou l'a retenue),
+// ou événement de l'agenda ce jour-là. Simple avertissement, la date reste possible.
+const dateConflicts = (date) => {
+  if (!date || !editor.value) return []
+  const items = []
+  for (const p of polls.value) {
+    if (p.id === editor.value.id) continue
+    if (p.status === 'closed' && p.chosenDate === date) {
+      items.push(t('mealPolls.conflicts.chosen', { title: p.title, slot: t(`mealPolls.slots.${p.slot}`).toLowerCase() }))
+    } else if (p.status === 'open' && p.dates.includes(date)) {
+      items.push(t('mealPolls.conflicts.proposed', { title: p.title, slot: t(`mealPolls.slots.${p.slot}`).toLowerCase() }))
+    }
+  }
+  const ownEventIds = new Set(polls.value.filter(p => p.eventId).map(p => p.eventId))
+  for (const ev of (store.events || []).filter(e => eventOnDate(e, date) && !ownEventIds.has(e.id))) {
+    items.push(ev.time ? t('mealPolls.conflicts.eventAt', { title: ev.title, time: ev.time }) : t('mealPolls.conflicts.event', { title: ev.title }))
+  }
+  return items
+}
+
+const editorConflicts = computed(() => (editor.value?.dates || [])
+  .map(date => ({ date, items: dateConflicts(date) }))
+  .filter(c => c.items.length > 0))
 
 const api = async (path, options = {}) => {
   const res = await fetch(`/api/meal-polls${path}`, { ...options, headers: { ...store.getHeaders(), 'X-Family-Slug': slug.value } })
@@ -611,6 +646,33 @@ const reopen = async (poll) => {
   border: 1px solid var(--border-color);
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+.plan-form .field-hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.plan-chip.warn {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.plan-conflicts {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  border-radius: var(--radius-md, 10px);
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  font-size: 0.83rem;
+  line-height: 1.45;
 }
 
 .plan-chip button {
