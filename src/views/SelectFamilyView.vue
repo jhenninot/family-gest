@@ -40,7 +40,7 @@
           </button>
         </div>
 
-        <div v-if="families.length === 0 && !authStore.isSuperAdmin" class="empty-families glass-card">
+        <div v-if="families.length === 0" class="empty-families glass-card">
           <Users :size="48" class="empty-icon" />
           <h3>{{ t('selectFamily.emptyTitle') }}</h3>
           <p>{{ t('selectFamily.emptyText') }}</p>

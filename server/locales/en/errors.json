@@ -139,5 +139,6 @@
   "mealPollClosed": "The date of this meal is already set: voting is closed.",
   "mealPollUnknownGuest": "Choose your name from the list.",
   "landingContact": "Invalid contact: an email address, a WhatsApp number (with country code, e.g. +44 7…) or an https link.",
-  "landingNotFound": "Page not found."
+  "landingNotFound": "Page not found.",
+  "superAdminNotFamilyMember": "A Super Administrator cannot be added to a family from the console: a family administrator must invite them."
 }

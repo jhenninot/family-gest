@@ -45,8 +45,6 @@ export const useFamilyStore = defineStore('family', () => {
   const isLoading = ref(false)
 
   const isFamilyAdmin = computed(() => {
-    const authStore = useAuthStore()
-    if (authStore.isSuperAdmin) return true
     return currentFamilyIsAdmin.value === true || currentFamilyRole.value === 'admin'
   })
 
@@ -130,7 +128,7 @@ export const useFamilyStore = defineStore('family', () => {
         if (generation !== fetchGeneration) return false
         currentFamily.value = data.family
         currentFamilyRole.value = data.role || data.membership?.role || 'Membre'
-        currentFamilyIsAdmin.value = Boolean(data.isAdmin ?? data.membership?.isAdmin ?? authStore.isSuperAdmin)
+        currentFamilyIsAdmin.value = Boolean(data.isAdmin ?? data.membership?.isAdmin ?? false)
         currentFamilyQuota.value = {
           memberCount: data.memberCount,
           maxMembers: data.maxMembers

@@ -247,7 +247,8 @@ router.beforeEach(async (to, from, next) => {
       userFamilies = await familyStore.fetchUserFamilies()
     }
 
-    const hasAccess = authStore.isSuperAdmin || (userFamilies && userFamilies.some(f => f.slug === targetSlug))
+    // Le Super Admin n'a aucun passe-droit : seulement les familles dont il est membre
+    const hasAccess = Boolean(userFamilies && userFamilies.some(f => f.slug === targetSlug))
 
     if (!hasAccess) {
       return next({ name: 'select-family' })
@@ -255,7 +256,7 @@ router.beforeEach(async (to, from, next) => {
 
     if (familyStore.currentFamily?.slug !== targetSlug) {
       const ok = await familyStore.fetchCurrentFamily(targetSlug)
-      if (!ok && !authStore.isSuperAdmin) {
+      if (!ok) {
         return next({ name: 'select-family' })
       }
       await familyStore.fetchAllData()
@@ -295,20 +296,17 @@ router.beforeEach(async (to, from, next) => {
 
     let activeSlug = localStorage.getItem('familygest_active_slug')
 
-    // Pour les non-superadmin, valider que activeSlug est réellement une famille active accessible
-    if (!authStore.isSuperAdmin) {
-      const isValidActive = activeSlug && userFamilies && userFamilies.some(f => f.slug === activeSlug)
-      if (!isValidActive) {
-        if (userFamilies && userFamilies.length > 0) {
-          activeSlug = userFamilies[0].slug
-          localStorage.setItem('familygest_active_slug', activeSlug)
-        } else {
-          // L'utilisateur n'a aucune famille active accessible
-          localStorage.removeItem('familygest_active_slug')
-          familyStore.clearFamilyData()
-          familyStore.currentFamily = null
-          return next({ name: 'select-family' })
-        }
+    // Valider que activeSlug est réellement une famille active dont l'utilisateur est membre
+    const isValidActive = activeSlug && userFamilies && userFamilies.some(f => f.slug === activeSlug)
+    if (!isValidActive) {
+      if (userFamilies && userFamilies.length > 0) {
+        activeSlug = userFamilies[0].slug
+        localStorage.setItem('familygest_active_slug', activeSlug)
+      } else {
+        // Aucune famille accessible : le Super Admin va à sa console, les autres au sélecteur
+        localStorage.removeItem('familygest_active_slug')
+        familyStore.resetStore()
+        return next({ name: authStore.isSuperAdmin ? 'super-admin' : 'select-family', query: to.query })
       }
     }
 

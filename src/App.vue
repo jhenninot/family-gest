@@ -70,8 +70,8 @@
                     </div>
                   </div>
                   <div class="mobile-family-item-right">
-                    <span v-if="authStore.isSuperAdmin || fam.isAdmin" class="mobile-family-role-badge">
-                      {{ authStore.isSuperAdmin ? t('menu.badges.superAdmin') : t('menu.badges.admin') }}
+                    <span v-if="fam.isAdmin" class="mobile-family-role-badge">
+                      {{ t('menu.badges.admin') }}
                     </span>
                     <span v-if="currentSlug === fam.slug" class="mobile-family-check">✓</span>
                   </div>
@@ -349,7 +349,7 @@ const handleSelectFamily = async (slug) => {
 
   if (subRoute.startsWith('/settings')) {
     const targetFam = families.value.find(f => f.slug === slug)
-    const isAdminInTarget = authStore.isSuperAdmin || targetFam?.isAdmin
+    const isAdminInTarget = Boolean(targetFam?.isAdmin)
     if (!isAdminInTarget) {
       subRoute = ''
     }

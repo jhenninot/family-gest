@@ -224,14 +224,12 @@ const attachFamilyContext = async (req, res, next) => {
     }
 
     // Si aucune famille n'est explicitement demandée, fallback vers la première famille active de l'utilisateur
+    // Le Super Admin n'a aucun passe-droit : comme tout utilisateur, il n'accède qu'aux familles
+    // dont il est membre (la console ne gère les familles que de l'extérieur)
     if (!family && req.user) {
-      if (req.user.isSuperAdmin) {
-        family = await Family.findOne({ isActive: true }).sort('createdAt')
-      } else {
-        const memberships = await FamilyMember.find({ userId: req.user.id })
-        const familyIds = memberships.map(m => m.familyId)
-        family = await Family.findOne({ _id: { $in: familyIds }, isActive: true }).sort('createdAt')
-      }
+      const memberships = await FamilyMember.find({ userId: req.user.id })
+      const familyIds = memberships.map(m => m.familyId)
+      family = await Family.findOne({ _id: { $in: familyIds }, isActive: true }).sort('createdAt')
     }
 
     if (!family) {
@@ -239,7 +237,7 @@ const attachFamilyContext = async (req, res, next) => {
     }
 
     // Vérifier si la famille est désactivée
-    if (!family.isActive && !req.user?.isSuperAdmin) {
+    if (!family.isActive) {
       return res.status(403).json({ error: req.t('errors.familyDisabled') })
     }
 
@@ -271,16 +269,6 @@ const attachFamilyContext = async (req, res, next) => {
       }
     }
 
-    if (req.user.isSuperAdmin) {
-      req.membership = membership || {
-        role: 'Super Administrateur',
-        isAdmin: true,
-        points: 0,
-        usualPresence: 'present'
-      }
-      return next()
-    }
-
     if (!membership) {
       return res.status(403).json({ error: req.t('errors.notInFamily') })
     }
@@ -294,7 +282,7 @@ const attachFamilyContext = async (req, res, next) => {
 }
 
 const requireFamilyAdmin = (req, res, next) => {
-  if (req.user?.isSuperAdmin || req.membership?.isAdmin) {
+  if (req.membership?.isAdmin) {
     return next()
   }
   return res.status(403).json({ error: req.t('errors.familyAdminOnly') })
@@ -1210,22 +1198,6 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       }
     })
 
-    if (user.isSuperAdmin) {
-      const allActive = await Family.find({ isActive: true })
-      for (const f of allActive) {
-        if (!familiesData.some(fd => fd._id.toString() === f._id.toString())) {
-          familiesData.push({
-            _id: f._id,
-            name: f.name,
-            slug: f.slug,
-            maxMembers: f.maxMembers,
-            role: 'Super Admin',
-            isAdmin: true
-          })
-        }
-      }
-    }
-
     res.json({
       token,
       families: familiesData,
@@ -1275,22 +1247,6 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
         isAdmin: mem ? mem.isAdmin : false
       }
     })
-
-    if (user.isSuperAdmin) {
-      const allActive = await Family.find({ isActive: true })
-      for (const f of allActive) {
-        if (!familiesData.some(fd => fd._id.toString() === f._id.toString())) {
-          familiesData.push({
-            _id: f._id,
-            name: f.name,
-            slug: f.slug,
-            maxMembers: f.maxMembers,
-            role: 'Super Admin',
-            isAdmin: true
-          })
-        }
-      }
-    }
 
     res.json({
       token,
@@ -1748,6 +1704,12 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
       return res.status(400).json({ error: req.t('errors.slugTaken') })
     }
 
+    // La console ne peut pas faire entrer un Super Admin dans une famille (aucun accès aux
+    // données des familles depuis la console) : il faut qu'un administrateur de la famille l'invite
+    if (await User.exists({ email: String(adminEmail).toLowerCase().trim(), isSuperAdmin: true })) {
+      return res.status(400).json({ error: req.t('errors.superAdminNotFamilyMember') })
+    }
+
     const family = new Family({
       name: name.trim(),
       slug: cleanSlug,
@@ -1861,6 +1823,9 @@ app.post('/api/super-admin/families/:id/invite-admin', requireAuth, requireSuper
 
     const cleanEmail = String(email).toLowerCase().trim()
     const existingUser = await User.findOne({ email: cleanEmail })
+    if (existingUser?.isSuperAdmin) {
+      return res.status(400).json({ error: req.t('errors.superAdminNotFamilyMember') })
+    }
 
     if (existingUser) {
       let existingMember = await FamilyMember.findOne({ familyId: family._id, userId: existingUser.id })
@@ -2300,6 +2265,9 @@ app.put('/api/super-admin/users/:userId/set-family-admin', requireAuth, requireS
   try {
     const userId = Number(req.params.userId)
     const { familyId, isAdmin } = req.body
+    if (await User.exists({ id: userId, isSuperAdmin: true })) {
+      return res.status(400).json({ error: req.t('errors.superAdminNotFamilyMember') })
+    }
 
     const member = await FamilyMember.findOne({ userId, familyId })
     if (!member) {
@@ -2379,6 +2347,7 @@ app.post('/api/super-admin/users/:userId/families', requireAuth, requireSuperAdm
 
     const user = await User.findOne({ id: userId })
     if (!user) return res.status(404).json({ error: req.t('errors.userNotFound') })
+    if (user.isSuperAdmin) return res.status(400).json({ error: req.t('errors.superAdminNotFamilyMember') })
 
     const family = await Family.findById(familyId)
     if (!family) return res.status(404).json({ error: req.t('errors.familyNotFound') })
@@ -2428,6 +2397,9 @@ app.put('/api/super-admin/users/:userId/families/:familyId', requireAuth, requir
     const userId = Number(req.params.userId)
     const { familyId } = req.params
     const { role, isAdmin } = req.body
+    if (await User.exists({ id: userId, isSuperAdmin: true })) {
+      return res.status(400).json({ error: req.t('errors.superAdminNotFamilyMember') })
+    }
 
     const member = await FamilyMember.findOne({ userId, familyId })
     if (!member) {
@@ -3076,22 +3048,6 @@ app.get('/api/user/families', requireAuth, async (req, res) => {
       }
     })
 
-    if (req.user.isSuperAdmin) {
-      const allFamilies = await Family.find({ isActive: true })
-      for (const f of allFamilies) {
-        if (!result.some(r => r._id.toString() === f._id.toString())) {
-          result.push({
-            _id: f._id,
-            name: f.name,
-            slug: f.slug,
-            maxMembers: f.maxMembers,
-            role: 'Super Admin',
-            isAdmin: true
-          })
-        }
-      }
-    }
-
     res.json(result)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -3105,7 +3061,7 @@ app.get('/api/families/:familySlug', requireAuth, attachFamilyContext, async (re
       FamilyMember.countDocuments({ familyId: req.family._id }),
       MealieConfig.exists({ familyId: req.family._id })
     ])
-    const isFamilyAdmin = Boolean(req.user?.isSuperAdmin || req.membership?.isAdmin)
+    const isFamilyAdmin = Boolean(req.membership?.isAdmin)
     res.json({
       family: {
         _id: req.family._id,
@@ -3473,25 +3429,6 @@ app.get('/api/members', requireAuth, attachFamilyContext, async (req, res) => {
       })
     }
 
-    // Si aucun membre actif et que c'est le Super Admin qui consulte, inclure le Super Admin
-    if (memberships.length === 0 && req.user.isSuperAdmin) {
-      members.unshift({
-        id: req.user.id,
-        name: `${req.user.firstName} ${req.user.lastName}`,
-        firstName: req.user.firstName,
-        lastName: req.user.lastName,
-        email: req.user.email,
-        isAdmin: true,
-        role: 'Super Administrateur',
-        avatar: req.user.avatar || '👑',
-        color: '#f59e0b',
-        points: 0,
-        usualPresence: 'present',
-        usualPresenceConfig: normalizeUsualPresenceConfig(null, 'present'),
-        isSuperAdmin: true
-      })
-    }
-
     res.json(members)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -3673,7 +3610,7 @@ app.put('/api/members/:id/usual-presence', requireAuth, attachFamilyContext, asy
   try {
     const memberId = Number(req.params.id)
     const isSelf = memberId === req.user.id
-    if (!isSelf && !req.membership?.isAdmin && !req.user?.isSuperAdmin) {
+    if (!isSelf && !req.membership?.isAdmin) {
       return res.status(403).json({ error: req.t('errors.ownUsualPresenceOnly') })
     }
 
@@ -4922,14 +4859,14 @@ app.put('/api/absences/:id', requireAuth, attachFamilyContext, async (req, res) 
     const absence = await Absence.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!absence) return res.status(404).json({ error: req.t('errors.absenceNotFound') })
 
-    const isAuthorized = absence.memberId === req.user.id || absence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
+    const isAuthorized = absence.memberId === req.user.id || absence.declaredBy === req.user.id || req.membership?.isAdmin
     if (!isAuthorized) {
       return res.status(403).json({ error: req.t('errors.ownAbsencesEditOnly') })
     }
 
     const { memberId, date, type, lunch, dinner, night, note } = req.body
     const previousCoords = `${absence.memberId}|${absence.date}|${absence.type}`
-    if (memberId !== undefined && (req.membership?.isAdmin || req.user?.isSuperAdmin)) absence.memberId = Number(memberId)
+    if (memberId !== undefined && (req.membership?.isAdmin)) absence.memberId = Number(memberId)
     if (date) absence.date = date.trim()
     if (type && ['absence', 'presence'].includes(type)) absence.type = type
     if (lunch !== undefined) absence.lunch = Boolean(lunch)
@@ -4958,7 +4895,7 @@ app.delete('/api/absences/:id', requireAuth, attachFamilyContext, async (req, re
     const absence = await Absence.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!absence) return res.status(404).json({ error: req.t('errors.absenceNotFound') })
 
-    const isAuthorized = absence.memberId === req.user.id || absence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
+    const isAuthorized = absence.memberId === req.user.id || absence.declaredBy === req.user.id || req.membership?.isAdmin
     if (!isAuthorized) {
       return res.status(403).json({ error: req.t('errors.ownAbsencesDeleteOnly') })
     }
@@ -5189,7 +5126,7 @@ app.put('/api/long-absences/:id', requireAuth, attachFamilyContext, async (req, 
     const longAbsence = await LongAbsence.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!longAbsence) return res.status(404).json({ error: req.t('errors.longAbsenceNotFound') })
 
-    const isAuthorized = longAbsence.memberId === req.user.id || longAbsence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
+    const isAuthorized = longAbsence.memberId === req.user.id || longAbsence.declaredBy === req.user.id || req.membership?.isAdmin
     if (!isAuthorized) {
       return res.status(403).json({ error: req.t('errors.ownLongAbsencesEditOnly') })
     }
@@ -5246,7 +5183,7 @@ app.delete('/api/long-absences/:id', requireAuth, attachFamilyContext, async (re
     const longAbsence = await LongAbsence.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!longAbsence) return res.status(404).json({ error: req.t('errors.longAbsenceNotFound') })
 
-    const isAuthorized = longAbsence.memberId === req.user.id || longAbsence.declaredBy === req.user.id || req.membership?.isAdmin || req.user?.isSuperAdmin
+    const isAuthorized = longAbsence.memberId === req.user.id || longAbsence.declaredBy === req.user.id || req.membership?.isAdmin
     if (!isAuthorized) {
       return res.status(403).json({ error: req.t('errors.ownLongAbsencesDeleteOnly') })
     }

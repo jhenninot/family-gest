@@ -777,16 +777,16 @@ const loadDashboardData = async () => {
   if (targetSlug) {
     if (!store.currentFamily || store.currentFamily.slug !== targetSlug) {
       const ok = await store.fetchCurrentFamily(targetSlug)
-      if (!ok && !authStore.isSuperAdmin) {
+      if (!ok) {
         router.push({ name: 'select-family' })
         return
       }
     }
     await store.fetchAllData()
-    if (!store.currentFamily && !authStore.isSuperAdmin) {
+    if (!store.currentFamily) {
       router.push({ name: 'select-family' })
     }
-  } else if (!authStore.isSuperAdmin) {
+  } else {
     router.push({ name: 'select-family' })
   }
 }

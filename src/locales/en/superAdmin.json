@@ -39,7 +39,6 @@
     "deactivate": "Disable the family",
     "activate": "Enable the family",
     "importInto": "Import data into this family",
-    "open": "Open this family",
     "deactivateMessage": "Are you sure you want to disable the family {name}?",
     "activateMessage": "Are you sure you want to enable the family {name}?",
     "deactivateWarning": "Members of this family will not be able to access it while it is disabled.",

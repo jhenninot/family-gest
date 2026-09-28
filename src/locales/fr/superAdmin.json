@@ -39,7 +39,6 @@
     "deactivate": "Désactiver la famille",
     "activate": "Activer la famille",
     "importInto": "Importer des données dans cette famille",
-    "open": "Ouvrir cette famille",
     "deactivateMessage": "Êtes-vous sûr de vouloir désactiver la famille {name} ?",
     "activateMessage": "Êtes-vous sûr de vouloir activer la famille {name} ?",
     "deactivateWarning": "Les membres de cette famille ne pourront plus y accéder tant qu'elle est désactivée.",

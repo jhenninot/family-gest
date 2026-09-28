@@ -139,5 +139,6 @@
   "mealPollClosed": "La date de ce repas est déjà fixée : les votes sont fermés.",
   "mealPollUnknownGuest": "Choisissez votre nom dans la liste.",
   "landingContact": "Contact invalide : une adresse email, un numéro WhatsApp (avec l'indicatif, ex. +33 6…) ou un lien https.",
-  "landingNotFound": "Page introuvable."
+  "landingNotFound": "Page introuvable.",
+  "superAdminNotFamilyMember": "Un Super Administrateur ne peut pas être ajouté à une famille depuis la console : il doit être invité par un administrateur de la famille."
 }

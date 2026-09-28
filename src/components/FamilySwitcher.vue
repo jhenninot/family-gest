@@ -8,8 +8,8 @@
       <div class="family-icon">🏡</div>
       <div class="family-text">
         <span class="family-name">{{ currentFamilyName || t('familySwitcher.choose') }}</span>
-        <span class="family-role-badge" v-if="familyStore.currentFamilyRole || authStore.isSuperAdmin">
-          {{ authStore.isSuperAdmin ? t('menu.badges.superAdmin') : (familyStore.currentFamilyIsAdmin ? t('menu.badges.admin') : t('menu.badges.member')) }}
+        <span class="family-role-badge" v-if="familyStore.currentFamilyRole">
+          {{ familyStore.currentFamilyIsAdmin ? t('menu.badges.admin') : t('menu.badges.member') }}
         </span>
       </div>
       <ChevronDown :size="16" class="arrow-icon" :class="{ rotated: isOpen }" />
@@ -120,7 +120,7 @@ const handleSelectFamily = async (slug) => {
   // If on admin settings, ensure user has admin rights in target family
   if (subRoute.startsWith('/settings')) {
     const targetFam = families.value.find(f => f.slug === slug)
-    const isAdminInTarget = authStore.isSuperAdmin || targetFam?.isAdmin
+    const isAdminInTarget = Boolean(targetFam?.isAdmin)
     if (!isAdminInTarget) {
       subRoute = ''
     }

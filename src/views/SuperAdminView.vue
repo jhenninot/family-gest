@@ -154,13 +154,6 @@
                 >
                   <Upload :size="16" />
                 </button>
-                <button 
-                  @click="switchAndGo(fam.slug)" 
-                  class="btn-icon btn-icon-sm text-primary" 
-                  :title="t('superAdmin.families.open')"
-                >
-                  <ExternalLink :size="16" />
-                </button>
                 <!-- Suppression possible uniquement une fois la famille désactivée -->
                 <button
                   @click="deleteFamily(fam)"
@@ -1254,7 +1247,6 @@ import {
   ArrowLeft, 
   Edit2, 
   Power, 
-  ExternalLink, 
   Send, 
   Check,
   UserPlus,
@@ -1775,11 +1767,6 @@ const goToDashboard = () => {
   } else {
     router.push('/select-family')
   }
-}
-
-const switchAndGo = async (slug) => {
-  await familyStore.switchFamily(slug)
-  router.push(`/${slug}`)
 }
 
 const openCreateFamilyModal = () => {
