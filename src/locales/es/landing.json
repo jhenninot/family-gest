@@ -2,7 +2,7 @@
   "notFound": "Página no encontrada.",
   "pill": "Para familias, por invitación",
   "title": "La organización familiar, por fin sencilla",
-  "lead": "Presencias, comidas, compras, tareas y agenda: todo lo que hace funcionar la casa, compartido entre todos los miembros de la familia, en el teléfono de cada uno.",
+  "lead": "Presencias (incluso en custodia compartida), comidas, compras, tareas y agenda: todo lo que hace funcionar la casa, compartido entre todos los miembros de la familia, en el teléfono de cada uno.",
   "contact": "Contactarme",
   "inviteOnly": "Acceso solo por invitación",
   "demo": {
@@ -15,10 +15,14 @@
     "pollTitle": "Cena con los García",
     "pollVotes": "3 personas disponibles el sábado",
     "shopping": "Compras",
-    "shoppingItems": "6 artículos, 2 urgentes"
+    "shoppingItems": "6 artículos, 2 urgentes",
+    "custody": "Esta semana",
+    "custodyKids": "Lea y Tom en casa",
+    "custodyNext": "Con el otro progenitor desde el lunes"
   },
   "questions": {
     "who": "¿Quién come en casa esta noche?",
+    "kids": "¿Los niños están con nosotros esta semana?",
     "what": "¿Qué comemos esta semana?",
     "shopping": "¿Alguien se acordó de comprar leche?"
   },
@@ -57,6 +61,21 @@
       "title": "Siempre al tanto",
       "text": "Notificaciones en el teléfono y resumen diario por correo, según las preferencias de cada uno."
     }
+  },
+  "custody": {
+    "pill": "Custodia compartida",
+    "title": "¿Una semana de cada dos? Está previsto.",
+    "text": "Cada uno configura una sola vez su presencia habitual, día a día, comida, cena y noche, con una semana A y una semana B. FamilyGest sabe quién está en casa cada día: solo queda indicar las excepciones.",
+    "points": {
+      "rhythm": "Mismo ritmo cada semana o alterno",
+      "slots": "Por día y por comida, noches incluidas",
+      "exceptions": "Las excepciones en un gesto"
+    },
+    "child": "Lea",
+    "weekA": "Semana A",
+    "weekB": "Semana B",
+    "home": "En casa",
+    "away": "Con el otro progenitor"
   },
   "stepsTitle": "Cómo funciona",
   "steps": {

@@ -19,7 +19,7 @@
           <div class="landing-hero-text">
             <span class="landing-pill">{{ t('landing.pill') }}</span>
             <h1>{{ t('landing.title') }}</h1>
-            <p class="landing-lead">{{ variant === 'c' ? t('landing.leadCustody') : t('landing.lead') }}</p>
+            <p class="landing-lead">{{ t('landing.lead') }}</p>
             <div class="landing-cta-row">
               <button v-if="contactHref" type="button" class="landing-cta" @click="contact">
                 <MessageCircle :size="20" /> {{ t('landing.contact') }}
@@ -36,7 +36,7 @@
               <strong>{{ t('landing.demo.atTable') }}</strong>
               <span class="phone-sub">{{ t('landing.demo.guests') }}</span>
             </div>
-            <div v-if="variant === 'c'" class="phone-card blue">
+            <div class="phone-card blue">
               <span class="phone-label">🔁 {{ t('landing.demo.custody') }}</span>
               <strong>{{ t('landing.demo.custodyKids') }}</strong>
               <span class="phone-sub">{{ t('landing.demo.custodyNext') }}</span>
@@ -61,7 +61,7 @@
 
       <!-- Questions du quotidien -->
       <section class="landing-questions">
-        <p v-for="q in questions" :key="q" class="landing-question">« {{ t(`landing.questions.${q}`) }} »</p>
+        <p v-for="q in QUESTIONS" :key="q" class="landing-question">« {{ t(`landing.questions.${q}`) }} »</p>
         <p class="landing-answer">{{ t('landing.questionsAnswer') }}</p>
       </section>
 
@@ -69,7 +69,7 @@
       <section class="landing-section">
         <h2>{{ t('landing.featuresTitle') }}</h2>
         <div class="landing-features">
-          <article v-for="f in features" :key="f.key" class="landing-feature">
+          <article v-for="f in FEATURES" :key="f.key" class="landing-feature">
             <span class="feature-icon" :style="{ background: f.color }">{{ f.icon }}</span>
             <h3>{{ t(`landing.features.${f.key}.title`) }}</h3>
             <p>{{ t(`landing.features.${f.key}.text`) }}</p>
@@ -78,7 +78,7 @@
       </section>
 
       <!-- Garde alternée : présences habituelles sur deux semaines -->
-      <section v-if="variant === 'b'" class="landing-section">
+      <section class="landing-section">
         <div class="landing-custody">
           <div class="custody-text">
             <span class="landing-pill">🔁 {{ t('landing.custody.pill') }}</span>
@@ -155,11 +155,8 @@ import { weekdayNames } from '../i18n/format'
 const { t } = useI18n()
 const route = useRoute()
 
-// TEMPORAIRE : variantes a/b/c pour comparer les propositions « garde alternée »
-const variant = computed(() => String(route.query.v || 'b'))
 
-const QUESTIONS = ['who', 'what', 'shopping']
-const questions = computed(() => (variant.value === 'c' ? ['who', 'kids', 'what', 'shopping'] : QUESTIONS))
+const QUESTIONS = ['who', 'kids', 'what', 'shopping']
 const CUSTODY_POINTS = ['rhythm', 'slots', 'exceptions']
 // Semaine A : à la maison toute la semaine ; semaine B : seulement le mercredi
 const CUSTODY_WEEKS = [
@@ -167,8 +164,6 @@ const CUSTODY_WEEKS = [
   { key: 'weekB', days: [false, false, true, false, false, false, false] }
 ]
 const dayLetters = computed(() => weekdayNames('narrow'))
-const CUSTODY_FEATURE = { key: 'custody', icon: '🔁', color: 'linear-gradient(135deg, #14b8a6, #2dd4bf)' }
-const features = computed(() => (variant.value === 'a' ? [FEATURES[0], CUSTODY_FEATURE, ...FEATURES.slice(1)] : FEATURES))
 const FEATURES = [
   { key: 'presence', icon: '🏠', color: 'linear-gradient(135deg, #10b981, #34d399)' },
   { key: 'meals', icon: '🍽️', color: 'linear-gradient(135deg, #f43f5e, #fb7185)' },

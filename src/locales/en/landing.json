@@ -2,7 +2,7 @@
   "notFound": "Page not found.",
   "pill": "For families, by invitation",
   "title": "Family organisation, finally simple",
-  "lead": "Presence, meals, shopping, tasks and calendar: everything that keeps the home running, shared between all family members, on everyone’s phone.",
+  "lead": "Presence (even with shared custody), meals, shopping, tasks and calendar: everything that keeps the home running, shared between all family members, on everyone’s phone.",
   "contact": "Contact me",
   "inviteOnly": "Access by invitation only",
   "demo": {
@@ -15,10 +15,14 @@
     "pollTitle": "Dinner with the Smiths",
     "pollVotes": "3 people available on Saturday",
     "shopping": "Shopping",
-    "shoppingItems": "6 items, 2 of them urgent"
+    "shoppingItems": "6 items, 2 of them urgent",
+    "custody": "This week",
+    "custodyKids": "Lea and Tom at home",
+    "custodyNext": "At the other parent’s from Monday"
   },
   "questions": {
     "who": "Who is eating at home tonight?",
+    "kids": "Are the kids with us this week?",
     "what": "What are we eating this week?",
     "shopping": "Did anyone remember to buy milk?"
   },
@@ -57,6 +61,21 @@
       "title": "Always in the loop",
       "text": "Phone notifications and a daily summary by email, according to each person’s preferences."
     }
+  },
+  "custody": {
+    "pill": "Shared custody",
+    "title": "Every other week? It’s covered.",
+    "text": "Everyone sets their usual presence once, day by day, lunch, dinner and night, with a week A and a week B. FamilyGest knows who is home each day: all that is left is to report the exceptions.",
+    "points": {
+      "rhythm": "Same rhythm every week, or alternating",
+      "slots": "By day and by meal, nights included",
+      "exceptions": "Exceptions in one tap"
+    },
+    "child": "Lea",
+    "weekA": "Week A",
+    "weekB": "Week B",
+    "home": "At home",
+    "away": "At the other parent’s"
   },
   "stepsTitle": "How it works",
   "steps": {

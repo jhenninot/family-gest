@@ -2,8 +2,7 @@
   "notFound": "Page introuvable.",
   "pill": "Pour les familles, sur invitation",
   "title": "L'organisation de la famille, enfin simple",
-  "lead": "Présences, repas, courses, tâches et agenda : tout ce qui fait tourner la maison, partagé entre tous les membres de la famille, sur le téléphone de chacun.",
-  "leadCustody": "Présences (même en garde alternée), repas, courses, tâches et agenda : tout ce qui fait tourner la maison, partagé entre tous les membres de la famille, sur le téléphone de chacun.",
+  "lead": "Présences (même en garde alternée), repas, courses, tâches et agenda : tout ce qui fait tourner la maison, partagé entre tous les membres de la famille, sur le téléphone de chacun.",
   "contact": "Me contacter",
   "inviteOnly": "Accès sur invitation uniquement",
   "demo": {
@@ -19,7 +18,7 @@
     "shoppingItems": "6 articles, dont 2 urgents",
     "custody": "Cette semaine",
     "custodyKids": "Léa et Tom à la maison",
-    "custodyNext": "Chez leur père à partir de lundi"
+    "custodyNext": "Chez l’autre parent dès lundi"
   },
   "questions": {
     "who": "Qui mange à la maison ce soir ?",
@@ -33,10 +32,6 @@
     "presence": {
       "title": "Présences et couverts",
       "text": "Chacun indique quand il est absent ou présent, midi, soir et nuit. Vous savez toujours combien vous serez à table, invités compris."
-    },
-    "custody": {
-      "title": "Garde alternée",
-      "text": "Chacun règle sa présence habituelle par jour et par repas, en alternant une semaine sur deux : les enfants sont comptés quand ils sont chez vous, sans rien ressaisir."
     },
     "meals": {
       "title": "Menus de la semaine",
