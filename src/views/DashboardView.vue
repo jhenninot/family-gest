@@ -43,6 +43,18 @@
         </div>
       </router-link>
 
+      <!-- Card 1 ter : Repas à organiser (votes en cours, prochain repas fixé) -->
+      <router-link :to="getPath('/meals/plans')" class="glass-card metric-card clickable-card">
+        <div class="metric-icon-wrapper orange">
+          <CalendarHeart :size="22" />
+        </div>
+        <div class="metric-details">
+          <span class="metric-label">{{ t('nav.mealPlans') }}</span>
+          <div class="metric-value">{{ openMealPolls.length }}</div>
+          <span class="metric-subtext">{{ mealPlansSubtext }}</span>
+        </div>
+      </router-link>
+
       <!-- Card 2: Liste de courses -->
       <router-link :to="getPath('/shopping')" class="glass-card metric-card clickable-card">
         <div class="metric-icon-wrapper amber">
@@ -427,6 +439,44 @@
           </div>
         </div>
 
+        <!-- Repas à organiser : votes en cours et repas fixés à venir -->
+        <div class="glass-card section-card margin-bottom-md">
+          <div class="section-card-header">
+            <div class="header-title">
+              <CalendarHeart :size="20" class="text-orange" />
+              <h2>{{ t('nav.mealPlans') }}</h2>
+            </div>
+            <router-link :to="getPath('/meals/plans')" class="view-all-link">{{ t('dashboard.seeAll') }} &rarr;</router-link>
+          </div>
+
+          <div class="plans-list">
+            <router-link
+              v-for="p in dashboardMealPlans"
+              :key="p.id"
+              :to="{ path: getPath('/meals/plans'), query: { poll: String(p.id) } }"
+              class="plan-row"
+            >
+              <span class="plan-row-icon">{{ p.slot === 'lunch' ? '☀️' : '🌙' }}</span>
+              <div class="plan-row-main">
+                <span class="plan-row-title">{{ p.title }}</span>
+                <span v-if="p.status === 'closed'" class="plan-row-meta fixed">
+                  📅 {{ t('dashboard.mealPlans.fixedOn', { date: shortDay(p.chosenDate) }) }}
+                </span>
+                <span v-else class="plan-row-meta">
+                  {{ t('mealPolls.answered', { n: p.summary.answered, total: p.summary.total }) }}<template v-if="p.summary.bestDate"> · {{ t('mealPolls.best', { date: shortDay(p.summary.bestDate) }) }}</template>
+                </span>
+              </div>
+              <span class="plan-row-status" :class="p.status">{{ t(`mealPolls.status.${p.status}`) }}</span>
+            </router-link>
+            <div v-if="dashboardMealPlans.length === 0" class="empty-state">
+              🍽️ {{ t('dashboard.mealPlans.empty') }}
+              <router-link :to="{ path: getPath('/meals/plans'), query: { new: '1' } }" class="plan-create-link">
+                + {{ t('mealPolls.new') }}
+              </router-link>
+            </div>
+          </div>
+        </div>
+
         <!-- 4. Prochains événements (Calendrier) -->
         <div class="glass-card section-card margin-bottom-md">
           <div class="section-card-header">
@@ -592,7 +642,8 @@ import {
   Users,
   Sun,
   Sunset,
-  BedDouble
+  BedDouble,
+  CalendarHeart
 } from '@lucide/vue'
 import HouseUser from '../components/icons/HouseUser.vue'
 import UserAvatar from '../components/UserAvatar.vue'
@@ -626,6 +677,20 @@ const dashboardShoppingItems = computed(() => {
 
 const dashboardTasks = computed(() => {
   return (store.tasks || []).slice(0, 6)
+})
+
+// Repas à organiser : votes en cours d'abord, puis repas fixés à venir (les plus proches)
+const openMealPolls = computed(() => (store.mealPolls || []).filter(p => p.status === 'open'))
+const upcomingFixedMeals = computed(() => (store.mealPolls || [])
+  .filter(p => p.status === 'closed' && p.chosenDate && p.chosenDate >= store.todayStr)
+  .sort((a, b) => a.chosenDate.localeCompare(b.chosenDate)))
+const dashboardMealPlans = computed(() => [...openMealPolls.value, ...upcomingFixedMeals.value].slice(0, 5))
+const shortDay = (dateStr) => formatDate(new Date(`${dateStr}T00:00:00`), { weekday: 'short', day: 'numeric', month: 'short' })
+const mealPlansSubtext = computed(() => {
+  const next = upcomingFixedMeals.value[0]
+  if (next) return t('dashboard.mealPlans.next', { title: next.title, date: shortDay(next.chosenDate) })
+  if (openMealPolls.value.length > 0) return t('dashboard.mealPlans.voting', { n: openMealPolls.value.length }, openMealPolls.value.length)
+  return t('dashboard.mealPlans.none')
 })
 
 const dashboardEvents = computed(() => {
@@ -864,14 +929,93 @@ const getMemberFirstName = (memberId) => {
 .metric-icon-wrapper.emerald { background: linear-gradient(135deg, #10b981, #34d399); }
 .metric-icon-wrapper.amber { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
 .metric-icon-wrapper.rose { background: linear-gradient(135deg, #f43f5e, #fb7185); }
+.metric-icon-wrapper.orange { background: linear-gradient(135deg, #f97316, #fb923c); }
+.text-orange { color: #f97316; }
 
-/* Cinq cartes de synthèse : 3 + 2 sur écran moyen, une seule ligne sur grand écran */
+/* Six cartes de synthèse : 3 + 3 sur écran moyen, une seule ligne sur grand écran */
 @media (min-width: 1025px) {
   .metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (min-width: 1600px) {
-  .metric-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .metric-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* Repas à organiser */
+.plans-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.plan-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+}
+
+.plan-row:hover {
+  border-color: #f97316;
+}
+
+.plan-row-icon {
+  font-size: 1.2rem;
+}
+
+.plan-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.plan-row-title {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.plan-row-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.plan-row-meta.fixed {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.plan-row-status {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.plan-row-status.open {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.plan-row-status.closed {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.plan-create-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  color: #f97316;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .today-meal-lines {

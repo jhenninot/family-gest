@@ -10,5 +10,7 @@
   "eventsBadge": "Événements dans les 7 prochains jours",
   "shortcuts": "Raccourcis",
   "openShortcut": "Ouvrir {title} ({url})",
-  "defaultFamilyName": "Espace familial"
+  "defaultFamilyName": "Espace familial",
+  "mealPlans": "Repas à organiser",
+  "mealPlansBadge": "{n} repas en cours de vote | {n} repas en cours de vote"
 }

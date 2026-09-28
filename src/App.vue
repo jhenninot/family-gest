@@ -264,11 +264,12 @@ const SCREEN_ROUTES = [
   ['family-dashboard', 'family-dashboard-explicit'],
   ['family-absences'],
   ['family-meals'],
+  ['family-meal-plans'],
   ['family-shopping'],
   ['family-tasks'],
   ['family-calendar']
 ]
-const SCREEN_PATHS = ['', '/absences', '/meals', '/shopping', '/tasks', '/calendar']
+const SCREEN_PATHS = ['', '/absences', '/meals', '/meals/plans', '/shopping', '/tasks', '/calendar']
 const mainContentRef = ref(null)
 const routeTransition = ref('fade')
 const isNavMobile = useIsMobile('(max-width: 900px)')

@@ -38,7 +38,7 @@
       </router-link>
 
       <!-- 2. Repas de la semaine -->
-      <router-link :to="getPath('/meals')" class="nav-item" active-class="active">
+      <router-link :to="getPath('/meals')" class="nav-item" exact-active-class="active">
         <Utensils :size="20" />
         <span>{{ t('nav.meals') }}</span>
         <span 
@@ -47,6 +47,19 @@
           :title="t('nav.mealsBadge', { n: thisWeekMealsCount }, thisWeekMealsCount)"
         >
           {{ thisWeekMealsCount }}
+        </span>
+      </router-link>
+
+      <!-- 2 bis. Repas à organiser (sondages de dates auprès des invités) -->
+      <router-link :to="getPath('/meals/plans')" class="nav-item" active-class="active">
+        <CalendarHeart :size="20" />
+        <span>{{ t('nav.mealPlans') }}</span>
+        <span
+          v-if="openMealPollsCount > 0"
+          class="badge-count warning"
+          :title="t('nav.mealPlansBadge', { n: openMealPollsCount }, openMealPollsCount)"
+        >
+          {{ openMealPollsCount }}
         </span>
       </router-link>
 
@@ -117,6 +130,7 @@ import {
   Calendar, 
   ShoppingCart, 
   Utensils,
+  CalendarHeart,
   Award, 
   Globe, 
   ExternalLink 
@@ -167,6 +181,9 @@ const thisWeekMealsCount = computed(() => {
 
   return store.meals.filter(meal => meal.date >= monStr && meal.date <= sunStr).length
 })
+
+// Repas à organiser dont le vote est en cours
+const openMealPollsCount = computed(() => (store.mealPolls || []).filter(p => p.status === 'open').length)
 
 // Nombre d'événements dans les 7 prochains jours (aujourd'hui inclus)
 const upcomingEventsCount = computed(() => {
@@ -485,6 +502,11 @@ const upcomingEventsCount = computed(() => {
 
   .nav-item span:not(.badge-count) {
     display: none;
+  }
+
+  /* L'icône garde sa taille à côté d'un compteur (7 entrées sur un téléphone) */
+  .nav-item svg {
+    flex-shrink: 0;
   }
 
   .nav-item .badge-count {

@@ -49,5 +49,12 @@
   "absentCount": "{n} absent | {n} absents",
   "presenceCount": "{n} présence | {n} présences",
   "guestCount": "{n} invité | {n} invités",
-  "fullNoGuest": "Au complet, sans invité"
+  "fullNoGuest": "Au complet, sans invité",
+  "mealPlans": {
+    "next": "{title} · {date}",
+    "voting": "{n} vote en cours | {n} votes en cours",
+    "none": "Aucun repas en préparation",
+    "fixedOn": "fixé au {date}",
+    "empty": "Aucun repas en préparation."
+  }
 }

@@ -1,9 +1,6 @@
 <template>
   <div class="plans-view">
     <div class="glass-card plans-header">
-      <router-link :to="`/${slug}/meals`" class="plans-back">
-        <ChevronLeft :size="18" /> {{ t('mealPolls.backToMeals') }}
-      </router-link>
       <div class="plans-title-row">
         <div>
           <h2>{{ t('mealPolls.title') }}</h2>
@@ -217,7 +214,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ChevronLeft, Plus, Copy, MessageCircle, Share2, Trash2, Edit3, CalendarCheck, RotateCcw, Users } from '@lucide/vue'
+import { Plus, Copy, MessageCircle, Share2, Trash2, Edit3, CalendarCheck, RotateCcw, Users } from '@lucide/vue'
 import { useFamilyStore } from '../stores/familyStore'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -296,7 +293,9 @@ const load = async () => {
   } catch { /* liste vide */ } finally {
     loading.value = false
   }
-  // ?poll=<id> (depuis une date proposée de l'agenda) : ce repas est déplié et montré
+  // ?new=1 (tableau de bord) : formulaire de création ouvert d'emblée
+  if (route.query.new === '1') openEditor()
+  // ?poll=<id> (agenda, tableau de bord) : ce repas est déplié et montré
   const target = Number(route.query.poll)
   if (target && polls.value.some(p => p.id === target)) {
     openId.value = target
@@ -450,16 +449,6 @@ const reopen = async (poll) => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-}
-
-.plans-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  color: var(--accent-primary);
-  font-size: 0.88rem;
-  font-weight: 600;
-  text-decoration: none;
 }
 
 .plans-title-row {
