@@ -13,7 +13,8 @@
     "users": "Usuarios ({n})",
     "smtp": "Configuración global y SMTP",
     "alerts": "Registro de alertas",
-    "logs": "Registro técnico"
+    "logs": "Registro técnico",
+    "releases": "Novedades"
   },
   "families": {
     "loading": "Cargando familias…",
@@ -358,5 +359,24 @@
     "secretKept": "•••••••• (guardado — dejar vacío para conservarlo)",
     "enable": "Activar el inicio de sesión con Google",
     "saved": "Ajustes guardados."
+  },
+  "releases": {
+    "title": "Novedades por publicar",
+    "intro": "En cada nueva versión recibe una notificación. Revise las novedades y publíquelas: cada usuario es avisado según sus preferencias (push y/o correo), y una ventana «¿Qué hay de nuevo?» aparece la próxima vez que abra la aplicación.",
+    "none": "Ninguna versión por anunciar.",
+    "version": "Versión {version}",
+    "publishedOn": "Publicada el {date}",
+    "state": {
+      "pending": "Por publicar",
+      "published": "Publicada",
+      "dismissed": "No publicada"
+    },
+    "publish": "Publicar a los usuarios",
+    "republish": "Reenviar a los usuarios",
+    "dismiss": "No publicar",
+    "confirmTitle": "Publicar las novedades",
+    "confirmMessage": "¿Avisar a todos los usuarios de las novedades de la versión {version}, según sus preferencias de notificación?",
+    "published": "Novedades publicadas: {push} notificación(es) push, {email} correo(s).",
+    "dismissed": "Versión descartada: los usuarios no serán avisados."
   }
 }

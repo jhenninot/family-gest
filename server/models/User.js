@@ -56,6 +56,11 @@ const userSchema = new mongoose.Schema({
     digest: {
       push: { type: Boolean, default: false },
       email: { type: Boolean, default: true }
+    },
+    // Nouveautés de l'application, publiées par le Super Admin à chaque nouvelle version
+    appUpdates: {
+      push: { type: Boolean, default: true },
+      email: { type: Boolean, default: false }
     }
   },
   usualPresence: { type: String, enum: ['present', 'absent'], default: 'present' },

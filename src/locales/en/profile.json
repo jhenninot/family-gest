@@ -33,7 +33,8 @@
       "tasks": "Tasks",
       "taskReminders": "Reminders for tasks due",
       "events": "Events",
-      "digest": "Daily summary"
+      "digest": "Daily summary",
+      "appUpdates": "App updates"
     }
   },
   "gdpr": {

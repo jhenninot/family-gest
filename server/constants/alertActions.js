@@ -21,7 +21,9 @@ export const ALERT_ACTIONS = {
   FAMILY_MEMBER_INVITED: { code: 'family.member_invited', label: 'Invitation membre de famille' },
   MEMBER_WELCOME: { code: 'member.welcome', label: 'Email de bienvenue (nouveau membre)' },
   MEMBER_WELCOME_RESENT: { code: 'member.welcome_resent', label: 'Email de bienvenue renvoyé' },
-  ACCOUNT_REGISTERED: { code: 'account.registered', label: 'Compte créé' }
+  ACCOUNT_REGISTERED: { code: 'account.registered', label: 'Compte créé' },
+  APP_UPDATE_PROPOSED: { code: 'app.update_proposed', label: 'Nouvelle version à publier (Super Admin)' },
+  APP_UPDATE_PUBLISHED: { code: 'app.update', label: "Nouveautés de l'application", category: 'appUpdates' }
 }
 
 export const ALERT_ACTIONS_LIST = Object.values(ALERT_ACTIONS)

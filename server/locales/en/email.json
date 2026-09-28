@@ -55,7 +55,8 @@
     "tasks": "Tasks",
     "taskReminders": "Task due reminders",
     "events": "Events",
-    "digest": "Daily summary"
+    "digest": "Daily summary",
+    "appUpdates": "App updates"
   },
   "smtpTest": {
     "subject": "Platform SMTP connection test - FamilyGest",

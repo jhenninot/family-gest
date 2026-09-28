@@ -1,0 +1,26 @@
+[
+  {
+    "version": "2026.09.30",
+    "date": "2026-09-30",
+    "notes": {
+      "fr": [
+        "Agenda : un événement peut durer plusieurs jours (vacances du… au…), avec les absences des participants créées automatiquement.",
+        "Tableau de bord : touchez un événement de « Prochains événements » pour voir son détail.",
+        "Les membres choisis dans les formulaires portent maintenant une coche.",
+        "Assistant vocal et Alexa : « Julien et Marie partent en vacances du 3 au 10 octobre », « Quelles sont mes prochaines absences ? »."
+      ],
+      "en": [
+        "Calendar: an event can now last several days (holidays from… to…), and the participants' absences are created automatically.",
+        "Dashboard: tap an event in “Upcoming events” to see its details.",
+        "Members chosen in forms now show a check mark.",
+        "Voice assistant and Alexa: add multi-day events and ask about upcoming absences."
+      ],
+      "es": [
+        "Agenda: un evento puede durar varios días (vacaciones del… al…), con las ausencias de los participantes creadas automáticamente.",
+        "Panel: toque un evento de «Próximos eventos» para ver su detalle.",
+        "Los miembros elegidos en los formularios muestran ahora una marca.",
+        "Asistente de voz y Alexa: eventos de varios días y preguntas sobre las próximas ausencias."
+      ]
+    }
+  }
+]

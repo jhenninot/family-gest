@@ -292,15 +292,16 @@ router.beforeEach(async (to, from, next) => {
       }
     }
 
+    // Les paramètres sont conservés (ex : ?whatsnew=1 depuis la notification des nouveautés)
     if (activeSlug) {
-      return next({ path: `/${activeSlug}${legacyMap[to.path]}` })
+      return next({ path: `/${activeSlug}${legacyMap[to.path]}`, query: to.query })
     }
 
     if (authStore.isSuperAdmin) {
-      return next({ name: 'super-admin' })
+      return next({ name: 'super-admin', query: to.query })
     }
 
-    return next({ name: 'select-family' })
+    return next({ name: 'select-family', query: to.query })
   }
 
   return next()

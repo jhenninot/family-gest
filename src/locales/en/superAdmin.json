@@ -13,7 +13,8 @@
     "users": "Users ({n})",
     "smtp": "Global settings & SMTP",
     "alerts": "Alert log",
-    "logs": "Server log"
+    "logs": "Server log",
+    "releases": "Releases"
   },
   "families": {
     "loading": "Loading families…",
@@ -358,5 +359,24 @@
     "secretKept": "•••••••• (saved — leave empty to keep it)",
     "enable": "Enable Google sign-in",
     "saved": "Settings saved."
+  },
+  "releases": {
+    "title": "Updates to publish",
+    "intro": "Each time a new version is available you get a notification. Review the new features, then publish them: every user is notified according to their preferences (push and/or email), and a “What's new?” window shows up the next time they open the app.",
+    "none": "No version to announce.",
+    "version": "Version {version}",
+    "publishedOn": "Published on {date}",
+    "state": {
+      "pending": "To publish",
+      "published": "Published",
+      "dismissed": "Not published"
+    },
+    "publish": "Publish to users",
+    "republish": "Send to users again",
+    "dismiss": "Don't publish",
+    "confirmTitle": "Publish the new features",
+    "confirmMessage": "Notify all users about the new features of version {version}, according to their notification preferences?",
+    "published": "New features published: {push} push notification(s), {email} email(s).",
+    "dismissed": "Version dismissed: users will not be notified."
   }
 }

@@ -83,6 +83,10 @@ Email delivery is a single global configuration (see `Migration.md` §4): the pl
 
 `server/logging/logger.js` (installed first thing by `server/logging/install.js`, the first import of `index.js`) captures every `console.debug/log/info/warn/error` call, plus `logger.debug/info/warn/error/critical(message, { source, family })` for explicit calls. Source is inferred from the `[Alexa]`/`[Digest]`… prefix. Entries at or above the level chosen by the super admin (`GlobalConfig.logLevel`; `debug` reverts to `info` after 24 h via `logDebugUntil`) are kept in a 2 000-line memory ring and batch-written to `ServerLog` (TTL: 24 h for debug/info, 30 days for warn and above). Secrets (Alexa/MCP URL tokens, bearer tokens, passwords) are masked before storage. `httpLogMiddleware` logs API 5xx as errors and every API request at debug level; unhandled rejections/exceptions and MongoDB disconnections are logged as critical. Routes: `/api/super-admin/server-logs` (+ `/download`, `/settings`), UI in `src/components/ServerLogsPanel.vue`. Use `console.debug` for verbose traces (shown only in debug mode); never log user-entered content.
 
+### Release announcements
+
+**Add an entry at the top of `server/releases/releases.json` (version `YYYY.MM.DD`, notes in fr/en/es) for every user-visible change.** At startup `checkPendingRelease()` (`server/index.js`) pushes the latest unhandled version once to the super admins (`GlobalConfig.releaseProposedVersion`); they review it in Super Admin › Nouveautés (`src/components/ReleasePanel.vue`) and publish it (push/email per the `appUpdates` notification preference) or dismiss it. The app shows the latest published notes once per device in `src/components/WhatsNewModal.vue` (`/api/releases/latest`, `?whatsnew=1` forces it).
+
 ### Alert logging
 
 `server/models/AlertLog.js` + `server/constants/alertActions.js` record every push/email notification sent (invitations, reminders, etc.) for audit purposes, surfaced in the Super Admin console via `/api/super-admin/alert-logs`.

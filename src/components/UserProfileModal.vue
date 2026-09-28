@@ -316,7 +316,8 @@ const NOTIFICATION_CATEGORIES = [
   { key: 'tasks' },
   { key: 'taskReminders' },
   { key: 'events' },
-  { key: 'digest' }
+  { key: 'digest' },
+  { key: 'appUpdates' }
 ]
 
 const defaultNotificationPreferences = () => ({
@@ -325,7 +326,8 @@ const defaultNotificationPreferences = () => ({
   tasks: { push: true, email: false },
   taskReminders: { push: true, email: false },
   events: { push: true, email: false },
-  digest: { push: false, email: true }
+  digest: { push: false, email: true },
+  appUpdates: { push: true, email: false }
 })
 
 const editProfile = ref({

@@ -222,6 +222,9 @@
     <!-- Assistant vocal (bouton micro), mêmes commandes que la skill Alexa -->
     <VoiceAssistant v-if="authStore.isAuthenticated && !isAuthPage" />
 
+    <!-- Nouveautés de la dernière version publiée par le Super Admin -->
+    <WhatsNewModal v-if="authStore.isAuthenticated && !isAuthPage" />
+
     <!-- Bannière d'installation PWA -->
     <PwaInstallPrompt />
 
@@ -249,6 +252,7 @@ import PwaInstallPrompt from './components/PwaInstallPrompt.vue'
 import DevicePushPrompt from './components/DevicePushPrompt.vue'
 import ConfirmModal from './components/ConfirmModal.vue'
 import VoiceAssistant from './components/VoiceAssistant.vue'
+import WhatsNewModal from './components/WhatsNewModal.vue'
 import { useScreenSwipe } from './composables/useScreenSwipe'
 import { useIsMobile } from './composables/useIsMobile'
 

@@ -129,5 +129,6 @@
   "alexaClientId": "Invalid Client ID: it starts with \"amzn1.application-oa2-client.\" (Login with Amazon security profile).",
   "alexaClientSecret": "The security profile Client Secret is required.",
   "alexaSyncNotConfigured": "First enter the skill ID and the Amazon security profile.",
-  "alexaSyncNotConnected": "FamilyGest is not yet authorised to update the skill at Amazon."
+  "alexaSyncNotConnected": "FamilyGest is not yet authorised to update the skill at Amazon.",
+  "releaseNotFound": "Version not found."
 }

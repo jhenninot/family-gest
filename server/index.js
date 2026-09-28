@@ -48,6 +48,7 @@ import { mountGoogleAuth, googleRedirectUri, isGoogleAuthReady } from './auth/go
 import { buildInteractionModel, normalizeInvocationName, DEFAULT_INVOCATION_NAME } from './alexa/interactionModel.js'
 import { oauthReturnUrl, isSyncConfigured, isSyncConnected, familyModel, modelHash, startAuthorization, completeAuthorization, pushModel, forgetAccessToken, startAlexaSyncScheduler } from './alexa/sync.js'
 import { getFamilyMembersList } from './mcp/resolveMember.js'
+import { latestRelease, releaseByVersion, notesFor, releaseState, needsProposal } from './releases/index.js'
 import AlexaConnector from './models/AlexaConnector.js'
 import { migrateNotificationPreferences } from './scripts/migrate-notification-preferences.js'
 import { migrateUsualPresenceGrid } from './scripts/migrate-usual-presence-grid.js'
@@ -626,7 +627,7 @@ const applyUniformNotificationPreference = (user, push, email) => {
 // Le libellé de la catégorie d'abonnement (pied de chaque email) est email.categories.<catégorie>.
 
 // Catégories d'abonnement granulaire (User.notificationPreferences)
-const NOTIFICATION_CATEGORIES = ['presence', 'meals', 'tasks', 'taskReminders', 'events', 'digest']
+const NOTIFICATION_CATEGORIES = ['presence', 'meals', 'tasks', 'taskReminders', 'events', 'digest', 'appUpdates']
 
 const sendNotificationEmail = async ({
   subject: subjectText,
@@ -680,6 +681,9 @@ const sendNotificationEmail = async ({
       const userQuery = { [emailPrefField]: true }
       if (excludeUserId) {
         userQuery.id = { $ne: Number(excludeUserId) }
+      }
+      if (recipientUserIds) {
+        userQuery.id = { ...userQuery.id, $in: recipientUserIds.map(Number) }
       }
       recipientUsers = await User.find(userQuery).select('email firstName lastName id language')
     }
@@ -863,13 +867,17 @@ const sendPushNotification = async ({
   familyId = null,
   action = null,
   // Restreint l'envoi à ces comptes (ex : rappel destiné à la seule personne assignée).
-  recipientUserIds = null
+  recipientUserIds = null,
+  // Message de service (proposition de version au Super Admin) : envoyé sans tenir compte des
+  // préférences de notification
+  ignorePreferences = false
 }) => {
   try {
     if (!vapidPublicKey || !vapidPrivateKey) return { success: false, reason: 'PUSH_NOT_CONFIGURED', count: 0, recipients: [] }
 
     const category = ACTION_CATEGORY_BY_CODE[action] || null
     const pushPrefField = category ? `notificationPreferences.${category}.push` : 'pushNotificationsEnabled'
+    const prefFilter = ignorePreferences ? {} : { [pushPrefField]: true }
 
     let userIds = []
     let familyName = ''
@@ -893,13 +901,16 @@ const sendPushNotification = async ({
       if (excludeUserId) {
         userQuery.id = { $ne: Number(excludeUserId) }
       }
+      if (recipientUserIds) {
+        userQuery.id = { ...userQuery.id, $in: recipientUserIds.map(Number) }
+      }
       const eligibleUsers = await User.find(userQuery).select('id')
       userIds = eligibleUsers.map(u => u.id)
     }
 
     if (userIds.length === 0) return { success: false, reason: 'NO_ELIGIBLE_MEMBERS', count: 0, recipients: [] }
 
-    const activeUsers = await User.find({ id: { $in: userIds }, [pushPrefField]: true }).select('id firstName lastName language')
+    const activeUsers = await User.find({ id: { $in: userIds }, ...prefFilter }).select('id firstName lastName language')
     const finalUserIds = activeUsers.map(u => u.id)
     if (finalUserIds.length === 0) return { success: false, reason: 'NO_ELIGIBLE_MEMBERS', count: 0, recipients: [] }
 
@@ -2601,6 +2612,122 @@ app.post('/api/super-admin/smtp/test', authRateLimiter, requireAuth, requireSupe
     res.json({ success: true, message: req.t('messages.smtpTestSent', { email: recipientEmail.trim() }) })
   } catch (err) {
     res.status(500).json({ error: req.t('errors.sendFailed', { message: err.message }) })
+  }
+})
+
+// === NOUVELLES VERSIONS (server/releases/) : proposées au Super Admin, publiées aux utilisateurs ===
+
+// Au démarrage : une version pas encore traitée est signalée une fois aux Super Admins par push
+const checkPendingRelease = async () => {
+  try {
+    const release = latestRelease()
+    if (!release) return
+    const config = await GlobalConfig.findOne()
+    if (!config || !needsProposal(config, release)) return
+    const admins = await User.find({ isSuperAdmin: true }).select('id')
+    const push = await sendPushNotification({
+      title: (t) => t('notify.release.proposedTitle', { version: release.version }),
+      body: (t) => t('notify.release.proposedBody', { n: notesFor(release, t.lang).length }),
+      url: '/super-admin?tab=releases',
+      recipientUserIds: admins.map(u => u.id),
+      action: ALERT_ACTIONS.APP_UPDATE_PROPOSED.code,
+      ignorePreferences: true
+    })
+    config.releaseProposedVersion = release.version
+    await config.save()
+    await logAlertEntry({
+      action: ALERT_ACTIONS.APP_UPDATE_PROPOSED.code,
+      actionLabel: ALERT_ACTIONS.APP_UPDATE_PROPOSED.label,
+      title: `Version ${release.version}`,
+      targetType: 'release',
+      targetId: release.version,
+      channels: [toAlertChannelLog('push', push)]
+    })
+    console.log(`[Releases] Version ${release.version} proposée au Super Admin`)
+  } catch (err) {
+    console.error('[Releases] Proposition de version impossible :', err.message)
+  }
+}
+
+app.get('/api/super-admin/releases', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const config = await GlobalConfig.findOne().select('releasePublishedVersion releasePublishedAt releaseDismissedVersion').lean()
+    const release = latestRelease()
+    res.json({
+      release: release ? { version: release.version, date: release.date || null, notes: release.notes } : null,
+      state: releaseState(config, release),
+      publishedVersion: config?.releasePublishedVersion || null,
+      publishedAt: config?.releasePublishedAt || null
+    })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/super-admin/releases/:version/publish', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const release = releaseByVersion(req.params.version)
+    if (!release) return res.status(404).json({ error: req.t('errors.releaseNotFound') })
+    const config = await GlobalConfig.findOne()
+    if (!config) return res.status(500).json({ error: req.t('errors.releaseNotFound') })
+
+    const action = ALERT_ACTIONS.APP_UPDATE_PUBLISHED.code
+    const listHtml = (t) => `<ul style="padding-left: 20px; margin: 0; line-height: 1.6;">${notesFor(release, t.lang).map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`
+    const [push, email] = await Promise.all([
+      sendPushNotification({
+        title: (t) => t('notify.release.publishedTitle'),
+        body: (t) => notesFor(release, t.lang).join(' • '),
+        url: '/?whatsnew=1',
+        action
+      }),
+      sendNotificationEmail({
+        subject: (t) => t('notify.release.publishedTitle'),
+        title: (t) => t('notify.release.publishedTitle'),
+        badge: '✨',
+        detailsHtml: listHtml,
+        actionUrl: '/?whatsnew=1',
+        actionText: (t) => t('notify.release.openApp'),
+        action
+      })
+    ])
+    config.releasePublishedVersion = release.version
+    config.releasePublishedAt = new Date()
+    await config.save()
+    await logAlertEntry({
+      actor: await User.findOne({ id: req.user.id }).select('id firstName lastName'),
+      action,
+      actionLabel: ALERT_ACTIONS.APP_UPDATE_PUBLISHED.label,
+      title: `Version ${release.version}`,
+      targetType: 'release',
+      targetId: release.version,
+      channels: [toAlertChannelLog('push', push), toAlertChannelLog('email', email)]
+    })
+    res.json({ state: 'published', publishedAt: config.releasePublishedAt, push: push?.count || 0, email: email?.count || 0 })
+  } catch (err) {
+    console.error('[Releases] Publication impossible :', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/super-admin/releases/:version/dismiss', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    if (!releaseByVersion(req.params.version)) return res.status(404).json({ error: req.t('errors.releaseNotFound') })
+    await GlobalConfig.updateOne({}, { $set: { releaseDismissedVersion: req.params.version } })
+    res.json({ state: 'dismissed' })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Dernière version publiée, pour la fenêtre « Quoi de neuf ? » de l'application
+app.get('/api/releases/latest', requireAuth, async (req, res) => {
+  try {
+    const config = await GlobalConfig.findOne().select('releasePublishedVersion releasePublishedAt').lean()
+    const release = config?.releasePublishedVersion ? releaseByVersion(config.releasePublishedVersion) : null
+    if (!release) return res.json({ release: null })
+    res.json({ release: { version: release.version, date: release.date || null, notes: notesFor(release, req.lang), publishedAt: config.releasePublishedAt } })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
 })
 
@@ -6089,6 +6216,7 @@ const startServer = async () => {
   }
   startDigestScheduler(digestCtx)
   startAlexaSyncScheduler()
+  checkPendingRelease()
   mountDigestAdminRoutes(app, digestCtx, { requireAuth, requireSuperAdmin })
 
   app.listen(PORT, '0.0.0.0', () => {

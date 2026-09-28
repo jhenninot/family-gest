@@ -55,7 +55,8 @@
     "tasks": "Tareas",
     "taskReminders": "Recordatorios de tareas con vencimiento",
     "events": "Eventos",
-    "digest": "Resumen diario"
+    "digest": "Resumen diario",
+    "appUpdates": "Novedades de la aplicación"
   },
   "smtpTest": {
     "subject": "Prueba de conexión SMTP de la plataforma - FamilyGest",

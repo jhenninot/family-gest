@@ -55,7 +55,8 @@
     "tasks": "Tâches",
     "taskReminders": "Rappels de tâches à échéance",
     "events": "Événements",
-    "digest": "Récapitulatif quotidien"
+    "digest": "Récapitulatif quotidien",
+    "appUpdates": "Nouveautés de l'application"
   },
   "smtpTest": {
     "subject": "Test de connexion SMTP Plateforme - FamilyGest",

@@ -172,5 +172,11 @@
   "voice": {
     "added": "{text} • Añadido con el asistente de voz",
     "declared": "{text} • Declarado con el asistente de voz"
+  },
+  "release": {
+    "proposedTitle": "Nueva versión {version} para publicar",
+    "proposedBody": "Una novedad para anunciar a los usuarios. Toque para revisarla y publicarla. | {n} novedades para anunciar a los usuarios. Toque para revisarlas y publicarlas.",
+    "publishedTitle": "Novedades de FamilyGest",
+    "openApp": "Abrir la aplicación"
   }
 }

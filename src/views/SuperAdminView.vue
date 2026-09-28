@@ -68,11 +68,24 @@
         <ScrollText :size="18" />
         <span>{{ t('superAdmin.tabs.logs') }}</span>
       </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'releases' }"
+        @click="activeTab = 'releases'"
+      >
+        <Sparkles :size="18" />
+        <span>{{ t('superAdmin.tabs.releases') }}</span>
+      </button>
     </div>
 
     <!-- Journal technique du serveur -->
     <div v-if="activeTab === 'logs'" class="tab-content">
       <ServerLogsPanel />
+    </div>
+
+    <!-- Nouvelles versions à publier aux utilisateurs -->
+    <div v-if="activeTab === 'releases'" class="tab-content">
+      <ReleasePanel />
     </div>
 
     <!-- TAB 1: FAMILIES -->
@@ -1207,7 +1220,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
@@ -1217,6 +1230,7 @@ import { intlLocale } from '../i18n/format'
 import { translateValue } from '../i18n/values'
 import UserAvatar from '../components/UserAvatar.vue'
 import ServerLogsPanel from '../components/ServerLogsPanel.vue'
+import ReleasePanel from '../components/ReleasePanel.vue'
 import GoogleAuthSettings from '../components/GoogleAuthSettings.vue'
 import { 
   ShieldAlert, 
@@ -1246,16 +1260,20 @@ import {
   RotateCcw,
   Filter,
   Clock,
-  ScrollText
+  ScrollText,
+  Sparkles
 } from '@lucide/vue'
 
 const { t, te } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const familyStore = useFamilyStore()
 const { confirm } = useConfirm()
 
-const activeTab = ref('families')
+// ?tab=releases : ouverture depuis la notification « nouvelle version à publier »
+const TABS = ['families', 'users', 'smtp', 'alerts', 'logs', 'releases']
+const activeTab = ref(TABS.includes(route.query.tab) ? route.query.tab : 'families')
 const families = ref([])
 const users = ref([])
 const loadingFamilies = ref(false)

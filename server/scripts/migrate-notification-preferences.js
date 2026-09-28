@@ -27,6 +27,15 @@ export const migrateNotificationPreferences = async () => {
       console.log(`✅ [Migration] Préférences « Rappels de tâches » initialisées pour ${backfill.modifiedCount} compte(s).`)
     }
 
+    // « Nouveautés de l'application » : push oui, email non (même raison d'écrire en base)
+    const appUpdates = await User.updateMany(
+      { notificationPreferences: { $exists: true }, 'notificationPreferences.appUpdates': { $exists: false } },
+      { $set: { 'notificationPreferences.appUpdates': { push: true, email: false } } }
+    )
+    if (appUpdates.modifiedCount > 0) {
+      console.log(`✅ [Migration] Préférences « Nouveautés de l'application » initialisées pour ${appUpdates.modifiedCount} compte(s).`)
+    }
+
     const usersToMigrate = await User.find({ notificationPreferences: { $exists: false } })
     if (usersToMigrate.length === 0) return
 
@@ -42,7 +51,8 @@ export const migrateNotificationPreferences = async () => {
         tasks: { push: legacyPush, email: legacyEmail },
         taskReminders: { push: legacyPush, email: legacyEmail },
         events: { push: legacyPush, email: legacyEmail },
-        digest: { push: false, email: true }
+        digest: { push: false, email: true },
+        appUpdates: { push: true, email: false }
       }
       await user.save()
     }

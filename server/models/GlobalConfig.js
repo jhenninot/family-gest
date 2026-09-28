@@ -146,6 +146,12 @@ const globalConfigSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Annonce des nouvelles versions (server/releases/) : dernière version proposée au Super Admin,
+  // publiée aux utilisateurs, ou écartée
+  releaseProposedVersion: { type: String, default: null },
+  releasePublishedVersion: { type: String, default: null },
+  releasePublishedAt: { type: Date, default: null },
+  releaseDismissedVersion: { type: String, default: null },
   // Contenu légal (RGPD) édité par le Super Administrateur, affiché publiquement sur
   // /mentions-legales et /confidentialite (texte brut, mis en forme via white-space: pre-wrap).
   legalNotice: {

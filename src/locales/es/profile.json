@@ -33,7 +33,8 @@
       "tasks": "Tareas",
       "taskReminders": "Recordatorios de tareas con fecha límite",
       "events": "Eventos",
-      "digest": "Resumen diario"
+      "digest": "Resumen diario",
+      "appUpdates": "Novedades de la aplicación"
     }
   },
   "gdpr": {
