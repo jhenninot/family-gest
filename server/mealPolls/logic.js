@@ -6,6 +6,8 @@ export const MAX_GUESTS = 40
 export const MAX_DATES = 30
 
 const cleanText = (value, max) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
+export const MAX_PER_LINE = 20
+const cleanCount = (value) => Math.min(MAX_PER_LINE, Math.max(1, Math.round(Number(value)) || 1))
 
 // Dates proposées : format AAAA-MM-JJ valide, sans doublon, triées
 export const sanitizeDates = (dates) => {
@@ -20,7 +22,7 @@ export const sanitizeDates = (dates) => {
 }
 
 // Invités : on garde l'identifiant (et donc les votes) de ceux qui existent déjà, les nouveaux en
-// reçoivent un ; noms vides ou en double ignorés
+// reçoivent un ; noms vides ou en double ignorés. Chaque ligne a un nombre de personnes (1 à 20).
 export const mergeGuests = (existing, incoming, now = Date.now()) => {
   if (!Array.isArray(incoming)) return existing || []
   const byId = new Map((existing || []).map(g => [g.id, g]))
@@ -33,7 +35,8 @@ export const mergeGuests = (existing, incoming, now = Date.now()) => {
     if (!name || seen.has(key)) continue
     seen.add(key)
     const previous = raw && typeof raw === 'object' && raw.id != null ? byId.get(Number(raw.id)) : null
-    result.push(previous ? { ...previous, name } : { id: next++, name, comment: '', votedAt: null })
+    const count = cleanCount(raw && typeof raw === 'object' ? raw.count : 1)
+    result.push(previous ? { ...previous, name, count } : { id: next++, name, count, comment: '', votedAt: null })
     if (result.length >= MAX_GUESTS) break
   }
   return result
@@ -61,23 +64,24 @@ export const applyGuestVote = (poll, guestId, answers, comment, now = new Date()
   return { votes, guests }
 }
 
-// Décompte par date (oui, si besoin, non) ; meilleure date = le plus de « oui », puis de « si besoin »
+// Décompte par date en personnes (une ligne « couple » compte 2) ; meilleure date = le plus de
+// « oui », puis de « si besoin »
+export const guestCount = (guest) => cleanCount(guest?.count)
+
 export const summarize = (poll) => {
+  const sizes = new Map(poll.guests.map(g => [g.id, guestCount(g)]))
+  const people = (votes, answer) => votes.filter(v => v.answer === answer).reduce((n, v) => n + (sizes.get(v.guestId) || 1), 0)
   const perDate = poll.dates.map(date => {
     const votes = poll.votes.filter(v => v.date === date)
-    return {
-      date,
-      yes: votes.filter(v => v.answer === 'yes').length,
-      maybe: votes.filter(v => v.answer === 'maybe').length,
-      no: votes.filter(v => v.answer === 'no').length
-    }
+    return { date, yes: people(votes, 'yes'), maybe: people(votes, 'maybe'), no: people(votes, 'no') }
   })
   const best = perDate.reduce((acc, d) => (!acc || d.yes > acc.yes || (d.yes === acc.yes && d.maybe > acc.maybe) ? d : acc), null)
   return {
     perDate,
     bestDate: best && (best.yes > 0 || best.maybe > 0) ? best.date : null,
     answered: poll.guests.filter(g => g.votedAt).length,
-    total: poll.guests.length
+    total: poll.guests.length,
+    people: poll.guests.reduce((n, g) => n + guestCount(g), 0)
   }
 }
 
@@ -87,13 +91,17 @@ export const guestsForDate = (poll, date) => {
   return poll.guests.filter(g => !declined.has(g.id))
 }
 
+// Noms des invités à créer au repas : « Les Dupont » × 2 donne « Les Dupont » et « Les Dupont +1 »
+export const expandGuestNames = (guests) => guests.flatMap(g =>
+  Array.from({ length: guestCount(g) }, (_, i) => (i === 0 ? g.name : `${g.name} +${i}`)))
+
 // Vue publique : rien d'interne (famille, identifiants de création, etc.)
 export const publicView = (poll, familyName) => ({
   title: poll.title,
   slot: poll.slot,
   note: poll.note,
   familyName,
-  guests: poll.guests.map(g => ({ id: g.id, name: g.name, comment: g.comment, voted: Boolean(g.votedAt) })),
+  guests: poll.guests.map(g => ({ id: g.id, name: g.name, count: guestCount(g), comment: g.comment, voted: Boolean(g.votedAt) })),
   dates: poll.dates,
   votes: poll.votes.map(v => ({ guestId: v.guestId, date: v.date, answer: v.answer })),
   status: poll.status,

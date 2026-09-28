@@ -33,7 +33,7 @@ import Absence from './models/Absence.js'
 import LongAbsence from './models/LongAbsence.js'
 import MealGuest from './models/MealGuest.js'
 import MealPoll from './models/MealPoll.js'
-import { sanitizeDates, mergeGuests, pruneVotes, applyGuestVote, summarize, guestsForDate, publicView } from './mealPolls/logic.js'
+import { sanitizeDates, mergeGuests, pruneVotes, applyGuestVote, summarize, guestsForDate, publicView, expandGuestNames } from './mealPolls/logic.js'
 import Meal from './models/Meal.js'
 import PushConfig from './models/PushConfig.js'
 import PushSubscription from './models/PushSubscription.js'
@@ -5365,7 +5365,7 @@ app.post('/api/meal-polls/:id/close', requireAuth, attachFamilyContext, async (r
     if (createGuests && chosen.length > 0) {
       const created = await createMealGuestsBatch({
         familyId: req.family._id,
-        names: chosen.map(g => g.name),
+        names: expandGuestNames(chosen),
         date,
         lunch: poll.slot === 'lunch',
         dinner: poll.slot === 'dinner',

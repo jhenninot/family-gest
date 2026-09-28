@@ -25,7 +25,7 @@
           <h2 class="vote-step">{{ t('mealPolls.vote.who') }}</h2>
           <div class="vote-names">
             <button v-for="g in poll.guests" :key="g.id" type="button" class="vote-name" @click="pickGuest(g.id)">
-              {{ g.name }}<span v-if="g.voted" class="vote-done">✓</span>
+              {{ g.name }}<span v-if="(g.count || 1) > 1" class="vote-count">×{{ g.count }}</span><span v-if="g.voted" class="vote-done">✓</span>
             </button>
           </div>
         </template>
@@ -36,7 +36,7 @@
             <h2 class="vote-step">{{ t('mealPolls.vote.hello', { name: guest.name }) }}</h2>
             <button type="button" class="vote-link" @click="pickGuest(null)">{{ t('mealPolls.vote.notMe') }}</button>
           </div>
-          <p class="vote-muted">{{ t('mealPolls.vote.instructions') }}</p>
+          <p class="vote-muted">{{ guest.count > 1 ? t('mealPolls.vote.instructionsGroup', { n: guest.count }) : t('mealPolls.vote.instructions') }}</p>
 
           <ul class="vote-dates">
             <li v-for="d in poll.dates" :key="d" class="vote-date">
@@ -264,6 +264,11 @@ const save = async () => {
 
 .vote-name:hover {
   border-color: var(--accent-primary);
+}
+
+.vote-count {
+  font-size: 0.8rem;
+  color: var(--accent-primary);
 }
 
 .vote-done {

@@ -41,7 +41,12 @@
     "dates": "Suggested dates",
     "datesHint": "You can add a date at any time, for example if nobody is available: guests can vote again.",
     "note": "Message to guests (optional)",
-    "notePlaceholder": "e.g. Drinks at home, bring the kids!"
+    "notePlaceholder": "e.g. Drinks at home, bring the kids!",
+    "people": "Number of people",
+    "peopleHint": "A couple or a family can share one line: enter the number of people, they will answer together.",
+    "less": "One person less",
+    "more": "One more person",
+    "totalPeople": "{n} guest in total | {n} guests in total"
   },
   "close": {
     "button": "Set the date",
@@ -72,6 +77,8 @@
     "everyone": "Everyone's answers",
     "chosen": "See you on {date}, for {slot}!",
     "notFound": "This link is no longer valid.",
-    "footer": "Organised with FamilyGest"
-  }
+    "footer": "Organised with FamilyGest",
+    "instructionsGroup": "You are answering for {n} people. For each date, tell us whether you are available."
+  },
+  "peopleCount": "{n} person | {n} people"
 }

@@ -30,6 +30,7 @@
               · <strong class="plan-chosen">{{ longDate(poll.chosenDate) }}</strong>
             </template>
             <template v-else>
+              · {{ t('mealPolls.peopleCount', { n: poll.summary.people || poll.guests.length }, poll.summary.people || poll.guests.length) }}
               · {{ t('mealPolls.answered', { n: poll.summary.answered, total: poll.summary.total }) }}
               <template v-if="poll.summary.bestDate"> · {{ t('mealPolls.best', { date: shortDate(poll.summary.bestDate) }) }}</template>
             </template>
@@ -106,14 +107,25 @@
             <label class="form-label" for="poll-guest">{{ t('mealPolls.form.guests') }}</label>
             <div class="plan-add-row">
               <input id="poll-guest" v-model="guestInput" type="text" class="form-input" :placeholder="t('mealPolls.form.guestPlaceholder')" @keydown.enter.prevent="addGuests" />
+              <label class="plan-count-input" :title="t('mealPolls.form.people')">
+                <Users :size="15" />
+                <input v-model.number="guestCountInput" type="number" min="1" max="20" :aria-label="t('mealPolls.form.people')" @keydown.enter.prevent="addGuests" />
+              </label>
               <button type="button" class="btn btn-secondary" @click="addGuests">{{ t('common.add') }}</button>
             </div>
-            <div class="plan-chips">
-              <span v-for="(g, i) in editor.guests" :key="g.id ?? `new-${i}`" class="plan-chip">
-                {{ g.name }}
-                <button type="button" :aria-label="t('common.delete')" @click="editor.guests.splice(i, 1)">×</button>
-              </span>
-            </div>
+            <span class="field-hint">{{ t('mealPolls.form.peopleHint') }}</span>
+            <ul class="plan-guest-list">
+              <li v-for="(g, i) in editor.guests" :key="g.id ?? `new-${i}`" class="plan-guest">
+                <span class="plan-guest-name">{{ g.name }}</span>
+                <div class="plan-stepper" role="group" :aria-label="t('mealPolls.form.people')">
+                  <button type="button" :disabled="g.count <= 1" :aria-label="t('mealPolls.form.less')" @click="g.count--">−</button>
+                  <span>{{ t('mealPolls.peopleCount', { n: g.count }, g.count) }}</span>
+                  <button type="button" :disabled="g.count >= 20" :aria-label="t('mealPolls.form.more')" @click="g.count++">+</button>
+                </div>
+                <button type="button" class="plan-guest-remove" :aria-label="t('common.delete')" @click="editor.guests.splice(i, 1)">×</button>
+              </li>
+            </ul>
+            <p v-if="editor.guests.length" class="plans-muted">{{ t('mealPolls.form.totalPeople', { n: editorPeople }, editorPeople) }}</p>
           </div>
 
           <div class="form-group">
@@ -162,10 +174,10 @@
             </label>
           </div>
           <div class="form-group">
-            <label class="form-label">{{ t('mealPolls.close.guests') }}</label>
+            <label class="form-label">{{ t('mealPolls.close.guests') }} · {{ t('mealPolls.peopleCount', { n: closingPeople }, closingPeople) }}</label>
             <label v-for="g in closing.poll.guests" :key="g.id" class="plan-check">
               <input v-model="closing.guestIds" type="checkbox" :value="g.id" />
-              <span>{{ g.name }}</span>
+              <span>{{ g.name }}<template v-if="(g.count || 1) > 1"> · {{ t('mealPolls.peopleCount', { n: g.count }, g.count) }}</template></span>
             </label>
           </div>
           <label class="plan-check">
@@ -195,7 +207,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ChevronLeft, Plus, Copy, MessageCircle, Share2, Trash2, Edit3, CalendarCheck, RotateCcw } from '@lucide/vue'
+import { ChevronLeft, Plus, Copy, MessageCircle, Share2, Trash2, Edit3, CalendarCheck, RotateCcw, Users } from '@lucide/vue'
 import { useFamilyStore } from '../stores/familyStore'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -214,10 +226,18 @@ const openId = ref(null)
 const editor = ref(null)
 const closing = ref(null)
 const guestInput = ref('')
+const guestCountInput = ref(1)
 const dateInput = ref('')
 const saving = ref(false)
 const formError = ref('')
 const copiedId = ref(null)
+const clampCount = (n) => Math.min(20, Math.max(1, Math.round(Number(n)) || 1))
+const editorPeople = computed(() => (editor.value?.guests || []).reduce((n, g) => n + clampCount(g.count), 0))
+const closingPeople = computed(() => {
+  if (!closing.value) return 0
+  const ids = new Set(closing.value.guestIds)
+  return closing.value.poll.guests.filter(g => ids.has(g.id)).reduce((n, g) => n + clampCount(g.count), 0)
+})
 const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
 const toDate = (d) => new Date(`${d}T00:00:00`)
@@ -265,18 +285,22 @@ const shareLink = async (poll) => {
 const openEditor = (poll = null) => {
   formError.value = ''
   guestInput.value = ''
+  guestCountInput.value = 1
   dateInput.value = ''
   editor.value = poll
-    ? { id: poll.id, title: poll.title, slot: poll.slot, note: poll.note, guests: poll.guests.map(g => ({ id: g.id, name: g.name })), dates: [...poll.dates] }
+    ? { id: poll.id, title: poll.title, slot: poll.slot, note: poll.note, guests: poll.guests.map(g => ({ id: g.id, name: g.name, count: clampCount(g.count) })), dates: [...poll.dates] }
     : { id: null, title: '', slot: 'dinner', note: '', guests: [], dates: [] }
 }
 
-// « Mamie, Papi » : plusieurs invités d'un coup
+// « Mamie, Papi » : plusieurs lignes d'un coup, chacune avec le nombre de personnes choisi
+// (« Les Dupont » × 2 : une seule réponse, deux couverts)
 const addGuests = () => {
+  const count = clampCount(guestCountInput.value)
   for (const name of guestInput.value.split(',').map(n => n.trim()).filter(Boolean)) {
-    if (!editor.value.guests.some(g => g.name.toLowerCase() === name.toLowerCase())) editor.value.guests.push({ id: null, name })
+    if (!editor.value.guests.some(g => g.name.toLowerCase() === name.toLowerCase())) editor.value.guests.push({ id: null, name, count })
   }
   guestInput.value = ''
+  guestCountInput.value = 1
 }
 
 const addDate = () => {
@@ -293,7 +317,7 @@ const saveEditor = async () => {
   formError.value = ''
   try {
     const { id, ...payload } = editor.value
-    payload.guests = payload.guests.map(g => (g.id != null ? { id: g.id, name: g.name } : g.name))
+    payload.guests = payload.guests.map(g => ({ ...(g.id != null ? { id: g.id } : {}), name: g.name, count: clampCount(g.count) }))
     const saved = await api(id ? `/${id}` : '', { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) })
     replacePoll(saved)
     openId.value = saved.id
@@ -621,6 +645,85 @@ const reopen = async (poll) => {
 
 .plan-radio span:first-of-type::first-letter {
   text-transform: uppercase;
+}
+
+.plan-count-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 10px);
+  color: var(--text-muted);
+}
+
+.plan-count-input input {
+  flex: none;
+  width: 2.6rem;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.plan-guest-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.plan-guest {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 10px);
+  background: var(--bg-tertiary);
+}
+
+.plan-guest-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.plan-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.plan-stepper button,
+.plan-guest-remove {
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary, var(--bg-primary));
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.plan-stepper button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.plan-guest-remove {
+  border: none;
+  background: none;
+  color: var(--text-muted);
 }
 
 .plan-error {

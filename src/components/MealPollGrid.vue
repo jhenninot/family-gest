@@ -17,7 +17,7 @@
       <tbody>
         <tr v-for="g in poll.guests" :key="g.id" :class="{ mine: g.id === highlightGuestId }">
           <th class="poll-name-col" scope="row">
-            <span>{{ g.name }}</span>
+            <span>{{ g.name }}<span v-if="(g.count || 1) > 1" class="poll-count"> ×{{ g.count }}</span></span>
             <span v-if="g.comment" class="poll-comment" :title="g.comment">💬 {{ g.comment }}</span>
           </th>
           <td v-for="d in poll.dates" :key="d" :class="['cell', answerOf(g.id, d) || 'none', { chosen: d === poll.chosenDate }]">
@@ -55,9 +55,12 @@ const ICONS = { yes: '✓', maybe: '~', no: '✗', none: '·' }
 const answers = computed(() => new Map((props.poll.votes || []).map(v => [`${v.guestId}|${v.date}`, v.answer])))
 const answerOf = (guestId, date) => answers.value.get(`${guestId}|${date}`)
 
+// Totaux en personnes : une ligne « couple » (× 2) compte deux couverts
+const sizes = computed(() => new Map(props.poll.guests.map(g => [g.id, Math.max(1, Number(g.count) || 1)])))
 const counts = computed(() => props.poll.dates.map(date => {
   const votes = (props.poll.votes || []).filter(v => v.date === date)
-  return { date, yes: votes.filter(v => v.answer === 'yes').length, maybe: votes.filter(v => v.answer === 'maybe').length }
+  const people = (answer) => votes.filter(v => v.answer === answer).reduce((n, v) => n + (sizes.value.get(v.guestId) || 1), 0)
+  return { date, yes: people('yes'), maybe: people('maybe') }
 }))
 const bestDate = computed(() => props.poll.summary?.bestDate || null)
 
@@ -116,6 +119,13 @@ const dayMonth = (d) => formatDate(toDate(d), { day: 'numeric', month: 'short' }
 
 .poll-name-col span {
   display: block;
+}
+
+.poll-count {
+  display: inline !important;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-primary);
 }
 
 .poll-comment {

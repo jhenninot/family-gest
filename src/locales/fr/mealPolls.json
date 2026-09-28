@@ -41,7 +41,12 @@
     "dates": "Dates proposées",
     "datesHint": "Vous pouvez ajouter une date à tout moment, par exemple si personne n'est disponible : les invités pourront revoter.",
     "note": "Message aux invités (facultatif)",
-    "notePlaceholder": "ex : Apéro à la maison, venez avec les enfants !"
+    "notePlaceholder": "ex : Apéro à la maison, venez avec les enfants !",
+    "people": "Nombre de personnes",
+    "peopleHint": "Un couple ou une famille peut tenir sur une seule ligne : indiquez le nombre de personnes, elles répondront ensemble.",
+    "less": "Une personne de moins",
+    "more": "Une personne de plus",
+    "totalPeople": "{n} personne invitée au total | {n} personnes invitées au total"
   },
   "close": {
     "button": "Fixer la date",
@@ -72,6 +77,8 @@
     "everyone": "Les réponses de chacun",
     "chosen": "Rendez-vous le {date}, au {slot} !",
     "notFound": "Ce lien n'est plus valable.",
-    "footer": "Organisé avec FamilyGest"
-  }
+    "footer": "Organisé avec FamilyGest",
+    "instructionsGroup": "Vous répondez pour {n} personnes. Pour chaque date, indiquez si vous êtes disponibles."
+  },
+  "peopleCount": "{n} personne | {n} personnes"
 }

@@ -15,6 +15,8 @@ const mealPollSchema = new mongoose.Schema({
     _id: false,
     id: { type: Number, required: true },
     name: { type: String, required: true, trim: true },
+    // Nombre de personnes sur cette ligne (un couple = 2) : une seule réponse, plusieurs couverts
+    count: { type: Number, default: 1, min: 1, max: 20 },
     comment: { type: String, default: '', trim: true },
     votedAt: { type: Date, default: null }
   }],
