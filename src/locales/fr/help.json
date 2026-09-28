@@ -1,0 +1,133 @@
+{
+  "button": "Aide sur cet écran",
+  "kicker": "Aide",
+  "moreInfo": "Plus d'informations",
+  "howto": "Comment faire…",
+  "tips": "Astuces",
+  "voice": "À la voix",
+  "voiceIntro": "Touchez le micro en bas de l'écran et dites par exemple :",
+  "tips_": {
+    "swipe": "Sur téléphone, glissez le doigt vers la gauche ou la droite pour passer d'un écran à l'autre.",
+    "rolling": "Sur téléphone, les jours défilent à la suite à partir d'aujourd'hui : descendez pour voir la suite, « Jours précédents » pour remonter.",
+    "defaultPresence": "Inutile de tout remplir : sans déclaration, chacun est compté selon sa présence habituelle.",
+    "noAccount": "Vos invités n'ont besoin ni de compte ni d'application : le lien suffit.",
+    "conflicts": "Quand vous proposez une date, l'appli vous prévient si elle tombe sur un événement de l'agenda ou une date déjà proposée ailleurs.",
+    "voiceButton": "Le bouton micro permet d'ajouter une absence, un plat, un invité ou des courses sans rien taper."
+  },
+  "topics": {
+    "presence": {
+      "title": "Présences",
+      "intro": "Qui est à la maison, midi, soir et nuit. Chacun indique seulement ce qui change par rapport à d'habitude, et l'appli calcule le nombre de couverts, invités compris.",
+      "howto": {
+        "absence": {
+          "q": "Signaler que je ne serai pas là",
+          "a": "Touchez « Déclarer » sur le jour concerné, choisissez « Absence », puis les repas (midi, soir) et la nuit. Les autres le voient aussitôt."
+        },
+        "longAbsence": {
+          "q": "Partir plusieurs jours (vacances, stage…)",
+          "a": "« Déclarer » puis « Absence longue » : indiquez le premier et le dernier jour, et à partir de quel repas vous partez et revenez. Pas besoin de déclarer chaque jour."
+        },
+        "guest": {
+          "q": "Inviter quelqu'un à manger",
+          "a": "Touchez « + Invité » sur le repas, saisissez le nom et le nombre de personnes (un couple = 2). Les invités sont comptés dans les couverts."
+        },
+        "usual": {
+          "q": "Régler ma présence habituelle",
+          "a": "Ouvrez « Ma présence habituelle » : dites si vous êtes d'ordinaire présent(e) ou absent(e), jour par jour, midi, soir et nuit. Vous ne déclarez ensuite que les exceptions."
+        },
+        "alternate": {
+          "q": "Garde alternée : une semaine sur deux",
+          "a": "Dans « Ma présence habituelle », activez « Alterner une semaine sur deux » et remplissez la semaine A et la semaine B. L'appli sait quelle semaine est en cours."
+        }
+      },
+      "voice": {
+        "absent": "Paul ne sera pas là demain midi",
+        "present": "Je serai là samedi soir",
+        "guest": "Mamie et Papi viennent manger dimanche midi",
+        "who": "Qui est à la maison ce soir ?"
+      }
+    },
+    "meals": {
+      "title": "Repas",
+      "intro": "Les menus de la semaine, midi et soir, avec pour chaque repas le nombre de personnes à table.",
+      "howto": {
+        "dish": {
+          "q": "Prévoir un plat",
+          "a": "Touchez « Ajouter un plat » sur le midi ou le soir. Si votre famille utilise Mealie, vous pouvez chercher directement une recette."
+        },
+        "ingredients": {
+          "q": "Ajouter les ingrédients aux courses",
+          "a": "Sur le plat, touchez « + Ingrédients », cochez ce qu'il faut acheter : tout part dans la liste de courses commune."
+        },
+        "headcount": {
+          "q": "Savoir combien on sera",
+          "a": "Le nombre affiché sur chaque repas compte les membres présents et les invités. Touchez-le pour voir qui est là, qui est absent, et corriger."
+        },
+        "guests": {
+          "q": "Ajouter des invités à un repas",
+          "a": "Dans le détail du repas, saisissez le nom de l'invité et le nombre de personnes, puis « Inviter ». Les boutons − / + corrigent le nombre après coup."
+        }
+      },
+      "voice": {
+        "dish": "Demain soir on mange des lasagnes",
+        "menu": "Qu'est-ce qu'on mange cette semaine ?",
+        "who": "Combien serons-nous ce soir ?"
+      }
+    },
+    "mealPlans": {
+      "title": "Repas à organiser",
+      "intro": "Pour trouver une date avec des invités, comme un sondage : vous proposez des dates, chacun vote depuis un lien, puis vous fixez la date.",
+      "howto": {
+        "create": {
+          "q": "Organiser un repas",
+          "a": "« Nouveau repas » : donnez un titre, choisissez midi ou soir, ajoutez les invités (avec le nombre de personnes) et touchez les dates possibles dans le calendrier."
+        },
+        "share": {
+          "q": "Envoyer le lien aux invités",
+          "a": "Touchez « Envoyer sur WhatsApp » ou copiez le lien. Chaque invité coche les dates où il est disponible."
+        },
+        "follow": {
+          "q": "Suivre les réponses",
+          "a": "La grille montre qui est disponible à chaque date et combien de personnes au total. Vous recevez une notification à chaque vote."
+        },
+        "close": {
+          "q": "Fixer la date",
+          "a": "Touchez « Fixer la date » et choisissez la date retenue : les invités peuvent être ajoutés au repas et un événement créé dans l'agenda. Les invités voient la date retenue sur le lien."
+        },
+        "reopen": {
+          "q": "Changer d'avis",
+          "a": "« Rouvrir le vote » annule la date retenue : les invités et l'événement créés sont retirés, et le vote reprend."
+        }
+      }
+    },
+    "general": {
+      "title": "Bienvenue dans FamilyGest",
+      "intro": "L'essentiel de l'organisation de la maison, partagé entre tous les membres de la famille.",
+      "howto": {
+        "navigate": {
+          "q": "Trouver un écran",
+          "a": "Le menu donne accès aux présences, aux repas, aux courses, aux tâches et à l'agenda. Le tableau de bord résume la journée."
+        },
+        "family": {
+          "q": "Changer de famille",
+          "a": "Si vous appartenez à plusieurs familles, choisissez-la dans le menu de votre avatar, en haut à droite."
+        },
+        "profile": {
+          "q": "Régler mes notifications",
+          "a": "Avatar en haut à droite › Mon profil : choisissez les alertes que vous recevez (sur le téléphone ou par email) et le récapitulatif du jour."
+        }
+      }
+    }
+  },
+  "infos": {
+    "usualPresence": "C'est votre présence « par défaut ». Sans déclaration de votre part, vous êtes compté(e) selon ce réglage ; vous ne signalez ensuite que les exceptions.",
+    "slots": "Midi et soir comptent les couverts ; la nuit indique qui dort à la maison."
+  },
+  "empty": {
+    "mealPlans": {
+      "title": "Aucun repas à organiser",
+      "text": "Vous voulez inviter des amis ou la famille ? Proposez-leur plusieurs dates : ils votent depuis un simple lien WhatsApp, sans rien installer, et vous fixez la date.",
+      "action": "Organiser un repas"
+    }
+  }
+}

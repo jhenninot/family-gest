@@ -6,6 +6,7 @@
         <div class="today-title">
           <CalendarCheck :size="18" class="text-indigo" />
           <span>{{ t('absences.today.title', { date: formatDisplayDate(store.todayStr) }) }}</span>
+          <InfoTip :text="t('help.infos.slots')" />
         </div>
         <div class="today-header-btns">
           <button @click="openDeclarationChoiceModal(store.todayStr)" class="btn-today-add" :title="t('absences.today.declareTitle')">
@@ -235,7 +236,10 @@
     <div class="glass-card section-card" ref="usualPresenceCardRef">
       <div class="section-card-header usual-presence-header" @click="toggleUsualPresencePanel">
         <div class="section-title-group">
-          <h2 class="section-title"><CalendarCheck :size="20" /> {{ t('absences.usual.title') }}</h2>
+          <h2 class="section-title">
+            <CalendarCheck :size="20" /> {{ t('absences.usual.title') }}
+            <InfoTip :text="t('help.infos.usualPresence')" @click.stop />
+          </h2>
           <span class="section-subtitle">{{ myUsualPresenceSummary }}</span>
         </div>
         <button class="btn-icon btn-icon-ghost" :title="usualPresenceOpen ? t('absences.usual.collapse') : t('absences.usual.customize')">
@@ -1583,6 +1587,7 @@ import {
 import HouseUser from '../components/icons/HouseUser.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import UsualPresenceEditor from '../components/UsualPresenceEditor.vue'
+import InfoTip from '../components/InfoTip.vue'
 import { SLOT_KEYS, dayKeyFor, normalizeUsualPresenceConfig } from '@shared/presence.js'
 import { guestLabel } from '../utils/guests'
 import { getAvatarTextFallback } from '../utils/avatarHelper'

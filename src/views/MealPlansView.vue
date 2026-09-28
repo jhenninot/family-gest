@@ -13,9 +13,14 @@
     </div>
 
     <p v-if="loading" class="plans-muted">{{ t('common.loading') }}</p>
-    <div v-else-if="polls.length === 0" class="glass-card plans-empty">
-      🍽️ {{ t('mealPolls.empty') }}
-    </div>
+    <EmptyState
+      v-else-if="polls.length === 0"
+      icon="🗳️"
+      :title="t('help.empty.mealPlans.title')"
+      :text="t('help.empty.mealPlans.text')"
+      :action-label="t('help.empty.mealPlans.action')"
+      @action="openEditor()"
+    />
 
     <div v-for="poll in polls" :key="poll.id" class="glass-card plan-card" :class="{ closed: poll.status === 'closed' }" :data-poll-id="poll.id">
       <button type="button" class="plan-summary" :aria-expanded="openId === poll.id" @click="openId = openId === poll.id ? null : poll.id">
@@ -222,6 +227,7 @@ import { formatDate } from '../i18n/format'
 import MealPollGrid from '../components/MealPollGrid.vue'
 import { eventOnDate } from '../utils/events'
 import MultiDatePicker from '../components/MultiDatePicker.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 const { t } = useI18n()
 const route = useRoute()
