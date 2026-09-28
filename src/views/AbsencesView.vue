@@ -4928,9 +4928,30 @@ const handleSelectDeclarationType = (type) => {
   color: var(--accent-primary);
 }
 
+/* Coche sur les membres choisis, visible même sans distinguer les couleurs */
+.member-select-chip.selected::after {
+  content: '✓';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-left: 0.1rem;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .presence-modal-theme .member-select-chip.selected {
   background: rgba(16, 185, 129, 0.12);
   border-color: #10b981;
   color: #059669;
+}
+
+.presence-modal-theme .member-select-chip.selected::after {
+  background: #10b981;
 }
 </style>

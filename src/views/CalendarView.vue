@@ -244,6 +244,7 @@
                 type="button"
                 class="member-select-chip"
                 :class="{ selected: newEvent.memberIds.includes(m.id) }"
+                :aria-pressed="newEvent.memberIds.includes(m.id)"
                 @click="toggleMember(newEvent, m.id)"
               >
                 <UserAvatar :avatar="m.avatar" :name="m.name" size="xs" />
@@ -440,6 +441,7 @@
                 type="button"
                 class="member-select-chip"
                 :class="{ selected: editEventForm.memberIds.includes(m.id) }"
+                :aria-pressed="editEventForm.memberIds.includes(m.id)"
                 @click="toggleMember(editEventForm, m.id)"
               >
                 <UserAvatar :avatar="m.avatar" :name="m.name" size="xs" />
@@ -1977,6 +1979,23 @@ const handleDeleteFromDay = async (id) => {
   background: var(--accent-purple-light, rgba(139, 92, 246, 0.12));
   border-color: var(--accent-purple);
   color: var(--accent-purple);
+}
+
+/* Coche sur les membres choisis, visible même sans distinguer les couleurs */
+.member-select-chip.selected::after {
+  content: '✓';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-left: 0.1rem;
+  border-radius: 50%;
+  background: var(--accent-purple);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .checkbox-group {
