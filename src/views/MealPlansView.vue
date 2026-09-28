@@ -370,13 +370,28 @@ const remove = async (poll) => {
   const ok = await confirm({
     title: t('mealPolls.delete.title'),
     message: t('mealPolls.delete.message', { title: escapeHtml(poll.title) }),
-    description: poll.status === 'closed' ? t('mealPolls.delete.keepsMeal') : t('common.irreversible'),
+    description: t('common.irreversible'),
     confirmText: t('common.delete'),
     type: 'danger'
   })
   if (!ok) return
-  await api(`/${poll.id}`, { method: 'DELETE' }).catch(() => {})
-  polls.value = polls.value.filter(p => p.id !== poll.id)
+  // Date déjà fixée : proposer de supprimer aussi le repas (invités ajoutés, événement d'agenda).
+  // Fermer cette seconde question garde le repas : le choix sans perte par défaut.
+  const withMeal = poll.status === 'closed' && poll.chosenDate && (poll.createdGuestIds?.length || poll.eventId)
+    ? await confirm({
+      title: t('mealPolls.delete.mealTitle'),
+      message: t('mealPolls.delete.mealMessage', { date: escapeHtml(longDate(poll.chosenDate)) }),
+      description: t('mealPolls.delete.mealDescription'),
+      confirmText: t('mealPolls.delete.withMeal'),
+      cancelText: t('mealPolls.delete.keepMeal'),
+      type: 'danger'
+    })
+    : false
+  try {
+    await api(`/${poll.id}${withMeal ? '?withMeal=1' : ''}`, { method: 'DELETE' })
+    polls.value = polls.value.filter(p => p.id !== poll.id)
+    if (withMeal) store.fetchAllData()
+  } catch { /* le repas reste affiché */ }
 }
 
 // --- Choix de la date ---

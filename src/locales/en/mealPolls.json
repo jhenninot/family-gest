@@ -65,7 +65,11 @@
   "delete": {
     "title": "Delete the meal to organise",
     "message": "Delete “{title}” and its votes?",
-    "keepsMeal": "The guests and event already created for the chosen date are kept."
+    "mealTitle": "Delete the meal too?",
+    "mealMessage": "The date of this meal is set to {date}.",
+    "mealDescription": "Also delete the guests added to this meal and the calendar event?",
+    "withMeal": "Yes, delete everything",
+    "keepMeal": "No, keep the meal"
   },
   "vote": {
     "invitedBy": "The {family} family invites you",

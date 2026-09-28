@@ -65,7 +65,11 @@
   "delete": {
     "title": "Eliminar la comida por organizar",
     "message": "¿Eliminar «{title}» y sus votos?",
-    "keepsMeal": "Los invitados y el evento ya creados para la fecha elegida se conservan."
+    "mealTitle": "¿Eliminar también la comida?",
+    "mealMessage": "La fecha de esta comida está fijada el {date}.",
+    "mealDescription": "¿Eliminar también los invitados añadidos a esta comida y el evento de la agenda?",
+    "withMeal": "Sí, eliminar todo",
+    "keepMeal": "No, conservar la comida"
   },
   "vote": {
     "invitedBy": "La familia {family} le invita",

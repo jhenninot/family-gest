@@ -5355,9 +5355,12 @@ app.delete('/api/meal-polls/:id', requireAuth, attachFamilyContext, async (req, 
   try {
     const poll = await MealPoll.findOne({ familyId: req.family._id, id: Number(req.params.id) })
     if (!poll) return res.status(404).json({ error: req.t('errors.mealPollNotFound') })
-    // Le repas déjà fixé (invités, événement) reste en place : seul le sondage disparaît
+    // ?withMeal=1 : le repas déjà fixé (invités ajoutés, événement d'agenda) est supprimé aussi ;
+    // sinon il reste en place et seul le sondage disparaît
+    const withMeal = req.query.withMeal === '1'
+    if (withMeal) await undoMealPollClosing(poll)
     await MealPoll.deleteOne({ _id: poll._id })
-    res.json({ deleted: true })
+    res.json({ deleted: true, mealRemoved: withMeal })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
