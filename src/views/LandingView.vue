@@ -19,7 +19,7 @@
           <div class="landing-hero-text">
             <span class="landing-pill">{{ t('landing.pill') }}</span>
             <h1>{{ t('landing.title') }}</h1>
-            <p class="landing-lead">{{ t('landing.lead') }}</p>
+            <p class="landing-lead">{{ variant === 'c' ? t('landing.leadCustody') : t('landing.lead') }}</p>
             <div class="landing-cta-row">
               <button v-if="contactHref" type="button" class="landing-cta" @click="contact">
                 <MessageCircle :size="20" /> {{ t('landing.contact') }}
@@ -35,6 +35,11 @@
               <span class="phone-label">🏠 {{ t('landing.demo.tonight') }}</span>
               <strong>{{ t('landing.demo.atTable') }}</strong>
               <span class="phone-sub">{{ t('landing.demo.guests') }}</span>
+            </div>
+            <div v-if="variant === 'c'" class="phone-card blue">
+              <span class="phone-label">🔁 {{ t('landing.demo.custody') }}</span>
+              <strong>{{ t('landing.demo.custodyKids') }}</strong>
+              <span class="phone-sub">{{ t('landing.demo.custodyNext') }}</span>
             </div>
             <div class="phone-card rose">
               <span class="phone-label">🍽️ {{ t('landing.demo.menu') }}</span>
@@ -56,7 +61,7 @@
 
       <!-- Questions du quotidien -->
       <section class="landing-questions">
-        <p v-for="q in QUESTIONS" :key="q" class="landing-question">« {{ t(`landing.questions.${q}`) }} »</p>
+        <p v-for="q in questions" :key="q" class="landing-question">« {{ t(`landing.questions.${q}`) }} »</p>
         <p class="landing-answer">{{ t('landing.questionsAnswer') }}</p>
       </section>
 
@@ -64,11 +69,38 @@
       <section class="landing-section">
         <h2>{{ t('landing.featuresTitle') }}</h2>
         <div class="landing-features">
-          <article v-for="f in FEATURES" :key="f.key" class="landing-feature">
+          <article v-for="f in features" :key="f.key" class="landing-feature">
             <span class="feature-icon" :style="{ background: f.color }">{{ f.icon }}</span>
             <h3>{{ t(`landing.features.${f.key}.title`) }}</h3>
             <p>{{ t(`landing.features.${f.key}.text`) }}</p>
           </article>
+        </div>
+      </section>
+
+      <!-- Garde alternée : présences habituelles sur deux semaines -->
+      <section v-if="variant === 'b'" class="landing-section">
+        <div class="landing-custody">
+          <div class="custody-text">
+            <span class="landing-pill">🔁 {{ t('landing.custody.pill') }}</span>
+            <h2>{{ t('landing.custody.title') }}</h2>
+            <p>{{ t('landing.custody.text') }}</p>
+            <ul class="custody-points">
+              <li v-for="p in CUSTODY_POINTS" :key="p">✓ {{ t(`landing.custody.points.${p}`) }}</li>
+            </ul>
+          </div>
+          <div class="custody-demo" aria-hidden="true">
+            <div class="custody-who">👧 {{ t('landing.custody.child') }}</div>
+            <div v-for="week in CUSTODY_WEEKS" :key="week.key" class="custody-week">
+              <span class="custody-week-label">{{ t(`landing.custody.${week.key}`) }}</span>
+              <div class="custody-days">
+                <span v-for="(day, i) in dayLetters" :key="i" class="custody-day" :class="{ home: week.days[i] }">{{ day }}</span>
+              </div>
+            </div>
+            <div class="custody-legend">
+              <span><i class="dot home"></i>{{ t('landing.custody.home') }}</span>
+              <span><i class="dot"></i>{{ t('landing.custody.away') }}</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -113,16 +145,30 @@
 // Page de présentation de FamilyGest, à l'adresse secrète /decouvrir/<clé> (réglée par le Super
 // Admin). Jamais indexée (robots.txt, meta et en-tête X-Robots-Tag). Bouton « Me contacter »
 // seulement si le Super Admin l'active ; son lien n'est décodé qu'au clic (robots collecteurs).
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { MessageCircle } from '@lucide/vue'
 import BrandLogo from '../components/BrandLogo.vue'
+import { weekdayNames } from '../i18n/format'
 
 const { t } = useI18n()
 const route = useRoute()
 
+// TEMPORAIRE : variantes a/b/c pour comparer les propositions « garde alternée »
+const variant = computed(() => String(route.query.v || 'b'))
+
 const QUESTIONS = ['who', 'what', 'shopping']
+const questions = computed(() => (variant.value === 'c' ? ['who', 'kids', 'what', 'shopping'] : QUESTIONS))
+const CUSTODY_POINTS = ['rhythm', 'slots', 'exceptions']
+// Semaine A : à la maison toute la semaine ; semaine B : seulement le mercredi
+const CUSTODY_WEEKS = [
+  { key: 'weekA', days: [true, true, true, true, true, true, true] },
+  { key: 'weekB', days: [false, false, true, false, false, false, false] }
+]
+const dayLetters = computed(() => weekdayNames('narrow'))
+const CUSTODY_FEATURE = { key: 'custody', icon: '🔁', color: 'linear-gradient(135deg, #14b8a6, #2dd4bf)' }
+const features = computed(() => (variant.value === 'a' ? [FEATURES[0], CUSTODY_FEATURE, ...FEATURES.slice(1)] : FEATURES))
 const FEATURES = [
   { key: 'presence', icon: '🏠', color: 'linear-gradient(135deg, #10b981, #34d399)' },
   { key: 'meals', icon: '🍽️', color: 'linear-gradient(135deg, #f43f5e, #fb7185)' },
@@ -316,6 +362,7 @@ const contact = () => {
 .phone-card.rose { border-color: #f43f5e; }
 .phone-card.orange { border-color: #f97316; }
 .phone-card.amber { border-color: #f59e0b; }
+.phone-card.blue { border-color: #14b8a6; }
 
 .phone-label {
   font-size: 0.7rem;
@@ -416,6 +463,123 @@ const contact = () => {
   font-size: 0.92rem;
   line-height: 1.55;
   color: var(--text-secondary);
+}
+
+/* Garde alternée */
+.landing-custody {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.75rem;
+  align-items: center;
+  padding: 1.75rem;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(20, 184, 166, 0.16), transparent 50%),
+    var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+@media (min-width: 860px) {
+  .landing-custody {
+    grid-template-columns: 1.1fr 0.9fr;
+    padding: 2.25rem;
+  }
+}
+
+.landing-custody .landing-pill {
+  background: rgba(20, 184, 166, 0.14);
+  color: #0d9488;
+}
+
+.custody-text h2 {
+  margin: 0.8rem 0 0.6rem;
+}
+
+.custody-text p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.custody-points {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.custody-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1.2rem;
+  border-radius: 18px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+}
+
+.custody-who {
+  font-weight: 700;
+}
+
+.custody-week-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.custody-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.35rem;
+}
+
+.custody-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  max-height: 42px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.custody-day.home {
+  background: linear-gradient(135deg, #14b8a6, #2dd4bf);
+  color: #fff;
+}
+
+.custody-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.custody-legend .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 0.35rem;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+  vertical-align: middle;
+}
+
+.custody-legend .dot.home {
+  background: #14b8a6;
 }
 
 .landing-steps {
