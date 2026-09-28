@@ -36,6 +36,12 @@ const familySchema = new mongoose.Schema({
   presenceWeekAnchor: {
     type: String,
     default: '1970-01-05'
+  },
+  // Tâches d'accueil encore à créer : famille créée pour un administrateur sans compte, elles
+  // lui seront assignées quand il rejoindra la famille (seedWelcomeTasks dans server/index.js)
+  welcomeTasksPending: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true })
 

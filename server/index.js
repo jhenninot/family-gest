@@ -267,6 +267,7 @@ const attachFamilyContext = async (req, res, next) => {
         await membership.save()
         pendingInv.status = 'accepted'
         await pendingInv.save()
+        await seedPendingWelcomeTasks(family._id, req.user, pendingInv.isAdmin)
       }
     }
 
@@ -1100,6 +1101,53 @@ app.post('/api/push/unsubscribe', requireAuth, async (req, res) => {
 // POST /api/auth/login (Connexion par email & mot de passe)
 // Invitations en attente à l'adresse de l'utilisateur : rattachement automatique à la connexion
 // (mot de passe ou Google)
+// Tâches d'accueil d'une nouvelle famille, assignées à son administrateur, dans sa langue
+const seedWelcomeTasks = async (familyId, user, fallbackLang) => {
+  const seedT = translator(user.language || fallbackLang)
+  const inDays = (n) => new Date(Date.now() + n * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  await Task.insertMany([
+    {
+      id: Date.now(),
+      familyId,
+      title: seedT('seed.inviteMembers.title'),
+      description: seedT('seed.inviteMembers.description'),
+      category: 'Organisation',
+      assignedTo: user.id,
+      priority: 'Haute',
+      points: 10,
+      completed: false,
+      dueDate: inDays(2)
+    },
+    {
+      id: Date.now() + 1,
+      familyId,
+      title: seedT('seed.discover.title'),
+      description: seedT('seed.discover.description'),
+      category: 'Maison',
+      assignedTo: user.id,
+      priority: 'Moyenne',
+      points: 5,
+      completed: false,
+      dueDate: inDays(4)
+    }
+  ])
+}
+
+// Premier administrateur qui rejoint une famille créée pour lui sans compte : ses tâches
+// d'accueil sont créées à ce moment (une seule fois, même en cas d'appels concurrents)
+const seedPendingWelcomeTasks = async (familyId, user, isAdmin) => {
+  if (!isAdmin) return
+  try {
+    const claimed = await Family.findOneAndUpdate(
+      { _id: familyId, welcomeTasksPending: true },
+      { $set: { welcomeTasksPending: false } }
+    )
+    if (claimed) await seedWelcomeTasks(familyId, user)
+  } catch (err) {
+    console.error('[Famille] Tâches d\'accueil :', err.message)
+  }
+}
+
 const attachPendingInvitations = async (user) => {
   const pendingInvs = await FamilyInvitation.find({ email: user.email.toLowerCase().trim(), status: 'pending' })
   for (const inv of pendingInvs) {
@@ -1114,6 +1162,7 @@ const attachPendingInvitations = async (user) => {
         usualPresence: user.usualPresence || 'present'
       })
       await m.save()
+      await seedPendingWelcomeTasks(inv.familyId, user, inv.isAdmin)
     }
     inv.status = 'accepted'
     await inv.save()
@@ -1674,6 +1723,9 @@ app.get('/api/super-admin/check-email', requireAuth, requireSuperAdmin, async (r
 
 // POST /api/super-admin/families (Création d'une famille par le Super Admin)
 app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req, res) => {
+  // Famille enregistrée par cette requête, supprimée si la suite échoue (pas de famille à moitié
+  // créée qui bloquerait son identifiant)
+  let createdFamilyId = null
   try {
     const { name, slug, maxMembers, adminEmail, adminFirstName, adminLastName } = req.body
 
@@ -1703,6 +1755,7 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
       isActive: true
     })
     await family.save()
+    createdFamilyId = family._id
 
     const cleanEmail = adminEmail.toLowerCase().trim()
     const existingUser = await User.findOne({ email: cleanEmail })
@@ -1724,34 +1777,14 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
     const catDocs = DEFAULT_CATEGORIES.map((c, i) => ({ ...c, familyId: family._id, id: Date.now() + i }))
     await ShoppingCategory.insertMany(catDocs)
 
-    // Initialiser 2 tâches d'accueil pour la nouvelle famille, dans la langue de son administrateur
-    const seedT = translator(existingUser?.language || req.lang)
-    await Task.insertMany([
-      {
-        id: Date.now(),
-        familyId: family._id,
-        title: seedT('seed.inviteMembers.title'),
-        description: seedT('seed.inviteMembers.description'),
-        category: 'Organisation',
-        assignedTo: existingUser ? existingUser.id : null,
-        priority: 'Haute',
-        points: 10,
-        completed: false,
-        dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      },
-      {
-        id: Date.now() + 1,
-        familyId: family._id,
-        title: seedT('seed.discover.title'),
-        description: seedT('seed.discover.description'),
-        category: 'Maison',
-        assignedTo: existingUser ? existingUser.id : null,
-        priority: 'Moyenne',
-        points: 5,
-        completed: false,
-        dueDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      }
-    ])
+    // 2 tâches d'accueil assignées à l'administrateur : tout de suite s'il a déjà un compte,
+    // sinon quand il acceptera l'invitation (une tâche doit toujours avoir un membre assigné)
+    if (existingUser) {
+      await seedWelcomeTasks(family._id, existingUser, req.lang)
+    } else {
+      family.welcomeTasksPending = true
+      await family.save()
+    }
 
     const token = crypto.randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 jours
@@ -1800,6 +1833,15 @@ app.post('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req
       }
     })
   } catch (err) {
+    if (createdFamilyId) {
+      await Promise.all([
+        Family.deleteOne({ _id: createdFamilyId }),
+        FamilyMember.deleteMany({ familyId: createdFamilyId }),
+        ShoppingCategory.deleteMany({ familyId: createdFamilyId }),
+        Task.deleteMany({ familyId: createdFamilyId }),
+        FamilyInvitation.deleteMany({ familyId: createdFamilyId })
+      ]).catch(cleanupErr => console.error('[Famille] Annulation de la création :', cleanupErr.message))
+    }
     res.status(500).json({ error: err.message })
   }
 })
@@ -3279,6 +3321,7 @@ app.post('/api/invitations/:token/accept', authRateLimiter, async (req, res) => 
           usualPresence: req.body.usualPresence || 'present'
         })
         await newMember.save()
+        await seedPendingWelcomeTasks(family._id, user, isInvitedAdmin)
       }
     } else {
       // Nouvel utilisateur : création complète
@@ -3324,6 +3367,7 @@ app.post('/api/invitations/:token/accept', authRateLimiter, async (req, res) => 
         usualPresence: usualPresence || 'present'
       })
       await newMember.save()
+      await seedPendingWelcomeTasks(family._id, user, isInvitedAdmin)
     }
 
     invitation.status = 'accepted'
