@@ -2,7 +2,7 @@
   "notFound": "Page not found.",
   "pill": "For families, by invitation",
   "title": "Family organisation, finally simple",
-  "lead": "Presence, meals, shopping, chores and calendar: everything that keeps the home running, shared between all family members, on everyone’s phone.",
+  "lead": "Presence, meals, shopping, tasks and calendar: everything that keeps the home running, shared between all family members, on everyone’s phone.",
   "contact": "Contact me",
   "inviteOnly": "Access by invitation only",
   "demo": {
@@ -42,8 +42,8 @@
       "text": "One list for the whole family, sorted by aisle, updated live by everyone."
     },
     "tasks": {
-      "title": "Chores and teamwork",
-      "text": "Share out the chores with due dates and reminders, and keep track of what is left to do."
+      "title": "Tasks and teamwork",
+      "text": "Share out the tasks with due dates and reminders, and keep track of what is left to do."
     },
     "calendar": {
       "title": "Family calendar",
