@@ -672,6 +672,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useIsMobile } from '../composables/useIsMobile'
 import { useRollingDays } from '../composables/useRollingDays'
 import { useFamilyStore } from '../stores/familyStore'
@@ -708,6 +709,8 @@ import UserAvatar from '../components/UserAvatar.vue'
 
 const store = useFamilyStore()
 const authStore = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
 const { confirm } = useConfirm()
 
@@ -1320,6 +1323,16 @@ const openEditModal = (event) => {
   }
   showEditModal.value = true
 }
+
+// « Modifier » depuis le détail d'un événement du tableau de bord : /calendar?event=<id> ouvre sa
+// fiche dès que les événements sont chargés, puis l'adresse est nettoyée
+watch([() => route.query.event, () => store.events.length], ([id]) => {
+  if (!id) return
+  const event = store.events.find(e => String(e.id) === String(id))
+  if (!event) return
+  router.replace({ query: { ...route.query, event: undefined } })
+  openEditModal(event)
+}, { immediate: true })
 
 const handleUpdateEvent = async () => {
   if (!editEventForm.value.title.trim()) return

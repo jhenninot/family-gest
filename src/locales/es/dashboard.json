@@ -37,6 +37,10 @@
   "upcomingEvents": "Próximos eventos",
   "seeCalendar": "Ver la agenda",
   "noUpcomingEvents": "Ningún evento en los próximos 7 días.",
+  "eventDetail": {
+    "open": "Ver el detalle del evento",
+    "edit": "Editar en la agenda"
+  },
   "noEventToday": "Ningún evento hoy",
   "moreEvents": "+{n} más | +{n} más",
   "unassigned": "Sin asignar",

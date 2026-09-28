@@ -438,10 +438,16 @@
           </div>
 
           <div class="events-list">
-            <div 
-              v-for="event in dashboardEvents" 
+            <div
+              v-for="event in dashboardEvents"
               :key="event.id"
-              class="event-item-row"
+              class="event-item-row event-item-clickable"
+              role="button"
+              tabindex="0"
+              :title="t('dashboard.eventDetail.open')"
+              @click="selectedEvent = event"
+              @keydown.enter.prevent="selectedEvent = event"
+              @keydown.space.prevent="selectedEvent = event"
             >
               <div class="event-date-box" :style="{ '--event-accent-color': event.color }">
                 <span class="event-weekday">{{ getWeekdayShort(event.date) }}</span>
@@ -457,13 +463,15 @@
                   </template>
                   <Clock v-if="event.time" :size="14" :class="{ 'margin-left-xs': isMultiDayEvent(event) }" />
                   <span v-if="event.time">{{ event.time }}</span>
-                  <MapPin :size="14" class="margin-left-xs" />
-                  <span>{{ event.location }}</span>
+                  <template v-if="event.location">
+                    <MapPin :size="14" class="margin-left-xs" />
+                    <span>{{ translateValue('location', event.location) }}</span>
+                  </template>
                 </div>
               </div>
 
               <!-- Export direct agenda -->
-              <div class="dash-event-export-btns">
+              <div class="dash-event-export-btns" @click.stop @keydown.stop>
                 <button 
                   @click="openGoogleCalendar(event)" 
                   class="btn-dash-cal btn-dash-google" 
@@ -490,6 +498,70 @@
           </div>
         </div>
 
+        <!-- Détail d'un événement (clic sur « Prochains événements ») -->
+        <div v-if="selectedEvent" class="modal-overlay" @click.self="selectedEvent = null">
+          <div class="modal-content event-detail-modal" role="dialog" aria-modal="true" :aria-label="selectedEvent.title">
+            <div class="modal-header">
+              <h3 class="event-detail-title">
+                <span class="event-detail-dot" :style="{ backgroundColor: selectedEvent.color }"></span>
+                <span v-if="selectedEvent.recurrenceId" :title="t('calendar.recurringEvent')">🔁</span>
+                {{ selectedEvent.title }}
+              </h3>
+              <button type="button" class="btn-close" :aria-label="t('common.close')" @click="selectedEvent = null">&times;</button>
+            </div>
+
+            <span class="badge event-detail-badge" :style="{ backgroundColor: selectedEvent.color + '25', color: selectedEvent.color }">
+              {{ translateValue('eventCategory', selectedEvent.category) }}
+            </span>
+
+            <ul class="event-detail-list">
+              <li>
+                <Calendar :size="16" />
+                <span>{{ eventDetailDate(selectedEvent) }}</span>
+              </li>
+              <li>
+                <Clock :size="16" />
+                <span>{{ selectedEvent.time ? (selectedEvent.endTime ? `${selectedEvent.time} – ${selectedEvent.endTime}` : selectedEvent.time) : t('calendar.allDay') }}</span>
+              </li>
+              <li v-if="selectedEvent.location">
+                <MapPin :size="16" />
+                <span>{{ translateValue('location', selectedEvent.location) }}</span>
+              </li>
+              <li v-if="eventDetailMembers.length > 0" class="event-detail-members">
+                <UserAvatar
+                  v-for="m in eventDetailMembers"
+                  :key="m.id"
+                  :avatar="m.avatar"
+                  :name="m.name"
+                  size="xs"
+                />
+                <span>{{ eventDetailMembers.map(m => m.firstName || m.name).join(', ') }}</span>
+              </li>
+              <li v-if="selectedEvent.recurrenceId" class="event-detail-note">
+                🔁 {{ t('calendar.partOfSeries') }}
+              </li>
+            </ul>
+
+            <div class="event-detail-actions">
+              <button type="button" class="btn-dash-cal btn-dash-google" @click="openGoogleCalendar(selectedEvent)">
+                <ExternalLink :size="14" />
+                <span>{{ t('calendarExport.addToGoogle') }}</span>
+              </button>
+              <button type="button" class="btn-dash-cal btn-dash-ics" @click="downloadIcsFile(selectedEvent)">
+                <Download :size="14" />
+                <span>{{ t('calendarExport.downloadIcs') }}</span>
+              </button>
+            </div>
+
+            <div class="modal-footer event-detail-footer">
+              <button type="button" class="btn btn-secondary" @click="selectedEvent = null">{{ t('common.close') }}</button>
+              <button type="button" class="btn btn-primary" @click="editSelectedEvent">
+                <Edit3 :size="16" /> {{ t('dashboard.eventDetail.edit') }}
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -511,6 +583,8 @@ import {
   Clock,
   MapPin,
   ExternalLink,
+  Download,
+  Edit3,
   Sun,
   Sunset,
   BedDouble
@@ -559,6 +633,25 @@ const dashboardEvents = computed(() => {
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 5)
 })
+
+// Détail d'un événement des « Prochains événements » ; « Modifier » ouvre sa fiche dans l'agenda
+const selectedEvent = ref(null)
+
+const eventDetailMembers = computed(() => {
+  const ids = selectedEvent.value?.memberIds || []
+  return ids.map(id => store.members.find(m => m.id === id)).filter(Boolean)
+})
+
+const longDate = (dateStr) => formatDate(new Date(`${dateStr}T00:00:00`), { weekday: 'long', day: 'numeric', month: 'long' })
+const eventDetailDate = (event) => isMultiDayEvent(event)
+  ? t('calendar.dateRange', { start: longDate(event.date), end: longDate(event.endDate) })
+  : longDate(event.date)
+
+const editSelectedEvent = () => {
+  const id = selectedEvent.value?.id
+  selectedEvent.value = null
+  router.push({ path: getPath('/calendar'), query: { event: String(id) } })
+}
 
 const todayEvents = computed(() => {
   const today = store.todayStr
@@ -1301,6 +1394,99 @@ const getMemberFirstName = (memberId) => {
   font-weight: 700; 
   word-break: break-word;
   overflow-wrap: break-word;
+}
+
+.event-item-clickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.event-item-clickable:hover,
+.event-item-clickable:focus-visible {
+  border-color: var(--accent-primary);
+  outline: none;
+}
+
+.event-detail-modal {
+  max-width: 460px;
+}
+
+.event-detail-modal .modal-header {
+  margin-bottom: 0.75rem;
+}
+
+.event-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.event-detail-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.event-detail-badge {
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+.event-detail-list {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.event-detail-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.event-detail-list li :deep(svg) {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.event-detail-members {
+  flex-wrap: wrap;
+}
+
+.event-detail-note {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.event-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.event-detail-actions .btn-dash-cal {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+.event-detail-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.event-detail-footer .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .event-meta-info {
