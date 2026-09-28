@@ -386,7 +386,7 @@
     "title": "Presentation page",
     "statusOn": "Online",
     "statusOff": "Offline",
-    "intro": "A page presenting FamilyGest, at a secret address you share yourself (WhatsApp, email, QR code). Like the whole site, it is never indexed by search engines, and it only offers a “Contact me” button.",
+    "intro": "A page presenting FamilyGest, at a secret address you share yourself (WhatsApp, email, QR code). Like the whole site, it is never indexed by search engines.",
     "link": "Secret page address",
     "copy": "Copy",
     "copied": "Copied!",
@@ -408,6 +408,8 @@
     },
     "contactHint": "The contact does not appear in plain text in the page: it is only revealed on click, to avoid robots that harvest addresses.",
     "enable": "Put the page online",
-    "saved": "Settings saved."
+    "saved": "Settings saved.",
+    "showContact": "Show the “Contact me” button",
+    "showContactHint": "Keep it hidden while you only send the page to people who already have your contact details."
   }
 }

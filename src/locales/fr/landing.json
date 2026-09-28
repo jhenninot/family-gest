@@ -76,5 +76,6 @@
   "privacyTitle": "Vos données restent privées",
   "privacyText": "Application familiale hébergée à titre privé : aucune publicité, aucune revente de données. Chaque famille ne voit que ses propres informations.",
   "finalTitle": "Envie de l’essayer ?",
-  "finalText": "Écrivez-moi : je vous ouvre un espace pour votre famille."
+  "finalText": "Écrivez-moi : je vous ouvre un espace pour votre famille.",
+  "finalTextNoContact": "Parlez-m'en : je vous ouvre un espace pour votre famille."
 }

@@ -386,7 +386,7 @@
     "title": "Página de presentación",
     "statusOn": "En línea",
     "statusOff": "Fuera de línea",
-    "intro": "Una página que presenta FamilyGest, en una dirección secreta que usted comparte (WhatsApp, correo, código QR). Como todo el sitio, nunca la indexan los buscadores, y solo ofrece un botón «Contactarme».",
+    "intro": "Una página que presenta FamilyGest, en una dirección secreta que usted comparte (WhatsApp, correo, código QR). Como todo el sitio, nunca la indexan los buscadores.",
     "link": "Dirección secreta de la página",
     "copy": "Copiar",
     "copied": "¡Copiado!",
@@ -408,6 +408,8 @@
     },
     "contactHint": "El contacto no aparece en claro en la página: solo se revela al hacer clic, para evitar los robots que recopilan direcciones.",
     "enable": "Poner la página en línea",
-    "saved": "Ajustes guardados."
+    "saved": "Ajustes guardados.",
+    "showContact": "Mostrar el botón «Contactarme»",
+    "showContactHint": "Déjelo oculto mientras solo envíe la página a personas que ya tienen sus datos de contacto."
   }
 }

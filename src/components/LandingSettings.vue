@@ -25,6 +25,12 @@
     </template>
 
     <form class="landing-form" @submit.prevent="save">
+      <label class="landing-toggle">
+        <input v-model="form.showContact" type="checkbox" />
+        <span>{{ t('superAdmin.landing.showContact') }}</span>
+      </label>
+      <span class="landing-hint">{{ t('superAdmin.landing.showContactHint') }}</span>
+      <template v-if="form.showContact">
       <div class="form-group">
         <label class="form-label" for="landing-contact-type">{{ t('superAdmin.landing.contactType') }}</label>
         <select id="landing-contact-type" v-model="form.contactType" class="form-select">
@@ -36,6 +42,7 @@
         <input id="landing-contact-value" v-model="form.contactValue" type="text" class="form-input" :placeholder="t(`superAdmin.landing.placeholders.${form.contactType}`)" autocomplete="off" />
         <span class="landing-hint">{{ t('superAdmin.landing.contactHint') }}</span>
       </div>
+      </template>
       <label class="landing-toggle">
         <input v-model="form.enabled" type="checkbox" />
         <span>{{ t('superAdmin.landing.enable') }}</span>
@@ -61,8 +68,8 @@ const authStore = useAuthStore()
 const { confirm } = useConfirm()
 
 const TYPES = ['email', 'whatsapp', 'url']
-const state = reactive({ enabled: false, key: null, contactType: 'email', contactValue: '' })
-const form = reactive({ enabled: false, contactType: 'email', contactValue: '' })
+const state = reactive({ enabled: false, key: null, showContact: false, contactType: 'email', contactValue: '' })
+const form = reactive({ enabled: false, showContact: false, contactType: 'email', contactValue: '' })
 const saving = ref(false)
 const message = ref('')
 const messageIsError = ref(false)
@@ -74,6 +81,7 @@ const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bea
 const apply = (data) => {
   Object.assign(state, data)
   form.enabled = Boolean(data.enabled)
+  form.showContact = Boolean(data.showContact)
   form.contactType = data.contactType || 'email'
   form.contactValue = data.contactValue || ''
 }

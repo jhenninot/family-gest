@@ -157,6 +157,8 @@ const globalConfigSchema = new mongoose.Schema({
   // Page de présentation (/decouvrir/<clé>) : non référencée, accessible seulement par son lien
   // secret, avec un unique bouton « Me contacter » (email, WhatsApp ou lien)
   landingEnabled: { type: Boolean, default: false },
+  // Bouton « Me contacter » affiché ou non (masqué tant que la page ne circule qu'entre proches)
+  landingShowContact: { type: Boolean, default: false },
   landingKey: { type: String, default: null },
   landingContactType: { type: String, enum: ['email', 'whatsapp', 'url'], default: 'email' },
   landingContactValue: { type: String, default: '' },

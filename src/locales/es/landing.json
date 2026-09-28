@@ -76,5 +76,6 @@
   "privacyTitle": "Sus datos siguen siendo privados",
   "privacyText": "Aplicación familiar alojada de forma privada: sin publicidad ni reventa de datos. Cada familia solo ve su propia información.",
   "finalTitle": "¿Le apetece probarla?",
-  "finalText": "Escríbame: le abro un espacio para su familia."
+  "finalText": "Escríbame: le abro un espacio para su familia.",
+  "finalTextNoContact": "Hábleme de ello: le abro un espacio para su familia."
 }

@@ -98,7 +98,7 @@
       <!-- Appel final -->
       <section class="landing-final">
         <h2>{{ t('landing.finalTitle') }}</h2>
-        <p>{{ t('landing.finalText') }}</p>
+        <p>{{ contactHref ? t('landing.finalText') : t('landing.finalTextNoContact') }}</p>
         <button v-if="contactHref" type="button" class="landing-cta" @click="contact">
           <MessageCircle :size="20" /> {{ t('landing.contact') }}
         </button>
@@ -111,8 +111,8 @@
 
 <script setup>
 // Page de présentation de FamilyGest, à l'adresse secrète /decouvrir/<clé> (réglée par le Super
-// Admin). Jamais indexée (robots.txt, meta et en-tête X-Robots-Tag) ; un seul bouton « Me
-// contacter », dont le lien n'est décodé qu'au clic pour échapper aux robots collecteurs.
+// Admin). Jamais indexée (robots.txt, meta et en-tête X-Robots-Tag). Bouton « Me contacter »
+// seulement si le Super Admin l'active ; son lien n'est décodé qu'au clic (robots collecteurs).
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'

@@ -76,5 +76,6 @@
   "privacyTitle": "Your data stays private",
   "privacyText": "A privately hosted family app: no advertising, no data resale. Each family only sees its own information.",
   "finalTitle": "Want to try it?",
-  "finalText": "Write to me: I will open a space for your family."
+  "finalText": "Write to me: I will open a space for your family.",
+  "finalTextNoContact": "Just ask me: I will open a space for your family."
 }

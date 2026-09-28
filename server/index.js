@@ -2772,6 +2772,7 @@ const landingContactHref = (type, value) => {
 const landingSettingsJson = (config) => ({
   enabled: Boolean(config?.landingEnabled),
   key: config?.landingKey || null,
+  showContact: Boolean(config?.landingShowContact),
   contactType: config?.landingContactType || 'email',
   contactValue: config?.landingContactValue || '',
   contactReady: Boolean(landingContactHref(config?.landingContactType, config?.landingContactValue))
@@ -2789,10 +2790,12 @@ app.put('/api/super-admin/landing', requireAuth, requireSuperAdmin, async (req, 
   try {
     let config = await GlobalConfig.findOne()
     if (!config) config = new GlobalConfig()
-    const { enabled, contactType, contactValue } = req.body || {}
+    const { enabled, showContact, contactType, contactValue } = req.body || {}
     if (contactType !== undefined) config.landingContactType = ['email', 'whatsapp', 'url'].includes(contactType) ? contactType : 'email'
     if (contactValue !== undefined) config.landingContactValue = String(contactValue).trim().slice(0, 300)
-    if (config.landingContactValue && !landingContactHref(config.landingContactType, config.landingContactValue)) {
+    if (showContact !== undefined) config.landingShowContact = Boolean(showContact)
+    // Contact invalide, ou absent alors que le bouton doit s'afficher
+    if ((config.landingContactValue || config.landingShowContact) && !landingContactHref(config.landingContactType, config.landingContactValue)) {
       return res.status(400).json({ error: req.t('errors.landingContact') })
     }
     if (enabled !== undefined) config.landingEnabled = Boolean(enabled)
@@ -2829,13 +2832,14 @@ const landingRateLimiter = rateLimit({
 // contact est encodé pour ne pas apparaître en clair aux robots qui collectent les adresses.
 app.get('/api/public/landing/:key', landingRateLimiter, async (req, res) => {
   try {
-    const config = await GlobalConfig.findOne().select('landingEnabled landingKey landingContactType landingContactValue').lean()
+    const config = await GlobalConfig.findOne().select('landingEnabled landingKey landingShowContact landingContactType landingContactValue').lean()
     const key = String(req.params.key || '')
     if (!config?.landingEnabled || !config.landingKey || key.length !== config.landingKey.length ||
       !crypto.timingSafeEqual(Buffer.from(key), Buffer.from(config.landingKey))) {
       return res.status(404).json({ error: req.t('errors.landingNotFound') })
     }
-    const href = landingContactHref(config.landingContactType, config.landingContactValue)
+    // Bouton masqué : le contact n'est pas du tout transmis
+    const href = config.landingShowContact ? landingContactHref(config.landingContactType, config.landingContactValue) : null
     res.setHeader('Cache-Control', 'no-store')
     res.json({ contact: href ? Buffer.from(href).toString('base64') : null, contactType: config.landingContactType })
   } catch (err) {
