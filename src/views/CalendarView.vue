@@ -63,18 +63,25 @@
             v-for="day in daysInCurrentMonth" 
             :key="day"
             class="day-cell cell-interactive"
-            :class="{ today: isDayToday(day), past: isDayPast(day), 'has-events': hasEventOnDay(day) }"
+            :class="{ today: isDayToday(day), past: isDayPast(day), 'has-events': hasEventOnDay(day) || proposalsOnDay(day).length > 0 }"
             @click="handleDayClick(day)"
             :title="t('calendar.seeDayEvents', { day: `${day} ${currentMonthName}` })"
           >
             <span class="day-number">{{ day }}</span>
-            <div v-if="hasEventOnDay(day)" class="day-dots">
+            <div v-if="hasEventOnDay(day) || proposalsOnDay(day).length" class="day-dots">
               <span 
                 v-for="e in getEventsOnDay(day)" 
                 :key="e.id" 
                 class="event-dot" 
                 :style="{ backgroundColor: e.color }"
                 :title="e.title"
+              ></span>
+              <!-- Date proposée d'un repas à organiser : point creux -->
+              <span
+                v-for="pr in proposalsOnDay(day)"
+                :key="`poll-${pr.id}`"
+                class="event-dot proposal-dot"
+                :title="`🗳️ ${pr.title}`"
               ></span>
             </div>
           </div>
@@ -129,8 +136,21 @@
                 <span v-if="ev.location" class="week-event-loc">📍 {{ translateValue('location', ev.location) }}</span>
               </div>
 
+              <!-- Dates proposées des repas à organiser (vote en cours) -->
+              <button
+                v-for="pr in day.proposals"
+                :key="`poll-${pr.id}`"
+                type="button"
+                class="proposal-card"
+                :title="t('calendar.proposal.open')"
+                @click.stop="openProposal(pr)"
+              >
+                <span class="proposal-title">🗳️ {{ pr.title }}</span>
+                <span class="proposal-meta">{{ t('calendar.proposal.proposed', { slot: t(`mealPolls.slots.${pr.slot}`), n: pr.yes }, pr.yes) }}</span>
+              </button>
+
               <!-- Empty Day placeholder -->
-              <div v-if="day.events.length === 0" class="week-empty-day">
+              <div v-if="day.events.length === 0 && day.proposals.length === 0" class="week-empty-day">
                 <span class="empty-day-txt">{{ t('calendar.noEvent') }}</span>
               </div>
             </div>
@@ -648,6 +668,21 @@
             </div>
           </div>
 
+          <template v-if="selectedDayProposals.length">
+            <h4 class="proposal-section-title">{{ t('calendar.proposal.sectionTitle') }}</h4>
+            <button
+              v-for="pr in selectedDayProposals"
+              :key="`poll-${pr.id}`"
+              type="button"
+              class="proposal-card proposal-card-wide"
+              :title="t('calendar.proposal.open')"
+              @click.stop="openProposal(pr)"
+            >
+              <span class="proposal-title">🗳️ {{ pr.title }}</span>
+              <span class="proposal-meta">{{ t('calendar.proposal.proposed', { slot: t(`mealPolls.slots.${pr.slot}`), n: pr.yes }, pr.yes) }}</span>
+            </button>
+          </template>
+
           <div v-if="selectedDayEvents.length === 0" class="empty-day-state">
             <CalendarIcon :size="36" class="empty-day-icon text-muted" />
             <p>{{ t('calendar.noEventThisDay') }}</p>
@@ -704,6 +739,7 @@ import {
 } from '@lucide/vue'
 import { openGoogleCalendar, downloadIcsFile } from '../utils/calendarExport'
 import { eventOnDate, isMultiDayEvent } from '../utils/events'
+import { proposedOn } from '../utils/mealPolls'
 import { useSwipeNavigation } from '../composables/useSwipeNavigation'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -826,7 +862,8 @@ const buildDay = (d) => {
     monthShort: monthNamesList[d.getMonth()],
     isToday: dateStr === todayStr,
     isPast: dateStr < todayStr,
-    events
+    events,
+    proposals: proposedOn(store.mealPolls, dateStr)
   }
 }
 
@@ -1123,6 +1160,14 @@ const hasEventOnDay = (dayNum) => {
 const getEventsOnDay = (dayNum) => {
   const targetDate = formatDateStr(currentYear.value, currentMonth.value, dayNum)
   return store.events.filter(e => eventOnDate(e, targetDate))
+}
+
+// Dates proposées des repas à organiser : un clic ouvre le repas (MealPlansView, ?poll=<id>)
+const proposalsOnDay = (dayNum) => proposedOn(store.mealPolls, formatDateStr(currentYear.value, currentMonth.value, dayNum))
+const selectedDayProposals = computed(() => proposedOn(store.mealPolls, selectedDayDateStr.value))
+const openProposal = (proposal) => {
+  showDayEventsModal.value = false
+  router.push({ path: `/${route.params.familySlug}/meals/plans`, query: { poll: String(proposal.id) } })
 }
 
 const openedFromDayModal = ref(false)
@@ -1946,6 +1991,61 @@ const handleDeleteFromDay = async (id) => {
   width: 7px;
   height: 7px;
   border-radius: var(--radius-full);
+}
+
+.proposal-dot {
+  box-sizing: border-box;
+  border: 1.5px solid #f59e0b;
+  background: transparent;
+}
+
+/* Date proposée d'un repas à organiser (vote en cours) : carte en pointillés */
+.proposal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1.5px dashed #f59e0b;
+  border-radius: var(--radius-md, 10px);
+  background: rgba(245, 158, 11, 0.06);
+  color: var(--text-primary);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.proposal-card:hover {
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.proposal-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.proposal-meta {
+  font-size: 0.72rem;
+  color: #b45309;
+}
+
+.proposal-section-title {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.proposal-card-wide {
+  padding: 0.7rem 0.85rem;
+}
+
+.proposal-card-wide .proposal-title {
+  font-size: 0.92rem;
+}
+
+.proposal-card-wide .proposal-meta {
+  font-size: 0.8rem;
 }
 
 /* Member selection chips */

@@ -92,5 +92,10 @@
     "message": "Do you really want to delete the event “{title}”?"
   },
   "dateRange": "from {start} to {end}",
-  "untilDate": "until {date}"
+  "untilDate": "until {date}",
+  "proposal": {
+    "proposed": "{slot} suggested · {n} available | {slot} suggested · {n} available",
+    "sectionTitle": "Suggested dates (meals to organise)",
+    "open": "See the meal to organise"
+  }
 }

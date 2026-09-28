@@ -20,7 +20,7 @@
       🍽️ {{ t('mealPolls.empty') }}
     </div>
 
-    <div v-for="poll in polls" :key="poll.id" class="glass-card plan-card" :class="{ closed: poll.status === 'closed' }">
+    <div v-for="poll in polls" :key="poll.id" class="glass-card plan-card" :class="{ closed: poll.status === 'closed' }" :data-poll-id="poll.id">
       <button type="button" class="plan-summary" :aria-expanded="openId === poll.id" @click="openId = openId === poll.id ? null : poll.id">
         <div class="plan-summary-main">
           <span class="plan-title">{{ poll.title }}</span>
@@ -214,7 +214,7 @@
 // Repas à organiser : liste des sondages de dates (un par repas), partage du lien public de vote
 // (WhatsApp…), résultats, puis choix de la date qui inscrit les invités au repas et crée un
 // événement. Voir server/mealPolls/ et MealPollVoteView (page publique).
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ChevronLeft, Plus, Copy, MessageCircle, Share2, Trash2, Edit3, CalendarCheck, RotateCcw, Users } from '@lucide/vue'
@@ -232,7 +232,11 @@ const store = useFamilyStore()
 const { confirm } = useConfirm()
 
 const slug = computed(() => route.params.familySlug)
-const polls = ref([])
+// Partagés avec l'agenda (dates proposées affichées en pointillés) via le store
+const polls = computed({
+  get: () => store.mealPolls,
+  set: (list) => { store.mealPolls = list }
+})
 const loading = ref(true)
 const openId = ref(null)
 const editor = ref(null)
@@ -291,6 +295,13 @@ const load = async () => {
     polls.value = await api('')
   } catch { /* liste vide */ } finally {
     loading.value = false
+  }
+  // ?poll=<id> (depuis une date proposée de l'agenda) : ce repas est déplié et montré
+  const target = Number(route.query.poll)
+  if (target && polls.value.some(p => p.id === target)) {
+    openId.value = target
+    await nextTick()
+    document.querySelector(`[data-poll-id="${target}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
   }
 }
 onMounted(load)

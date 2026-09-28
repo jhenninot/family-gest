@@ -37,6 +37,8 @@ export const useFamilyStore = defineStore('family', () => {
   const shortcuts = ref([])
   const absences = ref([])
   const longAbsences = ref([])
+  // Repas à organiser (sondages de dates) : leurs dates proposées apparaissent aussi dans l'agenda
+  const mealPolls = ref([])
   const mealGuests = ref([])
   const meals = ref([])
   const isLoading = ref(false)
@@ -69,6 +71,7 @@ export const useFamilyStore = defineStore('family', () => {
     shortcuts.value = []
     absences.value = []
     longAbsences.value = []
+    mealPolls.value = []
     mealGuests.value = []
     meals.value = []
   }
@@ -205,7 +208,7 @@ export const useFamilyStore = defineStore('family', () => {
       isLoading.value = true
       const headers = getHeaders()
 
-      const [membersRes, tasksRes, eventsRes, shoppingRes, categoriesRes, shortcutsRes, absencesRes, guestsRes, mealsRes, longAbsencesRes] = await Promise.all([
+      const [membersRes, tasksRes, eventsRes, shoppingRes, categoriesRes, shortcutsRes, absencesRes, guestsRes, mealsRes, longAbsencesRes, mealPollsRes] = await Promise.all([
         fetch('/api/members', { headers }),
         fetch('/api/tasks', { headers }),
         fetch('/api/events', { headers }),
@@ -215,7 +218,8 @@ export const useFamilyStore = defineStore('family', () => {
         fetch('/api/absences', { headers }),
         fetch('/api/meal-guests', { headers }),
         fetch('/api/meals', { headers }),
-        fetch('/api/long-absences', { headers })
+        fetch('/api/long-absences', { headers }),
+        fetch('/api/meal-polls', { headers })
       ])
 
       // Une famille plus récente a été demandée entre-temps : cette réponse est obsolète, on l'ignore
@@ -255,6 +259,7 @@ export const useFamilyStore = defineStore('family', () => {
       if (guestsRes && guestsRes.ok) mealGuests.value = await guestsRes.json()
       if (mealsRes && mealsRes.ok) meals.value = await mealsRes.json()
       if (longAbsencesRes && longAbsencesRes.ok) longAbsences.value = await longAbsencesRes.json()
+      if (mealPollsRes && mealPollsRes.ok) mealPolls.value = await mealPollsRes.json()
     } catch (err) {
       console.error('Erreur lors du chargement des données API', err)
     } finally {
@@ -1277,6 +1282,7 @@ export const useFamilyStore = defineStore('family', () => {
 
   return {
     getHeaders,
+    mealPolls,
     isDarkMode,
     themePreference,
     setThemePreference,
