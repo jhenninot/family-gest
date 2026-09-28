@@ -46,7 +46,9 @@
     "peopleHint": "Una pareja o una familia puede ir en una sola línea: indique el número de personas, responderán juntas.",
     "less": "Una persona menos",
     "more": "Una persona más",
-    "totalPeople": "{n} persona invitada en total | {n} personas invitadas en total"
+    "totalPeople": "{n} persona invitada en total | {n} personas invitadas en total",
+    "datesPick": "Toque los días que quiera proponer (varios posibles), toque de nuevo para quitarlos. Un punto naranja indica un día ya ocupado.",
+    "busyDay": "Día ya ocupado (agenda u otra comida)"
   },
   "close": {
     "button": "Fijar la fecha",

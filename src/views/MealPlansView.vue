@@ -129,15 +129,15 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="poll-date">{{ t('mealPolls.form.dates') }}</label>
-            <div class="plan-add-row">
-              <input id="poll-date" v-model="dateInput" type="date" class="form-input" :min="store.todayStr" />
-              <button type="button" class="btn btn-secondary" :disabled="!dateInput" @click="addDate">{{ t('common.add') }}</button>
-            </div>
-            <!-- Date en cours de saisie déjà prise ailleurs : prévenu avant même de l'ajouter -->
-            <ul v-if="dateInput && dateConflicts(dateInput).length" class="plan-conflicts">
-              <li v-for="(c, i) in dateConflicts(dateInput)" :key="i">⚠️ {{ c }}</li>
-            </ul>
+            <label class="form-label">{{ t('mealPolls.form.dates') }}</label>
+            <span class="field-hint plan-dates-hint">{{ t('mealPolls.form.datesPick') }}</span>
+            <!-- Plusieurs jours d'un geste ; point orange = jour déjà pris (agenda, autre repas) -->
+            <MultiDatePicker
+              v-model="editor.dates"
+              :min="store.todayStr"
+              :today="store.todayStr"
+              :is-busy="(d) => dateConflicts(d).length > 0"
+            />
             <div class="plan-chips">
               <span v-for="(d, i) in editor.dates" :key="d" class="plan-chip" :class="{ warn: dateConflicts(d).length }">
                 <span v-if="dateConflicts(d).length" :title="dateConflicts(d).join('\n')">⚠️</span>
@@ -224,6 +224,7 @@ import { escapeHtml } from '../utils/escapeHtml'
 import { formatDate } from '../i18n/format'
 import MealPollGrid from '../components/MealPollGrid.vue'
 import { eventOnDate } from '../utils/events'
+import MultiDatePicker from '../components/MultiDatePicker.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -238,7 +239,6 @@ const editor = ref(null)
 const closing = ref(null)
 const guestInput = ref('')
 const guestCountInput = ref(1)
-const dateInput = ref('')
 const saving = ref(false)
 const formError = ref('')
 const copiedId = ref(null)
@@ -321,7 +321,6 @@ const openEditor = (poll = null) => {
   formError.value = ''
   guestInput.value = ''
   guestCountInput.value = 1
-  dateInput.value = ''
   editor.value = poll
     ? { id: poll.id, title: poll.title, slot: poll.slot, note: poll.note, guests: poll.guests.map(g => ({ id: g.id, name: g.name, count: clampCount(g.count) })), dates: [...poll.dates] }
     : { id: null, title: '', slot: 'dinner', note: '', guests: [], dates: [] }
@@ -338,16 +337,8 @@ const addGuests = () => {
   guestCountInput.value = 1
 }
 
-const addDate = () => {
-  if (dateInput.value && !editor.value.dates.includes(dateInput.value)) {
-    editor.value.dates = [...editor.value.dates, dateInput.value].sort()
-  }
-  dateInput.value = ''
-}
-
 const saveEditor = async () => {
   if (guestInput.value.trim()) addGuests()
-  if (dateInput.value) addDate()
   saving.value = true
   formError.value = ''
   try {
@@ -654,6 +645,10 @@ const reopen = async (poll) => {
   font-size: 0.8rem;
   line-height: 1.45;
   color: var(--text-muted);
+}
+
+.plan-form .plan-dates-hint {
+  margin: 0 0 0.5rem;
 }
 
 .plan-chip.warn {

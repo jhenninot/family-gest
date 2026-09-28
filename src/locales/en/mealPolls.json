@@ -46,7 +46,9 @@
     "peopleHint": "A couple or a family can share one line: enter the number of people, they will answer together.",
     "less": "One person less",
     "more": "One more person",
-    "totalPeople": "{n} guest in total | {n} guests in total"
+    "totalPeople": "{n} guest in total | {n} guests in total",
+    "datesPick": "Tap the days to suggest (several allowed), tap again to remove. An orange dot marks a day already taken.",
+    "busyDay": "Day already taken (calendar or another meal)"
   },
   "close": {
     "button": "Set the date",
