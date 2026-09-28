@@ -50,6 +50,12 @@
           <span class="date-picker-text">{{ t('meals.goTo') }}</span>
         </label>
 
+        <!-- Repas à organiser avec des invités (sondage de dates) -->
+        <router-link :to="`/${route.params.familySlug}/meals/plans`" class="btn-today-pill meal-plans-link">
+          <Users :size="15" />
+          <span>{{ t('mealPolls.shortTitle') }}</span>
+        </router-link>
+
         <!-- Week Stats -->
         <div v-if="!isMobile" class="week-stats-pill">
           <ChefHat :size="16" class="text-amber" />
@@ -916,8 +922,10 @@ import {
   X,
   BookOpen,
   ExternalLink,
-  Loader2
+  Loader2,
+  Users
 } from '@lucide/vue'
+import { useRoute } from 'vue-router'
 import UserAvatar from '../components/UserAvatar.vue'
 import MealieRecipeSearch from '../components/MealieRecipeSearch.vue'
 import RecipeIngredientPicker from '../components/RecipeIngredientPicker.vue'
@@ -939,6 +947,7 @@ import { SLOT_KEYS } from '@shared/presence.js'
 const store = useFamilyStore()
 const { t } = useI18n()
 const authStore = useAuthStore()
+const route = useRoute()
 const { confirm } = useConfirm()
 
 // State pour la navigation hebdomadaire
@@ -1787,6 +1796,13 @@ const getMemberFirstName = (id) => {
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
+}
+
+.meal-plans-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-decoration: none;
 }
 
 .btn-today-pill:hover {

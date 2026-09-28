@@ -1276,6 +1276,7 @@ export const useFamilyStore = defineStore('family', () => {
   }
 
   return {
+    getHeaders,
     isDarkMode,
     themePreference,
     setThemePreference,

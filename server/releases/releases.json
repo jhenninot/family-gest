@@ -1,5 +1,20 @@
 [
   {
+    "version": "2026.10.01",
+    "date": "2026-10-01",
+    "notes": {
+      "fr": [
+        "Repas : nouvel écran « À organiser » pour préparer un repas avec des invités. Proposez plusieurs dates, partagez le lien sur WhatsApp : chacun vote sans compte, puis fixez la date. Les invités sont alors ajoutés au repas et un événement est créé dans l'agenda."
+      ],
+      "en": [
+        "Meals: new “To organise” screen to plan a meal with guests. Suggest several dates, share the link on WhatsApp: everyone votes without an account, then set the date. The guests are then added to the meal and an event is created in the calendar."
+      ],
+      "es": [
+        "Comidas: nueva pantalla «Por organizar» para preparar una comida con invitados. Proponga varias fechas y comparta el enlace por WhatsApp: cada uno vota sin cuenta, luego fije la fecha. Los invitados se añaden entonces a la comida y se crea un evento en la agenda."
+      ]
+    }
+  },
+  {
     "version": "2026.09.30",
     "date": "2026-09-30",
     "minor": [

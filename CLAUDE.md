@@ -50,6 +50,8 @@ Supporting backend files:
 
 - Multi-day events: `Event.endDate` (last day, inclusive; `null` = single day, never set on recurring series). Use `src/utils/events.js` (`eventOnDate`, `eventOverlaps`) client-side and overlap queries server-side (`date <= end` and `endDate >= start`), never `date === day`. With `generateAbsence`, `syncEventLongAbsences` (`server/index.js`) creates one `LongAbsence` per member (`eventId`, `absenceStartSlot`/`absenceEndSlot`), re-synced when the event dates change and deleted with the event. Voice/Alexa: `AddEventIntent` has an `endDate` slot (« vacances du {date} au {endDate} », up to three members); after creation the skill offers the long absences (`api.addEventLongAbsences`). The voice NLU accepts a bare day number before « au {endDate} » (`dayBeforeEnd` in `frenchTime.js`).
 
+- Meals to organise (`server/models/MealPoll.js`, rules in `server/mealPolls/logic.js`, routes in the meal guests area of `index.js`): a Doodle-like date poll per meal (fixed guest list, dates only, lunch/dinner chosen by the organiser). Guests vote **without an account** on `/sondage/<token>` (`MealPollVoteView.vue`, `GET/POST /api/public/meal-polls/:token`, rate-limited; only `publicView()` data is exposed). Closing a poll (`MealPlansView.vue`, `/:familySlug/meals/plans`) creates the `MealGuest` rows and an agenda event; reopening removes them.
+
 ### Multi-tenancy model
 
 Two-level identity, per `Migration.md`:

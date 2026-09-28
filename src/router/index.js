@@ -32,6 +32,13 @@ const routes = [
     meta: { titleKey: 'routes.invitation', public: true }
   },
   {
+    // Vote public d'un repas à organiser (lien partagé, sans compte)
+    path: '/sondage/:token',
+    name: 'meal-poll-vote',
+    component: () => import('../views/MealPollVoteView.vue'),
+    meta: { titleKey: 'routes.mealPollVote', public: true }
+  },
+  {
     path: '/mentions-legales',
     name: 'legal-notice',
     component: () => import('../views/LegalDocView.vue'),
@@ -94,6 +101,12 @@ const routes = [
     name: 'family-meals',
     component: () => import('../views/MealsView.vue'),
     meta: { titleKey: 'routes.meals', requiresAuth: true }
+  },
+  {
+    path: '/:familySlug/meals/plans',
+    name: 'family-meal-plans',
+    component: () => import('../views/MealPlansView.vue'),
+    meta: { titleKey: 'routes.mealPlans', requiresAuth: true }
   },
   {
     path: '/:familySlug/shopping',

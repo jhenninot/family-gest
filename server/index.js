@@ -32,6 +32,8 @@ import Shortcut from './models/Shortcut.js'
 import Absence from './models/Absence.js'
 import LongAbsence from './models/LongAbsence.js'
 import MealGuest from './models/MealGuest.js'
+import MealPoll from './models/MealPoll.js'
+import { sanitizeDates, mergeGuests, pruneVotes, applyGuestVote, summarize, guestsForDate, publicView } from './mealPolls/logic.js'
 import Meal from './models/Meal.js'
 import PushConfig from './models/PushConfig.js'
 import PushSubscription from './models/PushSubscription.js'
@@ -5265,6 +5267,224 @@ app.delete('/api/meal-guests/:id', requireAuth, attachFamilyContext, async (req,
     await MealGuest.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
     res.json({ message: req.t('messages.guestDeleted') })
   } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// === REPAS À ORGANISER (sondage de dates auprès d'invités, vote public sans compte) ===
+
+const mealPollJson = (poll) => {
+  const data = poll.toObject ? poll.toObject() : poll
+  return { ...data, summary: summarize(data) }
+}
+
+// Champs modifiables par l'organisateur (création et modification)
+const applyMealPollInput = (poll, body) => {
+  if (body.title !== undefined) poll.title = String(body.title).replace(/\s+/g, ' ').trim().slice(0, 120)
+  if (body.slot !== undefined) poll.slot = body.slot === 'lunch' ? 'lunch' : 'dinner'
+  if (body.note !== undefined) poll.note = String(body.note).trim().slice(0, 500)
+  if (body.guests !== undefined) poll.guests = mergeGuests(poll.guests, body.guests)
+  if (body.dates !== undefined) poll.dates = sanitizeDates(body.dates)
+  poll.votes = pruneVotes(poll.votes, poll.guests, poll.dates)
+}
+
+app.get('/api/meal-polls', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const polls = await MealPoll.find({ familyId: req.family._id }).sort({ status: -1, updatedAt: -1 })
+    res.json(polls.map(mealPollJson))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/meal-polls', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const title = String(req.body?.title || '').replace(/\s+/g, ' ').trim()
+    if (!title) return res.status(400).json({ error: req.t('errors.mealPollTitleRequired') })
+    const poll = new MealPoll({
+      familyId: req.family._id,
+      id: Date.now(),
+      // Adresse publique non devinable (144 bits)
+      token: crypto.randomBytes(18).toString('base64url'),
+      title,
+      createdBy: req.user.id
+    })
+    applyMealPollInput(poll, req.body)
+    await poll.save()
+    res.status(201).json(mealPollJson(poll))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/meal-polls/:id', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const poll = await MealPoll.findOne({ familyId: req.family._id, id: Number(req.params.id) })
+    if (!poll) return res.status(404).json({ error: req.t('errors.mealPollNotFound') })
+    applyMealPollInput(poll, req.body || {})
+    if (!poll.title) return res.status(400).json({ error: req.t('errors.mealPollTitleRequired') })
+    await poll.save()
+    res.json(mealPollJson(poll))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Défait ce que la clôture avait créé (invités du repas, événement d'agenda)
+const undoMealPollClosing = async (poll) => {
+  if (poll.createdGuestIds?.length) await MealGuest.deleteMany({ familyId: poll.familyId, id: { $in: poll.createdGuestIds } })
+  if (poll.eventId) await deleteEventOrSeries({ familyId: poll.familyId, eventId: poll.eventId, scope: 'this' }).catch(() => {})
+  poll.createdGuestIds = []
+  poll.eventId = null
+}
+
+app.delete('/api/meal-polls/:id', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const poll = await MealPoll.findOne({ familyId: req.family._id, id: Number(req.params.id) })
+    if (!poll) return res.status(404).json({ error: req.t('errors.mealPollNotFound') })
+    // Le repas déjà fixé (invités, événement) reste en place : seul le sondage disparaît
+    await MealPoll.deleteOne({ _id: poll._id })
+    res.json({ deleted: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Date retenue : invités au repas (ceux qui n'ont pas dit non, ou la liste choisie) et événement
+app.post('/api/meal-polls/:id/close', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const poll = await MealPoll.findOne({ familyId: req.family._id, id: Number(req.params.id) })
+    if (!poll) return res.status(404).json({ error: req.t('errors.mealPollNotFound') })
+    const { date, guestIds, createGuests = true, createEvent = true } = req.body || {}
+    if (!poll.dates.includes(date)) return res.status(400).json({ error: req.t('errors.mealPollBadDate') })
+
+    await undoMealPollClosing(poll)
+    const chosen = Array.isArray(guestIds)
+      ? poll.guests.filter(g => guestIds.map(Number).includes(g.id))
+      : guestsForDate(poll, date)
+    if (createGuests && chosen.length > 0) {
+      const created = await createMealGuestsBatch({
+        familyId: req.family._id,
+        names: chosen.map(g => g.name),
+        date,
+        lunch: poll.slot === 'lunch',
+        dinner: poll.slot === 'dinner',
+        night: false,
+        invitedBy: req.user.id,
+        note: poll.title,
+        fallbackHostId: req.user.id
+      })
+      poll.createdGuestIds = created.map(g => g.id)
+    }
+    if (createEvent) {
+      const { event } = await createEventOrSeries({
+        familyId: req.family._id,
+        body: {
+          title: `${poll.slot === 'lunch' ? '🍽️' : '🍷'} ${poll.title}`,
+          date,
+          time: poll.slot === 'lunch' ? '12:30' : '19:30',
+          endTime: '',
+          category: 'Famille',
+          location: 'Maison',
+          memberIds: []
+        },
+        declaredBy: req.user.id,
+        lang: req.lang
+      })
+      poll.eventId = event.id
+    }
+    poll.status = 'closed'
+    poll.chosenDate = date
+    await poll.save()
+    res.json(mealPollJson(poll))
+  } catch (err) {
+    console.error('[MealPoll] Clôture impossible :', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Réouverture (ex : tout le monde est finalement indisponible) : défait la clôture
+app.post('/api/meal-polls/:id/reopen', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const poll = await MealPoll.findOne({ familyId: req.family._id, id: Number(req.params.id) })
+    if (!poll) return res.status(404).json({ error: req.t('errors.mealPollNotFound') })
+    await undoMealPollClosing(poll)
+    poll.status = 'open'
+    poll.chosenDate = null
+    await poll.save()
+    res.json(mealPollJson(poll))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// --- Page publique de vote (/sondage/<token>), sans compte ---
+
+const pollVoteRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: (req) => ({ error: req.t('errors.tooManyAttempts') })
+})
+
+const findPublicPoll = async (token) => {
+  if (typeof token !== 'string' || token.length < 16 || token.length > 64) return null
+  const poll = await MealPoll.findOne({ token })
+  if (!poll) return null
+  const family = await Family.findById(poll.familyId).select('name slug isActive')
+  if (!family || family.isActive === false) return null
+  return { poll, family }
+}
+
+app.get('/api/public/meal-polls/:token', async (req, res) => {
+  try {
+    const found = await findPublicPoll(req.params.token)
+    if (!found) return res.status(404).json({ error: req.t('errors.mealPollNotFound') })
+    res.setHeader('Cache-Control', 'no-store')
+    res.json(publicView(found.poll, found.family.name))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/public/meal-polls/:token/votes', pollVoteRateLimiter, async (req, res) => {
+  try {
+    const found = await findPublicPoll(req.params.token)
+    if (!found) return res.status(404).json({ error: req.t('errors.mealPollNotFound') })
+    const { poll, family } = found
+    if (poll.status !== 'open') return res.status(409).json({ error: req.t('errors.mealPollClosed') })
+    const { guestId, answers, comment } = req.body || {}
+    const result = applyGuestVote(poll.toObject(), guestId, answers, comment)
+    if (!result) return res.status(400).json({ error: req.t('errors.mealPollUnknownGuest') })
+    poll.votes = result.votes
+    poll.guests = result.guests
+    await poll.save()
+
+    // L'organisateur est prévenu (préférence « Repas »)
+    const guest = result.guests.find(g => g.id === Number(guestId))
+    if (poll.createdBy != null) {
+      const push = await sendPushNotification({
+        title: (t) => t('notify.mealPoll.votedTitle', { title: poll.title }),
+        body: (t) => t('notify.mealPoll.votedBody', { name: guest.name }),
+        url: `/${family.slug}/meals/plans`,
+        familyId: family._id,
+        recipientUserIds: [poll.createdBy],
+        action: ALERT_ACTIONS.MEAL_POLL_VOTED.code
+      })
+      await logAlertEntry({
+        family,
+        action: ALERT_ACTIONS.MEAL_POLL_VOTED.code,
+        actionLabel: ALERT_ACTIONS.MEAL_POLL_VOTED.label,
+        title: poll.title,
+        targetType: 'mealPoll',
+        targetId: poll.id,
+        channels: [toAlertChannelLog('push', push)]
+      })
+    }
+    res.json(publicView(poll, family.name))
+  } catch (err) {
+    console.error('[MealPoll] Vote impossible :', err.message)
     res.status(500).json({ error: err.message })
   }
 })

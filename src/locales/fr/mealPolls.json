@@ -1,0 +1,77 @@
+{
+  "title": "Repas à organiser",
+  "shortTitle": "À organiser",
+  "backToMeals": "Repas de la semaine",
+  "intro": "Proposez plusieurs dates à vos invités : ils votent sans compte depuis un lien à partager sur WhatsApp, puis vous fixez la date.",
+  "new": "Nouveau repas",
+  "editTitle": "Modifier le repas",
+  "empty": "Aucun repas à organiser pour le moment.",
+  "slots": {
+    "lunch": "Déjeuner",
+    "dinner": "Dîner"
+  },
+  "status": {
+    "open": "Vote en cours",
+    "closed": "Date fixée"
+  },
+  "answered": "{n}/{total} ont répondu",
+  "best": "meilleure date : {date}",
+  "incomplete": "Ajoutez des invités et des dates pour lancer le vote.",
+  "total": "Disponibles",
+  "answers": {
+    "yes": "Oui",
+    "maybe": "Si besoin",
+    "no": "Non",
+    "none": "Pas de réponse"
+  },
+  "share": {
+    "label": "Lien de vote à partager",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "whatsapp": "Envoyer sur WhatsApp",
+    "other": "Partager…",
+    "message": "Bonjour ! Pour organiser « {title} », dites-nous quand vous êtes disponibles : {url}"
+  },
+  "form": {
+    "title": "Nom du repas",
+    "titlePlaceholder": "ex : Dîner avec les Dupont",
+    "slot": "Repas",
+    "guests": "Invités",
+    "guestPlaceholder": "Prénom (ou plusieurs, séparés par des virgules)",
+    "dates": "Dates proposées",
+    "datesHint": "Vous pouvez ajouter une date à tout moment, par exemple si personne n'est disponible : les invités pourront revoter.",
+    "note": "Message aux invités (facultatif)",
+    "notePlaceholder": "ex : Apéro à la maison, venez avec les enfants !"
+  },
+  "close": {
+    "button": "Fixer la date",
+    "title": "Fixer la date du repas",
+    "date": "Date retenue",
+    "guests": "Invités présents",
+    "createGuests": "Inscrire ces invités au {slot} dans les repas",
+    "createEvent": "Ajouter un événement à l'agenda",
+    "hint": "La date retenue s'affichera aussi sur la page de vote des invités.",
+    "confirm": "Fixer la date"
+  },
+  "reopen": "Rouvrir le vote",
+  "reopenMessage": "Le vote sera rouvert ; les invités ajoutés aux repas et l'événement créés pour la date retenue seront supprimés.",
+  "delete": {
+    "title": "Supprimer le repas à organiser",
+    "message": "Supprimer « {title} » et ses votes ?",
+    "keepsMeal": "Les invités et l'événement déjà créés pour la date retenue sont conservés."
+  },
+  "vote": {
+    "invitedBy": "La famille {family} vous invite",
+    "who": "Qui êtes-vous ?",
+    "hello": "Bonjour {name} !",
+    "notMe": "Ce n'est pas moi",
+    "instructions": "Pour chaque date, indiquez si vous êtes disponible.",
+    "comment": "Un petit mot (facultatif)",
+    "submit": "Enregistrer mes réponses",
+    "saved": "Merci, vos réponses sont enregistrées. Vous pouvez les modifier à tout moment avec ce lien.",
+    "everyone": "Les réponses de chacun",
+    "chosen": "Rendez-vous le {date}, au {slot} !",
+    "notFound": "Ce lien n'est plus valable.",
+    "footer": "Organisé avec FamilyGest"
+  }
+}

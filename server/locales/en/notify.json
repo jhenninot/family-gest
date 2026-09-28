@@ -178,5 +178,9 @@
     "proposedBody": "One new feature to announce to users. Tap to review and publish it. | {n} new features to announce to users. Tap to review and publish them.",
     "publishedTitle": "What's new in FamilyGest",
     "openApp": "Open the app"
+  },
+  "mealPoll": {
+    "votedTitle": "Vote for “{title}”",
+    "votedBody": "{name} gave their availability."
   }
 }

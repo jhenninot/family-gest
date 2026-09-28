@@ -1,0 +1,77 @@
+{
+  "title": "Meals to organise",
+  "shortTitle": "To organise",
+  "backToMeals": "Meals of the week",
+  "intro": "Suggest several dates to your guests: they vote without an account from a link you share on WhatsApp, then you set the date.",
+  "new": "New meal",
+  "editTitle": "Edit the meal",
+  "empty": "No meal to organise yet.",
+  "slots": {
+    "lunch": "Lunch",
+    "dinner": "Dinner"
+  },
+  "status": {
+    "open": "Voting",
+    "closed": "Date set"
+  },
+  "answered": "{n}/{total} answered",
+  "best": "best date: {date}",
+  "incomplete": "Add guests and dates to start the vote.",
+  "total": "Available",
+  "answers": {
+    "yes": "Yes",
+    "maybe": "If needed",
+    "no": "No",
+    "none": "No answer"
+  },
+  "share": {
+    "label": "Voting link to share",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "whatsapp": "Send on WhatsApp",
+    "other": "Share…",
+    "message": "Hello! To organise “{title}”, tell us when you are available: {url}"
+  },
+  "form": {
+    "title": "Meal name",
+    "titlePlaceholder": "e.g. Dinner with the Smiths",
+    "slot": "Meal",
+    "guests": "Guests",
+    "guestPlaceholder": "First name (or several, separated by commas)",
+    "dates": "Suggested dates",
+    "datesHint": "You can add a date at any time, for example if nobody is available: guests can vote again.",
+    "note": "Message to guests (optional)",
+    "notePlaceholder": "e.g. Drinks at home, bring the kids!"
+  },
+  "close": {
+    "button": "Set the date",
+    "title": "Set the meal date",
+    "date": "Chosen date",
+    "guests": "Guests attending",
+    "createGuests": "Add these guests to {slot} in meals",
+    "createEvent": "Add an event to the calendar",
+    "hint": "The chosen date will also be shown on the guests' voting page.",
+    "confirm": "Set the date"
+  },
+  "reopen": "Reopen the vote",
+  "reopenMessage": "The vote will be reopened; the guests added to meals and the event created for the chosen date will be removed.",
+  "delete": {
+    "title": "Delete the meal to organise",
+    "message": "Delete “{title}” and its votes?",
+    "keepsMeal": "The guests and event already created for the chosen date are kept."
+  },
+  "vote": {
+    "invitedBy": "The {family} family invites you",
+    "who": "Who are you?",
+    "hello": "Hello {name}!",
+    "notMe": "That's not me",
+    "instructions": "For each date, tell us whether you are available.",
+    "comment": "A short message (optional)",
+    "submit": "Save my answers",
+    "saved": "Thank you, your answers are saved. You can change them at any time with this link.",
+    "everyone": "Everyone's answers",
+    "chosen": "See you on {date}, for {slot}!",
+    "notFound": "This link is no longer valid.",
+    "footer": "Organised with FamilyGest"
+  }
+}

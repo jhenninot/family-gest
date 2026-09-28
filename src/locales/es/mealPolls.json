@@ -1,0 +1,77 @@
+{
+  "title": "Comidas por organizar",
+  "shortTitle": "Por organizar",
+  "backToMeals": "Comidas de la semana",
+  "intro": "Proponga varias fechas a sus invitados: votan sin cuenta desde un enlace que comparte por WhatsApp, y luego usted fija la fecha.",
+  "new": "Nueva comida",
+  "editTitle": "Editar la comida",
+  "empty": "Ninguna comida por organizar por ahora.",
+  "slots": {
+    "lunch": "Comida",
+    "dinner": "Cena"
+  },
+  "status": {
+    "open": "Votación abierta",
+    "closed": "Fecha fijada"
+  },
+  "answered": "{n}/{total} han respondido",
+  "best": "mejor fecha: {date}",
+  "incomplete": "Añada invitados y fechas para iniciar la votación.",
+  "total": "Disponibles",
+  "answers": {
+    "yes": "Sí",
+    "maybe": "Si hace falta",
+    "no": "No",
+    "none": "Sin respuesta"
+  },
+  "share": {
+    "label": "Enlace de votación para compartir",
+    "copy": "Copiar",
+    "copied": "¡Copiado!",
+    "whatsapp": "Enviar por WhatsApp",
+    "other": "Compartir…",
+    "message": "¡Hola! Para organizar «{title}», díganos cuándo está disponible: {url}"
+  },
+  "form": {
+    "title": "Nombre de la comida",
+    "titlePlaceholder": "ej.: Cena con los García",
+    "slot": "Comida",
+    "guests": "Invitados",
+    "guestPlaceholder": "Nombre (o varios, separados por comas)",
+    "dates": "Fechas propuestas",
+    "datesHint": "Puede añadir una fecha en cualquier momento, por ejemplo si nadie está disponible: los invitados podrán volver a votar.",
+    "note": "Mensaje para los invitados (opcional)",
+    "notePlaceholder": "ej.: Aperitivo en casa, ¡vengan con los niños!"
+  },
+  "close": {
+    "button": "Fijar la fecha",
+    "title": "Fijar la fecha de la comida",
+    "date": "Fecha elegida",
+    "guests": "Invitados presentes",
+    "createGuests": "Apuntar a estos invitados a la {slot} en las comidas",
+    "createEvent": "Añadir un evento a la agenda",
+    "hint": "La fecha elegida también aparecerá en la página de votación de los invitados.",
+    "confirm": "Fijar la fecha"
+  },
+  "reopen": "Reabrir la votación",
+  "reopenMessage": "La votación se reabrirá; los invitados añadidos a las comidas y el evento creados para la fecha elegida se eliminarán.",
+  "delete": {
+    "title": "Eliminar la comida por organizar",
+    "message": "¿Eliminar «{title}» y sus votos?",
+    "keepsMeal": "Los invitados y el evento ya creados para la fecha elegida se conservan."
+  },
+  "vote": {
+    "invitedBy": "La familia {family} le invita",
+    "who": "¿Quién es usted?",
+    "hello": "¡Hola, {name}!",
+    "notMe": "No soy yo",
+    "instructions": "Para cada fecha, indique si está disponible.",
+    "comment": "Unas palabras (opcional)",
+    "submit": "Guardar mis respuestas",
+    "saved": "Gracias, sus respuestas se han guardado. Puede cambiarlas cuando quiera con este enlace.",
+    "everyone": "Las respuestas de todos",
+    "chosen": "¡Nos vemos el {date}, para la {slot}!",
+    "notFound": "Este enlace ya no es válido.",
+    "footer": "Organizado con FamilyGest"
+  }
+}

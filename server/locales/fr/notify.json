@@ -178,5 +178,9 @@
     "proposedBody": "Une nouveauté à annoncer aux utilisateurs. Touchez pour la relire et la publier. | {n} nouveautés à annoncer aux utilisateurs. Touchez pour les relire et les publier.",
     "publishedTitle": "Nouveautés de FamilyGest",
     "openApp": "Ouvrir l'application"
+  },
+  "mealPoll": {
+    "votedTitle": "Vote pour « {title} »",
+    "votedBody": "{name} a donné ses disponibilités."
   }
 }

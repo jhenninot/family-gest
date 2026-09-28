@@ -10,5 +10,7 @@
   "absences": "Présence",
   "meals": "Repas de la semaine",
   "shopping": "Liste de courses",
-  "familySettings": "Administration de la famille"
+  "familySettings": "Administration de la famille",
+  "mealPlans": "Repas à organiser",
+  "mealPollVote": "Vos disponibilités"
 }

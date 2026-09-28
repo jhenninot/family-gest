@@ -131,5 +131,10 @@
   "alexaSyncNotConfigured": "Indique primero el identificador de la skill y el perfil de seguridad de Amazon.",
   "alexaSyncNotConnected": "FamilyGest aún no está autorizado a actualizar la skill en Amazon.",
   "releaseNotFound": "Versión no encontrada.",
-  "releaseNothingSelected": "Ningún punto seleccionado."
+  "releaseNothingSelected": "Ningún punto seleccionado.",
+  "mealPollNotFound": "Esta encuesta no existe o ya no está disponible.",
+  "mealPollTitleRequired": "Ponga un nombre a la comida.",
+  "mealPollBadDate": "Esta fecha no forma parte de las propuestas.",
+  "mealPollClosed": "La fecha de esta comida ya está fijada: la votación está cerrada.",
+  "mealPollUnknownGuest": "Elija su nombre en la lista."
 }
