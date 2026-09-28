@@ -39,7 +39,8 @@
   "noUpcomingEvents": "Aucun événement dans les 7 prochains jours.",
   "eventDetail": {
     "open": "Voir le détail de l'événement",
-    "edit": "Modifier dans l'agenda"
+    "edit": "Modifier dans l'agenda",
+    "noMembers": "Aucun membre indiqué"
   },
   "noEventToday": "Aucun événement aujourd'hui",
   "moreEvents": "+{n} autre | +{n} autres",

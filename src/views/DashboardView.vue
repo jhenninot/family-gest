@@ -527,7 +527,11 @@
                 <MapPin :size="16" />
                 <span>{{ translateValue('location', selectedEvent.location) }}</span>
               </li>
-              <li v-if="eventDetailMembers.length > 0" class="event-detail-members">
+              <li v-if="eventDetailMembers.length === 0" class="event-detail-members">
+                <Users :size="16" />
+                <span class="event-detail-none">{{ t('dashboard.eventDetail.noMembers') }}</span>
+              </li>
+              <li v-else class="event-detail-members">
                 <UserAvatar
                   v-for="m in eventDetailMembers"
                   :key="m.id"
@@ -585,6 +589,7 @@ import {
   ExternalLink,
   Download,
   Edit3,
+  Users,
   Sun,
   Sunset,
   BedDouble
@@ -638,8 +643,11 @@ const dashboardEvents = computed(() => {
 const selectedEvent = ref(null)
 
 const eventDetailMembers = computed(() => {
-  const ids = selectedEvent.value?.memberIds || []
-  return ids.map(id => store.members.find(m => m.id === id)).filter(Boolean)
+  // Membres concernés, plus la personne « assignée » des anciens événements
+  const event = selectedEvent.value
+  if (!event) return []
+  const ids = [...new Set([...(event.memberIds || []), event.assignedTo].filter(id => id != null).map(String))]
+  return ids.map(id => store.members.find(m => String(m.id) === id)).filter(Boolean)
 })
 
 const longDate = (dateStr) => formatDate(new Date(`${dateStr}T00:00:00`), { weekday: 'long', day: 'numeric', month: 'long' })
@@ -1458,6 +1466,11 @@ const getMemberFirstName = (memberId) => {
 
 .event-detail-members {
   flex-wrap: wrap;
+}
+
+.event-detail-none {
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 .event-detail-note {
