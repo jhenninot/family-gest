@@ -97,6 +97,10 @@ Email delivery is a single global configuration (see `Migration.md` §4): the pl
 
 **Add an entry at the top of `server/releases/releases.json` (version `YYYY.MM.DD`, notes in fr/en/es, the three lists aligned item by item) for every user-visible change; list the indexes of fixes/minor items in `minor` (unticked by default).** At startup `checkPendingRelease()` (`server/index.js`) pushes the latest unhandled version once to the super admins (`GlobalConfig.releaseProposedVersion`); they review it in Super Admin › Nouveautés (`src/components/ReleasePanel.vue`), tick the items to announce (`GlobalConfig.releasePublishedNotes`) and publish them (push/email per the `appUpdates` notification preference) or dismiss it. The app shows the latest published notes once per device in `src/components/WhatsNewModal.vue` (`/api/releases/latest`, `?whatsnew=1` forces it).
 
+### Usage statistics (Super Admin)
+
+The Familles tab of the console shows platform tiles + a 12-week activity chart (`src/components/PlatformStats.vue`, `GET /api/super-admin/stats`) and, per family, active members (7/30 days), last activity, pending invitations, quota fill and items created per module over 30 days (`GET /api/super-admin/families`, detail row `src/components/FamilyUsageDetail.vue`). Everything is computed on demand in `server/stats/usage.js` from `createdAt` of the family collections and `FamilyMember.lastSeenAt` (set by `server/middleware/familyContext.js`, at most once an hour). **Numbers and dates only — never family content** (the super admin has no access to family data). When adding a family-scoped collection, add it to `moduleModels` and `STATS_MODELS`.
+
 ### Alert logging
 
 `server/models/AlertLog.js` + `server/constants/alertActions.js` record every push/email notification sent (invitations, reminders, etc.) for audit purposes, surfaced in the Super Admin console via `/api/super-admin/alert-logs`.

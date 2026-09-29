@@ -95,29 +95,46 @@
         <p>{{ t('superAdmin.families.loading') }}</p>
       </div>
 
-      <div v-else class="families-list-container glass-card">
+      <PlatformStats v-if="!loadingFamilies" />
+
+      <div v-if="!loadingFamilies" class="families-list-container glass-card">
         <table class="data-table">
           <thead>
             <tr>
-              <th>{{ t('superAdmin.families.cols.name') }}</th>
+              <th><button type="button" class="sort-btn" @click="setFamilySort('name')">{{ t('superAdmin.families.cols.name') }} {{ sortIndicator('name') }}</button></th>
               <th>{{ t('superAdmin.families.cols.slug') }}</th>
               <th>{{ t('superAdmin.families.cols.members') }}</th>
+              <th><button type="button" class="sort-btn" @click="setFamilySort('active')">{{ t('superAdmin.stats.colActive') }} {{ sortIndicator('active') }}</button></th>
+              <th><button type="button" class="sort-btn" @click="setFamilySort('activity')">{{ t('superAdmin.stats.colLastActivity') }} {{ sortIndicator('activity') }}</button></th>
               <th>{{ t('superAdmin.families.cols.status') }}</th>
               <th>{{ t('superAdmin.families.cols.actions') }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="fam in families" :key="fam._id">
+            <template v-for="fam in sortedFamilies" :key="fam._id">
+            <tr>
               <td class="cell-primary" :data-label="t('superAdmin.families.labels.family')">
-                <strong>{{ fam.name }}</strong>
+                <button type="button" class="family-expand" :aria-expanded="expandedFamilyId === fam._id" :title="t('superAdmin.stats.showDetail')" @click="toggleFamilyDetail(fam._id)">
+                  <ChevronRight :size="16" class="family-expand-icon" :class="{ open: expandedFamilyId === fam._id }" />
+                  <strong>{{ fam.name }}</strong>
+                </button>
               </td>
               <td class="cell-slug" :data-label="t('superAdmin.families.labels.slug')">
                 <code>/{{ fam.slug }}</code>
               </td>
               <td :data-label="t('superAdmin.families.labels.members')">
-                <span class="quota-pill">
+                <span class="quota-pill" :class="{ 'quota-warn': fam.maxMembers && (fam.memberCount || 0) / fam.maxMembers >= 0.9 }">
                   {{ t('superAdmin.families.quota', { n: fam.memberCount || 0, max: fam.maxMembers }) }}
                 </span>
+              </td>
+              <td :data-label="t('superAdmin.stats.colActive')">
+                <span class="activity-count">{{ fam.activeMembers30 || 0 }} / {{ fam.memberCount || 0 }}</span>
+              </td>
+              <td :data-label="t('superAdmin.stats.colLastActivity')">
+                <span class="activity-when" :class="{ dormant: isDormant(fam) }">
+                  {{ fam.lastActivityAt ? formatRelative(fam.lastActivityAt) : t('superAdmin.stats.never') }}
+                </span>
+                <span v-if="isDormant(fam)" class="dormant-pill">{{ t('superAdmin.stats.dormant') }}</span>
               </td>
               <td :data-label="t('superAdmin.families.labels.status')">
                 <span class="status-pill" :class="{ active: fam.isActive, inactive: !fam.isActive }">
@@ -165,6 +182,12 @@
                 </button>
               </td>
             </tr>
+            <tr v-if="expandedFamilyId === fam._id" class="family-detail-row">
+              <td colspan="7">
+                <FamilyUsageDetail :family="fam" />
+              </td>
+            </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -1230,13 +1253,15 @@ import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
-import { intlLocale } from '../i18n/format'
+import { intlLocale, formatRelative } from '../i18n/format'
 import { translateValue } from '../i18n/values'
 import UserAvatar from '../components/UserAvatar.vue'
 import ServerLogsPanel from '../components/ServerLogsPanel.vue'
 import ReleasePanel from '../components/ReleasePanel.vue'
 import GoogleAuthSettings from '../components/GoogleAuthSettings.vue'
 import LandingSettings from '../components/LandingSettings.vue'
+import PlatformStats from '../components/PlatformStats.vue'
+import FamilyUsageDetail from '../components/FamilyUsageDetail.vue'
 import { 
   ShieldAlert, 
   Home, 
@@ -1503,6 +1528,25 @@ const handleExecuteImport = async () => {
     importing.value = false
   }
 }
+
+// Tri et fiche d'utilisation du tableau des familles (statistiques : server/stats/usage.js)
+const DORMANT_DAYS = 30
+const familySort = ref({ key: 'activity', dir: -1 })
+const expandedFamilyId = ref(null)
+const activityTime = (fam) => (fam.lastActivityAt ? new Date(fam.lastActivityAt).getTime() : 0)
+const isDormant = (fam) => fam.isActive && (Date.now() - activityTime(fam)) > DORMANT_DAYS * 24 * 60 * 60 * 1000
+const sortedFamilies = computed(() => {
+  const { key, dir } = familySort.value
+  const value = (fam) => (key === 'name' ? fam.name.toLocaleLowerCase() : key === 'active' ? (fam.activeMembers30 || 0) : activityTime(fam))
+  return [...families.value].sort((a, b) => (value(a) < value(b) ? -dir : value(a) > value(b) ? dir : 0))
+})
+const setFamilySort = (key) => {
+  familySort.value = familySort.value.key === key
+    ? { key, dir: -familySort.value.dir }
+    : { key, dir: key === 'name' ? 1 : -1 }
+}
+const sortIndicator = (key) => (familySort.value.key === key ? (familySort.value.dir === 1 ? '▲' : '▼') : '')
+const toggleFamilyDetail = (id) => { expandedFamilyId.value = expandedFamilyId.value === id ? null : id }
 
 const fetchFamilies = async () => {
   loadingFamilies.value = true
@@ -2508,6 +2552,74 @@ const testGlobalSmtp = async () => {
   border-radius: 9999px;
 }
 
+.sort-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.family-expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.family-expand-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.family-expand-icon.open {
+  transform: rotate(90deg);
+}
+
+.quota-pill.quota-warn {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.activity-count {
+  font-weight: 700;
+}
+
+.activity-when {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+.activity-when.dormant {
+  color: #b45309;
+}
+
+.dormant-pill {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.family-detail-row td {
+  background: var(--bg-secondary);
+}
+
 .status-pill {
   display: inline-block;
   font-size: 0.8rem;
@@ -3358,6 +3470,23 @@ const testGlobalSmtp = async () => {
   }
 
   .data-table td.cell-actions::before {
+    display: none;
+  }
+
+  /* Fiche d'utilisation dépliée : bloc normal, aligné à gauche, collée à la carte de sa famille */
+  .data-table tr.family-detail-row {
+    margin-top: -0.6rem;
+    padding: 0.75rem;
+  }
+
+  .data-table tr.family-detail-row td {
+    display: block;
+    text-align: left;
+    padding: 0;
+    background: transparent;
+  }
+
+  .data-table tr.family-detail-row td::before {
     display: none;
   }
 

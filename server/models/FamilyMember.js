@@ -66,6 +66,12 @@ const familyMemberSchema = new mongoose.Schema({
   points: {
     type: Number,
     default: 0
+  },
+  // Dernière visite de la famille (au plus une mise à jour par heure, voir attachFamilyContext) :
+  // sert uniquement aux statistiques d'activité de la console Super Admin
+  lastSeenAt: {
+    type: Date,
+    default: null
   }
   // Les préférences de notification (push/email) ont été retirées d'ici : elles sont désormais
   // gérées au niveau du compte utilisateur (User.notificationPreferences), valables sur toutes

@@ -415,5 +415,35 @@
     "saved": "Ajustes guardados.",
     "showContact": "Mostrar el botón «Contactarme»",
     "showContactHint": "Déjelo oculto mientras solo envíe la página a personas que ya tienen sus datos de contacto."
+  },
+  "stats": {
+    "activeFamilies": "Familias activas",
+    "activeUsers": "Usuarios activos (30 días)",
+    "created30": "Elementos creados (30 días)",
+    "weeklyTitle": "Actividad de las últimas 12 semanas",
+    "weeklyHint": "Elementos creados por semana, todas las familias",
+    "weekTooltip": "Semana del {date}: {n} elemento creado | Semana del {date}: {n} elementos creados",
+    "colActive": "Activos (30 d)",
+    "colLastActivity": "Última actividad",
+    "never": "Nunca",
+    "dormant": "Inactiva",
+    "showDetail": "Ver las estadísticas de uso",
+    "active7": "Miembros activos (7 días)",
+    "active30": "Miembros activos (30 días)",
+    "lastActivity": "Última actividad",
+    "pendingInvitations": "Invitaciones pendientes",
+    "oldestInvitation": "la más antigua {age}",
+    "quotaUsed": "Cuota utilizada ({n}/{max})",
+    "createdAt": "Familia creada el",
+    "modulesTitle": "Uso por módulo (elementos creados en 30 días)",
+    "modules": {
+      "presence": "Presencias e invitados",
+      "meals": "Comidas",
+      "mealPlans": "Comidas por organizar",
+      "shopping": "Compras",
+      "tasks": "Tareas",
+      "calendar": "Agenda"
+    },
+    "privacyNote": "Solo se muestran números y fechas: el contenido de las familias sigue siendo privado."
   }
 }

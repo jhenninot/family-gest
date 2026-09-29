@@ -22,6 +22,17 @@ export function formatNumber(value, options) {
   return new Intl.NumberFormat(intlLocale(), options).format(value)
 }
 
+// Temps écoulé depuis une date, dans la langue de l'interface (« il y a 3 heures », « hier »…)
+export function formatRelative(value, now = Date.now()) {
+  const seconds = Math.round((new Date(value).getTime() - now) / 1000)
+  const units = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]]
+  const rtf = new Intl.RelativeTimeFormat(intlLocale(), { numeric: 'auto' })
+  for (const [unit, size] of units) {
+    if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit)
+  }
+  return rtf.format(0, 'minute')
+}
+
 const capitalize = (s) => s.charAt(0).toLocaleUpperCase(intlLocale()) + s.slice(1)
 
 // Noms des jours, du lundi au dimanche (la semaine de l'application commence le lundi).

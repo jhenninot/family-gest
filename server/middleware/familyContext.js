@@ -67,6 +67,14 @@ export const createAttachFamilyContext = ({ onInvitationAccepted = async () => {
       return res.status(403).json({ error: req.t('errors.notInFamily') })
     }
 
+    // Dernière visite (statistiques d'activité de la console) : au plus une écriture par heure
+    const now = Date.now()
+    if (!membership.lastSeenAt || now - new Date(membership.lastSeenAt).getTime() > 60 * 60 * 1000) {
+      membership.lastSeenAt = new Date(now)
+      FamilyMember.updateOne({ _id: membership._id }, { $set: { lastSeenAt: membership.lastSeenAt } })
+        .catch(err => console.debug('[Stats] lastSeenAt :', err.message))
+    }
+
     req.membership = membership
     next()
   } catch (err) {

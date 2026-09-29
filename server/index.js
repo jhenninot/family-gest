@@ -58,6 +58,7 @@ import { migrateUsualPresenceGrid } from './scripts/migrate-usual-presence-grid.
 import { startDigestScheduler, mountDigestAdminRoutes } from './digest/index.js'
 import { escapeHtml } from './digest/templates.js'
 import { parseBugReport, buildBugReportEmail, BugReportError } from './bugReports/index.js'
+import { familyUsageStats, platformOverview } from './stats/usage.js'
 import { t, normalizeLanguage, languageMiddleware, TranslatableError, localizeError, translator, localize, DEFAULT_LANGUAGE, formatDateOnly, readableDate, translateValue } from './i18n/index.js'
 import { LEVELS as LOG_LEVELS, DEBUG_DURATION_MS, configureLogger, getLogSettings, queryLogs, httpLogMiddleware, logger } from './logging/logger.js'
 import { normalizeUsualPresenceConfig, summarizeUsualPresence, mondayOf, DEFAULT_WEEK_ANCHOR, guestCountOf } from '../shared/presence.js'
@@ -65,6 +66,9 @@ import { normalizeUsualPresenceConfig, summarizeUsualPresence, mondayOf, DEFAULT
 dotenv.config()
 
 const app = express()
+
+// Collections lues par les statistiques d'utilisation de la console (server/stats/usage.js)
+const STATS_MODELS = { Family, FamilyMember, FamilyInvitation, User, Absence, LongAbsence, MealGuest, Meal, MealPoll, ShoppingItem, Task, Event }
 const PORT = process.env.PORT || 5000
 
 // Nombre de reverse proxies de confiance placés devant ce serveur (Traefik/Nginx/Caddy — voir
@@ -1559,19 +1563,26 @@ app.get('/api/super-admin/diagnostics/ip', requireAuth, requireSuperAdmin, (req,
 app.get('/api/super-admin/families', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     const families = await Family.find().sort({ createdAt: -1 })
-    const familiesWithStats = await Promise.all(families.map(async (f) => {
-      const memberCount = await FamilyMember.countDocuments({ familyId: f._id })
-      return {
-        _id: f._id,
-        name: f.name,
-        slug: f.slug,
-        maxMembers: f.maxMembers,
-        isActive: f.isActive,
-        createdAt: f.createdAt,
-        memberCount
-      }
-    }))
-    res.json(familiesWithStats)
+    // Statistiques d'utilisation (nombres et dates seulement, voir server/stats/usage.js)
+    const statsOf = await familyUsageStats(STATS_MODELS)
+    res.json(families.map(f => ({
+      _id: f._id,
+      name: f.name,
+      slug: f.slug,
+      maxMembers: f.maxMembers,
+      isActive: f.isActive,
+      createdAt: f.createdAt,
+      ...statsOf(f._id)
+    })))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/super-admin/stats (Vue d'ensemble de l'utilisation de la plateforme)
+app.get('/api/super-admin/stats', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    res.json(await platformOverview(STATS_MODELS))
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
