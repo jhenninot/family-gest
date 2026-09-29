@@ -1078,7 +1078,8 @@ const seedPendingWelcomeTasks = async (familyId, user, isAdmin) => {
 }
 
 const attachPendingInvitations = async (user) => {
-  const pendingInvs = await FamilyInvitation.find({ email: user.email.toLowerCase().trim(), status: 'pending' })
+  // Invitations encore valables seulement (7 jours) : une invitation expirée doit être renvoyée
+  const pendingInvs = await FamilyInvitation.find({ email: user.email.toLowerCase().trim(), status: 'pending', expiresAt: { $gt: new Date() } })
   for (const inv of pendingInvs) {
     const already = await FamilyMember.findOne({ familyId: inv.familyId, userId: user.id })
     if (!already) {
@@ -3105,6 +3106,9 @@ app.post('/api/families/:familySlug/invite', requireAuth, attachFamilyContext, r
     const token = crypto.randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
+    // Réinviter remplace l'invitation précédente (encore en attente ou expirée) de cette personne
+    await FamilyInvitation.deleteMany({ familyId: req.family._id, email: cleanEmail, status: 'pending' })
+
     const invitation = new FamilyInvitation({
       token,
       familyId: req.family._id,
@@ -3373,6 +3377,8 @@ app.get('/api/members', requireAuth, attachFamilyContext, async (req, res) => {
         usualPresence: 'present',
         usualPresenceConfig: normalizeUsualPresenceConfig(null, 'present'),
         isPending: true,
+        // Au-delà de 7 jours le lien ne fonctionne plus : l'administrateur doit réinviter
+        isExpired: inv.expiresAt < new Date(),
         invitationToken: inv.token
       })
     }

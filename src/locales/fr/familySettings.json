@@ -20,6 +20,8 @@
     "clickToEdit": "Cliquez pour modifier les informations de ce membre",
     "pendingBadgeTitle": "Invitation envoyée, en attente d'activation par l'utilisateur",
     "pending": "En attente",
+    "expired": "Expirée",
+    "expiredBadgeTitle": "Invitation expirée (plus de 7 jours) : invitez à nouveau cette personne pour lui envoyer un nouveau lien",
     "editThis": "Modifier ce membre",
     "demote": "Rétrograder en membre standard",
     "promote": "Nommer administrateur",

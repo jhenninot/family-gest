@@ -20,6 +20,8 @@
     "clickToEdit": "Haz clic para editar los datos de este miembro",
     "pendingBadgeTitle": "Invitación enviada, pendiente de que el usuario la active",
     "pending": "Pendiente",
+    "expired": "Caducada",
+    "expiredBadgeTitle": "Invitación caducada (más de 7 días): vuelva a invitar a esta persona para enviarle un nuevo enlace",
     "editThis": "Editar este miembro",
     "demote": "Pasar a miembro estándar",
     "promote": "Nombrar administrador/a",

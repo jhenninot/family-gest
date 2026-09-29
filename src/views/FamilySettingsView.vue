@@ -87,7 +87,10 @@
                 <span v-if="member.isAdmin && !member.isPending" class="admin-badge-mini" :title="translateValue('role', 'Administrateur')">
                   <ShieldCheck :size="12" /> {{ t('menu.badges.admin') }}
                 </span>
-                <span v-if="member.isPending" class="pending-badge-mini" :title="t('familySettings.members.pendingBadgeTitle')">
+                <span v-if="member.isPending && member.isExpired" class="pending-badge-mini expired-badge-mini" :title="t('familySettings.members.expiredBadgeTitle')">
+                  ⌛ {{ t('familySettings.members.expired') }}
+                </span>
+                <span v-else-if="member.isPending" class="pending-badge-mini" :title="t('familySettings.members.pendingBadgeTitle')">
                   ⏳ {{ t('familySettings.members.pending') }}
                 </span>
               </div>
@@ -2514,6 +2517,11 @@ onMounted(() => {
   align-items: center;
   gap: 0.1rem;
   flex-shrink: 0;
+}
+
+.expired-badge-mini {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
 }
 
 .pending-badge-mini {

@@ -2,18 +2,24 @@
   {
     "version": "2026.10.02",
     "date": "2026-10-02",
+    "minor": [
+      2
+    ],
     "notes": {
       "fr": [
         "Aide : un bouton « ? » en haut à droite de chaque écran ouvre une fiche d'aide (à quoi sert l'écran, comment faire, astuces et phrases à dire au micro). Des bulles « i » expliquent les notions délicates (présence habituelle, nombre de personnes, articles urgents…) et les listes vides indiquent comment démarrer.",
-        "Signaler un bug : depuis l'aide « ? » ou le menu de votre avatar, décrivez le problème et joignez des captures d'écran ; le message part par email à l'administrateur, qui peut vous répondre."
+        "Signaler un bug : depuis l'aide « ? » ou le menu de votre avatar, décrivez le problème et joignez des captures d'écran ; le message part par email à l'administrateur, qui peut vous répondre.",
+        "Invitations : une invitation n'est valable que 7 jours, y compris pour une personne qui a déjà un compte ; les invitations expirées sont signalées dans les réglages de la famille, et réinviter la personne remplace l'ancienne."
       ],
       "en": [
         "Help: a “?” button at the top right of every screen opens a help sheet (what the screen is for, how to do things, tips and phrases to say to the microphone). “i” bubbles explain the trickier notions (usual presence, number of people, urgent items…) and empty lists explain how to get started.",
-        "Report a bug: from the “?” help or your avatar menu, describe the problem and attach screenshots; the message is emailed to the administrator, who can reply to you."
+        "Report a bug: from the “?” help or your avatar menu, describe the problem and attach screenshots; the message is emailed to the administrator, who can reply to you.",
+        "Invitations: an invitation is valid for 7 days only, including for someone who already has an account; expired invitations are flagged in the family settings, and inviting the person again replaces the old one."
       ],
       "es": [
         "Ayuda: un botón «?» arriba a la derecha de cada pantalla abre una ficha de ayuda (para qué sirve la pantalla, cómo hacer las cosas, consejos y frases para decir al micrófono). Unas burbujas «i» explican las nociones delicadas (presencia habitual, número de personas, artículos urgentes…) y las listas vacías indican cómo empezar.",
-        "Señalar un error: desde la ayuda «?» o el menú de su avatar, describa el problema y adjunte capturas de pantalla; el mensaje se envía por email al administrador, que puede responderle."
+        "Señalar un error: desde la ayuda «?» o el menú de su avatar, describa el problema y adjunte capturas de pantalla; el mensaje se envía por email al administrador, que puede responderle.",
+        "Invitaciones: una invitación solo es válida 7 días, también para quien ya tiene cuenta; las invitaciones caducadas se señalan en los ajustes de la familia, y volver a invitar a la persona sustituye la anterior."
       ]
     }
   },

@@ -45,7 +45,9 @@ export const createAttachFamilyContext = ({ onInvitationAccepted = async () => {
       const pendingInv = await FamilyInvitation.findOne({
         familyId: family._id,
         email: req.user.email.toLowerCase().trim(),
-        status: 'pending'
+        status: 'pending',
+        // Une invitation expirée (7 jours) n'ouvre plus l'accès : elle doit être renvoyée
+        expiresAt: { $gt: new Date() }
       })
       if (pendingInv) {
         membership = new FamilyMember({
