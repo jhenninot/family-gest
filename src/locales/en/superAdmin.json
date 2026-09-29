@@ -414,7 +414,12 @@
     "enable": "Put the page online",
     "saved": "Settings saved.",
     "showContact": "Show the “Contact me” button",
-    "showContactHint": "Keep it hidden while you only send the page to people who already have your contact details."
+    "showContactHint": "Keep it hidden while you only send the page to people who already have your contact details.",
+    "views": "{n} visit | {n} visits",
+    "viewsTitle": "Last visit {last} · counted since {since} (one per tab, your previews excluded)",
+    "viewsTitleNone": "No visit since {since} (one per tab, your previews excluded)",
+    "resetViews": "Reset the counter",
+    "resetViewsMessage": "The number of visits of the presentation page will start again from zero."
   },
   "stats": {
     "activeFamilies": "Active families",

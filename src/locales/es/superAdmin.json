@@ -414,7 +414,12 @@
     "enable": "Poner la página en línea",
     "saved": "Ajustes guardados.",
     "showContact": "Mostrar el botón «Contactarme»",
-    "showContactHint": "Déjelo oculto mientras solo envíe la página a personas que ya tienen sus datos de contacto."
+    "showContactHint": "Déjelo oculto mientras solo envíe la página a personas que ya tienen sus datos de contacto.",
+    "views": "{n} visita | {n} visitas",
+    "viewsTitle": "Última visita {last} · contadas desde el {since} (una por pestaña, sus vistas previas excluidas)",
+    "viewsTitleNone": "Ninguna visita desde el {since} (una por pestaña, sus vistas previas excluidas)",
+    "resetViews": "Poner el contador a cero",
+    "resetViewsMessage": "El número de visitas de la página de presentación volverá a empezar desde cero."
   },
   "stats": {
     "activeFamilies": "Familias activas",

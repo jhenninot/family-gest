@@ -2761,7 +2761,10 @@ const landingSettingsJson = (config) => ({
   showContact: Boolean(config?.landingShowContact),
   contactType: config?.landingContactType || 'email',
   contactValue: config?.landingContactValue || '',
-  contactReady: Boolean(landingContactHref(config?.landingContactType, config?.landingContactValue))
+  contactReady: Boolean(landingContactHref(config?.landingContactType, config?.landingContactValue)),
+  views: config?.landingViews || 0,
+  lastViewAt: config?.landingLastViewAt || null,
+  viewsSince: config?.landingViewsSince || config?.createdAt || null
 })
 
 app.get('/api/super-admin/landing', requireAuth, requireSuperAdmin, async (req, res) => {
@@ -2794,6 +2797,21 @@ app.put('/api/super-admin/landing', requireAuth, requireSuperAdmin, async (req, 
 })
 
 // Nouvelle adresse secrète : l'ancien lien cesse aussitôt de fonctionner
+// POST /api/super-admin/landing/reset-views (Remise à zéro du compteur de visites)
+app.post('/api/super-admin/landing/reset-views', requireAuth, requireSuperAdmin, async (req, res) => {
+  try {
+    const config = await GlobalConfig.findOne()
+    if (!config) return res.status(404).json({ error: req.t('errors.landingNotFound') })
+    config.landingViews = 0
+    config.landingLastViewAt = null
+    config.landingViewsSince = new Date()
+    await config.save()
+    res.json(landingSettingsJson(config))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 app.post('/api/super-admin/landing/regenerate', requireAuth, requireSuperAdmin, async (req, res) => {
   try {
     let config = await GlobalConfig.findOne()
@@ -2825,6 +2843,12 @@ app.get('/api/public/landing/:key', landingRateLimiter, async (req, res) => {
       return res.status(404).json({ error: req.t('errors.landingNotFound') })
     }
     // Bouton masqué : le contact n'est pas du tout transmis
+    // Visite comptée seulement quand la page le demande (première ouverture dans l'onglet,
+    // hors aperçu depuis la console) ; rien n'est enregistré sur le visiteur
+    if (req.query.count === '1') {
+      GlobalConfig.updateOne({ _id: config._id }, { $inc: { landingViews: 1 }, $set: { landingLastViewAt: new Date() } })
+        .catch(err => console.debug('[Landing] Compteur :', err.message))
+    }
     const href = config.landingShowContact ? landingContactHref(config.landingContactType, config.landingContactValue) : null
     res.setHeader('Cache-Control', 'no-store')
     res.json({ contact: href ? Buffer.from(href).toString('base64') : null, contactType: config.landingContactType })

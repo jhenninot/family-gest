@@ -414,7 +414,12 @@
     "enable": "Mettre la page en ligne",
     "saved": "Réglages enregistrés.",
     "showContact": "Afficher le bouton « Me contacter »",
-    "showContactHint": "Laissez-le masqué tant que vous n'envoyez la page qu'à des proches qui ont déjà vos coordonnées."
+    "showContactHint": "Laissez-le masqué tant que vous n'envoyez la page qu'à des proches qui ont déjà vos coordonnées.",
+    "views": "{n} visite | {n} visites",
+    "viewsTitle": "Dernière visite {last} · comptées depuis le {since} (une par onglet, vos aperçus exclus)",
+    "viewsTitleNone": "Aucune visite depuis le {since} (une par onglet, vos aperçus exclus)",
+    "resetViews": "Remettre le compteur à zéro",
+    "resetViewsMessage": "Le nombre de visites de la page de présentation repartira de zéro."
   },
   "stats": {
     "activeFamilies": "Familles actives",

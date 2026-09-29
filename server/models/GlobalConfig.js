@@ -162,6 +162,11 @@ const globalConfigSchema = new mongoose.Schema({
   landingKey: { type: String, default: null },
   landingContactType: { type: String, enum: ['email', 'whatsapp', 'url'], default: 'email' },
   landingContactValue: { type: String, default: '' },
+  // Compteur de visites de la page de présentation (visible seulement dans la console) :
+  // une visite par onglet, aperçus du Super Admin exclus ; remis à zéro à la demande
+  landingViews: { type: Number, default: 0 },
+  landingLastViewAt: { type: Date, default: null },
+  landingViewsSince: { type: Date, default: null },
   // Contenu légal (RGPD) édité par le Super Administrateur, affiché publiquement sur
   // /mentions-legales et /confidentialite (texte brut, mis en forme via white-space: pre-wrap).
   legalNotice: {

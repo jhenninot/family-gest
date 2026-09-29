@@ -2,7 +2,13 @@
   <div class="landing-settings glass-card">
     <div class="landing-settings-header">
       <h3>{{ t('superAdmin.landing.title') }}</h3>
-      <span class="landing-status" :class="{ on: state.enabled }">{{ state.enabled ? t('superAdmin.landing.statusOn') : t('superAdmin.landing.statusOff') }}</span>
+      <div class="landing-badges">
+        <span
+          class="landing-views"
+          :title="state.lastViewAt ? t('superAdmin.landing.viewsTitle', { last: formatRelative(state.lastViewAt), since: sinceLabel }) : t('superAdmin.landing.viewsTitleNone', { since: sinceLabel })"
+        >👁 {{ t('superAdmin.landing.views', { n: state.views || 0 }, state.views || 0) }}</span>
+        <span class="landing-status" :class="{ on: state.enabled }">{{ state.enabled ? t('superAdmin.landing.statusOn') : t('superAdmin.landing.statusOff') }}</span>
+      </div>
     </div>
     <p class="landing-intro">{{ t('superAdmin.landing.intro') }}</p>
 
@@ -15,11 +21,14 @@
         </button>
       </div>
       <div class="landing-link-actions">
-        <a :href="pageUrl" target="_blank" rel="noopener" class="btn btn-secondary">
+        <a :href="`${pageUrl}?apercu=1`" target="_blank" rel="noopener" class="btn btn-secondary">
           <ExternalLink :size="15" /> {{ t('superAdmin.landing.open') }}
         </a>
         <button type="button" class="btn btn-secondary" :disabled="saving" @click="regenerate">
           <RefreshCw :size="15" /> {{ t('superAdmin.landing.regenerate') }}
+        </button>
+        <button v-if="state.views" type="button" class="btn btn-secondary" :disabled="saving" @click="resetViews">
+          <RotateCcw :size="15" /> {{ t('superAdmin.landing.resetViews') }}
         </button>
       </div>
     </template>
@@ -59,7 +68,8 @@
 // server/index.js.
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Copy, ExternalLink, RefreshCw } from '@lucide/vue'
+import { Copy, ExternalLink, RefreshCw, RotateCcw } from '@lucide/vue'
+import { formatDate, formatRelative } from '../i18n/format'
 import { useAuthStore } from '../stores/authStore'
 import { useConfirm } from '../composables/useConfirm'
 
@@ -68,7 +78,7 @@ const authStore = useAuthStore()
 const { confirm } = useConfirm()
 
 const TYPES = ['email', 'whatsapp', 'url']
-const state = reactive({ enabled: false, key: null, showContact: false, contactType: 'email', contactValue: '' })
+const state = reactive({ enabled: false, key: null, showContact: false, contactType: 'email', contactValue: '', views: 0, lastViewAt: null, viewsSince: null })
 const form = reactive({ enabled: false, showContact: false, contactType: 'email', contactValue: '' })
 const saving = ref(false)
 const message = ref('')
@@ -132,6 +142,19 @@ const regenerate = async () => {
   }
 }
 
+const sinceLabel = computed(() => (state.viewsSince ? formatDate(state.viewsSince, { day: 'numeric', month: 'long', year: 'numeric' }) : '–'))
+
+const resetViews = async () => {
+  const ok = await confirm({
+    title: t('superAdmin.landing.resetViews'),
+    message: t('superAdmin.landing.resetViewsMessage'),
+    confirmText: t('superAdmin.landing.resetViews'),
+    type: 'warning'
+  })
+  if (!ok) return
+  await request('/api/super-admin/landing/reset-views', { method: 'POST' })
+}
+
 const copyLink = async () => {
   try {
     await navigator.clipboard.writeText(pageUrl.value)
@@ -159,6 +182,25 @@ const copyLink = async () => {
 
 .landing-settings-header h3 {
   margin: 0;
+}
+
+.landing-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.landing-views {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--accent-primary);
+  cursor: help;
+  white-space: nowrap;
 }
 
 .landing-status {

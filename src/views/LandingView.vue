@@ -218,7 +218,18 @@ const contactHref = ref(null)
 
 onMounted(async () => {
   try {
-    const res = await fetch(`/api/public/landing/${encodeURIComponent(String(route.params.key || ''))}`)
+    // Compteur de visites (visible seulement dans la console) : une fois par onglet, et jamais
+    // pour l'aperçu ouvert depuis la console (?apercu=1)
+    const key = String(route.params.key || '')
+    const seenKey = `familygest_landing_seen_${key.slice(0, 8)}`
+    let count = route.query.apercu !== '1'
+    try {
+      if (sessionStorage.getItem(seenKey)) count = false
+    } catch { /* stockage indisponible : on compte */ }
+    const res = await fetch(`/api/public/landing/${encodeURIComponent(key)}${count ? '?count=1' : ''}`)
+    if (res.ok && count) {
+      try { sessionStorage.setItem(seenKey, '1') } catch { /* sans effet */ }
+    }
     if (!res.ok) throw new Error('missing')
     const body = await res.json()
     contactHref.value = body.contact || null
