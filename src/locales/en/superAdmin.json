@@ -453,6 +453,18 @@
       "mcp": "Claude (connector)"
     },
     "notConnected": "Not connected",
-    "commands": "{n} command | {n} commands"
+    "commands": "{n} command | {n} commands",
+    "byModuleTitle": "Usage by module",
+    "byModuleHint": "Last 30 days, all families · trend compared with the previous 30 days",
+    "colModule": "Module",
+    "colCount": "30 days",
+    "colTrend": "Trend",
+    "colFamilies": "Families",
+    "groups": {
+      "modules": "Modules (items created)",
+      "assistants": "Assistants (commands)"
+    },
+    "connectedCount": "{n} family connected | {n} families connected",
+    "trendNew": "new"
   }
 }

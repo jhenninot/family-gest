@@ -33,6 +33,8 @@
         </div>
       </div>
     </div>
+
+    <ModuleStats v-if="stats?.byModule" :by-module="stats.byModule" :active-families="stats.activeFamilies" />
   </div>
 </template>
 
@@ -43,6 +45,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/authStore'
 import { formatDate, formatNumber } from '../i18n/format'
+import ModuleStats from './ModuleStats.vue'
 
 const { t } = useI18n()
 const authStore = useAuthStore()

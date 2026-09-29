@@ -123,6 +123,64 @@ export const familyUsageStats = async (models, now = new Date()) => {
   }
 }
 
+// Utilisation globale par module et par assistant : éléments créés (ou commandes) sur les 30 derniers
+// jours, sur les 30 jours d'avant (tendance), et nombre de familles qui s'en sont servies
+export const moduleOverview = async (models, now = new Date()) => {
+  const since30 = new Date(now - 30 * DAY)
+  const since60 = new Date(now - 60 * DAY)
+  const modules = {}
+  for (const [module, list] of Object.entries(moduleModels(models))) {
+    const families = new Set()
+    let current = 0
+    let previous = 0
+    for (const Model of list) {
+      const rows = await Model.aggregate([
+        { $match: { createdAt: { $gte: since60 }, familyId: { $ne: null } } },
+        {
+          $group: {
+            _id: '$familyId',
+            recent: { $sum: { $cond: [{ $gte: ['$createdAt', since30] }, 1, 0] } },
+            before: { $sum: { $cond: [{ $lt: ['$createdAt', since30] }, 1, 0] } }
+          }
+        }
+      ])
+      for (const row of rows) {
+        current += row.recent
+        previous += row.before
+        if (row.recent > 0) families.add(key(row._id))
+      }
+    }
+    modules[module] = { count30: current, previous30: previous, families30: families.size }
+  }
+
+  const day30 = since30.toISOString().slice(0, 10)
+  const channelRows = await models.UsageCounter.aggregate([
+    { $match: { day: { $gte: since60.toISOString().slice(0, 10) } } },
+    {
+      $group: {
+        _id: { channel: '$channel', familyId: '$familyId' },
+        recent: { $sum: { $cond: [{ $gte: ['$day', day30] }, '$count', 0] } },
+        before: { $sum: { $cond: [{ $lt: ['$day', day30] }, '$count', 0] } }
+      }
+    }
+  ])
+  const assistants = Object.fromEntries(['voice', 'alexa', 'mcp'].map(c => [c, { count30: 0, previous30: 0, families30: 0 }]))
+  for (const row of channelRows) {
+    const a = assistants[row._id.channel]
+    if (!a) continue
+    a.count30 += row.recent
+    a.previous30 += row.before
+    if (row.recent > 0) a.families30 += 1
+  }
+  const [alexaConnected, mcpConnected] = await Promise.all([
+    models.AlexaConnector.countDocuments({ revokedAt: null }),
+    models.McpConnector.countDocuments({ revokedAt: null })
+  ])
+  assistants.alexa.connected = alexaConnected
+  assistants.mcp.connected = mcpConnected
+  return { modules, assistants }
+}
+
 // Vue d'ensemble de la plateforme : tuiles et activité par semaine (12 dernières semaines)
 export const platformOverview = async (models, now = new Date()) => {
   const since30 = new Date(now - 30 * DAY)
@@ -161,9 +219,11 @@ export const platformOverview = async (models, now = new Date()) => {
   ])
   const assistants30 = Object.fromEntries(['alexa', 'mcp', 'voice'].map(c => [c, assistantRows.find(r => r._id === c)?.count || 0]))
 
+  const byModule = await moduleOverview(models, now)
   return {
     families,
     activeFamilies,
+    byModule,
     activeUsers30: activeUsers.length,
     users: await models.User.countDocuments(),
     created30,

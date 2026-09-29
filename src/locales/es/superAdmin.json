@@ -453,6 +453,18 @@
       "mcp": "Claude (conector)"
     },
     "notConnected": "No conectado",
-    "commands": "{n} orden | {n} órdenes"
+    "commands": "{n} orden | {n} órdenes",
+    "byModuleTitle": "Uso por módulo",
+    "byModuleHint": "Últimos 30 días, todas las familias · tendencia respecto a los 30 días anteriores",
+    "colModule": "Módulo",
+    "colCount": "30 días",
+    "colTrend": "Tendencia",
+    "colFamilies": "Familias",
+    "groups": {
+      "modules": "Módulos (elementos creados)",
+      "assistants": "Asistentes (órdenes)"
+    },
+    "connectedCount": "{n} familia conectada | {n} familias conectadas",
+    "trendNew": "nuevo"
   }
 }
