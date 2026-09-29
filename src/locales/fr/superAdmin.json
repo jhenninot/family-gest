@@ -444,6 +444,15 @@
       "tasks": "Tâches",
       "calendar": "Agenda"
     },
-    "privacyNote": "Seuls des nombres et des dates sont affichés : le contenu des familles reste privé."
+    "privacyNote": "Seuls des nombres et des dates sont affichés : le contenu des familles reste privé.",
+    "assistants30": "Commandes aux assistants (30 jours)",
+    "assistantsTitle": "Assistants (30 jours)",
+    "assistants": {
+      "voice": "Micro de l’appli",
+      "alexa": "Alexa",
+      "mcp": "Claude (connecteur)"
+    },
+    "notConnected": "Non connecté",
+    "commands": "{n} commande | {n} commandes"
   }
 }

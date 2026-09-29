@@ -6,6 +6,7 @@ import { buildSkill } from '../alexa/handlers.js'
 import { todayStr } from '../alexa/parsing.js'
 import { getFamilyMembersList } from '../mcp/resolveMember.js'
 import { buildNlu } from './nlu.js'
+import { recordChannelUsage } from '../stats/channels.js'
 
 // Assistant vocal de l'application : POST /api/voice/command avec le texte dicté (reconnaissance
 // vocale du navigateur). La phrase est comprise sans IA (voir nlu.js), puis traitée par les
@@ -186,6 +187,7 @@ export const mountVoiceAssistant = (app, ctx, { requireAuth, attachFamilyContext
     try {
       const text = String(req.body?.text || '').trim().slice(0, 300)
       if (!text) return res.status(400).json({ error: req.t('errors.voiceEmpty') })
+      recordChannelUsage(req.family._id, 'voice')
       const session = req.body?.session && typeof req.body.session === 'object' && JSON.stringify(req.body.session).length < 8000
         ? req.body.session
         : {}

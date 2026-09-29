@@ -52,7 +52,8 @@ const creationsByFamily = async (models, since) => {
 export const familyUsageStats = async (models, now = new Date()) => {
   const since7 = new Date(now - 7 * DAY)
   const since30 = new Date(now - 30 * DAY)
-  const [creations, members, invitations] = await Promise.all([
+  const since30Day = since30.toISOString().slice(0, 10)
+  const [creations, members, invitations, channelRows, alexaConnectors, mcpConnectors] = await Promise.all([
     creationsByFamily(models, since30),
     models.FamilyMember.aggregate([
       {
@@ -68,21 +69,52 @@ export const familyUsageStats = async (models, now = new Date()) => {
     models.FamilyInvitation.aggregate([
       { $match: { status: 'pending', expiresAt: { $gt: now } } },
       { $group: { _id: '$familyId', count: { $sum: 1 }, oldest: { $min: '$createdAt' } } }
-    ])
+    ]),
+    // Utilisations des assistants (server/stats/channels.js) : 30 derniers jours + dernière utilisation
+    models.UsageCounter.aggregate([
+      {
+        $group: {
+          _id: { familyId: '$familyId', channel: '$channel' },
+          recent: { $sum: { $cond: [{ $gte: ['$day', since30Day] }, '$count', 0] } },
+          lastAt: { $max: '$lastAt' }
+        }
+      }
+    ]),
+    models.AlexaConnector.find({ revokedAt: null }).select('familyId lastUsedAt').lean(),
+    models.McpConnector.find({ revokedAt: null }).select('familyId lastUsedAt').lean()
   ])
   const memberBy = new Map(members.map(m => [key(m._id), m]))
   const inviteBy = new Map(invitations.map(i => [key(i._id), i]))
+  const channelBy = new Map()
+  for (const row of channelRows) {
+    const id = key(row._id.familyId)
+    if (!channelBy.has(id)) channelBy.set(id, {})
+    channelBy.get(id)[row._id.channel] = { count30: row.recent, lastAt: row.lastAt }
+  }
+  const alexaBy = new Map(alexaConnectors.map(c => [key(c.familyId), c]))
+  const mcpBy = new Map(mcpConnectors.map(c => [key(c.familyId), c]))
 
   return (familyId) => {
     const c = creations.get(key(familyId)) || { modules: {}, lastCreatedAt: null }
     const m = memberBy.get(key(familyId)) || {}
     const i = inviteBy.get(key(familyId)) || {}
     const usage30 = Object.fromEntries(Object.keys(moduleModels(models)).map(k => [k, c.modules[k] || 0]))
+    const used = channelBy.get(key(familyId)) || {}
+    const alexa = alexaBy.get(key(familyId))
+    const mcp = mcpBy.get(key(familyId))
+    // Assistants : connecté ou non, commandes sur 30 jours, dernière utilisation
+    const assistants = {
+      alexa: { connected: Boolean(alexa), count30: used.alexa?.count30 || 0, lastAt: later(used.alexa?.lastAt || null, alexa?.lastUsedAt || null) },
+      mcp: { connected: Boolean(mcp), count30: used.mcp?.count30 || 0, lastAt: later(used.mcp?.lastAt || null, mcp?.lastUsedAt || null) },
+      voice: { connected: true, count30: used.voice?.count30 || 0, lastAt: used.voice?.lastAt || null }
+    }
+    const lastAssistantAt = Object.values(assistants).reduce((acc, a) => later(acc, a.lastAt), null)
     return {
       memberCount: m.count || 0,
       activeMembers7: m.active7 || 0,
       activeMembers30: m.active30 || 0,
-      lastActivityAt: later(m.lastSeen || null, c.lastCreatedAt),
+      lastActivityAt: later(later(m.lastSeen || null, c.lastCreatedAt), lastAssistantAt),
+      assistants,
       pendingInvitations: i.count || 0,
       oldestPendingInvitationAt: i.oldest || null,
       usage30,
@@ -118,11 +150,16 @@ export const platformOverview = async (models, now = new Date()) => {
     }
   }
 
-  const [families, activeFamilies, activeUsers] = await Promise.all([
+  const [families, activeFamilies, activeUsers, assistantRows] = await Promise.all([
     models.Family.countDocuments(),
     models.Family.countDocuments({ isActive: true }),
-    models.FamilyMember.distinct('userId', { lastSeenAt: { $gte: since30 } })
+    models.FamilyMember.distinct('userId', { lastSeenAt: { $gte: since30 } }),
+    models.UsageCounter.aggregate([
+      { $match: { day: { $gte: since30.toISOString().slice(0, 10) } } },
+      { $group: { _id: '$channel', count: { $sum: '$count' } } }
+    ])
   ])
+  const assistants30 = Object.fromEntries(['alexa', 'mcp', 'voice'].map(c => [c, assistantRows.find(r => r._id === c)?.count || 0]))
 
   return {
     families,
@@ -130,6 +167,7 @@ export const platformOverview = async (models, now = new Date()) => {
     activeUsers30: activeUsers.length,
     users: await models.User.countDocuments(),
     created30,
+    assistants30,
     weekly: weekly.map((count, i) => ({ weekStart: new Date(start.getTime() + i * 7 * DAY), count }))
   }
 }

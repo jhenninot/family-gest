@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit'
 import Family from '../models/Family.js'
 import McpConnector from '../models/McpConnector.js'
 import User from '../models/User.js'
+import { recordChannelUsage, mcpToolCalls } from '../stats/channels.js'
 
 // Anti-abus sur le endpoint MCP (le token de 256 bits rend le brute-force infaisable ; ce
 // limiteur borne surtout un client MCP en boucle ou mal configuré).
@@ -48,6 +49,7 @@ export const mcpAuth = async (req, res, next) => {
       { _id: connector._id },
       { $set: { lastUsedAt: new Date() }, $inc: { requestCount: 1 } }
     ).catch(() => {})
+    for (let i = 0; i < mcpToolCalls(req.body); i++) recordChannelUsage(family._id, 'mcp')
 
     next()
   } catch (err) {

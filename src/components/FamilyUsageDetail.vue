@@ -39,6 +39,16 @@
         </span>
         <span class="usage-module-count" :class="{ zero: !count(module.key) }">{{ count(module.key) }}</span>
       </div>
+
+      <span class="usage-modules-title usage-assistants-title">{{ t('superAdmin.stats.assistantsTitle') }}</span>
+      <div v-for="a in ASSISTANTS" :key="a.key" class="usage-assistant">
+        <span class="usage-module-name">{{ a.icon }} {{ t(`superAdmin.stats.assistants.${a.key}`) }}</span>
+        <span v-if="!assistant(a.key).connected" class="usage-assistant-off">{{ t('superAdmin.stats.notConnected') }}</span>
+        <span v-else class="usage-assistant-info">
+          <strong :class="{ zero: !assistant(a.key).count30 }">{{ t('superAdmin.stats.commands', { n: assistant(a.key).count30 }, assistant(a.key).count30) }}</strong>
+          <span v-if="assistant(a.key).lastAt"> · {{ formatRelative(assistant(a.key).lastAt) }}</span>
+        </span>
+      </div>
       <p class="usage-note">{{ t('superAdmin.stats.privacyNote') }}</p>
     </div>
   </div>
@@ -63,6 +73,12 @@ const MODULES = [
   { key: 'calendar', icon: '📅' }
 ]
 
+const ASSISTANTS = [
+  { key: 'voice', icon: '🎙️' },
+  { key: 'alexa', icon: '🔵' },
+  { key: 'mcp', icon: '✳️' }
+]
+const assistant = (key) => props.family.assistants?.[key] || { connected: key === 'voice', count30: 0, lastAt: null }
 const count = (key) => props.family.usage30?.[key] || 0
 const maxCount = computed(() => Math.max(1, ...MODULES.map(m => count(m.key))))
 const barWidth = (key) => (count(key) ? Math.max(3, Math.round((count(key) / maxCount.value) * 100)) : 0)
@@ -162,6 +178,32 @@ const quotaRatio = computed(() => (props.family.maxMembers ? props.family.member
 
 .usage-note {
   margin: 0.4rem 0 0;
+}
+
+.usage-assistants-title {
+  margin-top: 0.8rem;
+}
+
+.usage-assistant {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.86rem;
+}
+
+.usage-assistant-off {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.usage-assistant-info {
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.usage-assistant-info strong.zero {
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 @media (max-width: 600px) {

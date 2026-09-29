@@ -39,6 +39,7 @@ import Meal from './models/Meal.js'
 import PushConfig from './models/PushConfig.js'
 import PushSubscription from './models/PushSubscription.js'
 import AlertLog from './models/AlertLog.js'
+import UsageCounter from './models/UsageCounter.js'
 import McpConnector from './models/McpConnector.js'
 import MealieConfig from './models/MealieConfig.js'
 import { ALERT_ACTIONS, ALERT_ACTIONS_LIST, ACTION_CATEGORY_BY_CODE } from './constants/alertActions.js'
@@ -68,7 +69,7 @@ dotenv.config()
 const app = express()
 
 // Collections lues par les statistiques d'utilisation de la console (server/stats/usage.js)
-const STATS_MODELS = { Family, FamilyMember, FamilyInvitation, User, Absence, LongAbsence, MealGuest, Meal, MealPoll, ShoppingItem, Task, Event }
+const STATS_MODELS = { Family, FamilyMember, FamilyInvitation, User, Absence, LongAbsence, MealGuest, Meal, MealPoll, ShoppingItem, Task, Event, UsageCounter, AlexaConnector, McpConnector }
 const PORT = process.env.PORT || 5000
 
 // Nombre de reverse proxies de confiance placés devant ce serveur (Traefik/Nginx/Caddy — voir
@@ -1913,7 +1914,7 @@ app.delete('/api/super-admin/families/:id', requireAuth, requireSuperAdmin, asyn
     const familyId = family._id
     await Promise.all([
       FamilyMember, FamilyInvitation, Task, Event, ShoppingItem, ShoppingCategory, Shortcut,
-      Absence, LongAbsence, MealGuest, MealPoll, Meal, McpConnector, MealieConfig, AlexaConnector
+      Absence, LongAbsence, MealGuest, MealPoll, Meal, McpConnector, MealieConfig, AlexaConnector, UsageCounter
     ].map(Model => Model.deleteMany({ familyId })))
     await Family.deleteOne({ _id: familyId })
     console.log(`[Famille] Famille supprimée par le Super Admin : ${family.slug}`)

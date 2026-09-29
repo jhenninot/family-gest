@@ -10,6 +10,8 @@ const mcpConnectorSchema = new mongoose.Schema({
   label: { type: String, default: 'Connecteur Claude' },
   createdByUserId: { type: Number, default: null },
   lastUsedAt: { type: Date, default: null },
+  // Nombre total de requêtes reçues (incrémenté par l'authentification du connecteur)
+  requestCount: { type: Number, default: 0 },
   requestCount: { type: Number, default: 0 },
   revokedAt: { type: Date, default: null }
 }, { timestamps: true })

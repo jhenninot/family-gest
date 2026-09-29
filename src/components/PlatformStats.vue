@@ -13,6 +13,11 @@
         <span class="stats-value">{{ stats ? formatNumber(stats.created30) : '–' }}</span>
         <span class="stats-label">{{ t('superAdmin.stats.created30') }}</span>
       </div>
+      <div class="stats-tile">
+        <span class="stats-value">{{ stats ? formatNumber(assistantTotal) : '–' }}</span>
+        <span class="stats-label">{{ t('superAdmin.stats.assistants30') }}</span>
+        <span v-if="stats" class="stats-sub">🎙️ {{ stats.assistants30?.voice || 0 }} · Alexa {{ stats.assistants30?.alexa || 0 }} · Claude {{ stats.assistants30?.mcp || 0 }}</span>
+      </div>
     </div>
 
     <div v-if="stats" class="stats-weekly">
@@ -43,6 +48,7 @@ const { t } = useI18n()
 const authStore = useAuthStore()
 const stats = ref(null)
 
+const assistantTotal = computed(() => Object.values(stats.value?.assistants30 || {}).reduce((sum, n) => sum + n, 0))
 const maxWeek = computed(() => Math.max(1, ...(stats.value?.weekly || []).map(w => w.count)))
 const barHeight = (count) => (count ? Math.max(4, Math.round((count / maxWeek.value) * 100)) : 0)
 const shortDate = (value) => formatDate(new Date(value), { day: 'numeric', month: 'short' })
@@ -96,6 +102,11 @@ defineExpose({ reload: load })
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-muted);
+}
+
+.stats-sub {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .stats-label,
@@ -160,7 +171,7 @@ defineExpose({ reload: load })
 /* Téléphone : trois tuiles compactes sur une ligne, dates des semaines une sur trois */
 @media (max-width: 600px) {
   .stats-tiles {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
   }
 

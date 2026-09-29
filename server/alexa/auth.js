@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit'
 import Family from '../models/Family.js'
 import AlexaConnector from '../models/AlexaConnector.js'
 import User from '../models/User.js'
+import { recordChannelUsage, isAlexaCommand } from '../stats/channels.js'
 
 // Anti-abus sur le point d'accès Alexa (une conversation fait quelques requêtes par minute)
 export const alexaRateLimiter = rateLimit({
@@ -37,6 +38,7 @@ export const alexaAuth = async (req, res, next) => {
       { _id: connector._id },
       { $set: { lastUsedAt: new Date() }, $inc: { requestCount: 1 } }
     ).catch(() => {})
+    if (isAlexaCommand(req.body)) recordChannelUsage(family._id, 'alexa')
 
     next()
   } catch (err) {

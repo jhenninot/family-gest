@@ -444,6 +444,15 @@
       "tasks": "Tasks",
       "calendar": "Calendar"
     },
-    "privacyNote": "Only numbers and dates are shown: family content stays private."
+    "privacyNote": "Only numbers and dates are shown: family content stays private.",
+    "assistants30": "Assistant commands (30 days)",
+    "assistantsTitle": "Assistants (30 days)",
+    "assistants": {
+      "voice": "In-app microphone",
+      "alexa": "Alexa",
+      "mcp": "Claude (connector)"
+    },
+    "notConnected": "Not connected",
+    "commands": "{n} command | {n} commands"
   }
 }
