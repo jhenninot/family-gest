@@ -36,7 +36,7 @@ export const DATE_SOURCE = [
   `(?:(?:ce|le) )?(?:${W})(?: (?:prochain|qui vient))?(?: ${DAY_NUM}(?: (?:${M}))?(?: \\d{4})?)?`,
   `(?:le )?${DAY_NUM} (?:${M})(?: \\d{4})?`,
   `le ${DAY_NUM}`,
-  'cette semaine', '(?:la )?semaine prochaine', '(?:la )?semaine d\'apres',
+  'cette semaine', '(?:la )?semaine prochaine', '(?:la )?semaine d\'apres', 'la semaine',
   `(?:ce )?${WEEKEND}(?: prochain)?`, `le ${WEEKEND}(?: prochain)?`, `(?:le )?${WEEKEND} prochain`,
   `dans (?:\\d+|${NUMBER_ALT}) (?:jours?|semaines?)`
 ].map(s => `(?:${s})`).join('|')
@@ -71,7 +71,8 @@ export const parseFrenchDate = (text, today) => {
   if (t === 'apres demain') return addDays(today, 2)
   if (t === 'hier') return addDays(today, -1)
   if (t === 'avant hier') return addDays(today, -2)
-  if (t === 'cette semaine') return isoWeek(today)
+  // « les absences de la semaine » : la semaine en cours
+  if (t === 'cette semaine' || t === 'la semaine') return isoWeek(today)
   if (/semaine (prochaine|d'apres)/.test(t)) return isoWeek(addDays(today, 7))
   if (new RegExp(WEEKEND).test(t)) {
     // Le dimanche, « ce week-end » est celui du jour ; « prochain » passe au suivant

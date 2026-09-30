@@ -124,7 +124,14 @@ export const buildNlu = ({ members = [] } = {}) => {
       const time = parseFrenchTime(key)
       return time ? { value: time } : null
     }
-    if (type === 'MealSlot' || type === 'MemberName') return { value, id: valueIds[type].get(key) || null }
+    if (type === 'MealSlot') return { value, id: valueIds[type].get(key) || null }
+    if (type === 'MemberName') {
+      const id = valueIds.MemberName.get(key) || null
+      // Prénom inconnu commençant par un article (« la semaine », « le soir ») : ce n'est pas un
+      // prénom, on laisse une autre lecture de la phrase (date, créneau) l'emporter
+      if (!id && /^(?:la|le|les|l'|du|de|des|ce|cette|un|une)(?:\s|$)/.test(key)) return null
+      return { value, id }
+    }
     return value ? { value } : null
   }
 

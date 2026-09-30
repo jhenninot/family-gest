@@ -44,8 +44,8 @@ const prompt = (id, texts) => ({ id, variations: texts.map(value => ({ type: 'Pl
 const freeText = (samples) => samples.map(value => ({ name: { value } }))
 
 const MEAL_SLOT_VALUES = [
-  { id: 'LUNCH', name: { value: 'midi', synonyms: ['ce midi', 'le midi', 'déjeuner', 'au déjeuner', 'à midi'] } },
-  { id: 'DINNER', name: { value: 'soir', synonyms: ['ce soir', 'le soir', 'dîner', 'au dîner'] } },
+  { id: 'LUNCH', name: { value: 'midi', synonyms: ['ce midi', 'le midi', 'déjeuner', 'au déjeuner', 'à midi', 'le déjeuner', 'déjeuner ce midi', 'déjeuner à midi'] } },
+  { id: 'DINNER', name: { value: 'soir', synonyms: ['ce soir', 'le soir', 'dîner', 'au dîner', 'le dîner', 'dîner ce soir'] } },
   { id: 'NIGHT', name: { value: 'nuit', synonyms: ['la nuit', 'cette nuit', 'dormir'] } },
   { id: 'ALL_DAY', name: { value: 'toute la journée', synonyms: ['la journée', 'toute la journée et la nuit'] } }
 ]
@@ -489,6 +489,10 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
         'qui mange [au] {mealSlot} [{date}]',
         'qui est là [{date}] [{mealSlot}]',
         'qui est là [au] {mealSlot} [{date}]',
+        'qui est là pour [le] {mealSlot} [{date}]',
+        'qui sera là pour [le] {mealSlot} [{date}]',
+        'qui mange pour [le] {mealSlot} [{date}]',
+        'qui vient pour [le] {mealSlot} [{date}]',
         'qui est présent [{date}] [{mealSlot}]',
         'qui sera là [{date}] [{mealSlot}]',
         'qui sera là [au] {mealSlot} [{date}]',
@@ -528,6 +532,12 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
       slots: [{ name: 'member', type: 'MemberName' }, { ...date }],
       samples: expand([
         'quelles sont les [prochaines] absences [de {member}] [{date}]',
+        // Toute la famille sur une période : « les absences de la semaine », « … de demain »
+        'quelles sont les absences de {date}',
+        'quelles sont les absences du {date}',
+        'quelles sont les absences pour {date}',
+        'les absences de {date}',
+        'les absences du {date}',
         'quelles sont les absences à venir [de {member}]',
         'quelles absences sont prévues [pour {member}] [{date}]',
         'les [prochaines] absences [de {member}] [{date}]',

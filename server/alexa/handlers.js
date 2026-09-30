@@ -528,9 +528,10 @@ export const buildHandlers = (api) => {
 
       const absences = await api.upcomingAbsences({ ...period, memberId: member?.id ?? null })
       if (absences.length === 0) {
-        const key = dateValue ? 'nonePeriod' : 'noneSoon'
+        // Un seul jour : « Aucune absence n'est prévue demain », pas « du jeudi au jeudi »
+        const key = !dateValue ? 'noneSoon' : period.start === period.end ? 'noneDay' : 'nonePeriod'
         return finish(h, api, t(`alexa.query.absences.${key}${member ? 'For' : ''}`, {
-          member: member?.firstName, start: readableDate(t, period.start), end: readableDate(t, period.end)
+          member: member?.firstName, start: readableDate(t, period.start), end: readableDate(t, period.end), day: dayLabel(api, period.start)
         }))
       }
       const describe = (a) => {
