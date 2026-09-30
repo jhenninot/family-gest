@@ -159,6 +159,14 @@
       "list": "One planned absence: {list}. | {n} planned absences: {list}.",
       "listFor": "{member} has one planned absence: {list}. | {member} has {n} planned absences: {list}.",
       "whoAsk": "For whom? Ask for example: quelles sont les prochaines absences de Paul ?"
+    },
+    "absent": {
+      "slot": "Away {when}: {names}.",
+      "noneSlot": "Nobody is away {when}: everyone will be there.",
+      "day": "{day}, away: {list}. Everyone else will be there.",
+      "noneDay": "Nobody is away {day}: everyone will be there.",
+      "member": "{name} {slots}",
+      "allDay": "all day"
     }
   },
   "oauth": {

@@ -411,6 +411,51 @@ export const buildHandlers = (api) => {
 
   // --- Questions ---
 
+  // « Qui est absent aujourd'hui ? » : les absents du jour, repas par repas (midi, soir, nuit ;
+  // aujourd'hui, seulement les repas encore à venir). Sur une semaine ou un week-end, même
+  // réponse que « qui est là » sur la période (qui ne détaille déjà que les absences et exceptions).
+  const WhoIsAbsentHandler = {
+    canHandle: isIntent('WhoIsAbsentIntent'),
+    async handle (h) {
+      const slotRead = readSlot(h, 'mealSlot')
+      const asked = parseMealSlot(slotRead.id, slotRead.value)
+      const period = parseAlexaPeriod(readSlot(h, 'date').value)
+      if (period && period.start !== period.end) return whoOverPeriod(h, period, asked)
+
+      const { date, invalid } = optionalDate(h, api)
+      const day = invalid ? api.today() : date
+      let slots
+      if (asked === 'LUNCH') slots = ['lunch']
+      else if (asked === 'DINNER') slots = ['dinner']
+      else if (asked === 'NIGHT') slots = ['night']
+      else slots = day === api.today() && currentHour() >= 14 ? ['dinner', 'night'] : ['lunch', 'dinner', 'night']
+
+      const firstNames = new Map((await api.members()).map(m => [m.id, m.firstName]))
+      const byMember = new Map()
+      for (const slot of slots) {
+        const presence = await api.whoIsHome({ date: day, slot })
+        for (const m of presence.absentMembers || []) {
+          const name = firstNames.get(m.id) || m.name
+          if (!byMember.has(name)) byMember.set(name, {})
+          byMember.get(name)[slot] = true
+        }
+      }
+      // Un seul repas demandé : « Absents ce soir : Julien et Camille. »
+      if (slots.length === 1) {
+        const when = slotMoment(api, day, slots[0])
+        return finish(h, api, byMember.size === 0
+          ? t('alexa.query.absent.noneSlot', { when })
+          : t('alexa.query.absent.slot', { when, names: joinList(t, [...byMember.keys()]), n: byMember.size }))
+      }
+      const label = dayLabel(api, day)
+      if (byMember.size === 0) return finish(h, api, t('alexa.query.absent.noneDay', { day: label }))
+      const list = [...byMember].map(([name, flags]) => t('alexa.query.absent.member', {
+        name, slots: Object.keys(flags).length === slots.length && slots.length > 1 ? t('alexa.query.absent.allDay') : joinList(t, slotNames(t, flags))
+      }))
+      return finish(h, api, t('alexa.query.absent.day', { day: capitalizeFirst(label), list: list.join(' ; ') }))
+    }
+  }
+
   // « Qui mange à la maison ce soir ? » : sans créneau, le prochain repas du jour (midi avant 14 h,
   // soir ensuite), ou les deux repas pour un autre jour.
   // Sur une semaine ou un week-end : seulement ce qui change des habitudes (absences et présences
@@ -745,7 +790,7 @@ export const buildHandlers = (api) => {
       presenceHandler('PresenceIntent', 'presence'),
       presenceHandler('PresenceNightIntent', 'presence', 'NIGHT'),
       AddGuestHandler,
-      whoIsHomeHandler('WhoIsHomeIntent'), whoIsHomeHandler('WhoSleepsIntent', 'NIGHT'), TasksHandler, AbsencesQueryHandler, MealsHandler, EventsHandler, DaySummaryHandler,
+      whoIsHomeHandler('WhoIsHomeIntent'), whoIsHomeHandler('WhoSleepsIntent', 'NIGHT'), WhoIsAbsentHandler, TasksHandler, AbsencesQueryHandler, MealsHandler, EventsHandler, DaySummaryHandler,
       HelpHandler, StopHandler, FallbackHandler, SessionEndedHandler
     ],
     errorHandler: ErrorHandler

@@ -225,11 +225,8 @@ const EXTRA_SAMPLES = {
     'qui sera à la maison pendant {date}',
     'quelles sont les présences [{date}]',
     'les présences [{date}]',
-    'qui est absent [{date}] [{mealSlot}]',
-    'qui sera absent [{date}] [{mealSlot}]',
     'quelles sont les absences [{date}]',
     'les absences [{date}]',
-    'est-ce que quelqu\'un est absent [{date}]',
     'il y a des invités [{date}]',
     'qui est invité [{date}] [{mealSlot}]'
   ],
@@ -502,6 +499,25 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
         'on sera combien [au] {mealSlot} [{date}]',
         'combien de personnes [{date}] [{mealSlot}]',
         'combien de couverts [{date}] [{mealSlot}]'
+      ])
+    },
+    {
+      // « Qui est absent aujourd'hui ? » : les absents (et non les présents) du jour, par repas
+      name: 'WhoIsAbsentIntent',
+      slots: [{ ...date }, { name: 'mealSlot', type: 'MealSlot' }],
+      samples: expand([
+        'qui est absent [{date}] [{mealSlot}]',
+        'qui est absent [au] {mealSlot} [{date}]',
+        'qui sera absent [{date}] [{mealSlot}]',
+        'qui sera absent [au] {mealSlot} [{date}]',
+        "qui n'est pas là [{date}] [{mealSlot}]",
+        "qui n'est pas là [au] {mealSlot} [{date}]",
+        'qui ne sera pas là [{date}] [{mealSlot}]',
+        'qui ne sera pas là [au] {mealSlot} [{date}]',
+        'qui ne mange pas à la maison [{date}] [{mealSlot}]',
+        "est-ce que quelqu'un est absent [{date}] [{mealSlot}]",
+        'il y a des absents [{date}] [{mealSlot}]',
+        'quels sont les absents [{date}] [{mealSlot}]'
       ])
     },
     {
