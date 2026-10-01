@@ -9,6 +9,8 @@
   },
   "add": "Añadir una tarea",
   "urgent": "Urgente",
+  "private": "Privada",
+  "privateTitle": "Tarea privada: solo usted la ve",
   "markPending": "Marcar «{title}» como pendiente",
   "markDone": "Marcar «{title}» como hecha",
   "editTask": "Editar la tarea",
@@ -25,7 +27,9 @@
     "assignTo": "Asignar a",
     "priority": "Prioridad",
     "dueDate": "Fecha límite (opcional)",
-    "dueDateHint": "En esta fecha la tarea pasa a ser urgente y se envía un recordatorio cada día a la persona asignada."
+    "dueDateHint": "En esta fecha la tarea pasa a ser urgente y se envía un recordatorio cada día a la persona asignada.",
+    "private": "Tarea privada",
+    "privateHint": "Solo visible para usted: se le asigna a usted y los demás miembros no la ven ni reciben avisos."
   },
   "delete": {
     "title": "Eliminar la tarea",

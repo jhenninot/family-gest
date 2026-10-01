@@ -59,6 +59,9 @@
             {{ translateValue('taskPriority', task.priority) }}
           </span>
           <span class="badge badge-purple">{{ translateValue('taskCategory', task.category) }}</span>
+          <span v-if="task.isPrivate" class="badge badge-indigo private-badge" :title="t('tasks.privateTitle')">
+            <Lock :size="12" /> {{ t('tasks.private') }}
+          </span>
 
           <div class="task-card-actions">
             <button @click="openEditModal(task)" class="btn-icon-action" :title="t('common.edit')">
@@ -152,7 +155,7 @@
 
             <div class="form-group">
               <label class="form-label">{{ t('tasks.form.assignTo') }}</label>
-              <select v-model="taskForm.assignedTo" class="form-select">
+              <select v-model="taskForm.assignedTo" class="form-select" :disabled="taskForm.isPrivate">
                 <option v-for="m in store.members" :key="m.id" :value="m.id">
                   {{ getAvatarTextFallback(m.avatar) }} {{ m.name }} ({{ translateValue('role', m.role) }})
                 </option>
@@ -175,6 +178,15 @@
             </div>
           </div>
 
+          <div class="form-group">
+            <label class="private-toggle">
+              <input v-model="taskForm.isPrivate" type="checkbox" @change="onPrivateChange" />
+              <Lock :size="16" />
+              <span>{{ t('tasks.form.private') }}</span>
+            </label>
+            <p class="form-hint">{{ t('tasks.form.privateHint') }}</p>
+          </div>
+
           <div class="modal-footer">
             <button type="button" @click="closeTaskModal" class="btn btn-secondary">{{ t('common.cancel') }}</button>
             <button type="submit" class="btn btn-primary">{{ editingTaskId ? t('common.save') : t('tasks.create') }}</button>
@@ -191,7 +203,8 @@ import { useFamilyStore } from '../stores/familyStore'
 import { useI18n } from 'vue-i18n'
 import { formatDate } from '../i18n/format'
 import { TASK_CATEGORY_VALUES, TASK_PRIORITY_VALUES, translateValue } from '../i18n/values'
-import { CheckSquare, Plus, Trash2, Pencil, CalendarClock } from '@lucide/vue'
+import { CheckSquare, Plus, Trash2, Pencil, CalendarClock, Lock } from '@lucide/vue'
+import { useAuthStore } from '../stores/authStore'
 import UserAvatar from '../components/UserAvatar.vue'
 import EmptyState from '../components/EmptyState.vue'
 import { getAvatarTextFallback } from '../utils/avatarHelper'
@@ -199,6 +212,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 
 const store = useFamilyStore()
+const authStore = useAuthStore()
 const { t } = useI18n()
 const { confirm } = useConfirm()
 
@@ -213,8 +227,14 @@ const emptyTaskForm = () => ({
   assignedTo: store.members[0]?.id || 1,
   priority: 'Moyenne',
   dueDate: '',
-  notes: ''
+  notes: '',
+  isPrivate: false
 })
+
+// Une tâche privée n'est visible que de son auteur : elle lui est donc toujours attribuée.
+const onPrivateChange = () => {
+  if (taskForm.value.isPrivate && authStore.user?.id != null) taskForm.value.assignedTo = authStore.user.id
+}
 
 const taskForm = ref(emptyTaskForm())
 
@@ -294,7 +314,8 @@ const openEditModal = (task) => {
     assignedTo: task.assignedTo,
     priority: task.priority || 'Moyenne',
     dueDate: task.dueDate || '',
-    notes: task.notes || ''
+    notes: task.notes || '',
+    isPrivate: Boolean(task.isPrivate)
   }
   showTaskModal.value = true
 }
@@ -318,6 +339,26 @@ const handleSubmitTask = async () => {
 </script>
 
 <style scoped>
+.private-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.private-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.private-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-primary);
+  cursor: pointer;
+}
 .text-indigo { color: var(--accent-primary); }
 .margin-bottom-lg { margin-bottom: 2rem; }
 

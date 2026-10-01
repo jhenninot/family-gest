@@ -9,6 +9,8 @@
   },
   "add": "Ajouter une tâche",
   "urgent": "Urgente",
+  "private": "Privée",
+  "privateTitle": "Tâche privée : vous seul la voyez",
   "markPending": "Marquer « {title} » comme à faire",
   "markDone": "Marquer « {title} » comme faite",
   "editTask": "Modifier la tâche",
@@ -25,7 +27,9 @@
     "assignTo": "Attribuer à",
     "priority": "Priorité",
     "dueDate": "Échéance (optionnel)",
-    "dueDateHint": "À cette date, la tâche devient urgente et un rappel est envoyé chaque jour à la personne assignée."
+    "dueDateHint": "À cette date, la tâche devient urgente et un rappel est envoyé chaque jour à la personne assignée.",
+    "private": "Tâche privée",
+    "privateHint": "Visible uniquement par vous : elle vous est attribuée et les autres membres ne la voient pas et n'en sont pas avertis."
   },
   "delete": {
     "title": "Supprimer la tâche",

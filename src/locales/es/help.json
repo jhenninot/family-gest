@@ -187,6 +187,10 @@
           "q": "Poner una fecha límite",
           "a": "Indique una fecha límite: ese día la tarea pasa a urgente y la persona responsable recibe un recordatorio cada día."
         },
+        "private": {
+          "q": "Guardar una tarea para uno mismo",
+          "a": "Marque «Tarea privada» al crear o modificar una tarea: se le asigna a usted y solo usted la ve. Los demás miembros, Alexa y el conector del asistente no la ven, y no se avisa a nadie."
+        },
         "filter": {
           "q": "Ver solo algunas tareas",
           "a": "Los filtros de arriba muestran las tareas pendientes o terminadas, de todos o de un solo miembro."

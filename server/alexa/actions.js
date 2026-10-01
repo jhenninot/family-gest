@@ -1,6 +1,7 @@
 import Meal from '../models/Meal.js'
 import ShoppingItem from '../models/ShoppingItem.js'
 import Task from '../models/Task.js'
+import { visibleTasksFilter } from '../tasks/visibility.js'
 import User from '../models/User.js'
 import FamilyMember from '../models/FamilyMember.js'
 import Absence from '../models/Absence.js'
@@ -66,9 +67,11 @@ export const createAlexaApi = (req, ctx, lang, { channel = 'alexa' } = {}) => {
     // (présence habituelle, semaines A/B, absences et présences déclarées, invités)
     whoIsHome: ({ date, slot }) => getMealSlotPresence({ FamilyMember, User, Absence, MealGuest }, family, date, slot),
 
-    // Tâches non terminées (d'un membre ou de toute la famille), les échéances les plus proches d'abord
+    // Tâches non terminées (d'un membre ou de toute la famille), les échéances les plus proches d'abord.
+    // Les tâches privées ne sont lues qu'à leur auteur, dans l'assistant de l'application (la skill
+    // Alexa parle sur un appareil partagé).
     async pendingTasks ({ memberId = null } = {}) {
-      const filter = { familyId, completed: false }
+      const filter = { familyId, completed: false, ...visibleTasksFilter(channel === 'voice' ? actorId : null) }
       if (memberId != null) filter.assignedTo = memberId
       const tasks = await Task.find(filter)
       const names = new Map((await this.members()).map(m => [m.id, m.firstName]))

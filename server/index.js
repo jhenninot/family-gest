@@ -26,6 +26,7 @@ import crypto from 'crypto'
 
 import User from './models/User.js'
 import Task from './models/Task.js'
+import { visibleTasksFilter } from './tasks/visibility.js'
 import Event from './models/Event.js'
 import ShoppingItem from './models/ShoppingItem.js'
 import ShoppingCategory from './models/ShoppingCategory.js'
@@ -2062,7 +2063,9 @@ app.post('/api/super-admin/families/:id/import', requireAuth, requireSuperAdmin,
         priority: task.priority || 'Moyenne',
         points: task.points ?? 10,
         completed: Boolean(task.completed),
-        dueDate: task.dueDate
+        dueDate: task.dueDate,
+        createdBy: task.createdBy != null ? (idMap[task.createdBy] || task.createdBy) : null,
+        isPrivate: Boolean(task.isPrivate) && task.createdBy != null
       })
     }
 
@@ -3741,8 +3744,9 @@ app.post('/api/members/:id/resend-welcome', requireAuth, attachFamilyContext, re
 
 // Bascule l'état "terminé" d'une tâche et répercute les points sur le membre (famille + compte global).
 // Partagée par la route HTTP et l'outil MCP toggle_task pour éviter toute divergence de comptabilité.
-const toggleTaskCompletion = async ({ familyId, taskId }) => {
-  const task = await Task.findOne({ id: Number(taskId), familyId })
+// viewerId : personne qui agit (null = sans compte identifié, n'atteint pas les tâches privées).
+const toggleTaskCompletion = async ({ familyId, taskId, viewerId = null }) => {
+  const task = await Task.findOne({ id: Number(taskId), familyId, ...visibleTasksFilter(viewerId) })
   if (!task) return null
 
   task.completed = !task.completed
@@ -3806,6 +3810,7 @@ const authorLabel = (t, actor, via) => {
 // modifiée, par push et/ou email selon sa préférence « Tâches ». L'auteur de la modification
 // n'est jamais notifié. Tâche de fond : ne doit pas faire échouer l'appelant.
 const notifyTaskUpdated = async ({ family, actor, task, before, via = null }) => {
+  if (task.isPrivate) return
   const normalize = (v) => (v === undefined || v === '' ? null : v)
   const changedFields = TASK_TRACKED_FIELDS.filter(f => normalize(before[f]) !== normalize(task[f]))
   if (changedFields.length === 0) return
@@ -3863,7 +3868,7 @@ const notifyTaskUpdated = async ({ family, actor, task, before, via = null }) =>
 // Prévient la personne assignée d'une nouvelle tâche, par push et/ou email selon sa préférence
 // « Tâches » — sauf si c'est elle qui l'a créée. Tâche de fond : ne doit pas faire échouer l'appelant.
 const notifyTaskCreated = async ({ family, actor, task, via = null }) => {
-  if (task.assignedTo == null || task.assignedTo === actor?.id) return
+  if (task.isPrivate || task.assignedTo == null || task.assignedTo === actor?.id) return
   const recipientUserIds = [task.assignedTo]
 
   const dueLabel = (t) => (task.dueDate ? formatTaskFieldValue(t, 'dueDate', task.dueDate) : null)
@@ -3913,13 +3918,14 @@ const notifyTaskCreated = async ({ family, actor, task, via = null }) => {
 }
 
 // Met à jour partiellement une tâche. Avec `family`, notifie la ou les personnes concernées
-// (voir notifyTaskUpdated) en tâche de fond.
-const updateTask = async ({ familyId, taskId, fields, family = null, actor = null, via = null }) => {
-  const task = await Task.findOne({ id: Number(taskId), familyId })
+// (voir notifyTaskUpdated) en tâche de fond. viewerId : personne qui agit, seule à pouvoir
+// atteindre ses tâches privées et à rendre une tâche privée (elle en devient l'auteur et l'assignée).
+const updateTask = async ({ familyId, taskId, fields, family = null, actor = null, via = null, viewerId = null }) => {
+  const task = await Task.findOne({ id: Number(taskId), familyId, ...visibleTasksFilter(viewerId) })
   if (!task) return null
 
   const before = Object.fromEntries(TASK_TRACKED_FIELDS.map(f => [f, task[f]]))
-  const { title, category, assignedTo, priority, points, dueDate, notes } = fields
+  const { title, category, assignedTo, priority, points, dueDate, notes, isPrivate } = fields
   if (title !== undefined) task.title = String(title).trim()
   if (category !== undefined) task.category = category
   if (assignedTo !== undefined) task.assignedTo = Number(assignedTo)
@@ -3927,6 +3933,11 @@ const updateTask = async ({ familyId, taskId, fields, family = null, actor = nul
   if (points !== undefined) task.points = Number(points) || task.points
   if (dueDate !== undefined) task.dueDate = normalizeTaskDueDate(dueDate)
   if (notes !== undefined) task.notes = String(notes ?? '').trim()
+  if (isPrivate !== undefined && viewerId != null) {
+    if (isPrivate === true && !task.isPrivate) task.createdBy = viewerId
+    task.isPrivate = isPrivate === true
+  }
+  if (task.isPrivate) task.assignedTo = task.createdBy
 
   await task.save()
 
@@ -3939,7 +3950,7 @@ const updateTask = async ({ familyId, taskId, fields, family = null, actor = nul
 
 app.get('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const tasks = await Task.find({ familyId: req.family._id }).sort({ createdAt: -1 })
+    const tasks = await Task.find({ familyId: req.family._id, ...visibleTasksFilter(req.user.id) }).sort({ createdAt: -1 })
     res.json(tasks)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -3948,12 +3959,16 @@ app.get('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
 
 app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
   try {
+    // Une tâche privée est toujours assignée à son auteur : personne d'autre ne la voit
+    const isPrivate = req.body.isPrivate === true
     const newTask = new Task({
       familyId: req.family._id,
       id: Date.now(),
       title: req.body.title,
       category: req.body.category || 'Maison',
-      assignedTo: Number(req.body.assignedTo),
+      assignedTo: isPrivate ? req.user.id : Number(req.body.assignedTo),
+      createdBy: req.user.id,
+      isPrivate,
       priority: req.body.priority || 'Moyenne',
       points: Number(req.body.points) || 10,
       completed: false,
@@ -3973,7 +3988,7 @@ app.post('/api/tasks', requireAuth, attachFamilyContext, async (req, res) => {
 
 app.put('/api/tasks/:id/toggle', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const task = await toggleTaskCompletion({ familyId: req.family._id, taskId: req.params.id })
+    const task = await toggleTaskCompletion({ familyId: req.family._id, taskId: req.params.id, viewerId: req.user.id })
     if (!task) return res.status(404).json({ error: req.t('errors.taskNotFound') })
     res.json(task)
   } catch (err) {
@@ -3983,7 +3998,7 @@ app.put('/api/tasks/:id/toggle', requireAuth, attachFamilyContext, async (req, r
 
 app.put('/api/tasks/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const task = await updateTask({ familyId: req.family._id, taskId: req.params.id, fields: req.body, family: req.family, actor: req.user })
+    const task = await updateTask({ familyId: req.family._id, taskId: req.params.id, fields: req.body, family: req.family, actor: req.user, viewerId: req.user.id })
     if (!task) return res.status(404).json({ error: req.t('errors.taskNotFound') })
     res.json(task)
   } catch (err) {
@@ -3993,7 +4008,7 @@ app.put('/api/tasks/:id', requireAuth, attachFamilyContext, async (req, res) => 
 
 app.delete('/api/tasks/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    await Task.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
+    await Task.deleteOne({ id: Number(req.params.id), familyId: req.family._id, ...visibleTasksFilter(req.user.id) })
     res.json({ message: req.t('messages.taskDeleted') })
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -6164,7 +6179,7 @@ app.get('/api/admin/export', requireAuth, attachFamilyContext, requireFamilyAdmi
       events
     ] = await Promise.all([
       User.find({ id: { $in: memberUserIds } }).select('-password').lean(),
-      Task.find({ familyId }).lean(),
+      Task.find({ familyId, ...visibleTasksFilter(req.user.id) }).lean(),
       ShoppingItem.find({ familyId }).lean(),
       ShoppingCategory.find({ familyId }).sort({ rank: 1 }).lean(),
       Absence.find({ familyId }).lean(),

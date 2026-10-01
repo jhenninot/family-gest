@@ -122,7 +122,7 @@ const TOPICS = {
   },
   tasks: {
     icon: '✅',
-    howto: ['create', 'done', 'due', 'filter'],
+    howto: ['create', 'done', 'due', 'private', 'filter'],
     tips: ['reminders'],
     voice: ['mine', 'member']
   },

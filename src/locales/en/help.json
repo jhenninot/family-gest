@@ -187,6 +187,10 @@
           "q": "Set a due date",
           "a": "Enter a due date: on that day the task becomes urgent and the person in charge gets a reminder every day."
         },
+        "private": {
+          "q": "Keep a task to yourself",
+          "a": "Tick “Private task” when creating or editing a task: it is assigned to you and only you can see it. Other members, Alexa and the assistant connector can't see it, and nobody is notified."
+        },
         "filter": {
           "q": "See only some tasks",
           "a": "The filters at the top show tasks to do or done, for everyone or for one member."

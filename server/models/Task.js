@@ -10,7 +10,11 @@ const taskSchema = new mongoose.Schema({
   points: { type: Number, default: 10 },
   completed: { type: Boolean, default: false },
   notes: { type: String, default: '', trim: true }, // Description libre
-  dueDate: { type: String, default: null } // Échéance « AAAA-MM-JJ » : urgente et rappelée chaque jour une fois atteinte
+  dueDate: { type: String, default: null }, // Échéance « AAAA-MM-JJ » : urgente et rappelée chaque jour une fois atteinte
+  createdBy: { type: Number, default: null }, // User.id de l'auteur (null pour les tâches antérieures)
+  // Tâche privée : visible et modifiable seulement par createdBy, toujours assignée à cette personne
+  // (voir server/tasks/visibility.js) ; jamais signalée aux autres membres.
+  isPrivate: { type: Boolean, default: false }
 }, { timestamps: true })
 
 taskSchema.index({ familyId: 1, id: 1 }, { unique: true })

@@ -9,6 +9,8 @@
   },
   "add": "Add a task",
   "urgent": "Urgent",
+  "private": "Private",
+  "privateTitle": "Private task: only you can see it",
   "markPending": "Mark “{title}” as to do",
   "markDone": "Mark “{title}” as done",
   "editTask": "Edit the task",
@@ -25,7 +27,9 @@
     "assignTo": "Assign to",
     "priority": "Priority",
     "dueDate": "Due date (optional)",
-    "dueDateHint": "On this date the task becomes urgent and a reminder is sent every day to the assigned person."
+    "dueDateHint": "On this date the task becomes urgent and a reminder is sent every day to the assigned person.",
+    "private": "Private task",
+    "privateHint": "Only visible to you: it is assigned to you, and other members can't see it or get notified about it."
   },
   "delete": {
     "title": "Delete the task",

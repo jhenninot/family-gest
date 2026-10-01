@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import Task from '../../models/Task.js'
+import { visibleTasksFilter } from '../../tasks/visibility.js'
 import { resolveMember } from '../resolveMember.js'
 import { jsonResult } from '../toolHelpers.js'
 
@@ -9,10 +10,11 @@ export const registerTaskTools = (server, req, ctx) => {
 
   server.registerTool('list_tasks', {
     title: 'Lister les tâches',
-    description: 'Liste les tâches de la famille.',
+    description: 'Liste les tâches partagées de la famille (les tâches privées des membres n\'y figurent pas).',
     inputSchema: {}
   }, async () => {
-    const tasks = await Task.find({ familyId }).sort({ createdAt: -1 })
+    // Le connecteur agit pour toute la famille : il n'atteint jamais les tâches privées
+    const tasks = await Task.find({ familyId, ...visibleTasksFilter() }).sort({ createdAt: -1 })
     return jsonResult(tasks)
   })
 
@@ -93,7 +95,7 @@ export const registerTaskTools = (server, req, ctx) => {
     description: 'Supprime une tâche.',
     inputSchema: { id: z.number() }
   }, async ({ id }) => {
-    await Task.deleteOne({ id: Number(id), familyId })
+    await Task.deleteOne({ id: Number(id), familyId, ...visibleTasksFilter() })
     return jsonResult({ deleted: true })
   })
 }

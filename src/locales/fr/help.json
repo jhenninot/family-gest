@@ -187,6 +187,10 @@
           "q": "Donner une échéance",
           "a": "Indiquez une date d'échéance : ce jour-là, la tâche devient urgente et la personne concernée reçoit un rappel chaque jour."
         },
+        "private": {
+          "q": "Garder une tâche pour soi",
+          "a": "Cochez « Tâche privée » en créant ou en modifiant une tâche : elle vous est attribuée et vous seul la voyez. Les autres membres, Alexa et le connecteur de l'assistant ne la voient pas, et personne n'est prévenu."
+        },
         "filter": {
           "q": "Ne voir que certaines tâches",
           "a": "Les filtres en haut affichent les tâches à faire ou terminées, pour tous ou pour un seul membre."

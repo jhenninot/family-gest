@@ -426,6 +426,7 @@
                 <span class="task-title-text">{{ task.title }}</span>
                 <div class="task-meta">
                   <span class="badge badge-indigo">{{ translateValue('taskCategory', task.category) }}</span>
+                  <span v-if="task.isPrivate" class="badge badge-purple" :title="t('tasks.privateTitle')">🔒 {{ t('tasks.private') }}</span>
                   <span class="assigned-tag">
                     {{ getMemberName(task.assignedTo) }}
                   </span>
