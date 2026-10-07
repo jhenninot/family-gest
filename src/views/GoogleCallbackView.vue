@@ -32,7 +32,7 @@ onMounted(async () => {
     return router.replace({ name: 'login', query: { googleError: 'failed' } })
   }
   const fams = authStore.families || []
-  const target = params.get('family') || (fams.length === 1 ? fams[0].slug : null)
+  const target = params.get('family') || (fams.length === 1 ? fams[0].slug : fams.find(f => f.slug === localStorage.getItem('familygest_active_slug'))?.slug)
   if (target) {
     await familyStore.switchFamily(target)
     return router.replace(`/${target}`)

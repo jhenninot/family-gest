@@ -1,5 +1,23 @@
 [
   {
+    "version": "2026.10.09",
+    "date": "2026-10-09",
+    "minor": [
+      0
+    ],
+    "notes": {
+      "fr": [
+        "Connexion : après une session expirée ou une mise à jour de l'application, vous retrouvez directement la dernière famille utilisée au lieu de l'écran de choix."
+      ],
+      "en": [
+        "Sign-in: after an expired session or an app update, you now land directly on the last family you used instead of the family picker."
+      ],
+      "es": [
+        "Inicio de sesión: tras una sesión caducada o una actualización de la aplicación, vuelve directamente a la última familia utilizada en lugar de la pantalla de selección."
+      ]
+    }
+  },
+  {
     "version": "2026.10.08",
     "date": "2026-10-08",
     "minor": [

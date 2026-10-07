@@ -102,7 +102,10 @@ export const useFamilyStore = defineStore('family', () => {
     } catch (err) {
       console.error('Erreur fetchUserFamilies', err)
     }
-    return []
+    // Réseau indisponible ou réponse d'erreur (ex. juste après une mise à jour de l'appli) : on
+    // se rabat sur les familles du profil en cache plutôt que de renvoyer l'utilisateur au
+    // sélecteur de famille comme s'il n'en avait aucune.
+    return authStore.families || []
   }
 
   // Fetch current family info & quota

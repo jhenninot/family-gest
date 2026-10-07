@@ -209,7 +209,9 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     localStorage.removeItem('familygest_token')
     localStorage.removeItem('familygest_user')
-    localStorage.removeItem('familygest_active_slug')
+    // La dernière famille utilisée est conservée : après une session expirée, la reconnexion
+    // retombe dessus. Elle est de toute façon revalidée contre les familles du compte connecté
+    // (login, setAuth, loginWithToken, garde du routeur).
 
     // Sans ça, les données de la famille précédente (dont la liste userFamilies utilisée par le
     // menu et le garde de navigation) restent en mémoire et peuvent fuiter vers le prochain

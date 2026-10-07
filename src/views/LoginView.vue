@@ -130,8 +130,10 @@ const handleLogin = async () => {
 
   if (success) {
     const fams = authStore.families || []
-    if (fams.length === 1) {
-      const targetSlug = fams[0].slug
+    const savedSlug = localStorage.getItem('familygest_active_slug')
+    const lastFamily = fams.length === 1 ? fams[0] : fams.find(f => f.slug === savedSlug)
+    if (lastFamily) {
+      const targetSlug = lastFamily.slug
       await familyStore.switchFamily(targetSlug)
       router.push(`/${targetSlug}`)
     } else {
