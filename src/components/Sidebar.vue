@@ -477,6 +477,10 @@ const upcomingEventsCount = computed(() => {
     border-bottom: 1px solid var(--border-color);
     padding: calc(0.85rem + env(safe-area-inset-top, 0px)) calc(1rem + env(safe-area-inset-right, 0px)) 1rem calc(1rem + env(safe-area-inset-left, 0px));
     gap: 0.75rem;
+    /* En-tête toujours visible quand on défile */
+    position: sticky;
+    top: 0;
+    z-index: 90;
   }
   .family-widget {
     display: none;
@@ -538,11 +542,12 @@ const upcomingEventsCount = computed(() => {
   .shortcuts-list {
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.5rem;
     padding-bottom: 0.35rem;
     max-height: none;
-    overflow: visible;
+    overflow-x: auto; /* une seule ligne : l'en-tête fixe reste compact */
+    overflow-y: hidden;
   }
 
   .shortcut-item-row {

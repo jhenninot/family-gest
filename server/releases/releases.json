@@ -1,5 +1,23 @@
 [
   {
+    "version": "2026.10.08",
+    "date": "2026-10-08",
+    "minor": [
+      0
+    ],
+    "notes": {
+      "fr": [
+        "Mobile : l'en-tête avec les icônes de navigation reste visible en haut de l'écran quand on défile."
+      ],
+      "en": [
+        "Mobile: the header with the navigation icons now stays visible at the top of the screen while scrolling."
+      ],
+      "es": [
+        "Móvil: la cabecera con los iconos de navegación permanece visible en la parte superior de la pantalla al desplazarse."
+      ]
+    }
+  },
+  {
     "version": "2026.10.07",
     "date": "2026-10-07",
     "minor": [],

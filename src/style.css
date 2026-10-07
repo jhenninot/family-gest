@@ -113,6 +113,12 @@ a {
   overflow-x: hidden;
 }
 
+@media (max-width: 900px) {
+  #app {
+    overflow-x: clip;
+  }
+}
+
 /* Layout Utilities */
 .app-container {
   display: flex;
@@ -138,7 +144,8 @@ a {
 @media (max-width: 900px) {
   .app-container {
     flex-direction: column;
-    overflow-x: hidden;
+    /* clip (et non hidden) : hidden créerait un conteneur de défilement qui casse le sticky de l'en-tête */
+    overflow-x: clip;
   }
   .main-content {
     padding: 1rem 0.75rem;
