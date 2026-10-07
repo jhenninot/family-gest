@@ -1,4 +1,4 @@
-import { buildInteractionModel } from '../alexa/interactionModel.js'
+import { buildInteractionModel, expand } from '../alexa/interactionModel.js'
 import { DATE_SOURCE, TODAY_PART_SOURCE, DAY_NUM, TIME_SOURCE, parseFrenchDate, parseFrenchTime, dayBeforeEnd } from './frenchTime.js'
 
 // Compréhension des commandes vocales de l'application, sans IA : les phrases du modèle de
@@ -40,6 +40,25 @@ const BUILTIN_SAMPLES = {
   'AMAZON.NoIntent': ['non', 'non merci', 'pas besoin', 'non pas besoin', 'surtout pas', "c'est tout", 'rien', "c'est bon", 'non c\'est bon', 'ça ira'],
   'AMAZON.StopIntent': ['stop', 'arrête', 'annule', 'laisse tomber', 'au revoir', 'termine', 'ferme', 'oublie', 'annuler'],
   'AMAZON.HelpIntent': ['aide', 'de l\'aide', 'aide-moi', 'que puis-je dire', "qu'est-ce que je peux dire", 'exemples', 'des exemples', "qu'est-ce que tu sais faire", 'que sais-tu faire']
+}
+// Phrases à la première personne, propres à l'application où l'on sait qui parle : le « prénom »
+// capté (« je ») est remplacé par celui de l'interlocuteur (matchMemberOrSelf, server/alexa/handlers.js)
+const SELF_SAMPLES = {
+  AbsenceIntent: expand([
+    '{member} ne serai pas là [pour] [le] {slotOne} [et {slotTwo}] [{date}]',
+    '{member} ne serai pas là [{date}] [pour] [le] {slotOne} [et {slotTwo}]',
+    '{member} ne serai pas là [pour] [le] {slotOne} {date} [{slotTwo}]',
+    '{member} ne serai pas là {date}',
+    '{member} ne rentrerai pas [{date}] [le] {slotOne}',
+    '{member} ne mangerai pas à la maison [{date}] [le] {slotOne}'
+  ]),
+  AbsenceNightIntent: expand(['{member} ne dormirai pas à la maison [{date}]', '{member} dormirai ailleurs [{date}]']),
+  PresenceIntent: expand([
+    '{member} serai là [pour] [le] {slotOne} [et {slotTwo}] [{date}]',
+    '{member} serai là [{date}] [pour] [le] {slotOne} [et {slotTwo}]',
+    '{member} serai là {date}'
+  ]),
+  PresenceNightIntent: expand(['{member} dormirai à la maison [{date}]'])
 }
 const CONTROL_INTENTS = new Set(['AMAZON.YesIntent', 'AMAZON.NoIntent', 'AMAZON.StopIntent', 'AMAZON.CancelIntent', 'AMAZON.HelpIntent', 'EventSkipIntent'])
 
@@ -105,7 +124,7 @@ export const buildNlu = ({ members = [] } = {}) => {
   const patterns = []
   const controlPatterns = []
   for (const intent of intents) {
-    const samples = new Set([...(intent.samples || []), ...(BUILTIN_SAMPLES[intent.name] || [])])
+    const samples = new Set([...(intent.samples || []), ...(BUILTIN_SAMPLES[intent.name] || []), ...(SELF_SAMPLES[intent.name] || [])])
     for (const sample of samples) {
       const pattern = compile(intent.name, sample)
       patterns.push(pattern)

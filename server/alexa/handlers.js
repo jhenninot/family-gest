@@ -83,10 +83,21 @@ const optionalDate = (handlerInput, api) => {
   return date ? { date } : { invalid: true }
 }
 
+// « je », « moi » : celui qui parle (assistant vocal de l'application ; Alexa ne le connaît pas, d'où le
+// retour au prénom demandé)
+const SELF_REFERENCE = /^(?:moi\s+je|je|moi|moi[- ]m[eê]me|j')$/i
+const matchMemberOrSelf = async (api, members, spoken, id) => {
+  if (SELF_REFERENCE.test(String(spoken || '').trim())) {
+    const me = await api.currentMember()
+    if (me) return { member: members.find(m => m.id === me.id) || me }
+  }
+  return matchMember(members, spoken, id)
+}
+
 // Membre désigné par son prénom, ou réponse qui redemande de qui il s'agit
 const resolveMemberOrElicit = async (handlerInput, api, slotName = 'member') => {
   const { value, id } = readSlot(handlerInput, slotName)
-  const found = matchMember(await api.members(), value, id)
+  const found = await matchMemberOrSelf(api, await api.members(), value, id)
   if (found.member) return { member: found.member }
   if (found.candidates) {
     return { response: elicit(handlerInput, slotName, api.t('alexa.member.ambiguous', { name: value, names: joinList(api.t, found.candidates.map(m => m.firstName)) })) }
@@ -163,7 +174,6 @@ export const buildHandlers = (api) => {
   // pas d'heures, et l'absence proposée couvre toute la période (absences longues).
   const EVENT_SLOTS = ['title', 'guidedTitle', 'date', 'endDate', 'time', 'endTime', 'member', 'memberTwo', 'memberThree']
   const MEMBER_SLOTS = ['member', 'memberTwo', 'memberThree']
-  const SELF_REFERENCE = /^(?:moi|moi[- ]même|moi[- ]meme)$/i
   const GENERIC_EVENT_TITLE = /^(?:un |une |l')?(?:nouvel |nouveau |autre )?(?:événement|evenement|rendez-vous|rendez vous|rdv)$/i
 
   const eventIntent = (flow) => ({
@@ -320,13 +330,7 @@ export const buildHandlers = (api) => {
         const members = []
         for (const name of MEMBER_SLOTS) {
           if (!incoming[name].value) continue
-          // « pour moi » : celui qui parle (assistant vocal de l'application)
-          const self = SELF_REFERENCE.test(incoming[name].value.trim()) ? await api.currentMember() : null
-          if (self) {
-            if (!members.some(m => m.id === self.id)) members.push({ id: self.id, firstName: self.firstName })
-            continue
-          }
-          const found = matchMember(known, incoming[name].value, incoming[name].id)
+          const found = await matchMemberOrSelf(api, known, incoming[name].value, incoming[name].id)
           if (!found.member) {
             flow.members = []
             const question = found.candidates

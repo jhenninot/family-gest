@@ -21,7 +21,7 @@ export const normalizeInvocationName = (value) => {
 }
 
 // « {member} ne sera pas là [{date}] {slotOne} » : les parties entre crochets sont optionnelles.
-const expand = (templates) => {
+export const expand = (templates) => {
   const out = new Set()
   for (const template of templates) {
     let variants = [template]
