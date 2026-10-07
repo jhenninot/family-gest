@@ -163,6 +163,7 @@ export const buildHandlers = (api) => {
   // pas d'heures, et l'absence proposée couvre toute la période (absences longues).
   const EVENT_SLOTS = ['title', 'guidedTitle', 'date', 'endDate', 'time', 'endTime', 'member', 'memberTwo', 'memberThree']
   const MEMBER_SLOTS = ['member', 'memberTwo', 'memberThree']
+  const SELF_REFERENCE = /^(?:moi|moi[- ]même|moi[- ]meme)$/i
   const GENERIC_EVENT_TITLE = /^(?:un |une |l')?(?:nouvel |nouveau |autre )?(?:événement|evenement|rendez-vous|rendez vous|rdv)$/i
 
   const eventIntent = (flow) => ({
@@ -195,6 +196,14 @@ export const buildHandlers = (api) => {
       if (!multiDay && !flow.time && !flow.asked.time) { flow.asked.time = true; return ask('time', 'time') }
       if (!multiDay && flow.time && !flow.endTime && !flow.asked.endTime) { flow.asked.endTime = true; return ask('endTime', 'endTime') }
       if (flow.members.length === 0 && !flow.asked.member) { flow.asked.member = true; return ask('member', 'member') }
+    }
+
+    // Assistant vocal de l'application : sans personne citée dans une demande en une phrase, celui
+    // qui parle est le participant (donc l'absence au repas peut lui être proposée). Alexa ne connaît
+    // pas l'interlocuteur (currentMember vide). Dans l'ajout guidé, « toute la famille » reste respecté.
+    if (!flow.guided && flow.members.length === 0) {
+      const me = await api.currentMember()
+      if (me) flow.members = [{ id: me.id, firstName: me.firstName }]
     }
 
     const title = flow.title.charAt(0).toUpperCase() + flow.title.slice(1)
@@ -311,6 +320,12 @@ export const buildHandlers = (api) => {
         const members = []
         for (const name of MEMBER_SLOTS) {
           if (!incoming[name].value) continue
+          // « pour moi » : celui qui parle (assistant vocal de l'application)
+          const self = SELF_REFERENCE.test(incoming[name].value.trim()) ? await api.currentMember() : null
+          if (self) {
+            if (!members.some(m => m.id === self.id)) members.push({ id: self.id, firstName: self.firstName })
+            continue
+          }
           const found = matchMember(known, incoming[name].value, incoming[name].id)
           if (!found.member) {
             flow.members = []
