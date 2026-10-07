@@ -369,6 +369,9 @@
         @download="downloadAlexaModel"
       />
 
+      <!-- Repli IA de l'assistant vocal : clé Mistral de la famille -->
+      <VoiceAiSettings />
+
       <!-- Mealie Card: connexion au serveur de recettes Mealie de la famille -->
       <div class="card glass-card mealie-card margin-top-lg">
         <div class="section-title-group">
@@ -1054,6 +1057,7 @@ import {
   Bot, RefreshCw, Copy, KeyRound, ChefHat, Plug, Mic, BookOpen
 } from '@lucide/vue'
 import AlexaSetupGuide from '../components/AlexaSetupGuide.vue'
+import VoiceAiSettings from '../components/VoiceAiSettings.vue'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 import { useI18n } from 'vue-i18n'

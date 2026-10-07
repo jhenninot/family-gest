@@ -49,6 +49,8 @@ import { handlePushFailure, handlePushSuccess } from './utils/pushFailures.js'
 import { mountMcpServer } from './mcp/index.js'
 import { mountAlexaSkill } from './alexa/index.js'
 import { mountVoiceAssistant } from './voice/index.js'
+import { verifyKey as verifyVoiceAiKey, VoiceAiError, DEFAULT_MODEL as VOICE_AI_DEFAULT_MODEL } from './voice/ai.js'
+import VoiceAiConfig from './models/VoiceAiConfig.js'
 import { mountGoogleAuth, googleRedirectUri, isGoogleAuthReady } from './auth/google.js'
 import { buildInteractionModel, normalizeInvocationName, DEFAULT_INVOCATION_NAME } from './alexa/interactionModel.js'
 import { oauthReturnUrl, isSyncConfigured, isSyncConnected, familyModel, modelHash, startAuthorization, completeAuthorization, pushModel, forgetAccessToken, startAlexaSyncScheduler } from './alexa/sync.js'
@@ -1915,7 +1917,7 @@ app.delete('/api/super-admin/families/:id', requireAuth, requireSuperAdmin, asyn
     const familyId = family._id
     await Promise.all([
       FamilyMember, FamilyInvitation, Task, Event, ShoppingItem, ShoppingCategory, Shortcut,
-      Absence, LongAbsence, MealGuest, MealPoll, Meal, McpConnector, MealieConfig, AlexaConnector, UsageCounter
+      Absence, LongAbsence, MealGuest, MealPoll, Meal, McpConnector, MealieConfig, AlexaConnector, VoiceAiConfig, UsageCounter
     ].map(Model => Model.deleteMany({ familyId })))
     await Family.deleteOne({ _id: familyId })
     console.log(`[Famille] Famille supprimée par le Super Admin : ${family.slug}`)
@@ -6563,6 +6565,72 @@ app.get('/api/family-settings/alexa-connector/interaction-model', requireAuth, a
     const members = await getFamilyMembersList(req.family._id)
     res.setHeader('Content-Disposition', 'attachment; filename="familygest-alexa-fr-FR.json"')
     res.json(buildInteractionModel({ members, invocationName: connector?.invocationName || DEFAULT_INVOCATION_NAME }))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// === REPLI IA DE L'ASSISTANT VOCAL (clé Mistral par famille) ===
+// Réservé aux administrateurs de la famille. La clé n'est jamais renvoyée (4 derniers caractères) ;
+// sans clé enregistrée, la fonction n'existe pas. Voir server/voice/ai.js.
+const voiceAiPublic = (config) => config
+  ? {
+      configured: true,
+      keyPreview: `…${String(config.apiKey).slice(-4)}`,
+      model: config.model,
+      enabled: config.enabled,
+      allowAgenda: config.allowAgenda,
+      allowPrivateTasks: config.allowPrivateTasks,
+      lastUsedAt: config.lastUsedAt,
+      lastError: config.lastError || ''
+    }
+  : { configured: false, model: VOICE_AI_DEFAULT_MODEL, enabled: false, allowAgenda: false, allowPrivateTasks: false }
+
+app.get('/api/family-settings/voice-ai', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    res.json(voiceAiPublic(await VoiceAiConfig.findOne({ familyId: req.family._id })))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/family-settings/voice-ai', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    const existing = await VoiceAiConfig.findOne({ familyId: req.family._id })
+    const apiKey = typeof req.body?.apiKey === 'string' ? req.body.apiKey.trim() : ''
+    const model = typeof req.body?.model === 'string' && req.body.model.trim() ? req.body.model.trim() : (existing?.model || VOICE_AI_DEFAULT_MODEL)
+    if (!/^[\w.:-]{1,80}$/.test(model)) return res.status(400).json({ error: req.t('errors.voiceAiBadModel') })
+    if (!apiKey && !existing) return res.status(400).json({ error: req.t('errors.voiceAiKeyRequired') })
+    if (apiKey.length > 200) return res.status(400).json({ error: req.t('errors.voiceAiKeyRejected') })
+    // Une clé neuve (ou un autre modèle) est vérifiée par un mini-appel avant d'être enregistrée
+    if (apiKey || model !== existing?.model) {
+      try {
+        await verifyVoiceAiKey(apiKey || existing.apiKey, model)
+      } catch (err) {
+        if (!(err instanceof VoiceAiError)) throw err
+        return res.status(400).json({ error: req.t(`errors.voiceAi.${err.code}`) })
+      }
+    }
+    const config = existing || new VoiceAiConfig({ familyId: req.family._id, createdByUserId: req.user.id, apiKey })
+    if (apiKey) config.apiKey = apiKey
+    Object.assign(config, {
+      model,
+      enabled: req.body?.enabled !== false,
+      allowAgenda: req.body?.allowAgenda === true,
+      allowPrivateTasks: req.body?.allowPrivateTasks === true,
+      lastError: ''
+    })
+    await config.save()
+    res.json(voiceAiPublic(config))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/family-settings/voice-ai', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+  try {
+    await VoiceAiConfig.deleteOne({ familyId: req.family._id })
+    res.json(voiceAiPublic(null))
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

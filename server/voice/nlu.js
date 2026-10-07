@@ -202,5 +202,42 @@ export const buildNlu = ({ members = [] } = {}) => {
     return slot ? { slot: slot.name, prompt: prompts.get(slot.prompts.elicitation) || '' } : null
   }
 
-  return { match, matchControl, matchSlotAnswer, missingRequired, delegation, slotNames: (intentName) => Object.keys(slotTypes[intentName] || {}) }
+  // Repli IA (server/voice/ai.js) : actions proposées au modèle avec leurs créneaux, puis conversion
+  // de ce qu'il renvoie. Les valeurs passent par les mêmes conversions que la phrase dite : un
+  // prénom ou un créneau que le modèle invente ne devient jamais une donnée sans vérification.
+  const aiCatalog = (names) => intents
+    .filter(i => names.includes(i.name))
+    .map(i => ({ name: i.name, slots: (i.slots || []).map(s => ({ name: s.name, type: s.type })) }))
+
+  const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
+  const ISO_TIME = /^([01]?\d|2[0-3]):([0-5]\d)$/
+  const aiSlotValue = (type, raw, today) => {
+    const text = String(raw).trim()
+    if (type === 'AMAZON.DATE') {
+      const iso = ISO_DATE.exec(text)
+      if (iso) {
+        const d = new Date(`${text}T12:00:00Z`)
+        return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(text) ? { value: text } : null
+      }
+    }
+    if (type === 'AMAZON.TIME') {
+      const t = ISO_TIME.exec(text)
+      if (t) return { value: `${t[1].padStart(2, '0')}:${t[2]}` }
+    }
+    return slotValue(type, text, normalizeChars(text), today)
+  }
+
+  const fromAi = (intentName, rawSlots, today) => {
+    if (!slotTypes[intentName]) return null
+    const slots = {}
+    for (const [name, raw] of Object.entries(rawSlots || {})) {
+      const type = slotTypes[intentName][name]
+      if (!type || typeof raw !== 'string' || !raw.trim()) continue
+      const value = aiSlotValue(type, raw, today)
+      if (value) slots[name] = value
+    }
+    return { intent: intentName, slots }
+  }
+
+  return { match, matchControl, matchSlotAnswer, missingRequired, delegation, aiCatalog, fromAi, slotNames: (intentName) => Object.keys(slotTypes[intentName] || {}) }
 }

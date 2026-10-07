@@ -149,5 +149,15 @@
   "bugReportAttachmentInvalid": "An attachment could not be read.",
   "bugReportUnavailable": "Email sending is not configured on the platform: the report could not be sent.",
   "bugReportSendFailed": "The report could not be sent. Please try again later.",
-  "bugReportTooMany": "You have sent many reports: please try again in a while."
+  "bugReportTooMany": "You have sent many reports: please try again in a while.",
+  "voiceAiBadModel": "Invalid model name",
+  "voiceAiKeyRequired": "Enter the Mistral API key",
+  "voiceAiKeyRejected": "Invalid API key",
+  "voiceAi": {
+    "keyRejected": "Mistral rejected this API key",
+    "unreachable": "Mistral cannot be reached from the server, try again later",
+    "rateLimited": "This Mistral account's usage limit has been reached",
+    "refused": "Mistral refused the request, check the key and the model name",
+    "invalid": "Unexpected answer from Mistral, check the model name"
+  }
 }

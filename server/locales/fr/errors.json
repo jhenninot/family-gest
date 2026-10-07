@@ -149,5 +149,15 @@
   "bugReportAttachmentInvalid": "Une pièce jointe est illisible.",
   "bugReportUnavailable": "L'envoi d'emails n'est pas configuré sur la plateforme : le signalement n'a pas pu être envoyé.",
   "bugReportSendFailed": "Le signalement n'a pas pu être envoyé. Réessayez plus tard.",
-  "bugReportTooMany": "Vous avez envoyé beaucoup de signalements : réessayez dans un moment."
+  "bugReportTooMany": "Vous avez envoyé beaucoup de signalements : réessayez dans un moment.",
+  "voiceAiBadModel": "Nom de modèle invalide",
+  "voiceAiKeyRequired": "Saisissez la clé API Mistral",
+  "voiceAiKeyRejected": "Clé API invalide",
+  "voiceAi": {
+    "keyRejected": "Mistral a refusé cette clé API",
+    "unreachable": "Mistral est injoignable depuis le serveur, réessayez plus tard",
+    "rateLimited": "La limite d'utilisation de ce compte Mistral est atteinte",
+    "refused": "Mistral a refusé la demande, vérifiez la clé et le nom du modèle",
+    "invalid": "Réponse inattendue de Mistral, vérifiez le nom du modèle"
+  }
 }

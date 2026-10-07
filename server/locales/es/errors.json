@@ -149,5 +149,15 @@
   "bugReportAttachmentInvalid": "No se ha podido leer un archivo adjunto.",
   "bugReportUnavailable": "El envío de emails no está configurado en la plataforma: no se ha podido enviar el informe.",
   "bugReportSendFailed": "No se ha podido enviar el informe. Inténtelo más tarde.",
-  "bugReportTooMany": "Ha enviado muchos informes: inténtelo de nuevo dentro de un rato."
+  "bugReportTooMany": "Ha enviado muchos informes: inténtelo de nuevo dentro de un rato.",
+  "voiceAiBadModel": "Nombre de modelo no válido",
+  "voiceAiKeyRequired": "Introduce la clave API de Mistral",
+  "voiceAiKeyRejected": "Clave API no válida",
+  "voiceAi": {
+    "keyRejected": "Mistral ha rechazado esta clave API",
+    "unreachable": "No se puede contactar con Mistral desde el servidor, inténtalo más tarde",
+    "rateLimited": "Se ha alcanzado el límite de uso de esta cuenta de Mistral",
+    "refused": "Mistral ha rechazado la solicitud, comprueba la clave y el nombre del modelo",
+    "invalid": "Respuesta inesperada de Mistral, comprueba el nombre del modelo"
+  }
 }

@@ -6,6 +6,8 @@ import { buildSkill } from '../alexa/handlers.js'
 import { todayStr } from '../alexa/parsing.js'
 import { getFamilyMembersList } from '../mcp/resolveMember.js'
 import { buildNlu } from './nlu.js'
+import { guessIntent, allowedIntentNames } from './ai.js'
+import VoiceAiConfig from '../models/VoiceAiConfig.js'
 import { recordChannelUsage } from '../stats/channels.js'
 
 // Assistant vocal de l'application : POST /api/voice/command avec le texte dicté (reconnaissance
@@ -98,7 +100,7 @@ const plainSpeech = (outputSpeech) => String(outputSpeech?.ssml || outputSpeech?
 
 // Traite une phrase : compréhension, questions obligatoires, puis dialogue de la skill.
 // Fonction sans accès direct à la base (api, nlu fournis) : testable isolément.
-export const processVoiceCommand = async ({ text, session, pending, nlu, api, lang, today, t }) => {
+export const processVoiceCommand = async ({ text, session, pending, nlu, api, lang, today, t, ai = null }) => {
   const attributes = session || {}
 
   // Question en attente : la phrase y répond (« mardi », « pour Paul »), sauf si c'est une
@@ -120,7 +122,9 @@ export const processVoiceCommand = async ({ text, session, pending, nlu, api, la
   if (!intent) {
     // Dictée qui bégaie (« les prochaines les prochaines absences ») : second essai sans la répétition
     const collapsed = collapseRepeats(text)
-    const found = nlu.match(text, today) || (collapsed !== text ? nlu.match(collapsed, today) : null)
+    let found = nlu.match(text, today) || (collapsed !== text ? nlu.match(collapsed, today) : null)
+    // Repli IA (si la famille l'a activé) pour une nouvelle demande que les phrases connues ne comprennent pas
+    if (!found && !pending?.prompt && ai) found = await ai(text)
     if (found) {
       intent = buildIntent(nlu, found.intent, found.slots)
     } else if (pending?.prompt) {
@@ -182,6 +186,31 @@ export const processVoiceCommand = async ({ text, session, pending, nlu, api, la
   }
 }
 
+// Repli IA de la famille (clé saisie par un administrateur, voir VoiceAiConfig) : fonction qui
+// renvoie { intent, slots } pour une phrase, ou null ; absente tant qu'il n'y a pas de clé active.
+const buildAiResolver = async (familyId, nlu) => {
+  const config = await VoiceAiConfig.findOne({ familyId })
+  if (!config || !config.enabled || !config.apiKey) return null
+  const catalog = nlu.aiCatalog(allowedIntentNames(config))
+  return async (text) => {
+    const guess = await guessIntent({
+      apiKey: config.apiKey,
+      model: config.model,
+      text,
+      today: todayStr(),
+      catalog,
+      onError: (err) => {
+        console.warn(`[Voice] Repli IA : ${err.code}`)
+        VoiceAiConfig.updateOne({ _id: config._id }, { lastError: err.code }).catch(() => {})
+      }
+    })
+    if (!guess) return null
+    VoiceAiConfig.updateOne({ _id: config._id }, { lastUsedAt: new Date(), lastError: '' }).catch(() => {})
+    console.debug(`[Voice] Repli IA : ${guess.intent}`)
+    return nlu.fromAi(guess.intent, guess.slots, todayStr())
+  }
+}
+
 export const mountVoiceAssistant = (app, ctx, { requireAuth, attachFamilyContext }) => {
   app.post('/api/voice/command', voiceRateLimiter, requireAuth, attachFamilyContext, async (req, res) => {
     try {
@@ -194,11 +223,13 @@ export const mountVoiceAssistant = (app, ctx, { requireAuth, attachFamilyContext
       const pending = req.body?.pending && typeof req.body.pending === 'object' ? req.body.pending : null
 
       req.alexaActor = await User.findOne({ id: req.user.id }).select('-password')
+      const nlu = await getNlu(req.family)
       res.json(await processVoiceCommand({
         text,
         session,
         pending,
-        nlu: await getNlu(req.family),
+        nlu,
+        ai: await buildAiResolver(req.family._id, nlu),
         api: createAlexaApi(req, ctx, req.lang, { channel: 'voice' }),
         lang: req.lang,
         today: todayStr(),

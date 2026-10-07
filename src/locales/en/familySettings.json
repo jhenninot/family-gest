@@ -211,5 +211,31 @@
       }
     },
     "invocationHintAuto": "Example: \"Alexa, demande à {name} d’acheter du lait\". After a change, the model is updated automatically at Amazon."
+  },
+  "voiceAi": {
+    "title": "Natural language understanding (AI)",
+    "intro": "When the app's voice assistant doesn't understand a sentence, a small Mistral model (hosted in the European Union) can guess what you mean. The assistant's usual questions are kept, for example “should I note the absence at the meal?” after an appointment. The feature only exists if you enter an API key.",
+    "statusNone": "Off: no API key saved.",
+    "statusOff": "Key {key} saved, but the feature is turned off.",
+    "statusOn": "On (key {key}).",
+    "apiKey": "Mistral API key",
+    "keyKept": "Key saved (leave empty to keep it)",
+    "keyHelp": "Create an account and a key at",
+    "model": "Model",
+    "enable": "Turn on natural language understanding",
+    "allowAgenda": "Allow the AI to handle the agenda (add or read events, daily summary)",
+    "allowPrivateTasks": "Allow the AI to read tasks, including the speaker's private tasks",
+    "allowHint": "Without these permissions, the AI only understands shopping, meals, presences and absences.",
+    "privacy": "Only the sentence you said is sent to Mistral, with today's date. The agenda, the tasks and the family's first names are not. Usage is billed to the Mistral account of the key. The key is encrypted and never shown again.",
+    "saved": "Settings saved.",
+    "removed": "Key removed: the feature is turned off.",
+    "remove": "Remove the key",
+    "lastError": {
+      "unreachable": "Last call: Mistral unreachable.",
+      "keyRejected": "Last call: key rejected by Mistral.",
+      "rateLimited": "Last call: Mistral usage limit reached.",
+      "refused": "Last call: request refused by Mistral.",
+      "invalid": "Last call: unusable answer from Mistral."
+    }
   }
 }

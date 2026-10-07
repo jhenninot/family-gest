@@ -211,5 +211,31 @@
       }
     },
     "invocationHintAuto": "Ejemplo: «Alexa, demande à {name} d’acheter du lait». Tras un cambio, el modelo se actualiza automáticamente en Amazon."
+  },
+  "voiceAi": {
+    "title": "Comprensión en lenguaje natural (IA)",
+    "intro": "Cuando el asistente de voz de la aplicación no entiende una frase, un pequeño modelo de Mistral (alojado en la Unión Europea) puede adivinar lo que quieres decir. Se mantienen las preguntas habituales del asistente, por ejemplo «¿hay que anotar la ausencia en la comida?» tras una cita. La función solo existe si introduces una clave API.",
+    "statusNone": "Desactivada: no hay ninguna clave API guardada.",
+    "statusOff": "Clave {key} guardada, pero la función está desactivada.",
+    "statusOn": "Activada (clave {key}).",
+    "apiKey": "Clave API de Mistral",
+    "keyKept": "Clave guardada (déjalo vacío para conservarla)",
+    "keyHelp": "Crea una cuenta y una clave en",
+    "model": "Modelo",
+    "enable": "Activar la comprensión en lenguaje natural",
+    "allowAgenda": "Permitir que la IA gestione la agenda (añadir o leer eventos, resumen del día)",
+    "allowPrivateTasks": "Permitir que la IA lea las tareas, incluidas las tareas privadas de quien habla",
+    "allowHint": "Sin estos permisos, la IA solo entiende la compra, las comidas, las presencias y las ausencias.",
+    "privacy": "Solo se envía a Mistral la frase dicha, con la fecha de hoy. No se envían ni la agenda, ni las tareas, ni los nombres de la familia. El uso se factura en la cuenta de Mistral de la clave. La clave se cifra y nunca se vuelve a mostrar.",
+    "saved": "Ajustes guardados.",
+    "removed": "Clave eliminada: la función está desactivada.",
+    "remove": "Eliminar la clave",
+    "lastError": {
+      "unreachable": "Última llamada: Mistral no accesible.",
+      "keyRejected": "Última llamada: clave rechazada por Mistral.",
+      "rateLimited": "Última llamada: límite de uso de Mistral alcanzado.",
+      "refused": "Última llamada: solicitud rechazada por Mistral.",
+      "invalid": "Última llamada: respuesta inutilizable de Mistral."
+    }
   }
 }
