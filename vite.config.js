@@ -63,8 +63,22 @@ export default defineConfig({
         // Les adresses du serveur ouvertes directement dans le navigateur (retour de l'autorisation
         // Amazon, fichiers .ics des emails…) doivent atteindre le serveur : sans cette exclusion, le
         // service worker y répond avec la page de l'application, qui renvoie alors à l'accueil.
-        navigateFallbackDenylist: [/^\/api\//, /\/[^/]+\.[a-z0-9]+$/i],
+        // Pas de page d'application préchargée : les navigations passent par le réseau d'abord
+        // (voir runtimeCaching), pour qu'une nouvelle version s'affiche dès son déploiement.
+        navigateFallback: null,
         runtimeCaching: [
+          {
+            // Pages de l'application : toujours le serveur (index.html à jour), la dernière page
+            // en cache seulement hors ligne ou si le serveur ne répond pas sous 5 s.
+            // Exclus : /api/ et les adresses de fichiers (.ics, retour OAuth…) qui vont au serveur.
+            urlPattern: ({ request, url }) =>
+              request.mode === 'navigate' && !url.pathname.startsWith('/api/') && !/\/[^/]+\.[a-z0-9]+$/i.test(url.pathname),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'app-pages',
+              networkTimeoutSeconds: 5
+            }
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',

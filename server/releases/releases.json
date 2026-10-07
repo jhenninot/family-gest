@@ -20,16 +20,21 @@
   {
     "version": "2026.10.07",
     "date": "2026-10-07",
-    "minor": [],
+    "minor": [
+      1
+    ],
     "notes": {
       "fr": [
-        "Assistant vocal : compréhension des phrases libres. Un administrateur de la famille peut renseigner une clé API Mistral dans les réglages de la famille ; l'assistant devine alors ce que vous voulez dire quand une phrase n'est pas reconnue (« faut que je pense au dentiste mardi à midi avec Paul »). L'administrateur choisit s'il peut aussi gérer l'agenda et lire les tâches privées. Les questions habituelles restent posées, comme « faut-il noter l'absence de Paul au déjeuner ? »."
+        "Assistant vocal : compréhension des phrases libres. Un administrateur de la famille peut renseigner une clé API Mistral dans les réglages de la famille ; l'assistant devine alors ce que vous voulez dire quand une phrase n'est pas reconnue (« faut que je pense au dentiste mardi à midi avec Paul »). L'administrateur choisit s'il peut aussi gérer l'agenda et lire les tâches privées. Les questions habituelles restent posées, comme « faut-il noter l'absence de Paul au déjeuner ? ».",
+        "Mises à jour : l'application affiche la nouvelle version dès son déploiement, à l'ouverture ou au rechargement, sans attendre le service worker."
       ],
       "en": [
-        "Voice assistant: understanding of free-form sentences. A family administrator can enter a Mistral API key in the family settings; the assistant then guesses what you mean when a sentence isn't recognised (“I need to remember the dentist on Tuesday at noon with Paul”). The administrator chooses whether it may also handle the agenda and read private tasks. The usual questions are still asked, such as “should I note Paul's absence at lunch?”."
+        "Voice assistant: understanding of free-form sentences. A family administrator can enter a Mistral API key in the family settings; the assistant then guesses what you mean when a sentence isn't recognised (“I need to remember the dentist on Tuesday at noon with Paul”). The administrator chooses whether it may also handle the agenda and read private tasks. The usual questions are still asked, such as “should I note Paul's absence at lunch?”.",
+        "Updates: the app shows the new version as soon as it is deployed, on opening or reloading, without waiting for the service worker."
       ],
       "es": [
-        "Asistente de voz: comprensión de frases libres. Un administrador de la familia puede introducir una clave API de Mistral en los ajustes de la familia; el asistente adivina entonces lo que quieres decir cuando no reconoce una frase («tengo que acordarme del dentista el martes a mediodía con Paul»). El administrador elige si también puede gestionar la agenda y leer las tareas privadas. Se siguen haciendo las preguntas habituales, como «¿hay que anotar la ausencia de Paul en la comida?»."
+        "Asistente de voz: comprensión de frases libres. Un administrador de la familia puede introducir una clave API de Mistral en los ajustes de la familia; el asistente adivina entonces lo que quieres decir cuando no reconoce una frase («tengo que acordarme del dentista el martes a mediodía con Paul»). El administrador elige si también puede gestionar la agenda y leer las tareas privadas. Se siguen haciendo las preguntas habituales, como «¿hay que anotar la ausencia de Paul en la comida?».",
+        "Actualizaciones: la aplicación muestra la nueva versión en cuanto se despliega, al abrirla o recargarla, sin esperar al service worker."
       ]
     }
   },
