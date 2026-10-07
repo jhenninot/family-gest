@@ -43,7 +43,7 @@ export const allowedIntentNames = (config) => Object.entries(AI_INTENTS)
   .map(([name]) => name)
 
 const SLOT_HINTS = {
-  'AMAZON.DATE': 'date AAAA-MM-JJ si c\'est un jour précis, sinon les mots dits (« cette semaine », « ce week-end »)',
+  'AMAZON.DATE': 'recopie les mots dits sans calculer (« dimanche », « demain », « mardi prochain », « le 20 octobre », « ce soir », « cette semaine »)',
   'AMAZON.TIME': 'heure HH:MM sur 24 h',
   MealSlot: 'midi, soir, nuit ou toute la journée',
   MemberName: 'prénom tel que dit',
@@ -60,7 +60,7 @@ const buildPrompt = (catalog, today, weekday) => {
     return `- ${name} : ${AI_INTENTS[name].hint}${slotText ? `. Valeurs : ${slotText}` : ''}`
   })
   return `Tu aides à utiliser une application familiale par la voix. L'utilisateur a dit une phrase (parfois mal reconnue). Aujourd'hui nous sommes ${weekday} ${today}.
-Choisis l'action qui correspond et extrais les valeurs dites. N'invente rien : omets une valeur qui n'a pas été dite.
+Choisis l'action qui correspond et extrais les valeurs dites. N'invente rien : omets une valeur qui n'a pas été dite. Ne calcule jamais de date : recopie les mots dits.
 Actions :
 ${lines.join('\n')}
 Réponds uniquement en JSON : {"intent":"NomExact","slots":{"nom":"valeur"}}. Si aucune action ne correspond : {"intent":null}.`

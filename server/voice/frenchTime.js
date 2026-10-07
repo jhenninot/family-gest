@@ -41,6 +41,10 @@ export const DATE_SOURCE = [
   `dans (?:\\d+|${NUMBER_ALT}) (?:jours?|semaines?)`
 ].map(s => `(?:${s})`).join('|')
 
+// Moments de la journée dits à la place d'une date, acceptés pour l'ajout d'un événement uniquement
+// (pour les présences, « ce soir » désigne le repas et non le jour)
+export const TODAY_PART_SOURCE = '(?:ce (?:matin|midi|soir)|cet apres midi|cette apres midi)'
+
 const pad = (n) => String(n).padStart(2, '0')
 const toStr = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 const fromStr = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d) }
@@ -71,6 +75,8 @@ export const parseFrenchDate = (text, today) => {
   if (t === 'apres demain') return addDays(today, 2)
   if (t === 'hier') return addDays(today, -1)
   if (t === 'avant hier') return addDays(today, -2)
+  // « j'ai rendez-vous ce soir » : aujourd'hui (voir TODAY_PART_SOURCE)
+  if (new RegExp(`^${TODAY_PART_SOURCE}$`).test(t)) return today
   // « les absences de la semaine » : la semaine en cours
   if (t === 'cette semaine' || t === 'la semaine') return isoWeek(today)
   if (/semaine (prochaine|d'apres)/.test(t)) return isoWeek(addDays(today, 7))

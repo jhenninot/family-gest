@@ -357,6 +357,10 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
         "je veux ajouter un événement",
         'ajoute un événement appelé {guidedTitle}',
         'ajoute un événement intitulé {guidedTitle}',
+        // « j'ai rendez-vous ce soir à 18 heures » : le titre est demandé ensuite (ajout guidé)
+        "j'ai [un] rendez-vous {date} [à {time}]",
+        "j'ai [un] rendez-vous {date} de {time} à {endTime}",
+        "j'ai [un] rendez-vous [{date}] à {time}",
         // En une phrase
         'ajoute {title} pour {member} [{date}] [à {time}]',
         'ajoute {title} {date} de {time} à {endTime}',
@@ -463,6 +467,9 @@ export const buildInteractionModel = ({ invocationName = DEFAULT_INVOCATION_NAME
       slots: [{ name: 'guests', type: 'GuestNames' }, { ...date }, { name: 'slotOne', type: 'MealSlot' }, { name: 'slotTwo', type: 'MealSlot' }],
       samples: expand([
         '{guests} vient {slotOne} [et {slotTwo}] [{date}]',
+        '{guests} vient {date} {slotOne}',
+        '{guests} vient déjeuner {date} {slotOne}',
+        '{guests} vient dîner {date} {slotOne}',
         '{guests} viennent {slotOne} [et {slotTwo}] [{date}]',
         '{guests} reste {slotOne} [et {slotTwo}] [{date}]',
         '{guests} restent {slotOne} [et {slotTwo}] [{date}]',

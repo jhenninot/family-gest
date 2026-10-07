@@ -1,5 +1,5 @@
 import { buildInteractionModel } from '../alexa/interactionModel.js'
-import { DATE_SOURCE, DAY_NUM, TIME_SOURCE, parseFrenchDate, parseFrenchTime, dayBeforeEnd } from './frenchTime.js'
+import { DATE_SOURCE, TODAY_PART_SOURCE, DAY_NUM, TIME_SOURCE, parseFrenchDate, parseFrenchTime, dayBeforeEnd } from './frenchTime.js'
 
 // Compréhension des commandes vocales de l'application, sans IA : les phrases du modèle de
 // dialogue de la skill Alexa (server/alexa/interactionModel.js) deviennent des expressions
@@ -89,7 +89,8 @@ export const buildNlu = ({ members = [] } = {}) => {
         // « du 20 au 27 octobre » : le premier jour peut être un simple numéro (mois du dernier jour)
         const dayOnly = type === 'AMAZON.DATE' && /^\s*(?:au|jusqu'au)\s*$/.test(parts[index + 1] || '') && parts[index + 2] === '{endDate}'
         slots.push({ name: slot[1], type, dayOnly })
-        source += `(?<${slot[1]}>${dayOnly ? `${DATE_SOURCE}|${DAY_NUM}` : slotSource(type)})`
+        const dateSource = intentName === 'AddEventIntent' ? `${DATE_SOURCE}|${TODAY_PART_SOURCE}` : DATE_SOURCE
+        source += `(?<${slot[1]}>${dayOnly ? `${dateSource}|${DAY_NUM}` : type === 'AMAZON.DATE' ? dateSource : slotSource(type)})`
       } else if (part) {
         const literal = normalizeChars(part)
         literalLength += literal.replace(/\s+/g, '').length
