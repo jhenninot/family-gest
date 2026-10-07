@@ -44,6 +44,20 @@ const BUILTIN_SAMPLES = {
 // Phrases à la première personne, propres à l'application où l'on sait qui parle : le « prénom »
 // capté (« je ») est remplacé par celui de l'interlocuteur (matchMemberOrSelf, server/alexa/handlers.js)
 const SELF_SAMPLES = {
+  // Formulations dictées plutôt que prononcées à Alexa : infinitif, « dans la liste », « liste de course »
+  AddShoppingIntent: expand([
+    'ajouter {items} [à] [sur] [dans] [la] liste [de courses]',
+    'ajouter {items} à ma liste [de courses]',
+    'ajouter {items} aux courses',
+    'ajouter {items} dans mes courses',
+    'ajoute {items} dans la liste [de courses]',
+    'ajoute {items} dans mes courses',
+    'rajouter {items} [à] [sur] [dans] [la] liste [de courses]',
+    'noter {items} sur la liste [de courses]',
+    'mettre {items} sur la liste [de courses]',
+    'acheter {items} [pour la liste]',
+    'il faut racheter {items}'
+  ]).flatMap(s => [s, s.replace('liste de courses', 'liste de course')]),
   AbsenceIntent: expand([
     '{member} ne serai pas là [pour] [le] {slotOne} [et {slotTwo}] [{date}]',
     '{member} ne serai pas là [{date}] [pour] [le] {slotOne} [et {slotTwo}]',

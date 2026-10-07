@@ -109,7 +109,9 @@ export const guessIntent = async ({ apiKey, model, text, today, catalog, onError
     if (!entry) return null
     const slots = {}
     for (const slot of entry.slots) {
-      const value = parsed.slots?.[slot.name]
+      let value = parsed.slots?.[slot.name]
+      // Une liste d'articles ou de personnes peut revenir sous forme de tableau
+      if (Array.isArray(value)) value = value.filter(v => typeof v === 'string').join(', ')
       if (typeof value === 'string' && value.trim()) slots[slot.name] = value.trim().slice(0, 120)
     }
     return { intent: entry.name, slots }
