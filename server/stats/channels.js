@@ -1,8 +1,9 @@
-// Comptage des utilisations des assistants (Alexa, connecteur Claude/MCP, micro de l'appli)
+// Comptage des utilisations des assistants (Alexa, connecteur Claude/MCP, micro de l'appli, repli IA du micro,
+// ce dernier comptant les appels à Mistral en plus de la commande vocale elle-même)
 // pour les statistiques de la console Super Admin. Une écriture par commande, sans contenu.
 import UsageCounter from '../models/UsageCounter.js'
 
-export const CHANNELS = ['alexa', 'mcp', 'voice']
+export const CHANNELS = ['alexa', 'mcp', 'voice', 'voiceAi']
 const RETENTION_DAYS = 400
 
 export const recordChannelUsage = (familyId, channel) => {

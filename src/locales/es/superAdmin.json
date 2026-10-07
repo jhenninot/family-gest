@@ -455,7 +455,8 @@
     "assistants": {
       "voice": "Micrófono de la app",
       "alexa": "Alexa",
-      "mcp": "Claude (conector)"
+      "mcp": "Claude (conector)",
+      "voiceAi": "Micrófono: respaldo IA (Mistral)"
     },
     "notConnected": "No conectado",
     "commands": "{n} orden | {n} órdenes",

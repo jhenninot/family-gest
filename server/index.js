@@ -72,7 +72,7 @@ dotenv.config()
 const app = express()
 
 // Collections lues par les statistiques d'utilisation de la console (server/stats/usage.js)
-const STATS_MODELS = { Family, FamilyMember, FamilyInvitation, User, Absence, LongAbsence, MealGuest, Meal, MealPoll, ShoppingItem, Task, Event, UsageCounter, AlexaConnector, McpConnector }
+const STATS_MODELS = { Family, FamilyMember, FamilyInvitation, User, Absence, LongAbsence, MealGuest, Meal, MealPoll, ShoppingItem, Task, Event, UsageCounter, AlexaConnector, McpConnector, VoiceAiConfig }
 const PORT = process.env.PORT || 5000
 
 // Nombre de reverse proxies de confiance placés devant ce serveur (Traefik/Nginx/Caddy — voir

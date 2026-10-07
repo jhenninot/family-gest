@@ -62,6 +62,7 @@ const MODULES = [
 ]
 const ASSISTANTS = [
   { key: 'voice', icon: '🎙️' },
+  { key: 'voiceAi', icon: '✨' },
   { key: 'alexa', icon: '🔵' },
   { key: 'mcp', icon: '✳️' }
 ]

@@ -455,7 +455,8 @@
     "assistants": {
       "voice": "In-app microphone",
       "alexa": "Alexa",
-      "mcp": "Claude (connector)"
+      "mcp": "Claude (connector)",
+      "voiceAi": "Microphone: AI fallback (Mistral)"
     },
     "notConnected": "Not connected",
     "commands": "{n} command | {n} commands",

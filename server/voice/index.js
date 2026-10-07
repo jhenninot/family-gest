@@ -193,6 +193,7 @@ const buildAiResolver = async (familyId, nlu) => {
   if (!config || !config.enabled || !config.apiKey) return null
   const catalog = nlu.aiCatalog(allowedIntentNames(config))
   return async (text) => {
+    recordChannelUsage(familyId, 'voiceAi')
     const guess = await guessIntent({
       apiKey: config.apiKey,
       model: config.model,

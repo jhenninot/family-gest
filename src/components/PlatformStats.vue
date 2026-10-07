@@ -16,7 +16,7 @@
       <div class="stats-tile">
         <span class="stats-value">{{ stats ? formatNumber(assistantTotal) : '–' }}</span>
         <span class="stats-label">{{ t('superAdmin.stats.assistants30') }}</span>
-        <span v-if="stats" class="stats-sub">🎙️ {{ stats.assistants30?.voice || 0 }} · Alexa {{ stats.assistants30?.alexa || 0 }} · Claude {{ stats.assistants30?.mcp || 0 }}</span>
+        <span v-if="stats" class="stats-sub">🎙️ {{ stats.assistants30?.voice || 0 }} (✨ {{ stats.voiceAi30 || 0 }}) · Alexa {{ stats.assistants30?.alexa || 0 }} · Claude {{ stats.assistants30?.mcp || 0 }}</span>
       </div>
     </div>
 

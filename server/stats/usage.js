@@ -53,7 +53,7 @@ export const familyUsageStats = async (models, now = new Date()) => {
   const since7 = new Date(now - 7 * DAY)
   const since30 = new Date(now - 30 * DAY)
   const since30Day = since30.toISOString().slice(0, 10)
-  const [creations, members, invitations, channelRows, alexaConnectors, mcpConnectors] = await Promise.all([
+  const [creations, members, invitations, channelRows, alexaConnectors, mcpConnectors, voiceAiConfigs] = await Promise.all([
     creationsByFamily(models, since30),
     models.FamilyMember.aggregate([
       {
@@ -81,7 +81,8 @@ export const familyUsageStats = async (models, now = new Date()) => {
       }
     ]),
     models.AlexaConnector.find({ revokedAt: null }).select('familyId lastUsedAt').lean(),
-    models.McpConnector.find({ revokedAt: null }).select('familyId lastUsedAt').lean()
+    models.McpConnector.find({ revokedAt: null }).select('familyId lastUsedAt').lean(),
+    models.VoiceAiConfig.find({ enabled: true }).select('familyId').lean()
   ])
   const memberBy = new Map(members.map(m => [key(m._id), m]))
   const inviteBy = new Map(invitations.map(i => [key(i._id), i]))
@@ -93,6 +94,7 @@ export const familyUsageStats = async (models, now = new Date()) => {
   }
   const alexaBy = new Map(alexaConnectors.map(c => [key(c.familyId), c]))
   const mcpBy = new Map(mcpConnectors.map(c => [key(c.familyId), c]))
+  const voiceAiBy = new Set(voiceAiConfigs.map(c => key(c.familyId)))
 
   return (familyId) => {
     const c = creations.get(key(familyId)) || { modules: {}, lastCreatedAt: null }
@@ -106,7 +108,8 @@ export const familyUsageStats = async (models, now = new Date()) => {
     const assistants = {
       alexa: { connected: Boolean(alexa), count30: used.alexa?.count30 || 0, lastAt: later(used.alexa?.lastAt || null, alexa?.lastUsedAt || null) },
       mcp: { connected: Boolean(mcp), count30: used.mcp?.count30 || 0, lastAt: later(used.mcp?.lastAt || null, mcp?.lastUsedAt || null) },
-      voice: { connected: true, count30: used.voice?.count30 || 0, lastAt: used.voice?.lastAt || null }
+      voice: { connected: true, count30: used.voice?.count30 || 0, lastAt: used.voice?.lastAt || null },
+      voiceAi: { connected: voiceAiBy.has(key(familyId)), count30: used.voiceAi?.count30 || 0, lastAt: used.voiceAi?.lastAt || null }
     }
     const lastAssistantAt = Object.values(assistants).reduce((acc, a) => later(acc, a.lastAt), null)
     return {
@@ -164,7 +167,7 @@ export const moduleOverview = async (models, now = new Date()) => {
       }
     }
   ])
-  const assistants = Object.fromEntries(['voice', 'alexa', 'mcp'].map(c => [c, { count30: 0, previous30: 0, families30: 0 }]))
+  const assistants = Object.fromEntries(['voice', 'voiceAi', 'alexa', 'mcp'].map(c => [c, { count30: 0, previous30: 0, families30: 0 }]))
   for (const row of channelRows) {
     const a = assistants[row._id.channel]
     if (!a) continue
@@ -217,7 +220,9 @@ export const platformOverview = async (models, now = new Date()) => {
       { $group: { _id: '$channel', count: { $sum: '$count' } } }
     ])
   ])
+  // Le repli IA n'entre pas dans ce total : chaque appel est déjà une commande du micro
   const assistants30 = Object.fromEntries(['alexa', 'mcp', 'voice'].map(c => [c, assistantRows.find(r => r._id === c)?.count || 0]))
+  const voiceAi30 = assistantRows.find(r => r._id === 'voiceAi')?.count || 0
 
   const byModule = await moduleOverview(models, now)
   return {
@@ -228,6 +233,7 @@ export const platformOverview = async (models, now = new Date()) => {
     users: await models.User.countDocuments(),
     created30,
     assistants30,
+    voiceAi30,
     weekly: weekly.map((count, i) => ({ weekStart: new Date(start.getTime() + i * 7 * DAY), count }))
   }
 }

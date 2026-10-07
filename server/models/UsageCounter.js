@@ -4,7 +4,7 @@ import mongoose from 'mongoose'
 // console Super Admin, voir server/stats/channels.js). Aucun contenu : un compteur et une date.
 const usageCounterSchema = new mongoose.Schema({
   familyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Family', required: true },
-  channel: { type: String, enum: ['alexa', 'mcp', 'voice'], required: true },
+  channel: { type: String, enum: ['alexa', 'mcp', 'voice', 'voiceAi'], required: true },
   day: { type: String, required: true }, // AAAA-MM-JJ (UTC)
   count: { type: Number, default: 0 },
   lastAt: { type: Date, default: null },

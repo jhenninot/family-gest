@@ -455,7 +455,8 @@
     "assistants": {
       "voice": "Micro de l’appli",
       "alexa": "Alexa",
-      "mcp": "Claude (connecteur)"
+      "mcp": "Claude (connecteur)",
+      "voiceAi": "Micro : repli IA (Mistral)"
     },
     "notConnected": "Non connecté",
     "commands": "{n} commande | {n} commandes",
