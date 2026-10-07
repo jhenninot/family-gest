@@ -114,7 +114,7 @@ a {
 }
 
 @media (max-width: 900px) {
-  #app {
+  html, body, #app {
     overflow-x: clip;
   }
 }
