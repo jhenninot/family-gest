@@ -988,7 +988,7 @@ onUnmounted(() => {
 /* Version Mobile (Safe Area iOS) */
 @media (max-width: 900px) {
   .top-header-actions {
-    position: absolute;
+    position: fixed; /* reste visible avec l'en-tête collé */
     top: calc(0.75rem + env(safe-area-inset-top, 0px));
     right: calc(0.85rem + env(safe-area-inset-right, 0px));
   }
