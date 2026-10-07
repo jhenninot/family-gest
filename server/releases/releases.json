@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.10",
+    "date": "2026-10-10",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Mobile : la barre de navigation (icônes et compteurs) passe en bas de l'écran, à portée de pouce ; elle se masque pendant la saisie au clavier."
+      ],
+      "en": [
+        "Mobile: the navigation bar (icons and counters) now sits at the bottom of the screen, within thumb reach; it hides while you type on the keyboard."
+      ],
+      "es": [
+        "Móvil: la barra de navegación (iconos y contadores) pasa a la parte inferior de la pantalla, al alcance del pulgar; se oculta mientras escribe con el teclado."
+      ]
+    }
+  },
+  {
     "version": "2026.10.09",
     "date": "2026-10-09",
     "minor": [

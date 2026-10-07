@@ -147,9 +147,13 @@ a {
     /* clip (et non hidden) : hidden créerait un conteneur de défilement qui casse le sticky de l'en-tête */
     overflow-x: clip;
   }
+  :root {
+    /* Hauteur de la barre de navigation fixe en bas (voir Sidebar.vue) */
+    --mobile-nav-h: calc(3.7rem + env(safe-area-inset-bottom, 0px));
+  }
   .main-content {
     padding: 1rem 0.75rem;
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--mobile-nav-h) + 4.5rem);
     max-width: 100vw;
     box-sizing: border-box;
   }

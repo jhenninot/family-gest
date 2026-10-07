@@ -153,7 +153,7 @@ onUnmounted(() => {
 <style scoped>
 .pwa-prompt-container {
   position: fixed;
-  bottom: 1.25rem;
+  bottom: calc(1.25rem + var(--mobile-nav-h, 0px));
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 2.5rem);

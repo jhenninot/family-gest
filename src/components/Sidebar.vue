@@ -18,7 +18,7 @@
 
 
     <!-- Navigation Menu -->
-    <nav class="nav-menu">
+    <nav class="nav-menu" :class="{ 'keyboard-open': keyboardOpen }">
       <router-link :to="getPath('')" class="nav-item" active-class="active">
         <LayoutDashboard :size="20" />
         <span>{{ t('nav.dashboard') }}</span>
@@ -119,7 +119,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/authStore'
@@ -145,6 +145,20 @@ const { t } = useI18n()
 const route = useRoute()
 const authStore = useAuthStore()
 const store = useFamilyStore()
+
+// Clavier ouvert (champ de saisie actif) : la barre du bas est masquée pour ne pas manger la place
+const keyboardOpen = ref(false)
+const isTextField = (el) => !!el && (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || (el.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit', 'range', 'color', 'file'].includes(el.type)) || el.isContentEditable)
+const onFocusIn = (e) => { keyboardOpen.value = isTextField(e.target) }
+const onFocusOut = () => { keyboardOpen.value = false }
+onMounted(() => {
+  document.addEventListener('focusin', onFocusIn)
+  document.addEventListener('focusout', onFocusOut)
+})
+onUnmounted(() => {
+  document.removeEventListener('focusin', onFocusIn)
+  document.removeEventListener('focusout', onFocusOut)
+})
 
 const isSuperAdminRoute = computed(() => route.path.startsWith('/super-admin'))
 
@@ -475,7 +489,7 @@ const upcomingEventsCount = computed(() => {
     min-height: auto;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
-    padding: calc(0.85rem + env(safe-area-inset-top, 0px)) calc(1rem + env(safe-area-inset-right, 0px)) 1rem calc(1rem + env(safe-area-inset-left, 0px));
+    padding: calc(0.85rem + env(safe-area-inset-top, 0px)) calc(1rem + env(safe-area-inset-right, 0px)) 0.85rem calc(1rem + env(safe-area-inset-left, 0px));
     gap: 0.75rem;
     /* En-tête toujours visible quand on défile */
     position: sticky;
@@ -488,12 +502,25 @@ const upcomingEventsCount = computed(() => {
   .family-switcher-section {
     display: none;
   }
+  /* Navigation fixe en bas de l'écran (zone sûre iOS), sous les modales (z-index 1000) */
   .nav-menu {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 95;
     flex-direction: row;
     flex-wrap: nowrap;
     overflow-x: hidden; /* Filet de sécurité : le flex:1 ci-dessous garantit déjà que tout tient sans scroll */
-    padding-bottom: 0.25rem;
+    padding: 0.4rem calc(0.5rem + env(safe-area-inset-right, 0px)) calc(0.4rem + env(safe-area-inset-bottom, 0px)) calc(0.5rem + env(safe-area-inset-left, 0px));
     gap: clamp(0.15rem, 1.5vw, 0.5rem);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.08);
+  }
+
+  .nav-menu.keyboard-open {
+    display: none;
   }
 
   .nav-item {

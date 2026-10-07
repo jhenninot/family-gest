@@ -274,7 +274,7 @@ onBeforeUnmount(() => {
 .voice-fab {
   position: fixed;
   right: calc(1.1rem + env(safe-area-inset-right, 0px));
-  bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(1.1rem + var(--mobile-nav-h, env(safe-area-inset-bottom, 0px)));
   z-index: 900;
   width: 56px;
   height: 56px;
@@ -297,10 +297,10 @@ onBeforeUnmount(() => {
 .voice-panel {
   position: fixed;
   right: calc(1rem + env(safe-area-inset-right, 0px));
-  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(1rem + var(--mobile-nav-h, env(safe-area-inset-bottom, 0px)));
   z-index: 950;
   width: min(420px, calc(100vw - 2rem));
-  max-height: min(560px, calc(100vh - 6rem));
+  max-height: min(560px, calc(100vh - 6rem - var(--mobile-nav-h, 0px)));
   display: flex;
   flex-direction: column;
   padding: 0.9rem;
