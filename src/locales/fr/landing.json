@@ -11,7 +11,7 @@
     "guests": "dont Mamie et Papi",
     "menu": "Au menu",
     "dish": "Lasagnes maison",
-    "poll": "Repas à organiser",
+    "poll": "Réception à organiser",
     "pollTitle": "Dîner avec les Dupont",
     "pollVotes": "3 personnes disponibles samedi",
     "shopping": "Courses",
@@ -42,7 +42,7 @@
       "text": "Une seule liste pour toute la famille, rangée par rayon, mise à jour en direct. Les ingrédients des menus s’y ajoutent en un geste."
     },
     "polls": {
-      "title": "Repas à organiser",
+      "title": "Réception à organiser",
       "text": "Proposez plusieurs dates, vos invités votent sur WhatsApp sans rien installer."
     },
     "tasks": {

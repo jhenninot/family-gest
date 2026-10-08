@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.11",
+    "date": "2026-10-08",
+    "minor": [0],
+    "notes": {
+      "fr": [
+        "« Repas à organiser » devient « Réception à organiser » (menu, tableau de bord, agenda, aide)."
+      ],
+      "en": [
+        "“Meals to organise” is now “Gathering to organise” (menu, dashboard, calendar, help)."
+      ],
+      "es": [
+        "«Comidas por organizar» pasa a llamarse «Recepción por organizar» (menú, panel, agenda, ayuda)."
+      ]
+    }
+  },
+  {
     "version": "2026.10.10",
     "date": "2026-10-10",
     "minor": [],

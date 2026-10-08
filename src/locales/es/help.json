@@ -80,7 +80,7 @@
       }
     },
     "mealPlans": {
-      "title": "Comidas por organizar",
+      "title": "Recepción por organizar",
       "intro": "Para encontrar una fecha con invitados, como una encuesta: propone fechas, cada uno vota desde un enlace y luego fija la fecha.",
       "howto": {
         "create": {

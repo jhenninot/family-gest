@@ -16,7 +16,7 @@
     "fromMeals": "Les ingrédients ajoutés depuis un plat (« + Ingrédients ») arrivent directement ici, avec le nom du plat.",
     "live": "La liste est partagée en direct : ce que l'un coche au magasin disparaît chez les autres.",
     "reminders": "Une tâche avec échéance devient urgente à cette date, et la personne concernée reçoit un rappel chaque jour tant qu'elle n'est pas faite.",
-    "proposals": "Les dates proposées pour un repas à organiser apparaissent en pointillés : touchez-les pour ouvrir le repas.",
+    "proposals": "Les dates proposées pour une réception à organiser apparaissent en pointillés : touchez-les pour ouvrir le repas.",
     "adminOnly": "Cet écran est réservé aux administrateurs de la famille."
   },
   "topics": {
@@ -80,7 +80,7 @@
       }
     },
     "mealPlans": {
-      "title": "Repas à organiser",
+      "title": "Réception à organiser",
       "intro": "Pour trouver une date avec des invités, comme un sondage : vous proposez des dates, chacun vote depuis un lien, puis vous fixez la date.",
       "howto": {
         "create": {
@@ -268,7 +268,7 @@
   },
   "empty": {
     "mealPlans": {
-      "title": "Aucun repas à organiser",
+      "title": "Aucune réception à organiser",
       "text": "Vous voulez inviter des amis ou la famille ? Proposez-leur plusieurs dates : ils votent depuis un simple lien WhatsApp, sans rien installer, et vous fixez la date.",
       "action": "Organiser un repas"
     },

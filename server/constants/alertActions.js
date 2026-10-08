@@ -16,7 +16,7 @@ export const ALERT_ACTIONS = {
   LONG_ABSENCE_CREATED: { code: 'absence.long', label: 'Absence longue signalée', category: 'presence' },
   MEAL_GUEST_CREATED: { code: 'meal_guest.created', label: 'Invité aux repas ajouté', category: 'presence' },
   MEAL_CREATED: { code: 'meal.created', label: 'Repas suggéré', category: 'meals' },
-  MEAL_POLL_VOTED: { code: 'meal_poll.voted', label: 'Vote pour un repas à organiser', category: 'meals' },
+  MEAL_POLL_VOTED: { code: 'meal_poll.voted', label: 'Vote pour une réception à organiser', category: 'meals' },
   DIGEST_SENT: { code: 'digest.sent', label: 'Récapitulatif quotidien envoyé' },
   FAMILY_ADMIN_INVITED: { code: 'family.admin_invited', label: 'Invitation administrateur de famille' },
   FAMILY_MEMBER_INVITED: { code: 'family.member_invited', label: 'Invitation membre de famille' },

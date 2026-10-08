@@ -1,9 +1,9 @@
 {
-  "title": "Repas à organiser",
+  "title": "Réception à organiser",
   "intro": "Proposez plusieurs dates à vos invités : ils votent sans compte depuis un lien à partager sur WhatsApp, puis vous fixez la date.",
   "new": "Nouveau repas",
   "editTitle": "Modifier le repas",
-  "empty": "Aucun repas à organiser pour le moment.",
+  "empty": "Aucune réception à organiser pour le moment.",
   "slots": {
     "lunch": "Déjeuner",
     "dinner": "Dîner"
@@ -61,7 +61,7 @@
   "reopen": "Rouvrir le vote",
   "reopenMessage": "Le vote sera rouvert ; les invités ajoutés aux repas et l'événement créés pour la date retenue seront supprimés.",
   "delete": {
-    "title": "Supprimer le repas à organiser",
+    "title": "Supprimer la réception à organiser",
     "message": "Supprimer « {title} » et ses votes ?",
     "mealTitle": "Supprimer aussi le repas ?",
     "mealMessage": "La date de ce repas est fixée au {date}.",

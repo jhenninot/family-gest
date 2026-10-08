@@ -11,6 +11,6 @@
   "shortcuts": "Accesos directos",
   "openShortcut": "Abrir {title} ({url})",
   "defaultFamilyName": "Espacio familiar",
-  "mealPlans": "Comidas por organizar",
+  "mealPlans": "Recepción por organizar",
   "mealPlansBadge": "{n} comida en votación | {n} comidas en votación"
 }

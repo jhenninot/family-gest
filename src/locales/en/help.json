@@ -80,7 +80,7 @@
       }
     },
     "mealPlans": {
-      "title": "Meals to organise",
+      "title": "Gathering to organise",
       "intro": "To find a date with guests, like a poll: you suggest dates, everyone votes from a link, then you set the date.",
       "howto": {
         "create": {
@@ -268,7 +268,7 @@
   },
   "empty": {
     "mealPlans": {
-      "title": "No meals to organise",
+      "title": "No gathering to organise",
       "text": "Want to invite friends or family? Suggest several dates: they vote from a simple WhatsApp link, without installing anything, and you set the date.",
       "action": "Organise a meal"
     },

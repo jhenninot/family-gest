@@ -444,7 +444,7 @@
     "modules": {
       "presence": "Presence & guests",
       "meals": "Meals",
-      "mealPlans": "Meals to organise",
+      "mealPlans": "Gathering to organise",
       "shopping": "Shopping",
       "tasks": "Tasks",
       "calendar": "Calendar"

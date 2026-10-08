@@ -444,7 +444,7 @@
     "modules": {
       "presence": "Presencias e invitados",
       "meals": "Comidas",
-      "mealPlans": "Comidas por organizar",
+      "mealPlans": "Recepción por organizar",
       "shopping": "Compras",
       "tasks": "Tareas",
       "calendar": "Agenda"

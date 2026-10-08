@@ -95,7 +95,7 @@
   "untilDate": "jusqu'au {date}",
   "proposal": {
     "proposed": "{slot} proposé · {n} disponible | {slot} proposé · {n} disponibles",
-    "sectionTitle": "Dates proposées (repas à organiser)",
-    "open": "Voir le repas à organiser"
+    "sectionTitle": "Dates proposées (réception à organiser)",
+    "open": "Voir la réception à organiser"
   }
 }
