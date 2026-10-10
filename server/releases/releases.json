@@ -5,13 +5,13 @@
     "minor": [],
     "notes": {
       "fr": [
-        "Tableau de bord : le pavé « Réception à organiser » devient « Réception » et indique le nombre de réceptions sans date fixée et de réceptions à venir (aujourd'hui compris)."
+        "Tableau de bord : le pavé « Réception à organiser » devient « Réception » : deux chiffres en gros (réceptions sans date fixée, réceptions à venir aujourd'hui compris) et la date de la prochaine réception en dessous."
       ],
       "en": [
-        "Dashboard: the “Gathering to organise” tile becomes “Gathering” and shows the number of gatherings without a date and of upcoming ones (today included)."
+        "Dashboard: the “Gathering to organise” tile becomes “Gathering”: two big numbers (gatherings without a date, upcoming ones today included) and the date of the next gathering below."
       ],
       "es": [
-        "Panel: el recuadro «Recepción por organizar» pasa a «Recepción» e indica el número de recepciones sin fecha y de próximas (hoy incluido)."
+        "Panel: el recuadro «Recepción por organizar» pasa a «Recepción»: dos cifras grandes (recepciones sin fecha, próximas hoy incluido) y debajo la fecha de la próxima recepción."
       ]
     }
   },

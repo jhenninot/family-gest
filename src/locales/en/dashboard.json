@@ -57,6 +57,8 @@
     "fixedOn": "set for {date}",
     "empty": "No meal being planned.",
     "tileTitle": "Gathering",
-    "summary": "{undated} without a date · {upcoming} upcoming"
+    "undatedLabel": "no date",
+    "upcomingLabel": "upcoming",
+    "noneUpcoming": "No upcoming gathering"
   }
 }

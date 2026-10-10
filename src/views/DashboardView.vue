@@ -50,7 +50,16 @@
         </div>
         <div class="metric-details">
           <span class="metric-label">{{ t('dashboard.mealPlans.tileTitle') }}</span>
-          <div class="metric-value">{{ openMealPolls.length }}</div>
+          <div class="metric-value plan-tile-counts">
+            <span class="plan-tile-count">
+              <span class="plan-tile-number">{{ openMealPolls.length }}</span>
+              <span class="plan-tile-caption">{{ t('dashboard.mealPlans.undatedLabel') }}</span>
+            </span>
+            <span class="plan-tile-count">
+              <span class="plan-tile-number">{{ upcomingFixedMeals.length }}</span>
+              <span class="plan-tile-caption">{{ t('dashboard.mealPlans.upcomingLabel') }}</span>
+            </span>
+          </div>
           <span class="metric-subtext">{{ mealPlansSubtext }}</span>
         </div>
       </router-link>
@@ -687,11 +696,13 @@ const upcomingFixedMeals = computed(() => (store.mealPolls || [])
   .sort((a, b) => a.chosenDate.localeCompare(b.chosenDate)))
 const dashboardMealPlans = computed(() => [...openMealPolls.value, ...upcomingFixedMeals.value].slice(0, 5))
 const shortDay = (dateStr) => formatDate(new Date(`${dateStr}T00:00:00`), { weekday: 'short', day: 'numeric', month: 'short' })
-// Pavé « Réception » : sans date fixée (vote en cours) et à date fixée à venir, aujourd'hui compris
-const mealPlansSubtext = computed(() => t('dashboard.mealPlans.summary', {
-  undated: openMealPolls.value.length,
-  upcoming: upcomingFixedMeals.value.length
-}))
+// Pavé « Réception » : deux chiffres (sans date fixée / à venir, aujourd'hui compris) et, dessous,
+// la prochaine réception à date fixée
+const mealPlansSubtext = computed(() => {
+  const next = upcomingFixedMeals.value[0]
+  if (next) return t('dashboard.mealPlans.next', { title: next.title, date: shortDay(next.chosenDate) })
+  return t('dashboard.mealPlans.noneUpcoming')
+})
 
 const dashboardEvents = computed(() => {
   const today = store.todayStr
@@ -1087,6 +1098,10 @@ const getMemberFirstName = (memberId) => {
   letter-spacing: -0.01em;
 }
 
+.plan-tile-counts { display: flex; align-items: flex-end; gap: 1.25rem; }
+.plan-tile-count { display: flex; flex-direction: column; line-height: 1.1; }
+.plan-tile-number { font: inherit; }
+.plan-tile-caption { font-size: 0.72rem; font-weight: 500; opacity: 0.7; }
 .metric-subtext {
   font-size: 0.775rem;
   color: var(--text-muted);

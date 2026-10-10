@@ -57,6 +57,8 @@
     "fixedOn": "fijada el {date}",
     "empty": "Ninguna comida en preparación.",
     "tileTitle": "Recepción",
-    "summary": "{undated} sin fecha fijada · {upcoming} próximas"
+    "undatedLabel": "sin fecha",
+    "upcomingLabel": "próximas",
+    "noneUpcoming": "Ninguna recepción próxima"
   }
 }

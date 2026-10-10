@@ -57,6 +57,8 @@
     "fixedOn": "fixé au {date}",
     "empty": "Aucun repas en préparation.",
     "tileTitle": "Réception",
-    "summary": "{undated} sans date fixée · {upcoming} à venir"
+    "undatedLabel": "sans date",
+    "upcomingLabel": "à venir",
+    "noneUpcoming": "Aucune réception à venir"
   }
 }
