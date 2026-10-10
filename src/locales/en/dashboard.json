@@ -55,6 +55,8 @@
     "voting": "{n} vote in progress | {n} votes in progress",
     "none": "No meal being planned",
     "fixedOn": "set for {date}",
-    "empty": "No meal being planned."
+    "empty": "No meal being planned.",
+    "tileTitle": "Gathering",
+    "summary": "{undated} without a date · {upcoming} upcoming"
   }
 }

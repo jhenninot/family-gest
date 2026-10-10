@@ -49,7 +49,7 @@
           <CalendarHeart :size="22" />
         </div>
         <div class="metric-details">
-          <span class="metric-label">{{ t('nav.mealPlans') }}</span>
+          <span class="metric-label">{{ t('dashboard.mealPlans.tileTitle') }}</span>
           <div class="metric-value">{{ openMealPolls.length }}</div>
           <span class="metric-subtext">{{ mealPlansSubtext }}</span>
         </div>
@@ -687,12 +687,11 @@ const upcomingFixedMeals = computed(() => (store.mealPolls || [])
   .sort((a, b) => a.chosenDate.localeCompare(b.chosenDate)))
 const dashboardMealPlans = computed(() => [...openMealPolls.value, ...upcomingFixedMeals.value].slice(0, 5))
 const shortDay = (dateStr) => formatDate(new Date(`${dateStr}T00:00:00`), { weekday: 'short', day: 'numeric', month: 'short' })
-const mealPlansSubtext = computed(() => {
-  const next = upcomingFixedMeals.value[0]
-  if (next) return t('dashboard.mealPlans.next', { title: next.title, date: shortDay(next.chosenDate) })
-  if (openMealPolls.value.length > 0) return t('dashboard.mealPlans.voting', { n: openMealPolls.value.length }, openMealPolls.value.length)
-  return t('dashboard.mealPlans.none')
-})
+// Pavé « Réception » : sans date fixée (vote en cours) et à date fixée à venir, aujourd'hui compris
+const mealPlansSubtext = computed(() => t('dashboard.mealPlans.summary', {
+  undated: openMealPolls.value.length,
+  upcoming: upcomingFixedMeals.value.length
+}))
 
 const dashboardEvents = computed(() => {
   const today = store.todayStr

@@ -55,6 +55,8 @@
     "voting": "{n} vote en cours | {n} votes en cours",
     "none": "Aucun repas en préparation",
     "fixedOn": "fixé au {date}",
-    "empty": "Aucun repas en préparation."
+    "empty": "Aucun repas en préparation.",
+    "tileTitle": "Réception",
+    "summary": "{undated} sans date fixée · {upcoming} à venir"
   }
 }

@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.15",
+    "date": "2026-10-10",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Tableau de bord : le pavé « Réception à organiser » devient « Réception » et indique le nombre de réceptions sans date fixée et de réceptions à venir (aujourd'hui compris)."
+      ],
+      "en": [
+        "Dashboard: the “Gathering to organise” tile becomes “Gathering” and shows the number of gatherings without a date and of upcoming ones (today included)."
+      ],
+      "es": [
+        "Panel: el recuadro «Recepción por organizar» pasa a «Recepción» e indica el número de recepciones sin fecha y de próximas (hoy incluido)."
+      ]
+    }
+  },
+  {
     "version": "2026.10.14",
     "date": "2026-10-10",
     "minor": [],

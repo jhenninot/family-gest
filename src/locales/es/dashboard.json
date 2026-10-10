@@ -55,6 +55,8 @@
     "voting": "{n} votación en curso | {n} votaciones en curso",
     "none": "Ninguna comida en preparación",
     "fixedOn": "fijada el {date}",
-    "empty": "Ninguna comida en preparación."
+    "empty": "Ninguna comida en preparación.",
+    "tileTitle": "Recepción",
+    "summary": "{undated} sin fecha fijada · {upcoming} próximas"
   }
 }
