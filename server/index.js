@@ -5449,7 +5449,6 @@ app.put('/api/meal-polls/:id/votes', requireAuth, attachFamilyContext, async (re
   try {
     const poll = await MealPoll.findOne({ familyId: req.family._id, id: Number(req.params.id) })
     if (!poll) return res.status(404).json({ error: req.t('errors.mealPollNotFound') })
-    if (poll.status !== 'open') return res.status(409).json({ error: req.t('errors.mealPollClosed') })
     const { guestId, date, answer } = req.body || {}
     const data = poll.toObject()
     const guest = data.guests.find(g => g.id === Number(guestId))

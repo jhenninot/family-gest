@@ -1,8 +1,28 @@
 [
   {
+    "version": "2026.10.17",
+    "date": "2026-10-10",
+    "minor": [
+      0
+    ],
+    "notes": {
+      "fr": [
+        "Repas à organiser : l'organisateur peut de nouveau modifier les réponses des invités dans le tableau des votes, même une fois la date fixée."
+      ],
+      "en": [
+        "Meals to organise: the organiser can edit guests' answers in the votes table again, even after the date is set."
+      ],
+      "es": [
+        "Comidas por organizar: el organizador puede volver a modificar las respuestas de los invitados en la tabla de votos, incluso con la fecha ya fijada."
+      ]
+    }
+  },
+  {
     "version": "2026.10.16",
     "date": "2026-10-10",
-    "minor": [0],
+    "minor": [
+      0
+    ],
     "notes": {
       "fr": [
         "Repas : sur tablette, la vue semaine répartit les jours sur plusieurs lignes au lieu de colonnes trop étroites ; les noms de plats restent lisibles et le bouton « Ingrédients » ne déborde plus."

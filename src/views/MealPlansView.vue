@@ -75,9 +75,9 @@
               <span class="plan-count-maybe">{{ t('mealPolls.votes.maybe', { n: c.maybe }, c.maybe) }}</span>
             </li>
           </ul>
-          <MealPollGrid v-else :poll="poll" :editable="poll.status === 'open'" @vote="(v) => setVote(poll, v)" />
+          <MealPollGrid v-else :poll="poll" :editable="true" @vote="(v) => setVote(poll, v)" />
         </template>
-        <p v-if="poll.status === 'open' && poll.dates.length && poll.guests.length && !isVotesHidden(poll)" class="plans-muted">{{ t('mealPolls.editVoteHint') }}</p>
+        <p v-if="poll.dates.length && poll.guests.length && !isVotesHidden(poll)" class="plans-muted">{{ t('mealPolls.editVoteHint') }}</p>
         <p v-else class="plans-muted">{{ t('mealPolls.incomplete') }}</p>
 
         <ReceptionPrep :poll="poll" @updated="replacePoll" />
