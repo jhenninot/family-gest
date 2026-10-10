@@ -1,8 +1,26 @@
 [
   {
+    "version": "2026.10.12",
+    "date": "2026-10-10",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Réception à organiser : les membres de la famille peuvent répondre à la place des invités en touchant les cases du tableau des résultats (oui, si besoin, non, effacer)."
+      ],
+      "en": [
+        "Gathering to organise: family members can answer on behalf of guests by tapping the cells of the results table (yes, if needed, no, clear)."
+      ],
+      "es": [
+        "Recepción por organizar: los miembros de la familia pueden responder en nombre de los invitados tocando las casillas de la tabla de resultados (sí, si hace falta, no, borrar)."
+      ]
+    }
+  },
+  {
     "version": "2026.10.11",
     "date": "2026-10-08",
-    "minor": [0],
+    "minor": [
+      0
+    ],
     "notes": {
       "fr": [
         "« Repas à organiser » devient « Réception à organiser » (menu, tableau de bord, agenda, aide)."

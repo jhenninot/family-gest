@@ -63,7 +63,8 @@
           </div>
         </div>
 
-        <MealPollGrid v-if="poll.dates.length && poll.guests.length" :poll="poll" />
+        <MealPollGrid v-if="poll.dates.length && poll.guests.length" :poll="poll" :editable="poll.status === 'open'" @vote="(v) => setVote(poll, v)" />
+        <p v-if="poll.status === 'open' && poll.dates.length && poll.guests.length" class="plans-muted">{{ t('mealPolls.editVoteHint') }}</p>
         <p v-else class="plans-muted">{{ t('mealPolls.incomplete') }}</p>
 
         <div class="plan-actions">
@@ -315,6 +316,17 @@ const replacePoll = (updated) => {
   const i = polls.value.findIndex(p => p.id === updated.id)
   if (i === -1) polls.value.unshift(updated)
   else polls.value[i] = updated
+}
+
+// Réponse saisie à la place d'un invité : la case change tout de suite, puis le serveur confirme
+const setVote = async (poll, { guestId, date, answer }) => {
+  const previous = poll.votes
+  poll.votes = [...poll.votes.filter(v => !(v.guestId === guestId && v.date === date)), ...(answer ? [{ guestId, date, answer }] : [])]
+  try {
+    replacePoll(await api(`/${poll.id}/votes`, { method: 'PUT', body: JSON.stringify({ guestId, date, answer }) }))
+  } catch {
+    poll.votes = previous // la case revient à sa valeur précédente
+  }
 }
 
 // --- Partage ---

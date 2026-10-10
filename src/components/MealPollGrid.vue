@@ -20,8 +20,9 @@
             <span>{{ g.name }}<span v-if="(g.count || 1) > 1" class="poll-count"> ×{{ g.count }}</span></span>
             <span v-if="g.comment" class="poll-comment" :title="g.comment">💬 {{ g.comment }}</span>
           </th>
-          <td v-for="d in poll.dates" :key="d" :class="['cell', answerOf(g.id, d) || 'none', { chosen: d === poll.chosenDate }]">
-            <span :aria-label="t(`mealPolls.answers.${answerOf(g.id, d) || 'none'}`)">{{ ICONS[answerOf(g.id, d) || 'none'] }}</span>
+          <td v-for="d in poll.dates" :key="d" :class="['cell', answerOf(g.id, d) || 'none', { chosen: d === poll.chosenDate, editable }]">
+            <button v-if="editable" type="button" class="cell-btn" :title="t('mealPolls.editVote', { name: g.name })" :aria-label="`${g.name} : ${t(`mealPolls.answers.${answerOf(g.id, d) || 'none'}`)}`" @click="emit('vote', { guestId: g.id, date: d, answer: nextAnswer(answerOf(g.id, d)) })">{{ ICONS[answerOf(g.id, d) || 'none'] }}</button>
+            <span v-else :aria-label="t(`mealPolls.answers.${answerOf(g.id, d) || 'none'}`)">{{ ICONS[answerOf(g.id, d) || 'none'] }}</span>
           </td>
         </tr>
       </tbody>
@@ -46,8 +47,15 @@ import { formatDate } from '../i18n/format'
 
 const props = defineProps({
   poll: { type: Object, required: true },
-  highlightGuestId: { type: Number, default: null }
+  highlightGuestId: { type: Number, default: null },
+  // Les membres de la famille peuvent cocher les cases à la place des invités
+  editable: { type: Boolean, default: false }
 })
+const emit = defineEmits(['vote'])
+
+// Un clic fait défiler : pas de réponse → oui → si besoin → non → pas de réponse
+const CYCLE = [null, 'yes', 'maybe', 'no']
+const nextAnswer = (current) => CYCLE[(CYCLE.indexOf(current || null) + 1) % CYCLE.length]
 
 const { t } = useI18n()
 const ICONS = { yes: '✓', maybe: '~', no: '✗', none: '·' }
@@ -145,6 +153,24 @@ tr.mine .poll-name-col {
 .cell.maybe { color: #b45309; background: rgba(245, 158, 11, 0.12); font-weight: 700; }
 .cell.no { color: #dc2626; background: rgba(239, 68, 68, 0.08); }
 .cell.none { color: var(--text-muted); }
+
+.cell.editable { padding: 0; }
+
+.cell-btn {
+  display: block;
+  width: 100%;
+  min-width: 2.75rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.cell-btn:hover,
+.cell-btn:focus-visible { background: rgba(127, 127, 127, 0.15); }
 
 .poll-grid .best {
   box-shadow: inset 0 -3px 0 #10b981;

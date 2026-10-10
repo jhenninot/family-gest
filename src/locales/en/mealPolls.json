@@ -16,6 +16,8 @@
   "best": "best date: {date}",
   "incomplete": "Add guests and dates to start the vote.",
   "total": "Available",
+  "editVote": "Change {name}'s answer",
+  "editVoteHint": "Tap a cell to answer on a guest's behalf: yes, if needed, no, then clear.",
   "answers": {
     "yes": "Yes",
     "maybe": "If needed",

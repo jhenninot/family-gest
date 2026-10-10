@@ -16,6 +16,8 @@
   "best": "mejor fecha: {date}",
   "incomplete": "Añada invitados y fechas para iniciar la votación.",
   "total": "Disponibles",
+  "editVote": "Cambiar la respuesta de {name}",
+  "editVoteHint": "Toque una casilla para responder en nombre de un invitado: sí, si hace falta, no y luego borrar.",
   "answers": {
     "yes": "Sí",
     "maybe": "Si hace falta",

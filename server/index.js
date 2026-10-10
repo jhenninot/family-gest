@@ -5443,6 +5443,31 @@ app.put('/api/meal-polls/:id', requireAuth, attachFamilyContext, async (req, res
   }
 })
 
+// Un membre de la famille répond à la place d'un invité (clic dans le tableau des résultats) :
+// une seule case à la fois ; answer = null efface la réponse
+app.put('/api/meal-polls/:id/votes', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const poll = await MealPoll.findOne({ familyId: req.family._id, id: Number(req.params.id) })
+    if (!poll) return res.status(404).json({ error: req.t('errors.mealPollNotFound') })
+    if (poll.status !== 'open') return res.status(409).json({ error: req.t('errors.mealPollClosed') })
+    const { guestId, date, answer } = req.body || {}
+    const data = poll.toObject()
+    const guest = data.guests.find(g => g.id === Number(guestId))
+    if (!guest) return res.status(400).json({ error: req.t('errors.mealPollUnknownGuest') })
+    const current = Object.fromEntries(data.votes.filter(v => v.guestId === guest.id).map(v => [v.date, v.answer]))
+    if (answer === null || answer === undefined) delete current[date]
+    else current[date] = answer
+    // Garde le commentaire de l'invité ; la date de réponse reste celle de l'invité s'il a voté
+    const result = applyGuestVote(data, guest.id, current, guest.comment, guest.votedAt || new Date())
+    poll.votes = result.votes
+    poll.guests = result.guests
+    await poll.save()
+    res.json(mealPollJson(poll))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // Défait ce que la clôture avait créé (invités du repas, événement d'agenda)
 const undoMealPollClosing = async (poll) => {
   if (poll.createdGuestIds?.length) await MealGuest.deleteMany({ familyId: poll.familyId, id: { $in: poll.createdGuestIds } })
