@@ -102,6 +102,10 @@
         "reopen": {
           "q": "Changer d'avis",
           "a": "« Rouvrir le vote » annule la date retenue : les invités et l'événement créés sont retirés, et le vote reprend."
+        },
+        "prepare": {
+          "q": "Préparer les courses de la réception",
+          "a": "Dépliez la réception puis « Préparation » : ajoutez les plats et les boissons avec quantité et prix par unité, les totaux se calculent seuls. « Envoyer à la liste commune » ajoute les articles non cochés aux courses de la famille (sans les prix)."
         }
       }
     },

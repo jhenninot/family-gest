@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.13",
+    "date": "2026-10-10",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Réception à organiser : nouvelle section « Préparation » pour lister les plats et les boissons à acheter, avec quantités, prix par unité et totaux, et l'envoyer à la liste de courses commune."
+      ],
+      "en": [
+        "Gathering to organise: new “Preparation” section to list the dishes and drinks to buy, with quantities, unit prices and totals, and send it to the shared shopping list."
+      ],
+      "es": [
+        "Recepción por organizar: nueva sección «Preparación» para anotar los platos y bebidas que comprar, con cantidades, precios por unidad y totales, y enviarla a la lista de la compra común."
+      ]
+    }
+  },
+  {
     "version": "2026.10.12",
     "date": "2026-10-10",
     "minor": [],

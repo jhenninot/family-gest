@@ -35,7 +35,7 @@ import Absence from './models/Absence.js'
 import LongAbsence from './models/LongAbsence.js'
 import MealGuest from './models/MealGuest.js'
 import MealPoll from './models/MealPoll.js'
-import { sanitizeDates, mergeGuests, pruneVotes, applyGuestVote, summarize, guestsForDate, publicView } from './mealPolls/logic.js'
+import { sanitizeDates, mergeGuests, pruneVotes, applyGuestVote, summarize, guestsForDate, publicView, sanitizeItem, itemTotals, MAX_ITEMS } from './mealPolls/logic.js'
 import Meal from './models/Meal.js'
 import PushConfig from './models/PushConfig.js'
 import PushSubscription from './models/PushSubscription.js'
@@ -5388,7 +5388,7 @@ app.delete('/api/meal-guests/:id', requireAuth, attachFamilyContext, async (req,
 
 const mealPollJson = (poll) => {
   const data = poll.toObject ? poll.toObject() : poll
-  return { ...data, summary: summarize(data) }
+  return { ...data, summary: summarize(data), itemTotals: itemTotals(data.items) }
 }
 
 // Champs modifiables par l'organisateur (création et modification)
@@ -5461,6 +5461,98 @@ app.put('/api/meal-polls/:id/votes', requireAuth, attachFamilyContext, async (re
     const result = applyGuestVote(data, guest.id, current, guest.comment, guest.votedAt || new Date())
     poll.votes = result.votes
     poll.guests = result.guests
+    await poll.save()
+    res.json(mealPollJson(poll))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// --- Préparation : liste de courses liée à la réception (plats / boissons, quantités, prix par unité) ---
+// Séparée de la liste commune ; visible et modifiable par tous les membres de la famille.
+
+const findPollForItems = async (req, res) => {
+  const poll = await MealPoll.findOne({ familyId: req.family._id, id: Number(req.params.id) })
+  if (!poll) res.status(404).json({ error: req.t('errors.mealPollNotFound') })
+  return poll
+}
+
+app.post('/api/meal-polls/:id/items', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const poll = await findPollForItems(req, res)
+    if (!poll) return
+    const item = sanitizeItem(req.body)
+    if (!item) return res.status(400).json({ error: req.t('errors.mealPollItemNameRequired') })
+    if (poll.items.length >= MAX_ITEMS) return res.status(400).json({ error: req.t('errors.mealPollItemsLimit') })
+    poll.items.push({ ...item, id: Date.now() + poll.items.length, sentAt: null })
+    await poll.save()
+    res.status(201).json(mealPollJson(poll))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// Envoi à la liste de courses commune (fusion) : les lignes non cochées et pas encore envoyées
+// sont ajoutées ; un article identique non coché déjà dans la liste commune voit sa quantité augmenter.
+app.post('/api/meal-polls/:id/items/send-to-shopping', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const poll = await findPollForItems(req, res)
+    if (!poll) return
+    const category = String(req.body?.category || 'Frais').trim().slice(0, 60) || 'Frais'
+    const pending = poll.items.filter(i => !i.checked && !i.sentAt)
+    const existing = await ShoppingItem.find({ familyId: req.family._id, checked: false })
+    const byName = new Map(existing.map(i => [String(i.name).trim().toLowerCase(), i]))
+    let added = 0
+    let merged = 0
+    let nextId = Date.now()
+    for (const line of pending) {
+      const qty = Math.max(1, Math.round(line.quantity) || 1)
+      const found = byName.get(line.name.trim().toLowerCase())
+      if (found) {
+        found.quantity = (Number(found.quantity) || 1) + qty
+        await found.save()
+        merged++
+      } else {
+        const created = await ShoppingItem.create({
+          familyId: req.family._id,
+          id: nextId++,
+          name: line.name,
+          category: line.section === 'drinks' ? 'Boissons' : category,
+          quantity: qty
+        })
+        byName.set(line.name.trim().toLowerCase(), created)
+        added++
+      }
+      line.sentAt = new Date()
+    }
+    await poll.save()
+    res.json({ poll: mealPollJson(poll), added, merged })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.put('/api/meal-polls/:id/items/:itemId', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const poll = await findPollForItems(req, res)
+    if (!poll) return
+    const index = poll.items.findIndex(i => i.id === Number(req.params.itemId))
+    if (index === -1) return res.status(404).json({ error: req.t('errors.itemNotFound') })
+    const item = sanitizeItem(req.body, poll.items[index].toObject())
+    if (!item) return res.status(400).json({ error: req.t('errors.mealPollItemNameRequired') })
+    poll.items[index] = item
+    await poll.save()
+    res.json(mealPollJson(poll))
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/meal-polls/:id/items/:itemId', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const poll = await findPollForItems(req, res)
+    if (!poll) return
+    poll.items = poll.items.filter(i => i.id !== Number(req.params.itemId))
     await poll.save()
     res.json(mealPollJson(poll))
   } catch (err) {

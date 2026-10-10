@@ -102,6 +102,10 @@
         "reopen": {
           "q": "Cambiar de opinión",
           "a": "«Reabrir la votación» anula la fecha elegida: se quitan los invitados y el evento creados, y la votación continúa."
+        },
+        "prepare": {
+          "q": "Preparar la compra de la recepción",
+          "a": "Despliega la recepción y toca «Preparación»: añade platos y bebidas con cantidad y precio por unidad; los totales se calculan solos. «Enviar a la lista común» añade los artículos sin marcar a la compra de la familia (sin precios)."
         }
       }
     },

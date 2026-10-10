@@ -27,6 +27,20 @@ const mealPollSchema = new mongoose.Schema({
     date: { type: String, required: true },
     answer: { type: String, enum: ['yes', 'maybe', 'no'], required: true }
   }],
+  // Préparation de la réception : liste de courses propre à la réception (plats / boissons),
+  // séparée de la liste commune ; prix par unité
+  items: [{
+    _id: false,
+    id: { type: Number, required: true },
+    section: { type: String, enum: ['dishes', 'drinks'], default: 'dishes' },
+    name: { type: String, required: true, trim: true },
+    quantity: { type: Number, default: 1, min: 0 },
+    unit: { type: String, default: '', trim: true },
+    unitPrice: { type: Number, default: 0, min: 0 },
+    checked: { type: Boolean, default: false },
+    // Renseigné quand la ligne a été envoyée à la liste de courses commune
+    sentAt: { type: Date, default: null }
+  }],
   status: { type: String, enum: ['open', 'closed'], default: 'open' },
   chosenDate: { type: String, default: null },
   // Créés à la clôture, supprimés à la réouverture

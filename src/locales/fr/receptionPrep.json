@@ -1,0 +1,26 @@
+{
+  "title": "Préparation : plats et boissons",
+  "intro": "Listez ce qu'il faut acheter pour cette réception, avec les quantités et le prix par unité. Cette liste est propre à la réception ; vous pouvez l'envoyer à la liste de courses commune.",
+  "sections": {
+    "dishes": "Plats",
+    "drinks": "Boissons"
+  },
+  "quantity": "Quantité",
+  "unit": "Unité",
+  "unitPlaceholder": "kg, bouteille…",
+  "unitPrice": "Prix unitaire",
+  "bought": "Acheté",
+  "total": "Total",
+  "sent": "Envoyé à la liste commune",
+  "empty": {
+    "dishes": "Aucun ingrédient ou plat pour le moment.",
+    "drinks": "Aucune boisson pour le moment."
+  },
+  "namePlaceholder": {
+    "dishes": "ex : Filet de bœuf",
+    "drinks": "ex : Vin rouge"
+  },
+  "send": "Envoyer {n} article à la liste commune | Envoyer {n} articles à la liste commune",
+  "sendHint": "Seuls les articles non cochés et pas encore envoyés sont ajoutés ; un article déjà présent dans la liste commune voit sa quantité augmenter. Les prix restent ici.",
+  "sentNotice": "{added} ajouté(s), {merged} fusionné(s) avec la liste commune."
+}

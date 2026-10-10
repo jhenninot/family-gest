@@ -1,0 +1,26 @@
+{
+  "title": "Preparación: platos y bebidas",
+  "intro": "Anota lo que hay que comprar para esta recepción, con cantidades y precio por unidad. Esta lista es propia de la recepción; puedes enviarla a la lista de la compra común.",
+  "sections": {
+    "dishes": "Platos",
+    "drinks": "Bebidas"
+  },
+  "quantity": "Cantidad",
+  "unit": "Unidad",
+  "unitPlaceholder": "kg, botella…",
+  "unitPrice": "Precio unitario",
+  "bought": "Comprado",
+  "total": "Total",
+  "sent": "Enviado a la lista común",
+  "empty": {
+    "dishes": "Aún no hay ingredientes ni platos.",
+    "drinks": "Aún no hay bebidas."
+  },
+  "namePlaceholder": {
+    "dishes": "p. ej. Solomillo",
+    "drinks": "p. ej. Vino tinto"
+  },
+  "send": "Enviar {n} artículo a la lista común | Enviar {n} artículos a la lista común",
+  "sendHint": "Solo se añaden los artículos sin marcar y aún no enviados; si ya está en la lista común, aumenta su cantidad. Los precios se quedan aquí.",
+  "sentNotice": "{added} añadido(s), {merged} fusionado(s) con la lista común."
+}

@@ -104,3 +104,41 @@ export const publicView = (poll, familyName) => ({
   chosenDate: poll.chosenDate,
   summary: summarize(poll)
 })
+
+// --- Préparation de la réception (liste de courses liée) ---
+
+export const MAX_ITEMS = 300
+export const ITEM_SECTIONS = ['dishes', 'drinks']
+const roundMoney = (n) => Math.round(n * 100) / 100
+
+// Ligne de courses nettoyée ; null si le nom est vide. `previous` : champs conservés en modification.
+export const sanitizeItem = (raw, previous = {}) => {
+  const input = raw && typeof raw === 'object' ? raw : {}
+  const name = cleanText(input.name ?? previous.name, 80)
+  if (!name) return null
+  const num = (value, fallback, max) => {
+    const n = Number(String(value ?? fallback).replace(',', '.'))
+    return Number.isFinite(n) ? Math.min(max, Math.max(0, n)) : fallback
+  }
+  const section = ITEM_SECTIONS.includes(input.section) ? input.section : (previous.section || 'dishes')
+  return {
+    ...previous,
+    section,
+    name,
+    quantity: roundMoney(num(input.quantity, previous.quantity ?? 1, 9999)),
+    unit: cleanText(input.unit ?? previous.unit ?? '', 20),
+    unitPrice: roundMoney(num(input.unitPrice, previous.unitPrice ?? 0, 100000)),
+    checked: input.checked !== undefined ? Boolean(input.checked) : Boolean(previous.checked)
+  }
+}
+
+// Totaux (prix par unité × quantité) par section et général
+export const itemTotals = (items = []) => {
+  const totals = { dishes: 0, drinks: 0, total: 0 }
+  for (const item of items) {
+    const line = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)
+    totals[item.section === 'drinks' ? 'drinks' : 'dishes'] += line
+    totals.total += line
+  }
+  return { dishes: roundMoney(totals.dishes), drinks: roundMoney(totals.drinks), total: roundMoney(totals.total) }
+}

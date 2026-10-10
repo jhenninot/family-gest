@@ -159,5 +159,7 @@
     "rateLimited": "Se ha alcanzado el límite de uso de esta cuenta de Mistral",
     "refused": "Mistral ha rechazado la solicitud, comprueba la clave y el nombre del modelo",
     "invalid": "Respuesta inesperada de Mistral, comprueba el nombre del modelo"
-  }
+  },
+  "mealPollItemNameRequired": "Ponle un nombre al artículo.",
+  "mealPollItemsLimit": "Esta lista está llena (300 artículos como máximo)."
 }

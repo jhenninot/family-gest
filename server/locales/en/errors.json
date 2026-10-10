@@ -159,5 +159,7 @@
     "rateLimited": "This Mistral account's usage limit has been reached",
     "refused": "Mistral refused the request, check the key and the model name",
     "invalid": "Unexpected answer from Mistral, check the model name"
-  }
+  },
+  "mealPollItemNameRequired": "Give the item a name.",
+  "mealPollItemsLimit": "This list is full (300 items maximum)."
 }

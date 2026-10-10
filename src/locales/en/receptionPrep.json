@@ -1,0 +1,26 @@
+{
+  "title": "Preparation: dishes and drinks",
+  "intro": "List what needs to be bought for this gathering, with quantities and unit price. This list belongs to the gathering; you can send it to the shared shopping list.",
+  "sections": {
+    "dishes": "Dishes",
+    "drinks": "Drinks"
+  },
+  "quantity": "Quantity",
+  "unit": "Unit",
+  "unitPlaceholder": "kg, bottle…",
+  "unitPrice": "Unit price",
+  "bought": "Bought",
+  "total": "Total",
+  "sent": "Sent to the shared list",
+  "empty": {
+    "dishes": "No ingredient or dish yet.",
+    "drinks": "No drink yet."
+  },
+  "namePlaceholder": {
+    "dishes": "e.g. Beef fillet",
+    "drinks": "e.g. Red wine"
+  },
+  "send": "Send {n} item to the shared list | Send {n} items to the shared list",
+  "sendHint": "Only unchecked items not yet sent are added; an item already in the shared list gets its quantity increased. Prices stay here.",
+  "sentNotice": "{added} added, {merged} merged with the shared list."
+}

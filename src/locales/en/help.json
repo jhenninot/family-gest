@@ -102,6 +102,10 @@
         "reopen": {
           "q": "Change your mind",
           "a": "“Reopen the vote” cancels the chosen date: the guests and the event created are removed, and voting resumes."
+        },
+        "prepare": {
+          "q": "Prepare the shopping for the gathering",
+          "a": "Open the gathering then “Preparation”: add dishes and drinks with quantity and unit price, totals are computed for you. “Send to the shared list” adds the unchecked items to the family shopping list (without prices)."
         }
       }
     },

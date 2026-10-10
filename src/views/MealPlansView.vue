@@ -67,6 +67,8 @@
         <p v-if="poll.status === 'open' && poll.dates.length && poll.guests.length" class="plans-muted">{{ t('mealPolls.editVoteHint') }}</p>
         <p v-else class="plans-muted">{{ t('mealPolls.incomplete') }}</p>
 
+        <ReceptionPrep :poll="poll" @updated="replacePoll" />
+
         <div class="plan-actions">
           <button type="button" class="btn btn-secondary btn-icon-only" :title="t('common.delete')" :aria-label="t('common.delete')" @click="remove(poll)">
             <Trash2 :size="17" />
@@ -229,6 +231,7 @@ import MealPollGrid from '../components/MealPollGrid.vue'
 import { eventOnDate } from '../utils/events'
 import MultiDatePicker from '../components/MultiDatePicker.vue'
 import EmptyState from '../components/EmptyState.vue'
+import ReceptionPrep from '../components/ReceptionPrep.vue'
 
 const { t } = useI18n()
 const route = useRoute()
