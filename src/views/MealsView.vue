@@ -1862,7 +1862,7 @@ const getMemberFirstName = (id) => {
 /* 7 Days Grid */
 .week-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 0.85rem;
   align-items: stretch;
 }
@@ -2135,10 +2135,12 @@ button.slot-headcount-circle:hover {
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.3;
-  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .dish-actions {
+  flex-shrink: 0;
   display: flex;
   gap: 0.2rem;
   opacity: 0.7;
@@ -2218,12 +2220,15 @@ button.slot-headcount-circle:hover {
 /* Dish Ingredients Badge */
 .dish-ingredients-row {
   margin-top: 0.2rem;
+  min-width: 0;
 }
 
 .dish-ingredients-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  max-width: 100%;
+  box-sizing: border-box;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
@@ -3070,18 +3075,6 @@ body.is-dragging-item .drop-zone.is-drop-target {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-@media (max-width: 1200px) {
-  .week-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 900px) {
-  .week-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 600px) {

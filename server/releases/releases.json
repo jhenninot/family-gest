@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.16",
+    "date": "2026-10-10",
+    "minor": [0],
+    "notes": {
+      "fr": [
+        "Repas : sur tablette, la vue semaine répartit les jours sur plusieurs lignes au lieu de colonnes trop étroites ; les noms de plats restent lisibles et le bouton « Ingrédients » ne déborde plus."
+      ],
+      "en": [
+        "Meals: on tablets, the week view now wraps days onto several rows instead of very narrow columns; dish names stay readable and the “Ingredients” button no longer overflows."
+      ],
+      "es": [
+        "Comidas: en tableta, la vista semanal reparte los días en varias filas en lugar de columnas muy estrechas; los nombres de los platos se leen bien y el botón «Ingredientes» ya no se desborda."
+      ]
+    }
+  },
+  {
     "version": "2026.10.15",
     "date": "2026-10-10",
     "minor": [],
