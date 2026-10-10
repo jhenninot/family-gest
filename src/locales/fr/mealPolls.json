@@ -92,5 +92,11 @@
     "chosen": "déjà retenue pour « {title} » ({slot})",
     "event": "événement « {title} » dans l'agenda",
     "eventAt": "événement « {title} » à {time} dans l'agenda"
+  },
+  "votes": {
+    "show": "Afficher le détail des votes",
+    "hide": "Masquer le détail des votes",
+    "present": "{n} présent | {n} présents",
+    "maybe": "{n} peut-être présent | {n} peut-être présents"
   }
 }

@@ -92,5 +92,11 @@
     "chosen": "already chosen for “{title}” ({slot})",
     "event": "event “{title}” in the calendar",
     "eventAt": "event “{title}” at {time} in the calendar"
+  },
+  "votes": {
+    "show": "Show vote details",
+    "hide": "Hide vote details",
+    "present": "{n} attending | {n} attending",
+    "maybe": "{n} maybe | {n} maybe"
   }
 }

@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.14",
+    "date": "2026-10-10",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Réception à organiser : possibilité de masquer le détail des votes pour n'afficher que le nombre de personnes présentes et potentiellement présentes."
+      ],
+      "en": [
+        "Gathering to organise: the vote details can be hidden to show only the number of people attending and possibly attending."
+      ],
+      "es": [
+        "Recepción por organizar: se puede ocultar el detalle de los votos para mostrar solo el número de personas presentes y posiblemente presentes."
+      ]
+    }
+  },
+  {
     "version": "2026.10.13",
     "date": "2026-10-10",
     "minor": [],

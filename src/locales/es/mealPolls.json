@@ -92,5 +92,11 @@
     "chosen": "ya elegida para «{title}» ({slot})",
     "event": "evento «{title}» en la agenda",
     "eventAt": "evento «{title}» a las {time} en la agenda"
+  },
+  "votes": {
+    "show": "Mostrar el detalle de los votos",
+    "hide": "Ocultar el detalle de los votos",
+    "present": "{n} presente | {n} presentes",
+    "maybe": "{n} quizá presente | {n} quizá presentes"
   }
 }

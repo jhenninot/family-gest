@@ -63,8 +63,21 @@
           </div>
         </div>
 
-        <MealPollGrid v-if="poll.dates.length && poll.guests.length" :poll="poll" :editable="poll.status === 'open'" @vote="(v) => setVote(poll, v)" />
-        <p v-if="poll.status === 'open' && poll.dates.length && poll.guests.length" class="plans-muted">{{ t('mealPolls.editVoteHint') }}</p>
+        <template v-if="poll.dates.length && poll.guests.length">
+          <button type="button" class="btn btn-secondary plan-votes-toggle" :aria-expanded="!isVotesHidden(poll)" @click="toggleVotes(poll)">
+            <component :is="isVotesHidden(poll) ? Eye : EyeOff" :size="16" />
+            {{ isVotesHidden(poll) ? t('mealPolls.votes.show') : t('mealPolls.votes.hide') }}
+          </button>
+          <ul v-if="isVotesHidden(poll)" class="plan-counts">
+            <li v-for="c in countsFor(poll)" :key="c.date">
+              <strong>{{ shortDate(c.date) }}</strong>
+              <span class="plan-count-yes">{{ t('mealPolls.votes.present', { n: c.yes }, c.yes) }}</span>
+              <span class="plan-count-maybe">{{ t('mealPolls.votes.maybe', { n: c.maybe }, c.maybe) }}</span>
+            </li>
+          </ul>
+          <MealPollGrid v-else :poll="poll" :editable="poll.status === 'open'" @vote="(v) => setVote(poll, v)" />
+        </template>
+        <p v-if="poll.status === 'open' && poll.dates.length && poll.guests.length && !isVotesHidden(poll)" class="plans-muted">{{ t('mealPolls.editVoteHint') }}</p>
         <p v-else class="plans-muted">{{ t('mealPolls.incomplete') }}</p>
 
         <ReceptionPrep :poll="poll" @updated="replacePoll" />
@@ -222,7 +235,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Plus, Copy, MessageCircle, Share2, Trash2, Edit3, CalendarCheck, RotateCcw, Users } from '@lucide/vue'
+import { Plus, Copy, MessageCircle, Share2, Trash2, Edit3, CalendarCheck, RotateCcw, Users, Eye, EyeOff } from '@lucide/vue'
 import { useFamilyStore } from '../stores/familyStore'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
@@ -260,6 +273,24 @@ const closingPeople = computed(() => {
   const ids = new Set(closing.value.guestIds)
   return closing.value.poll.guests.filter(g => ids.has(g.id)).reduce((n, g) => n + clampCount(g.count), 0)
 })
+// Grille des votes masquable (mémorisé par appareil) : seuls les nombres de présents et de
+// présents possibles restent affichés (la date retenue seule une fois le repas fixé)
+const HIDDEN_KEY = 'familygest_plan_votes_hidden'
+const readHidden = () => {
+  try { return JSON.parse(localStorage.getItem(HIDDEN_KEY) || '[]') } catch { return [] }
+}
+const hiddenVotes = ref(new Set(readHidden()))
+const isVotesHidden = (poll) => hiddenVotes.value.has(poll.id)
+const toggleVotes = (poll) => {
+  const next = new Set(hiddenVotes.value)
+  if (!next.delete(poll.id)) next.add(poll.id)
+  hiddenVotes.value = next
+  try { localStorage.setItem(HIDDEN_KEY, JSON.stringify([...next])) } catch { /* mémoire seule */ }
+}
+const countsFor = (poll) => {
+  const all = poll.summary?.perDate || []
+  return poll.status === 'closed' && poll.chosenDate ? all.filter(c => c.date === poll.chosenDate) : all
+}
 const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
 const toDate = (d) => new Date(`${d}T00:00:00`)
@@ -604,6 +635,11 @@ const reopen = async (poll) => {
 
 .plan-link-row .btn,
 .plan-share-actions .btn,
+.plan-votes-toggle { align-self: flex-start; }
+.plan-counts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.plan-counts li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.75rem; padding: 0.55rem 0.75rem; border-radius: 10px; background: rgba(128, 128, 128, 0.1); }
+.plan-count-yes { color: #059669; font-weight: 700; }
+.plan-count-maybe { color: #b45309; }
 .plan-actions .btn {
   display: inline-flex;
   align-items: center;
