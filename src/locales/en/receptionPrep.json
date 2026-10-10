@@ -22,5 +22,6 @@
   },
   "send": "Send {n} item to the shared list | Send {n} items to the shared list",
   "sendHint": "Only unchecked items not yet sent are added; an item already in the shared list gets its quantity increased. Prices stay here.",
-  "sentNotice": "{added} added, {merged} merged with the shared list."
+  "sentNotice": "{added} added, {merged} merged with the shared list.",
+  "name": "Item name"
 }

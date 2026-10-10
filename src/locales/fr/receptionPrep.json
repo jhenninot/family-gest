@@ -22,5 +22,6 @@
   },
   "send": "Envoyer {n} article à la liste commune | Envoyer {n} articles à la liste commune",
   "sendHint": "Seuls les articles non cochés et pas encore envoyés sont ajoutés ; un article déjà présent dans la liste commune voit sa quantité augmenter. Les prix restent ici.",
-  "sentNotice": "{added} ajouté(s), {merged} fusionné(s) avec la liste commune."
+  "sentNotice": "{added} ajouté(s), {merged} fusionné(s) avec la liste commune.",
+  "name": "Nom de l'article"
 }

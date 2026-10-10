@@ -29,7 +29,7 @@
         <li v-for="item in sectionItems" :key="item.id" class="prep-line" :class="{ checked: item.checked, sent: item.sentAt }">
           <input type="checkbox" class="prep-check" :checked="item.checked" :aria-label="t('receptionPrep.bought')" @change="patch(item, { checked: $event.target.checked })" />
           <div class="prep-line-main">
-            <span class="prep-name">{{ item.name }}</span>
+            <input type="text" maxlength="80" class="form-input prep-name" :value="item.name" :aria-label="t('receptionPrep.name')" @change="rename(item, $event)" />
             <span v-if="item.sentAt" class="prep-sent">{{ t('receptionPrep.sent') }}</span>
             <div class="prep-fields">
               <label class="prep-field">
@@ -156,6 +156,13 @@ const patch = (item, changes) => run(async () => {
   emit('updated', await call(`/items/${item.id}`, { method: 'PUT', body: JSON.stringify(changes) }))
 })
 
+// Nom vide : on garde l'ancien et on remet l'ancien texte dans le champ
+const rename = (item, event) => {
+  const name = event.target.value.trim()
+  if (!name) { event.target.value = item.name; return }
+  if (name !== item.name) patch(item, { name })
+}
+
 const remove = (item) => run(async () => {
   emit('updated', await call(`/items/${item.id}`, { method: 'DELETE' }))
 })
@@ -184,7 +191,7 @@ const sendToShopping = () => run(async () => {
 .prep-line.checked .prep-name { text-decoration: line-through; opacity: 0.6; }
 .prep-check { margin-top: 0.2rem; width: 1.15rem; height: 1.15rem; }
 .prep-line-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-.prep-name { font-weight: 600; overflow-wrap: anywhere; }
+.prep-name { font-weight: 600; padding: 0.35rem 0.5rem; min-width: 0; }
 .prep-sent { font-size: 0.75rem; opacity: 0.7; }
 .prep-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; }
 .prep-field { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.72rem; opacity: 0.9; min-width: 0; }
