@@ -167,7 +167,7 @@
         },
         "categories": {
           "q": "Changer l'ordre des catégories",
-          "a": "Un administrateur peut créer et réordonner les catégories dans Réglages › Catégories de courses, pour suivre le parcours du magasin."
+          "a": "Tout le monde peut créer, renommer, supprimer et réordonner les catégories depuis la liste de courses : bouton « Catégorie » en haut, crayon et corbeille sur chaque catégorie, appui long sur son en-tête pour la déplacer."
         },
         "move": {
           "q": "Déplacer un article ou changer de catégorie",
@@ -242,7 +242,7 @@
     },
     "settings": {
       "title": "Réglages de la famille",
-      "intro": "La gestion de la famille : membres, invitations, catégories des courses et services connectés.",
+      "intro": "La gestion de la famille : membres, invitations et services connectés.",
       "howto": {
         "invite": {
           "q": "Inviter un membre",
@@ -251,10 +251,6 @@
         "members": {
           "q": "Modifier un membre",
           "a": "Touchez un membre pour changer son rôle, ses droits d'administrateur ou sa présence habituelle."
-        },
-        "categories": {
-          "q": "Organiser les catégories des courses",
-          "a": "« Catégories de courses » : ajoutez des catégories et changez leur ordre pour suivre votre magasin."
         },
         "connectors": {
           "q": "Connecter Alexa, Claude ou Mealie",

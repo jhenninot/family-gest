@@ -27,6 +27,8 @@
     "delete": "Supprimer cette catégorie",
     "deleteTitle": "Supprimer la catégorie",
     "deleteMessage": "Supprimer la catégorie {name} ?",
-    "deleteMoved": "Ses articles seront déplacés dans la catégorie « Non classé »."
+    "deleteMoved": "Ses articles seront déplacés dans la catégorie « Non classé ».",
+    "edit": "Modifier cette catégorie",
+    "holdToMove": "Appui long pour déplacer la catégorie"
   }
 }

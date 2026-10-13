@@ -45,16 +45,17 @@
         {{ t('shopping.toBuy') }}
         <span class="count-pill">{{ pendingItems.length }}</span>
       </h2>
-      <button v-if="store.isFamilyAdmin" type="button" class="btn btn-secondary btn-sm" @click="showAddCategory = !showAddCategory">
+      <button type="button" class="btn btn-secondary btn-sm" @click="toggleCategoryForm">
         <Plus :size="14" /> {{ t('shopping.categories.add') }}
       </button>
       <span class="badge badge-amber" v-if="urgentCount > 0">{{ t('shopping.urgentCount', { n: urgentCount }, urgentCount) }} 🔥</span>
     </div>
 
-    <form v-if="showAddCategory && store.isFamilyAdmin" class="glass-card add-category-form margin-bottom-lg" @submit.prevent="handleAddCategory">
+    <form v-if="showAddCategory" class="glass-card add-category-form margin-bottom-lg" @submit.prevent="handleSaveCategory">
       <input v-model="newCategory.icon" type="text" maxlength="4" class="form-input cat-icon-input" :aria-label="t('shopping.categories.icon')" />
       <input v-model="newCategory.name" type="text" required maxlength="40" class="form-input" :placeholder="t('shopping.categories.namePlaceholder')" />
-      <button type="submit" class="btn btn-primary">{{ t('common.add') }}</button>
+      <button type="submit" class="btn btn-primary">{{ editingCategoryId ? t('common.save') : t('common.add') }}</button>
+      <button v-if="editingCategoryId" type="button" class="btn btn-secondary" @click="closeCategoryForm">{{ t('common.cancel') }}</button>
     </form>
 
     <EmptyState
@@ -70,15 +71,31 @@
         v-for="group in pendingCategoryGroups" 
         :key="group.id"
         class="glass-card category-block drop-zone"
-        :class="{ 'is-drop-target': isCategoryHovered(group.name) }"
+        :class="{ 'is-drop-target': isCategoryHovered(group.name), 'is-cat-source': isCatSource(group), 'is-cat-target': isCatTarget(group) }"
         :data-drop-category="group.name"
+        :data-cat-id="isRealCategory(group) ? group.id : null"
       >
-        <div class="category-header">
+        <div
+          class="category-header"
+          :class="{ 'is-cat-draggable': isRealCategory(group) }"
+          :title="isRealCategory(group) ? t('shopping.categories.holdToMove') : ''"
+          @pointerdown="isRealCategory(group) && startCatDrag($event, group)"
+        >
           <span class="category-icon">{{ group.icon }}</span>
           <span class="category-name">{{ translateValue('shoppingCategory', group.name) }}</span>
           <span class="category-count">{{ group.items.length }}</span>
           <button
-            v-if="store.isFamilyAdmin && !isUnclassified(group.name) && group.id !== group.name"
+            v-if="isRealCategory(group) && !isUnclassified(group.name)"
+            type="button"
+            class="btn-action edit"
+            :title="t('shopping.categories.edit')"
+            :aria-label="t('shopping.categories.edit')"
+            @click="startEditCategory(group)"
+          >
+            <Pencil :size="15" />
+          </button>
+          <button
+            v-if="isRealCategory(group) && !isUnclassified(group.name)"
             type="button"
             class="btn-action delete"
             :title="t('shopping.categories.delete')"
@@ -199,6 +216,14 @@
         :style="{ left: pointerPos.x + 'px', top: pointerPos.y + 'px' }"
       >
         <span class="drag-ghost-title">{{ dragPayload.name }}</span>
+      </div>
+      <div
+        v-if="catDragPayload"
+        class="drag-ghost"
+        :class="{ 'is-touch': catDragPointerType !== 'mouse' }"
+        :style="{ left: catPointerPos.x + 'px', top: catPointerPos.y + 'px' }"
+      >
+        <span class="drag-ghost-title">{{ catDragPayload.icon }} {{ translateValue('shoppingCategory', catDragPayload.name) }}</span>
       </div>
     </Teleport>
 
@@ -444,16 +469,62 @@ const handleAddItem = () => {
 
 const showAddCategory = ref(false)
 const newCategory = ref({ name: '', icon: '🛒' })
+const editingCategoryId = ref(null)
 const isUnclassified = (name) => valueKey(name) === 'non_classe'
+// Les groupes « orphelins » (articles d'une catégorie inconnue) n'ont pas de catégorie à modifier.
+const isRealCategory = (group) => group.id !== group.name && !String(group.id).startsWith('extra-')
 
-const handleAddCategory = async () => {
+const closeCategoryForm = () => {
+  showAddCategory.value = false
+  editingCategoryId.value = null
+  newCategory.value = { name: '', icon: '🛒' }
+}
+
+const toggleCategoryForm = () => {
+  if (showAddCategory.value) closeCategoryForm()
+  else showAddCategory.value = true
+}
+
+const startEditCategory = (group) => {
+  editingCategoryId.value = group.id
+  newCategory.value = { name: group.name, icon: group.icon }
+  showAddCategory.value = true
+}
+
+const handleSaveCategory = async () => {
   const name = newCategory.value.name.trim()
   if (!name) return
-  const res = await store.addShoppingCategory({ name, icon: newCategory.value.icon.trim() || '🛒' })
-  if (res.success) {
-    newCategory.value = { name: '', icon: '🛒' }
-    showAddCategory.value = false
-  }
+  const data = { name, icon: newCategory.value.icon.trim() || '🛒' }
+  const res = editingCategoryId.value
+    ? await store.updateShoppingCategory(editingCategoryId.value, data)
+    : await store.addShoppingCategory(data)
+  if (res.success) closeCategoryForm()
+}
+
+// --- Réordonner les catégories : appui long (ou glisser à la souris) sur l'en-tête ---
+const {
+  dragPayload: catDragPayload,
+  dragPointerType: catDragPointerType,
+  pointerPos: catPointerPos,
+  hoverData: catHoverData,
+  startDrag: startCatDrag
+} = usePointerDrag({
+  dropSelector: '[data-cat-id]',
+  canDrop: (group, data) => Boolean(group) && String(data.catId) !== String(group.id),
+  onDrop: (group, data) => moveCategoryTo(group, data.catId)
+})
+
+const isCatSource = (group) => Boolean(catDragPayload.value) && catDragPayload.value.id === group.id
+const isCatTarget = (group) => Boolean(catHoverData.value) && catHoverData.value.catId === String(group.id)
+
+const moveCategoryTo = async (group, targetId) => {
+  const list = [...availableCategories.value]
+  const from = list.findIndex(c => String(c.id) === String(group.id))
+  const to = list.findIndex(c => String(c.id) === String(targetId))
+  if (from === -1 || to === -1 || from === to) return
+  const [moved] = list.splice(from, 1)
+  list.splice(to, 0, moved)
+  await store.reorderShoppingCategories(list.map((c, i) => ({ id: c.id, rank: i + 1 })))
 }
 
 const confirmDeleteCategory = async (group) => {
@@ -598,6 +669,9 @@ const handleEditSave = () => {
 }
 
 .category-icon { font-size: 1.2rem; }
+.category-header.is-cat-draggable { cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.category-block.is-cat-source { opacity: 0.4; }
+.category-block.is-cat-target { box-shadow: 0 -3px 0 0 var(--accent-primary); }
 .add-category-form { display: flex; gap: 0.5rem; padding: 0.85rem; align-items: center; }
 .cat-icon-input { width: 3.5rem; text-align: center; flex-shrink: 0; }
 

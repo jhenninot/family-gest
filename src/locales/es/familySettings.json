@@ -88,26 +88,6 @@
       "delete": "Error al eliminar la configuración de Mealie"
     }
   },
-  "categories": {
-    "title": "Categorías de la compra",
-    "subtitle": "Personaliza los pasillos de la compra y reordénalos arrastrando y soltando. El número determina el orden en la lista de la compra.",
-    "new": "Nueva categoría",
-    "empty": "No hay categorías configuradas. Haz clic en «+ Nueva categoría» para añadir una.",
-    "dragTitle": "Arrastra para reordenar",
-    "rankTitle": "Orden de visualización",
-    "rank": "Puesto #{n}",
-    "moveUp": "Subir",
-    "moveDown": "Bajar",
-    "edit": "Editar la categoría",
-    "delete": "Eliminar la categoría",
-    "tip": "Consejo: agarra una categoría por su asa ⠿ y arrástrala hacia arriba o hacia abajo para cambiar su orden al instante.",
-    "addTitle": "Añadir una categoría de la compra",
-    "name": "Nombre de la categoría",
-    "namePlaceholder": "p. ej. Carnicería, congelados, ecológico…",
-    "create": "Crear la categoría",
-    "deleteConfirm": "¿Seguro que quieres eliminar la categoría {name}?",
-    "itemsKept": "Se conservarán los artículos de la compra existentes."
-  },
   "iconLabel": "Icono / emoji:",
   "iconHelp": "Elige uno abajo o escribe un emoji:",
   "shortcuts": {

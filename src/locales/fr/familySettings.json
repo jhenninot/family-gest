@@ -88,26 +88,6 @@
       "delete": "Erreur lors de la suppression de la configuration Mealie"
     }
   },
-  "categories": {
-    "title": "Catégories de courses",
-    "subtitle": "Personnalisez les rayons de courses et réorganisez leur ordre d'affichage par simple glisser-déposer. Le rang numérique détermine l'ordre d'apparition dans la liste de courses.",
-    "new": "Nouvelle catégorie",
-    "empty": "Aucune catégorie configurée. Cliquez sur « + Nouvelle catégorie » pour en ajouter.",
-    "dragTitle": "Glisser pour réorganiser l'ordre",
-    "rankTitle": "Rang d'affichage",
-    "rank": "Rang #{n}",
-    "moveUp": "Monter le rang",
-    "moveDown": "Descendre le rang",
-    "edit": "Modifier la catégorie",
-    "delete": "Supprimer la catégorie",
-    "tip": "Astuce : attrapez une catégorie par sa poignée ⠿ et glissez-la vers le haut ou vers le bas pour ajuster immédiatement son rang numérique d'affichage.",
-    "addTitle": "Ajouter une catégorie de courses",
-    "name": "Nom de la catégorie",
-    "namePlaceholder": "ex : Boucherie, surgelés, bio…",
-    "create": "Créer la catégorie",
-    "deleteConfirm": "Voulez-vous vraiment supprimer la catégorie {name} ?",
-    "itemsKept": "Les articles de courses existants seront conservés."
-  },
   "iconLabel": "Icône / emoji :",
   "iconHelp": "Sélectionnez ci-dessous ou saisissez un emoji :",
   "shortcuts": {

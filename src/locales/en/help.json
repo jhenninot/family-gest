@@ -167,7 +167,7 @@
         },
         "categories": {
           "q": "Change the order of the categories",
-          "a": "An administrator can create and reorder categories in Settings › Shopping categories, to follow the route through the shop."
+          "a": "Everyone can create, rename, delete and reorder categories from the shopping list: “Category” button at the top, pencil and bin on each category, press and hold its header to move it."
         },
         "move": {
           "q": "Move an item or change its category",
@@ -242,7 +242,7 @@
     },
     "settings": {
       "title": "Family settings",
-      "intro": "Managing the family: members, invitations, shopping categories and connected services.",
+      "intro": "Managing the family: members, invitations and connected services.",
       "howto": {
         "invite": {
           "q": "Invite a member",
@@ -251,10 +251,6 @@
         "members": {
           "q": "Edit a member",
           "a": "Tap a member to change their role, administrator rights or usual presence."
-        },
-        "categories": {
-          "q": "Organise the shopping categories",
-          "a": "“Shopping categories”: add categories and change their order to match your shop."
         },
         "connectors": {
           "q": "Connect Alexa, Claude or Mealie",

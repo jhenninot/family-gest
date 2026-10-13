@@ -27,6 +27,8 @@
     "delete": "Delete this category",
     "deleteTitle": "Delete the category",
     "deleteMessage": "Delete the category {name}?",
-    "deleteMoved": "Its items will be moved to the \"Unclassified\" category."
+    "deleteMoved": "Its items will be moved to the \"Unclassified\" category.",
+    "edit": "Edit this category",
+    "holdToMove": "Press and hold to move the category"
   }
 }

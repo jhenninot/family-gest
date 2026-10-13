@@ -167,7 +167,7 @@
         },
         "categories": {
           "q": "Cambiar el orden de las categorías",
-          "a": "Un administrador puede crear y reordenar las categorías en Ajustes › Categorías de la compra, para seguir el recorrido de la tienda."
+          "a": "Todos pueden crear, renombrar, eliminar y reordenar las categorías desde la lista de la compra: botón «Categoría» arriba, lápiz y papelera en cada categoría, mantén pulsado su encabezado para moverla."
         },
         "move": {
           "q": "Mover un artículo o cambiar de sección",
@@ -242,7 +242,7 @@
     },
     "settings": {
       "title": "Ajustes de la familia",
-      "intro": "La gestión de la familia: miembros, invitaciones, categorías de la compra y servicios conectados.",
+      "intro": "La gestión de la familia: miembros, invitaciones y servicios conectados.",
       "howto": {
         "invite": {
           "q": "Invitar a un miembro",
@@ -251,10 +251,6 @@
         "members": {
           "q": "Modificar un miembro",
           "a": "Toque un miembro para cambiar su rol, sus derechos de administrador o su presencia habitual."
-        },
-        "categories": {
-          "q": "Organizar los categorías de la compra",
-          "a": "«Categorías de la compra»: añada categorías y cambie su orden para seguir su tienda."
         },
         "connectors": {
           "q": "Conectar Alexa, Claude o Mealie",

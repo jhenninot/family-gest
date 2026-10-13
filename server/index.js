@@ -4553,7 +4553,7 @@ app.get('/api/shopping-categories', requireAuth, attachFamilyContext, async (req
   }
 })
 
-app.post('/api/shopping-categories', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+app.post('/api/shopping-categories', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const maxRank = await ShoppingCategory.findOne({ familyId: req.family._id }).sort({ rank: -1 })
     const cat = new ShoppingCategory({
@@ -4570,7 +4570,7 @@ app.post('/api/shopping-categories', requireAuth, attachFamilyContext, requireFa
   }
 })
 
-app.put('/api/shopping-categories/reorder', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+app.put('/api/shopping-categories/reorder', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const updates = req.body
     await Promise.all(updates.map(({ id, rank }) =>
@@ -4583,7 +4583,7 @@ app.put('/api/shopping-categories/reorder', requireAuth, attachFamilyContext, re
   }
 })
 
-app.put('/api/shopping-categories/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+app.put('/api/shopping-categories/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const cat = await ShoppingCategory.findOne({ id: Number(req.params.id), familyId: req.family._id })
     if (!cat) return res.status(404).json({ error: req.t('errors.categoryNotFound') })
@@ -4601,7 +4601,7 @@ app.put('/api/shopping-categories/:id', requireAuth, attachFamilyContext, requir
 const UNCLASSIFIED_CATEGORY = { name: 'Non classé', icon: '📦' }
 const isUnclassified = (name) => String(name || '').trim().toLowerCase() === UNCLASSIFIED_CATEGORY.name.toLowerCase()
 
-app.delete('/api/shopping-categories/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
+app.delete('/api/shopping-categories/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const familyId = req.family._id
     const cat = await ShoppingCategory.findOne({ id: Number(req.params.id), familyId })

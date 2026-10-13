@@ -27,6 +27,8 @@
     "delete": "Eliminar esta categoría",
     "deleteTitle": "Eliminar la categoría",
     "deleteMessage": "¿Eliminar la categoría {name}?",
-    "deleteMoved": "Sus artículos se moverán a la sección «Sin clasificar»."
+    "deleteMoved": "Sus artículos se moverán a la sección «Sin clasificar».",
+    "edit": "Modificar esta categoría",
+    "holdToMove": "Mantén pulsado para mover la categoría"
   }
 }

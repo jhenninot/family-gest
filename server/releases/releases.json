@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.23",
+    "date": "2026-10-13",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Liste de courses : tous les membres peuvent créer, renommer et supprimer les catégories directement depuis la liste, et les réordonner par un appui long sur l'en-tête d'une catégorie. La gestion des catégories disparaît des réglages de la famille."
+      ],
+      "en": [
+        "Shopping list: every member can create, rename and delete categories right from the list, and reorder them by pressing and holding a category header. Category management is removed from the family settings."
+      ],
+      "es": [
+        "Lista de la compra: todos los miembros pueden crear, renombrar y eliminar categorías desde la lista, y reordenarlas manteniendo pulsado el encabezado de una categoría. La gestión de categorías desaparece de los ajustes de la familia."
+      ]
+    }
+  },
+  {
     "version": "2026.10.22",
     "date": "2026-10-13",
     "minor": [],

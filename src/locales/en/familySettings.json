@@ -88,26 +88,6 @@
       "delete": "Error while removing the Mealie configuration"
     }
   },
-  "categories": {
-    "title": "Shopping categories",
-    "subtitle": "Customise the shopping aisles and reorder them with drag and drop. The number sets the order in which they appear in the shopping list.",
-    "new": "New category",
-    "empty": "No categories set up. Click “+ New category” to add one.",
-    "dragTitle": "Drag to reorder",
-    "rankTitle": "Display order",
-    "rank": "Rank #{n}",
-    "moveUp": "Move up",
-    "moveDown": "Move down",
-    "edit": "Edit the category",
-    "delete": "Delete the category",
-    "tip": "Tip: grab a category by its ⠿ handle and drag it up or down to change its display order immediately.",
-    "addTitle": "Add a shopping category",
-    "name": "Category name",
-    "namePlaceholder": "e.g. Butcher, frozen, organic…",
-    "create": "Create the category",
-    "deleteConfirm": "Do you really want to delete the category {name}?",
-    "itemsKept": "Existing shopping items will be kept."
-  },
   "iconLabel": "Icon / emoji:",
   "iconHelp": "Pick one below or type an emoji:",
   "shortcuts": {
