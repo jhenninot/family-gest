@@ -819,6 +819,24 @@ export const useFamilyStore = defineStore('family', () => {
     }
   }
 
+  // Réordonne (et recatégorise) les articles : `ids` = nouvel ordre complet de la catégorie.
+  const reorderShoppingItems = async (category, ids) => {
+    ids.forEach((id, index) => {
+      const item = shoppingList.value.find(i => i.id === id)
+      if (item) { item.category = category; item.rank = index + 1 }
+    })
+    try {
+      const res = await fetch('/api/shopping/reorder', {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ category, ids })
+      })
+      if (res.ok) shoppingList.value = await res.json()
+    } catch (err) {
+      console.error('Erreur reorderShoppingItems API', err)
+    }
+  }
+
   // --- SHOPPING CATEGORIES ACTIONS ---
   const fetchShoppingCategories = async () => {
     try {
@@ -1348,6 +1366,7 @@ export const useFamilyStore = defineStore('family', () => {
     toggleShoppingItem,
     deleteShoppingItem,
     updateShoppingItem,
+    reorderShoppingItems,
     addShoppingCategory,
     updateShoppingCategory,
     deleteShoppingCategory,

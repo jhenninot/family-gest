@@ -168,6 +168,10 @@
         "categories": {
           "q": "Changer l'ordre des rayons",
           "a": "Un administrateur peut créer et réordonner les rayons dans Réglages › Catégories de courses, pour suivre le parcours du magasin."
+        },
+        "move": {
+          "q": "Déplacer un article ou changer de rayon",
+          "a": "Maintenez un article (ou glissez-le à la souris) pour le déplacer, dans son rayon ou vers un autre rayon, même vide. La liste déroulante de chaque ligne change aussi son rayon directement."
         }
       },
       "voice": {

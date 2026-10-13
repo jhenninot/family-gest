@@ -16,5 +16,8 @@
     "title": "Delete the item",
     "message": "Do you really want to delete “{name}”?",
     "linkedMeal": "This item is planned for the dish:"
-  }
+  },
+  "dropHere": "Drop an item here",
+  "changeCategory": "Change aisle",
+  "dragHandle": "Hold and drag to move"
 }

@@ -161,5 +161,6 @@
     "invalid": "Respuesta inesperada de Mistral, comprueba el nombre del modelo"
   },
   "mealPollItemNameRequired": "Ponle un nombre al artículo.",
-  "mealPollItemsLimit": "Esta lista está llena (300 artículos como máximo)."
+  "mealPollItemsLimit": "Esta lista está llena (300 artículos como máximo).",
+  "invalidRequest": "Solicitud no válida"
 }

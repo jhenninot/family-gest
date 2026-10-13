@@ -116,7 +116,7 @@ const TOPICS = {
   },
   shopping: {
     icon: '🛒',
-    howto: ['add', 'check', 'urgent', 'categories'],
+    howto: ['add', 'check', 'urgent', 'move', 'categories'],
     tips: ['fromMeals', 'live'],
     voice: ['add', 'empty']
   },

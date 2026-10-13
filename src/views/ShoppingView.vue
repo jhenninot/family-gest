@@ -55,11 +55,14 @@
       :text="t('help.empty.shopping.text')"
     />
 
-    <div v-else class="categories-wrapper">
+    <div class="categories-wrapper">
+      <!-- Chaque bloc est une zone de dépôt (data-* lues par usePointerDrag), même vide. -->
       <div 
         v-for="group in pendingCategoryGroups" 
         :key="group.id"
-        class="glass-card category-block"
+        class="glass-card category-block drop-zone"
+        :class="{ 'is-drop-target': isCategoryHovered(group.name) }"
+        :data-drop-category="group.name"
       >
         <div class="category-header">
           <span class="category-icon">{{ group.icon }}</span>
@@ -67,13 +70,19 @@
           <span class="category-count">{{ group.items.length }}</span>
         </div>
 
+        <div v-if="group.items.length === 0" class="category-empty">{{ t('shopping.dropHere') }}</div>
+
         <div class="shopping-list">
           <div 
             v-for="item in group.items" 
             :key="item.id"
-            class="shopping-item-row"
-            :class="{ urgent: item.urgent }"
+            class="shopping-item-row draggable"
+            :class="{ urgent: item.urgent, 'is-drag-source': isDragSource(item), 'is-item-target': isItemHovered(item) }"
+            :data-drop-category="group.name"
+            :data-drop-item="item.id"
+            @pointerdown="startDrag($event, item)"
           >
+            <GripVertical :size="16" class="drag-grip" :title="t('shopping.dragHandle')" />
             <input 
               type="checkbox" 
               :checked="item.checked" 
@@ -94,6 +103,18 @@
             </div>
 
             <div class="item-actions">
+              <select
+                :value="item.category"
+                class="form-select row-cat-select"
+                :title="t('shopping.changeCategory')"
+                :aria-label="t('shopping.changeCategory')"
+                @change="changeCategory(item, $event.target.value)"
+              >
+                <option v-if="!categoryNames.includes(item.category)" :value="item.category">{{ item.category }}</option>
+                <option v-for="cat in availableCategories" :key="cat.id || cat.name" :value="cat.name">
+                  {{ cat.icon }} {{ translateValue('shoppingCategory', cat.name) }}
+                </option>
+              </select>
               <button @click="openEditModal(item)" class="btn-action edit" :title="t('common.edit')">
                 <Pencil :size="15" />
               </button>
@@ -150,6 +171,18 @@
       </div>
     </div>
 
+    <!-- Fantôme suivant le pointeur ; pointer-events:none pour ne pas masquer les zones de dépôt. -->
+    <Teleport to="body">
+      <div
+        v-if="dragPayload"
+        class="drag-ghost"
+        :class="{ 'is-rejected': hoverRejected, 'is-touch': dragPointerType !== 'mouse' }"
+        :style="{ left: pointerPos.x + 'px', top: pointerPos.y + 'px' }"
+      >
+        <span class="drag-ghost-title">{{ dragPayload.name }}</span>
+      </div>
+    </Teleport>
+
     <!-- ===== Modal Édition ===== -->
     <div v-if="editingItem" class="modal-overlay" @click.self="editingItem = null">
       <div class="modal-content">
@@ -202,7 +235,8 @@ import { useFamilyStore } from '../stores/familyStore'
 import { useI18n } from 'vue-i18n'
 import { formatDate } from '../i18n/format'
 import { translateValue } from '../i18n/values'
-import { ShoppingCart, Plus, Trash2, Pencil } from '@lucide/vue'
+import { ShoppingCart, Plus, Trash2, Pencil, GripVertical } from '@lucide/vue'
+import { usePointerDrag } from '../composables/usePointerDrag'
 import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 import InfoTip from '../components/InfoTip.vue'
@@ -291,6 +325,11 @@ const formatMealDate = (meal) => {
   }
 }
 
+// Tri stable : à rang égal, l'ordre du serveur (plus récent d'abord) est conservé.
+const sortedByRank = (items) => [...items].sort((a, b) => (a.rank || 0) - (b.rank || 0))
+
+const categoryNames = computed(() => availableCategories.value.map(c => c.name))
+
 /** Articles à acheter groupés par catégorie, ordonnés par le rang de la catégorie */
 const pendingCategoryGroups = computed(() => {
   const groups = []
@@ -298,16 +337,15 @@ const pendingCategoryGroups = computed(() => {
   const knownNames = cats.map(c => c.name)
 
   for (const cat of cats) {
-    const items = pendingItems.value.filter(i => i.category === cat.name)
-    if (items.length > 0) {
-      groups.push({
-        id: cat.id || cat.name,
-        name: cat.name,
-        icon: cat.icon || '🛒',
-        rank: cat.rank,
-        items
-      })
-    }
+    // Toutes les catégories sont affichées, même vides : elles servent aussi de cible de dépôt.
+    const items = sortedByRank(pendingItems.value.filter(i => i.category === cat.name))
+    groups.push({
+      id: cat.id || cat.name,
+      name: cat.name,
+      icon: cat.icon || '🛒',
+      rank: cat.rank,
+      items
+    })
   }
 
   // Articles de catégories orphelines/inconnues
@@ -325,13 +363,61 @@ const pendingCategoryGroups = computed(() => {
         name,
         icon: '🛒',
         rank: 9999,
-        items
+        items: sortedByRank(items)
       })
     }
   }
 
   return groups
 })
+
+// --- Glisser-déposer (souris + tactile, via Pointer Events) ---
+const {
+  dragPayload,
+  dragPointerType,
+  pointerPos,
+  hoverData,
+  hoverRejected,
+  startDrag
+} = usePointerDrag({
+  dropSelector: '[data-drop-category]',
+  canDrop: (item, data) => Boolean(item) && String(data.dropItem) !== String(item.id),
+  onDrop: (item, data) => moveItem(item, data)
+})
+
+const isDragSource = (item) => Boolean(dragPayload.value) && dragPayload.value.id === item.id
+const isItemHovered = (item) => hoverData.value?.dropItem === String(item.id)
+const isCategoryHovered = (name) => hoverData.value?.dropCategory === name && !hoverData.value?.dropItem
+
+// Place l'article avant ou après la ligne visée (selon la moitié survolée), ou en fin de
+// catégorie quand on dépose sur le bloc lui-même.
+const moveItem = async (item, data) => {
+  const category = data.dropCategory
+  const ids = pendingItems.value
+    .filter(i => i.category === category && i.id !== item.id)
+    .sort((a, b) => (a.rank || 0) - (b.rank || 0))
+    .map(i => i.id)
+  let index = ids.length
+  if (data.dropItem) {
+    const targetId = Number(data.dropItem)
+    index = ids.indexOf(targetId)
+    if (index === -1) index = ids.length
+    else {
+      const el = document.querySelector(`[data-drop-item="${targetId}"]`)
+      if (el) {
+        const r = el.getBoundingClientRect()
+        if (pointerPos.value.y > r.top + r.height / 2) index += 1
+      }
+    }
+  }
+  ids.splice(index, 0, item.id)
+  await store.reorderShoppingItems(category, ids)
+}
+
+const changeCategory = (item, category) => {
+  if (category === item.category) return
+  store.updateShoppingItem(item.id, { category, rank: 0 })
+}
 
 // --- Actions ---
 const handleAddItem = () => {
@@ -507,6 +593,42 @@ const handleEditSave = () => {
   border: 1px solid var(--border-color);
   transition: background var(--transition-fast);
 }
+
+.shopping-item-row.draggable { cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.shopping-item-row.is-drag-source { opacity: 0.4; }
+.shopping-item-row.is-item-target { box-shadow: 0 -3px 0 0 var(--accent-primary); }
+.drag-grip { color: var(--text-muted); flex-shrink: 0; margin-right: -0.35rem; }
+.row-cat-select { width: auto; max-width: 10rem; padding: 0.25rem 0.4rem; font-size: 0.8rem; }
+.category-empty {
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+}
+body.is-dragging-item .drop-zone { box-shadow: inset 0 0 0 1px var(--border-color); }
+body.is-dragging-item .drop-zone.is-drop-target {
+  background: var(--accent-amber-light);
+  box-shadow: inset 0 0 0 2px var(--accent-amber);
+}
+.drag-ghost {
+  position: fixed;
+  z-index: 3000;
+  transform: translate(0.75rem, 0.75rem);
+  pointer-events: none;
+  max-width: 220px;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 2px solid var(--accent-amber);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.drag-ghost.is-touch { transform: translate(-50%, -160%); }
+.drag-ghost.is-rejected { border-color: var(--accent-rose); opacity: 0.75; }
+.drag-ghost-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .shopping-item-row.urgent {
   border-left: 4px solid var(--accent-rose);

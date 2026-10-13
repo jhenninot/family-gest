@@ -8,6 +8,8 @@ const shoppingItemSchema = new mongoose.Schema({
   quantity: { type: Number, default: 1 },
   urgent: { type: Boolean, default: false },
   checked: { type: Boolean, default: false },
+  // Position dans la catégorie (réordonnancement manuel) ; 0 = pas encore placé, donc en tête.
+  rank: { type: Number, default: 0 },
   mealId: { type: Number, default: null, index: true }
 }, { timestamps: true })
 

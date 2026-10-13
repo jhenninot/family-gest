@@ -161,5 +161,6 @@
     "invalid": "Unexpected answer from Mistral, check the model name"
   },
   "mealPollItemNameRequired": "Give the item a name.",
-  "mealPollItemsLimit": "This list is full (300 items maximum)."
+  "mealPollItemsLimit": "This list is full (300 items maximum).",
+  "invalidRequest": "Invalid request"
 }

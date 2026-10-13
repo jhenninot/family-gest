@@ -168,6 +168,10 @@
         "categories": {
           "q": "Cambiar el orden de los pasillos",
           "a": "Un administrador puede crear y reordenar los pasillos en Ajustes › Categorías de la compra, para seguir el recorrido de la tienda."
+        },
+        "move": {
+          "q": "Mover un artículo o cambiar de sección",
+          "a": "Mantén pulsado un artículo (o arrástralo con el ratón) para moverlo dentro de su sección o a otra, incluso vacía. La lista desplegable de cada fila también cambia su sección directamente."
         }
       },
       "voice": {

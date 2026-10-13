@@ -1,5 +1,27 @@
 [
   {
+    "version": "2026.10.18",
+    "date": "2026-10-13",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Courses : on peut réordonner les articles en les faisant glisser (au doigt ou à la souris), y compris vers un autre rayon.",
+        "Courses : une liste déroulante sur chaque article permet de changer son rayon sans passer par « Modifier ».",
+        "Courses : tous les rayons sont affichés, même vides."
+      ],
+      "en": [
+        "Shopping: items can be reordered by dragging them (finger or mouse), including into another aisle.",
+        "Shopping: a drop-down on each item changes its aisle without opening “Edit”.",
+        "Shopping: every aisle is shown, even empty ones."
+      ],
+      "es": [
+        "Compras: los artículos se pueden reordenar arrastrándolos (con el dedo o el ratón), también hacia otra sección.",
+        "Compras: una lista desplegable en cada artículo cambia su sección sin pasar por «Editar».",
+        "Compras: se muestran todas las secciones, incluso las vacías."
+      ]
+    }
+  },
+  {
     "version": "2026.10.17",
     "date": "2026-10-10",
     "minor": [

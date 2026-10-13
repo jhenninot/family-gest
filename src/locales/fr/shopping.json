@@ -16,5 +16,8 @@
     "title": "Supprimer l'article",
     "message": "Voulez-vous vraiment supprimer « {name} » ?",
     "linkedMeal": "Cet article est prévu pour le plat :"
-  }
+  },
+  "dropHere": "Glissez un article ici",
+  "changeCategory": "Changer de rayon",
+  "dragHandle": "Maintenir et glisser pour déplacer"
 }

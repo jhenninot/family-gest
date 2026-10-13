@@ -168,6 +168,10 @@
         "categories": {
           "q": "Change the order of the aisles",
           "a": "An administrator can create and reorder aisles in Settings › Shopping categories, to follow the route through the shop."
+        },
+        "move": {
+          "q": "Move an item or change its aisle",
+          "a": "Press and hold an item (or drag it with the mouse) to move it within its aisle or to another one, even an empty one. The drop-down on each row also changes its aisle directly."
         }
       },
       "voice": {

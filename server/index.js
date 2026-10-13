@@ -4602,7 +4602,7 @@ app.delete('/api/shopping-categories/:id', requireAuth, attachFamilyContext, req
 // === SHOPPING ROUTES ===
 app.get('/api/shopping', requireAuth, attachFamilyContext, async (req, res) => {
   try {
-    const items = await ShoppingItem.find({ familyId: req.family._id }).sort({ createdAt: -1 })
+    const items = await ShoppingItem.find({ familyId: req.family._id }).sort({ rank: 1, createdAt: -1 })
     res.json(items)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -4628,6 +4628,28 @@ app.post('/api/shopping', requireAuth, attachFamilyContext, async (req, res) => 
   }
 })
 
+// Réordonne les articles d'une catégorie (glisser-déposer) : `ids` donne le nouvel ordre
+// complet de la catégorie, les articles venus d'une autre catégorie y sont rattachés.
+app.put('/api/shopping/reorder', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const { category, ids } = req.body || {}
+    if (typeof category !== 'string' || !category || !Array.isArray(ids)) {
+      return res.status(400).json({ error: req.t('errors.invalidRequest') })
+    }
+    const numericIds = ids.map(Number).filter(Number.isFinite)
+    await ShoppingItem.bulkWrite(numericIds.map((id, index) => ({
+      updateOne: {
+        filter: { id, familyId: req.family._id },
+        update: { $set: { category, rank: index + 1 } }
+      }
+    })))
+    const items = await ShoppingItem.find({ familyId: req.family._id }).sort({ rank: 1, createdAt: -1 })
+    res.json(items)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 app.put('/api/shopping/:id/toggle', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const item = await ShoppingItem.findOne({ id: Number(req.params.id), familyId: req.family._id })
@@ -4650,6 +4672,7 @@ app.put('/api/shopping/:id', requireAuth, attachFamilyContext, async (req, res) 
     if (req.body.category !== undefined) item.category = req.body.category
     if (req.body.quantity !== undefined) item.quantity = Number(req.body.quantity)
     if (req.body.urgent !== undefined)   item.urgent   = Boolean(req.body.urgent)
+    if (req.body.rank !== undefined && Number.isFinite(Number(req.body.rank))) item.rank = Number(req.body.rank)
     if (req.body.mealId !== undefined)   item.mealId   = req.body.mealId ? Number(req.body.mealId) : null
 
     await item.save()
