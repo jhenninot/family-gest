@@ -1,5 +1,23 @@
 [
   {
+    "version": "2026.10.21",
+    "date": "2026-10-13",
+    "minor": [
+      0
+    ],
+    "notes": {
+      "fr": [
+        "Liste de courses : le rayon se change désormais sous le nom de l'article, à côté de la quantité, ce qui laisse plus de place au nom sur mobile."
+      ],
+      "en": [
+        "Shopping list: the aisle is now changed below the item name, next to the quantity, leaving more room for the name on mobile."
+      ],
+      "es": [
+        "Lista de la compra: el pasillo se cambia ahora debajo del nombre del artículo, junto a la cantidad, dejando más espacio para el nombre en el móvil."
+      ]
+    }
+  },
+  {
     "version": "2026.10.20",
     "date": "2026-10-13",
     "minor": [

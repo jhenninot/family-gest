@@ -94,6 +94,18 @@
               <span class="item-name">{{ item.name }}</span>
               <div class="item-tags">
                 <span class="qty-tag">{{ t('shopping.qty', { n: item.quantity }) }}</span>
+                <select
+                  :value="item.category"
+                  class="form-select row-cat-select"
+                  :title="t('shopping.changeCategory')"
+                  :aria-label="t('shopping.changeCategory')"
+                  @change="changeCategory(item, $event.target.value)"
+                >
+                  <option v-if="!categoryNames.includes(item.category)" :value="item.category">{{ item.category }}</option>
+                  <option v-for="cat in availableCategories" :key="cat.id || cat.name" :value="cat.name">
+                    {{ cat.icon }} {{ translateValue('shoppingCategory', cat.name) }}
+                  </option>
+                </select>
                 <span v-if="item.urgent" class="badge badge-rose">{{ t('shopping.urgent') }} 🔥</span>
                 <span v-if="getLinkedMeal(item.mealId)" class="badge badge-purple" :title="getMealTooltip(item.mealId)">
                   🍲 {{ getMealName(item.mealId) }}
@@ -103,18 +115,6 @@
             </div>
 
             <div class="item-actions">
-              <select
-                :value="item.category"
-                class="form-select row-cat-select"
-                :title="t('shopping.changeCategory')"
-                :aria-label="t('shopping.changeCategory')"
-                @change="changeCategory(item, $event.target.value)"
-              >
-                <option v-if="!categoryNames.includes(item.category)" :value="item.category">{{ item.category }}</option>
-                <option v-for="cat in availableCategories" :key="cat.id || cat.name" :value="cat.name">
-                  {{ cat.icon }} {{ translateValue('shoppingCategory', cat.name) }}
-                </option>
-              </select>
               <button @click="openEditModal(item)" class="btn-action edit" :title="t('common.edit')">
                 <Pencil :size="15" />
               </button>
@@ -662,7 +662,8 @@ body.is-dragging-item .drop-zone.is-drop-target {
 .item-tags {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
 }
 
 .qty-tag {
