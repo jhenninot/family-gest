@@ -1,5 +1,23 @@
 [
   {
+    "version": "2026.10.20",
+    "date": "2026-10-13",
+    "minor": [
+      0
+    ],
+    "notes": {
+      "fr": [
+        "Rafraîchir la page (ou tirer vers le bas sur mobile) ne renvoie plus au choix de famille : on reste sur la page en cours."
+      ],
+      "en": [
+        "Refreshing the page (or pulling down on mobile) no longer sends you back to the family picker: you stay on the current page."
+      ],
+      "es": [
+        "Actualizar la página (o deslizar hacia abajo en el móvil) ya no lleva a la selección de familia: te quedas en la página actual."
+      ]
+    }
+  },
+  {
     "version": "2026.10.19",
     "date": "2026-10-13",
     "minor": [],

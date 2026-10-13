@@ -255,11 +255,19 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if (familyStore.currentFamily?.slug !== targetSlug) {
-      const ok = await familyStore.fetchCurrentFamily(targetSlug)
-      if (!ok) {
+      // Rafraîchissement de la page : une réponse périmée (autre chargement concurrent) ou un
+      // réseau pas encore prêt ne doivent pas renvoyer au choix de famille. On réessaie, et seul
+      // un refus du serveur (403/404) renvoie au choix.
+      let ok = await familyStore.fetchCurrentFamily(targetSlug)
+      for (let attempt = 0; !ok && !familyStore.familyAccessDenied && attempt < 3; attempt++) {
+        if (familyStore.currentFamily?.slug === targetSlug) { ok = true; break }
+        await new Promise(resolve => setTimeout(resolve, 600))
+        ok = await familyStore.fetchCurrentFamily(targetSlug)
+      }
+      if (!ok && familyStore.familyAccessDenied) {
         return next({ name: 'select-family' })
       }
-      await familyStore.fetchAllData()
+      if (ok) await familyStore.fetchAllData()
     }
 
     // Check family admin permissions if required

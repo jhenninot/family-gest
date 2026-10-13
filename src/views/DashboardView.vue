@@ -788,13 +788,13 @@ const loadDashboardData = async () => {
   if (targetSlug) {
     if (!store.currentFamily || store.currentFamily.slug !== targetSlug) {
       const ok = await store.fetchCurrentFamily(targetSlug)
-      if (!ok) {
+      if (!ok && store.familyAccessDenied) {
         router.push({ name: 'select-family' })
         return
       }
     }
     await store.fetchAllData()
-    if (!store.currentFamily) {
+    if (!store.currentFamily && store.familyAccessDenied) {
       router.push({ name: 'select-family' })
     }
   } else {

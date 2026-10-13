@@ -29,6 +29,9 @@ export const useFamilyStore = defineStore('family', () => {
   // permet à un fetchCurrentFamily/fetchAllData obsolète (réponse arrivée après un changement
   // de famille plus récent) de détecter qu'il est périmé et de ne pas écraser l'état courant.
   let fetchGeneration = 0
+  // Vrai quand le serveur a refusé l'accès à la famille demandée (403/404) : seul cas où l'on doit
+  // renvoyer au choix de famille. Un échec réseau ou une réponse périmée ne prouve rien.
+  const familyAccessDenied = ref(false)
 
   const members = ref([])
   const tasks = ref([])
@@ -115,6 +118,7 @@ export const useFamilyStore = defineStore('family', () => {
 
     const targetSlug = slug || currentFamily.value?.slug || localStorage.getItem('familygest_active_slug')
     if (!targetSlug) return false
+    familyAccessDenied.value = false
 
     try {
       const res = await fetch(`/api/families/${targetSlug}`, {
@@ -140,6 +144,7 @@ export const useFamilyStore = defineStore('family', () => {
         return true
       }
       if (res.status === 403 || res.status === 404) {
+        familyAccessDenied.value = true
         clearFamilyData()
         currentFamily.value = null
         localStorage.removeItem('familygest_active_slug')
@@ -1318,6 +1323,7 @@ export const useFamilyStore = defineStore('family', () => {
     resetStore,
     fetchUserFamilies,
     fetchCurrentFamily,
+    familyAccessDenied,
     switchFamily,
     checkEmailInFamily,
     inviteMember,

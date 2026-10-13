@@ -492,7 +492,9 @@ onMounted(async () => {
   if (authStore.isAuthenticated && !isAuthPage.value) {
     // Prolonger automatiquement la validité de la session de 30 jours à chaque connexion / visite
     await authStore.refreshSession()
-    familyStore.fetchAllData()
+    // Si la famille est encore en cours de chargement par le routeur (rafraîchissement de la page),
+    // ne pas lancer un second chargement qui rendrait le sien obsolète.
+    if (familyStore.currentFamily) familyStore.fetchAllData()
   }
 })
 
