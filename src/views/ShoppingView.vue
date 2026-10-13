@@ -45,8 +45,17 @@
         {{ t('shopping.toBuy') }}
         <span class="count-pill">{{ pendingItems.length }}</span>
       </h2>
+      <button v-if="store.isFamilyAdmin" type="button" class="btn btn-secondary btn-sm" @click="showAddCategory = !showAddCategory">
+        <Plus :size="14" /> {{ t('shopping.categories.add') }}
+      </button>
       <span class="badge badge-amber" v-if="urgentCount > 0">{{ t('shopping.urgentCount', { n: urgentCount }, urgentCount) }} 🔥</span>
     </div>
+
+    <form v-if="showAddCategory && store.isFamilyAdmin" class="glass-card add-category-form margin-bottom-lg" @submit.prevent="handleAddCategory">
+      <input v-model="newCategory.icon" type="text" maxlength="4" class="form-input cat-icon-input" :aria-label="t('shopping.categories.icon')" />
+      <input v-model="newCategory.name" type="text" required maxlength="40" class="form-input" :placeholder="t('shopping.categories.namePlaceholder')" />
+      <button type="submit" class="btn btn-primary">{{ t('common.add') }}</button>
+    </form>
 
     <EmptyState
       v-if="pendingItems.length === 0"
@@ -68,6 +77,16 @@
           <span class="category-icon">{{ group.icon }}</span>
           <span class="category-name">{{ translateValue('shoppingCategory', group.name) }}</span>
           <span class="category-count">{{ group.items.length }}</span>
+          <button
+            v-if="store.isFamilyAdmin && !isUnclassified(group.name) && group.id !== group.name"
+            type="button"
+            class="btn-action delete"
+            :title="t('shopping.categories.delete')"
+            :aria-label="t('shopping.categories.delete')"
+            @click="confirmDeleteCategory(group)"
+          >
+            <Trash2 :size="15" />
+          </button>
         </div>
 
         <div v-if="group.items.length === 0" class="category-empty">{{ t('shopping.dropHere') }}</div>
@@ -234,7 +253,7 @@ import { ref, computed, watch } from 'vue'
 import { useFamilyStore } from '../stores/familyStore'
 import { useI18n } from 'vue-i18n'
 import { formatDate } from '../i18n/format'
-import { translateValue } from '../i18n/values'
+import { translateValue, valueKey } from '../i18n/values'
 import { ShoppingCart, Plus, Trash2, Pencil, GripVertical } from '@lucide/vue'
 import { usePointerDrag } from '../composables/usePointerDrag'
 import { useConfirm } from '../composables/useConfirm'
@@ -423,6 +442,31 @@ const handleAddItem = () => {
   newItem.value = { name: '', category: defaultCat, quantity: 1, urgent: false }
 }
 
+const showAddCategory = ref(false)
+const newCategory = ref({ name: '', icon: '🛒' })
+const isUnclassified = (name) => valueKey(name) === 'non_classe'
+
+const handleAddCategory = async () => {
+  const name = newCategory.value.name.trim()
+  if (!name) return
+  const res = await store.addShoppingCategory({ name, icon: newCategory.value.icon.trim() || '🛒' })
+  if (res.success) {
+    newCategory.value = { name: '', icon: '🛒' }
+    showAddCategory.value = false
+  }
+}
+
+const confirmDeleteCategory = async (group) => {
+  const ok = await confirm({
+    title: t('shopping.categories.deleteTitle'),
+    message: t('shopping.categories.deleteMessage', { name: escapeHtml(translateValue('shoppingCategory', group.name)) }),
+    description: group.items.length > 0 ? t('shopping.categories.deleteMoved') : '',
+    confirmText: t('common.delete'),
+    type: 'danger'
+  })
+  if (ok) await store.deleteShoppingCategory(group.id)
+}
+
 const confirmDelete = async (item) => {
   const meal = getLinkedMeal(item.mealId)
   const ok = await confirm({
@@ -554,6 +598,8 @@ const handleEditSave = () => {
 }
 
 .category-icon { font-size: 1.2rem; }
+.add-category-form { display: flex; gap: 0.5rem; padding: 0.85rem; align-items: center; }
+.cat-icon-input { width: 3.5rem; text-align: center; flex-shrink: 0; }
 
 .category-name {
   font-size: 0.9rem;

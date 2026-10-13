@@ -34,7 +34,8 @@
     "boissons": "Bebidas",
     "maison": "Hogar",
     "autre": "Otros",
-    "surgeles": "Congelados"
+    "surgeles": "Congelados",
+    "non_classe": "Sin clasificar"
   },
   "eventCategory": {
     "fete": "Fiesta",

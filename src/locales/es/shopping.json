@@ -19,5 +19,14 @@
   },
   "dropHere": "Arrastra un artículo aquí",
   "changeCategory": "Cambiar de sección",
-  "dragHandle": "Mantén y arrastra para mover"
+  "dragHandle": "Mantén y arrastra para mover",
+  "categories": {
+    "add": "Sección",
+    "icon": "Icono de la sección",
+    "namePlaceholder": "Nombre de la nueva sección",
+    "delete": "Eliminar esta sección",
+    "deleteTitle": "Eliminar la sección",
+    "deleteMessage": "¿Eliminar la sección {name}?",
+    "deleteMoved": "Sus artículos se moverán a la sección «Sin clasificar»."
+  }
 }

@@ -94,6 +94,7 @@
   "welcomeLinkExpired": "Este enlace de bienvenida no es válido o ha caducado (validez: 2 horas). Pida a un administrador que le vuelva a enviar un email.",
   "welcomeLinkExpiredContact": "Este enlace de bienvenida no es válido o ha caducado (validez: 2 horas). Contacte con un administrador para recibir uno nuevo.",
   "categoryNotFound": "Categoría no encontrada",
+  "categoryUnclassifiedProtected": "La sección «Sin clasificar» no se puede eliminar",
   "adminOnly": "Acción reservada a los usuarios administradores",
   "familyAdminOnly": "Acción reservada a los administradores de esta familia",
   "superAdminOnly": "Acción reservada al Superadministrador de la plataforma",

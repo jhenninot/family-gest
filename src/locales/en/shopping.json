@@ -19,5 +19,14 @@
   },
   "dropHere": "Drop an item here",
   "changeCategory": "Change aisle",
-  "dragHandle": "Hold and drag to move"
+  "dragHandle": "Hold and drag to move",
+  "categories": {
+    "add": "Aisle",
+    "icon": "Aisle icon",
+    "namePlaceholder": "New aisle name",
+    "delete": "Delete this aisle",
+    "deleteTitle": "Delete the aisle",
+    "deleteMessage": "Delete the aisle {name}?",
+    "deleteMoved": "Its items will be moved to the \"Unclassified\" aisle."
+  }
 }

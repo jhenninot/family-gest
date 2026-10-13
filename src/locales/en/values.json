@@ -34,7 +34,8 @@
     "boissons": "Drinks",
     "maison": "Household",
     "autre": "Other",
-    "surgeles": "Frozen"
+    "surgeles": "Frozen",
+    "non_classe": "Unclassified"
   },
   "eventCategory": {
     "fete": "Party",

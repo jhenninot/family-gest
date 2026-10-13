@@ -4597,10 +4597,31 @@ app.put('/api/shopping-categories/:id', requireAuth, attachFamilyContext, requir
   }
 })
 
+// Rayon de repli : les articles d'un rayon supprimé y sont déplacés (valeur stockée en français).
+const UNCLASSIFIED_CATEGORY = { name: 'Non classé', icon: '📦' }
+const isUnclassified = (name) => String(name || '').trim().toLowerCase() === UNCLASSIFIED_CATEGORY.name.toLowerCase()
+
 app.delete('/api/shopping-categories/:id', requireAuth, attachFamilyContext, requireFamilyAdmin, async (req, res) => {
   try {
-    await ShoppingCategory.deleteOne({ id: Number(req.params.id), familyId: req.family._id })
-    res.json({ message: req.t('messages.categoryDeleted') })
+    const familyId = req.family._id
+    const cat = await ShoppingCategory.findOne({ id: Number(req.params.id), familyId })
+    if (!cat) return res.status(404).json({ error: req.t('errors.categoryNotFound') })
+    if (isUnclassified(cat.name)) return res.status(400).json({ error: req.t('errors.categoryUnclassifiedProtected') })
+
+    let fallback = (await ShoppingCategory.find({ familyId })).find(c => isUnclassified(c.name))
+    if (!fallback) {
+      const maxRank = await ShoppingCategory.findOne({ familyId }).sort({ rank: -1 })
+      fallback = await ShoppingCategory.create({
+        familyId,
+        id: Date.now(),
+        name: UNCLASSIFIED_CATEGORY.name,
+        icon: UNCLASSIFIED_CATEGORY.icon,
+        rank: maxRank ? maxRank.rank + 1 : 1
+      })
+    }
+    const moved = await ShoppingItem.updateMany({ familyId, category: cat.name }, { $set: { category: fallback.name } })
+    await ShoppingCategory.deleteOne({ id: cat.id, familyId })
+    res.json({ message: req.t('messages.categoryDeleted'), movedItems: moved.modifiedCount, fallbackCategory: fallback })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

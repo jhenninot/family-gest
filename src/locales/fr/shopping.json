@@ -19,5 +19,14 @@
   },
   "dropHere": "Glissez un article ici",
   "changeCategory": "Changer de rayon",
-  "dragHandle": "Maintenir et glisser pour déplacer"
+  "dragHandle": "Maintenir et glisser pour déplacer",
+  "categories": {
+    "add": "Rayon",
+    "icon": "Icône du rayon",
+    "namePlaceholder": "Nom du nouveau rayon",
+    "delete": "Supprimer ce rayon",
+    "deleteTitle": "Supprimer le rayon",
+    "deleteMessage": "Supprimer le rayon {name} ?",
+    "deleteMoved": "Ses articles seront déplacés dans le rayon « Non classé »."
+  }
 }

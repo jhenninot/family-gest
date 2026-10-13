@@ -902,6 +902,10 @@ export const useFamilyStore = defineStore('family', () => {
       })
       if (res.ok) {
         shoppingCategories.value = shoppingCategories.value.filter(c => c.id !== id)
+        // Les articles du rayon supprimé sont passés en « Non classé » côté serveur : on recharge.
+        const listRes = await fetch('/api/shopping', { headers: getHeaders() })
+        if (listRes.ok) shoppingList.value = await listRes.json()
+        await fetchShoppingCategories()
         return { success: true }
       }
     } catch (err) {

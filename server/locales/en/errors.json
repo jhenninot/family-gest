@@ -94,6 +94,7 @@
   "welcomeLinkExpired": "This welcome link is invalid or has expired (valid for 2 hours). Please ask an administrator to send you a new email.",
   "welcomeLinkExpiredContact": "This welcome link is invalid or has expired (valid for 2 hours). Please contact an administrator to receive a new one.",
   "categoryNotFound": "Category not found",
+  "categoryUnclassifiedProtected": "The \"Unclassified\" aisle cannot be deleted",
   "adminOnly": "Action reserved for administrator users",
   "familyAdminOnly": "Action reserved for the administrators of this family",
   "superAdminOnly": "Action reserved for the platform Super Administrator",

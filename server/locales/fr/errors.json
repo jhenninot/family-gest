@@ -94,6 +94,7 @@
   "welcomeLinkExpired": "Ce lien de bienvenue est invalide ou a expiré (durée de validité : 2 heures). Veuillez demander à un administrateur de vous renvoyer un email.",
   "welcomeLinkExpiredContact": "Ce lien de bienvenue est invalide ou a expiré (durée de validité : 2 heures). Veuillez contacter un administrateur pour en recevoir un nouveau.",
   "categoryNotFound": "Catégorie non trouvée",
+  "categoryUnclassifiedProtected": "Le rayon « Non classé » ne peut pas être supprimé",
   "adminOnly": "Action réservée aux utilisateurs administrateurs",
   "familyAdminOnly": "Action réservée aux administrateurs de cette famille",
   "superAdminOnly": "Action réservée au Super Administrateur de la plateforme",

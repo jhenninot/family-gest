@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.22",
+    "date": "2026-10-13",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Liste de courses : les administrateurs de la famille peuvent ajouter un rayon et supprimer un rayon directement depuis la liste. Les articles d'un rayon supprimé passent dans le rayon « Non classé »."
+      ],
+      "en": [
+        "Shopping list: family admins can add and delete aisles straight from the list. Items of a deleted aisle move to the \"Unclassified\" aisle."
+      ],
+      "es": [
+        "Lista de la compra: los administradores de la familia pueden añadir y eliminar secciones directamente desde la lista. Los artículos de una sección eliminada pasan a «Sin clasificar»."
+      ]
+    }
+  },
+  {
     "version": "2026.10.21",
     "date": "2026-10-13",
     "minor": [

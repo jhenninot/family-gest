@@ -34,7 +34,8 @@
     "boissons": "Boissons",
     "maison": "Maison",
     "autre": "Autre",
-    "surgeles": "Surgelés"
+    "surgeles": "Surgelés",
+    "non_classe": "Non classé"
   },
   "eventCategory": {
     "fete": "Fête",
