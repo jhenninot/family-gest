@@ -389,26 +389,22 @@ const isDragSource = (item) => Boolean(dragPayload.value) && dragPayload.value.i
 const isItemHovered = (item) => hoverData.value?.dropItem === String(item.id)
 const isCategoryHovered = (name) => hoverData.value?.dropCategory === name && !hoverData.value?.dropItem
 
-// Place l'article avant ou après la ligne visée (selon la moitié survolée), ou en fin de
-// catégorie quand on dépose sur le bloc lui-même.
+// Place l'article dans la catégorie visée, à la hauteur où le pointeur a été relâché.
 const moveItem = async (item, data) => {
   const category = data.dropCategory
   const ids = pendingItems.value
     .filter(i => i.category === category && i.id !== item.id)
     .sort((a, b) => (a.rank || 0) - (b.rank || 0))
     .map(i => i.id)
+  // Position d'insertion déduite de la hauteur du pointeur par rapport aux lignes du rayon :
+  // au-dessus de la première ligne (en-tête du rayon, marge) = tout en haut, sous la dernière
+  // = tout en bas. Un dépôt sur le seul bloc ne doit pas systématiquement finir en fin de rayon.
   let index = ids.length
-  if (data.dropItem) {
-    const targetId = Number(data.dropItem)
-    index = ids.indexOf(targetId)
-    if (index === -1) index = ids.length
-    else {
-      const el = document.querySelector(`[data-drop-item="${targetId}"]`)
-      if (el) {
-        const r = el.getBoundingClientRect()
-        if (pointerPos.value.y > r.top + r.height / 2) index += 1
-      }
-    }
+  for (let i = 0; i < ids.length; i++) {
+    const el = document.querySelector(`[data-drop-item="${ids[i]}"]`)
+    if (!el) continue
+    const r = el.getBoundingClientRect()
+    if (pointerPos.value.y < r.top + r.height / 2) { index = i; break }
   }
   ids.splice(index, 0, item.id)
   await store.reorderShoppingItems(category, ids)
