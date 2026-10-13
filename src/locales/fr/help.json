@@ -151,11 +151,11 @@
     },
     "shopping": {
       "title": "Liste de courses",
-      "intro": "Une seule liste pour toute la famille, rangée par rayon et mise à jour en direct.",
+      "intro": "Une seule liste pour toute la famille, rangée par catégorie et mise à jour en direct.",
       "howto": {
         "add": {
           "q": "Ajouter un article",
-          "a": "Tapez le nom dans le champ en haut, choisissez le rayon et la quantité si besoin, puis validez."
+          "a": "Tapez le nom dans le champ en haut, choisissez la catégorie et la quantité si besoin, puis validez."
         },
         "check": {
           "q": "Faire les courses",
@@ -166,12 +166,12 @@
           "a": "Cochez « Urgent » en l'ajoutant (ou en le modifiant) : il est mis en évidence et compté sur le tableau de bord."
         },
         "categories": {
-          "q": "Changer l'ordre des rayons",
-          "a": "Un administrateur peut créer et réordonner les rayons dans Réglages › Catégories de courses, pour suivre le parcours du magasin."
+          "q": "Changer l'ordre des catégories",
+          "a": "Un administrateur peut créer et réordonner les catégories dans Réglages › Catégories de courses, pour suivre le parcours du magasin."
         },
         "move": {
-          "q": "Déplacer un article ou changer de rayon",
-          "a": "Maintenez un article (ou glissez-le à la souris) pour le déplacer, dans son rayon ou vers un autre rayon, même vide. La liste déroulante de chaque ligne change aussi son rayon directement."
+          "q": "Déplacer un article ou changer de catégorie",
+          "a": "Maintenez un article (ou glissez-le à la souris) pour le déplacer, dans sa catégorie ou vers une autre catégorie, même vide. La liste déroulante de chaque ligne change aussi sa catégorie directement."
         }
       },
       "voice": {
@@ -242,7 +242,7 @@
     },
     "settings": {
       "title": "Réglages de la famille",
-      "intro": "La gestion de la famille : membres, invitations, rayons des courses et services connectés.",
+      "intro": "La gestion de la famille : membres, invitations, catégories des courses et services connectés.",
       "howto": {
         "invite": {
           "q": "Inviter un membre",
@@ -253,8 +253,8 @@
           "a": "Touchez un membre pour changer son rôle, ses droits d'administrateur ou sa présence habituelle."
         },
         "categories": {
-          "q": "Organiser les rayons des courses",
-          "a": "« Catégories de courses » : ajoutez des rayons et changez leur ordre pour suivre votre magasin."
+          "q": "Organiser les catégories des courses",
+          "a": "« Catégories de courses » : ajoutez des catégories et changez leur ordre pour suivre votre magasin."
         },
         "connectors": {
           "q": "Connecter Alexa, Claude ou Mealie",

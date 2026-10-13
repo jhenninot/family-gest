@@ -151,11 +151,11 @@
     },
     "shopping": {
       "title": "Shopping list",
-      "intro": "A single list for the whole family, sorted by aisle and updated live.",
+      "intro": "A single list for the whole family, sorted by category and updated live.",
       "howto": {
         "add": {
           "q": "Add an item",
-          "a": "Type the name in the field at the top, choose the aisle and quantity if needed, then confirm."
+          "a": "Type the name in the field at the top, choose the category and quantity if needed, then confirm."
         },
         "check": {
           "q": "Do the shopping",
@@ -166,12 +166,12 @@
           "a": "Tick “Urgent” when adding (or editing) it: it is highlighted and counted on the dashboard."
         },
         "categories": {
-          "q": "Change the order of the aisles",
-          "a": "An administrator can create and reorder aisles in Settings › Shopping categories, to follow the route through the shop."
+          "q": "Change the order of the categories",
+          "a": "An administrator can create and reorder categories in Settings › Shopping categories, to follow the route through the shop."
         },
         "move": {
-          "q": "Move an item or change its aisle",
-          "a": "Press and hold an item (or drag it with the mouse) to move it within its aisle or to another one, even an empty one. The drop-down on each row also changes its aisle directly."
+          "q": "Move an item or change its category",
+          "a": "Press and hold an item (or drag it with the mouse) to move it within its category or to another one, even an empty one. The drop-down on each row also changes its category directly."
         }
       },
       "voice": {
@@ -242,7 +242,7 @@
     },
     "settings": {
       "title": "Family settings",
-      "intro": "Managing the family: members, invitations, shopping aisles and connected services.",
+      "intro": "Managing the family: members, invitations, shopping categories and connected services.",
       "howto": {
         "invite": {
           "q": "Invite a member",
@@ -253,8 +253,8 @@
           "a": "Tap a member to change their role, administrator rights or usual presence."
         },
         "categories": {
-          "q": "Organise the shopping aisles",
-          "a": "“Shopping categories”: add aisles and change their order to match your shop."
+          "q": "Organise the shopping categories",
+          "a": "“Shopping categories”: add categories and change their order to match your shop."
         },
         "connectors": {
           "q": "Connect Alexa, Claude or Mealie",

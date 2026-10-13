@@ -18,15 +18,15 @@
     "linkedMeal": "Este artículo está previsto para el plato:"
   },
   "dropHere": "Arrastra un artículo aquí",
-  "changeCategory": "Cambiar de sección",
+  "changeCategory": "Cambiar de categoría",
   "dragHandle": "Mantén y arrastra para mover",
   "categories": {
-    "add": "Sección",
-    "icon": "Icono de la sección",
-    "namePlaceholder": "Nombre de la nueva sección",
-    "delete": "Eliminar esta sección",
-    "deleteTitle": "Eliminar la sección",
-    "deleteMessage": "¿Eliminar la sección {name}?",
+    "add": "Categoría",
+    "icon": "Icono de la categoría",
+    "namePlaceholder": "Nombre de la nueva categoría",
+    "delete": "Eliminar esta categoría",
+    "deleteTitle": "Eliminar la categoría",
+    "deleteMessage": "¿Eliminar la categoría {name}?",
     "deleteMoved": "Sus artículos se moverán a la sección «Sin clasificar»."
   }
 }

@@ -5,13 +5,13 @@
     "minor": [],
     "notes": {
       "fr": [
-        "Liste de courses : les administrateurs de la famille peuvent ajouter un rayon et supprimer un rayon directement depuis la liste. Les articles d'un rayon supprimé passent dans le rayon « Non classé »."
+        "Liste de courses : les administrateurs de la famille peuvent ajouter et supprimer une catégorie directement depuis la liste. Les articles d'une catégorie supprimée passent dans la catégorie « Non classé »."
       ],
       "en": [
-        "Shopping list: family admins can add and delete aisles straight from the list. Items of a deleted aisle move to the \"Unclassified\" aisle."
+        "Shopping list: family admins can add and delete categories straight from the list. Items of a deleted category move to the \"Unclassified\" category."
       ],
       "es": [
-        "Lista de la compra: los administradores de la familia pueden añadir y eliminar secciones directamente desde la lista. Los artículos de una sección eliminada pasan a «Sin clasificar»."
+        "Lista de la compra: los administradores de la familia pueden añadir y eliminar categorías directamente desde la lista. Los artículos de una categoría eliminada pasan a «Sin clasificar»."
       ]
     }
   },
@@ -23,13 +23,13 @@
     ],
     "notes": {
       "fr": [
-        "Liste de courses : le rayon se change désormais sous le nom de l'article, à côté de la quantité, ce qui laisse plus de place au nom sur mobile."
+        "Liste de courses : la catégorie se change désormais sous le nom de l'article, à côté de la quantité, ce qui laisse plus de place au nom sur mobile."
       ],
       "en": [
-        "Shopping list: the aisle is now changed below the item name, next to the quantity, leaving more room for the name on mobile."
+        "Shopping list: the category is now changed below the item name, next to the quantity, leaving more room for the name on mobile."
       ],
       "es": [
-        "Lista de la compra: el pasillo se cambia ahora debajo del nombre del artículo, junto a la cantidad, dejando más espacio para el nombre en el móvil."
+        "Lista de la compra: la categoría se cambia ahora debajo del nombre del artículo, junto a la cantidad, dejando más espacio para el nombre en el móvil."
       ]
     }
   },

@@ -151,11 +151,11 @@
     },
     "shopping": {
       "title": "Lista de la compra",
-      "intro": "Una sola lista para toda la familia, ordenada por pasillo y actualizada al instante.",
+      "intro": "Una sola lista para toda la familia, ordenada por categoría y actualizada al instante.",
       "howto": {
         "add": {
           "q": "Añadir un artículo",
-          "a": "Escriba el nombre en el campo de arriba, elija el pasillo y la cantidad si hace falta, y valide."
+          "a": "Escriba el nombre en el campo de arriba, elija la categoría y la cantidad si hace falta, y valide."
         },
         "check": {
           "q": "Hacer la compra",
@@ -166,8 +166,8 @@
           "a": "Marque «Urgente» al añadirlo (o al modificarlo): se destaca y se cuenta en el panel."
         },
         "categories": {
-          "q": "Cambiar el orden de los pasillos",
-          "a": "Un administrador puede crear y reordenar los pasillos en Ajustes › Categorías de la compra, para seguir el recorrido de la tienda."
+          "q": "Cambiar el orden de las categorías",
+          "a": "Un administrador puede crear y reordenar las categorías en Ajustes › Categorías de la compra, para seguir el recorrido de la tienda."
         },
         "move": {
           "q": "Mover un artículo o cambiar de sección",
@@ -242,7 +242,7 @@
     },
     "settings": {
       "title": "Ajustes de la familia",
-      "intro": "La gestión de la familia: miembros, invitaciones, pasillos de la compra y servicios conectados.",
+      "intro": "La gestión de la familia: miembros, invitaciones, categorías de la compra y servicios conectados.",
       "howto": {
         "invite": {
           "q": "Invitar a un miembro",
@@ -253,8 +253,8 @@
           "a": "Toque un miembro para cambiar su rol, sus derechos de administrador o su presencia habitual."
         },
         "categories": {
-          "q": "Organizar los pasillos de la compra",
-          "a": "«Categorías de la compra»: añada pasillos y cambie su orden para seguir su tienda."
+          "q": "Organizar los categorías de la compra",
+          "a": "«Categorías de la compra»: añada categorías y cambie su orden para seguir su tienda."
         },
         "connectors": {
           "q": "Conectar Alexa, Claude o Mealie",

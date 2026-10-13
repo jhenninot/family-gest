@@ -18,15 +18,15 @@
     "linkedMeal": "This item is planned for the dish:"
   },
   "dropHere": "Drop an item here",
-  "changeCategory": "Change aisle",
+  "changeCategory": "Change category",
   "dragHandle": "Hold and drag to move",
   "categories": {
-    "add": "Aisle",
-    "icon": "Aisle icon",
-    "namePlaceholder": "New aisle name",
-    "delete": "Delete this aisle",
-    "deleteTitle": "Delete the aisle",
-    "deleteMessage": "Delete the aisle {name}?",
-    "deleteMoved": "Its items will be moved to the \"Unclassified\" aisle."
+    "add": "Category",
+    "icon": "Category icon",
+    "namePlaceholder": "New category name",
+    "delete": "Delete this category",
+    "deleteTitle": "Delete the category",
+    "deleteMessage": "Delete the category {name}?",
+    "deleteMoved": "Its items will be moved to the \"Unclassified\" category."
   }
 }
