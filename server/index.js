@@ -1162,6 +1162,7 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
         notificationPreferences: user.notificationPreferences,
         language: user.language || null,
         usualPresence: user.usualPresence || 'present',
+        lastFamilySlug: user.lastFamilySlug || null,
         families: familiesData
       }
     })
@@ -1212,6 +1213,7 @@ app.get('/api/auth/me', requireAuth, async (req, res) => {
         notificationPreferences: user.notificationPreferences,
         language: user.language || null,
         usualPresence: user.usualPresence || 'present',
+        lastFamilySlug: user.lastFamilySlug || null,
         families: familiesData
       }
     })
@@ -3041,6 +3043,11 @@ app.get('/api/families/:familySlug', requireAuth, attachFamilyContext, async (re
       MealieConfig.exists({ familyId: req.family._id })
     ])
     const isFamilyAdmin = Boolean(req.membership?.isAdmin)
+    // Mémorise la dernière famille ouverte pour arriver dessus à la prochaine connexion
+    if (req.user.lastFamilySlug !== req.family.slug) {
+      User.updateOne({ id: req.user.id }, { $set: { lastFamilySlug: req.family.slug } })
+        .catch(err => console.debug('[Auth] lastFamilySlug :', err.message))
+    }
     res.json({
       family: {
         _id: req.family._id,

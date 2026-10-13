@@ -66,7 +66,9 @@ const userSchema = new mongoose.Schema({
   usualPresence: { type: String, enum: ['present', 'absent'], default: 'present' },
   // Langue choisie par l'utilisateur (interface, emails et notifications). null = pas encore
   // choisie : l'interface suit la langue de l'appareil et le serveur écrit en français.
-  language: { type: String, enum: ['fr', 'en', 'es', null], default: null }
+  language: { type: String, enum: ['fr', 'en', 'es', null], default: null },
+  // Slug de la dernière famille ouverte (tous appareils) : à la connexion, on arrive sur son dashboard.
+  lastFamilySlug: { type: String, default: null }
 }, { timestamps: true })
 
 // Pre-save hook to hash password if modified (Mongoose 8 async hook syntax without callback parameters)

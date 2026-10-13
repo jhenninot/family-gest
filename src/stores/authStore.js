@@ -42,17 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('familygest_token', data.token)
       localStorage.setItem('familygest_user', JSON.stringify(data.user))
 
-      if (!data.user.families || data.user.families.length === 0) {
-        localStorage.removeItem('familygest_active_slug')
-      } else if (data.user.families.length === 1) {
-        localStorage.setItem('familygest_active_slug', data.user.families[0].slug)
-      } else if (data.user.families.length > 1) {
-        const savedSlug = localStorage.getItem('familygest_active_slug')
-        const hasSaved = data.user.families.some(f => f.slug === savedSlug)
-        if (!hasSaved) {
-          localStorage.removeItem('familygest_active_slug')
-        }
-      }
+      restoreActiveFamily(data.user, true)
 
       adoptDeviceLanguage()
       return true
@@ -91,20 +81,25 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Famille sur laquelle arriver : à la connexion (fresh), la dernière famille ouverte sur le
+  // compte, tous appareils confondus ; sinon la mémoire de l'appareil si elle est encore valable.
+  // Repli : la seule famille, ou la première. Sans famille, on efface la mémoire.
+  const restoreActiveFamily = (userData, fresh = false) => {
+    const fams = userData?.families || []
+    const has = (slug) => slug && fams.some(f => f.slug === slug)
+    const local = localStorage.getItem('familygest_active_slug')
+    const server = userData?.lastFamilySlug
+    const slug = (fresh && has(server) && server) || (has(local) && local) || (has(server) && server) || fams[0]?.slug
+    if (slug) localStorage.setItem('familygest_active_slug', slug)
+    else localStorage.removeItem('familygest_active_slug')
+  }
+
   const setAuth = (userData, tokenStr) => {
     token.value = tokenStr
     user.value = userData
     localStorage.setItem('familygest_token', tokenStr)
     localStorage.setItem('familygest_user', JSON.stringify(userData))
-    if (userData.families && userData.families.length > 0) {
-      const savedSlug = localStorage.getItem('familygest_active_slug')
-      const hasSaved = userData.families.some(f => f.slug === savedSlug)
-      if (!hasSaved) {
-        localStorage.setItem('familygest_active_slug', userData.families[0].slug)
-      }
-    } else {
-      localStorage.removeItem('familygest_active_slug')
-    }
+    restoreActiveFamily(userData)
   }
 
   // Compte sans langue choisie (créé avant le multilingue, ou par un administrateur) : on lui
@@ -131,14 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('familygest_token', newToken)
     const ok = await refreshSession()
     if (!ok || !user.value) return false
-    const fams = user.value.families || []
-    if (fams.length === 0) {
-      localStorage.removeItem('familygest_active_slug')
-    } else if (fams.length === 1) {
-      localStorage.setItem('familygest_active_slug', fams[0].slug)
-    } else if (!fams.some(f => f.slug === localStorage.getItem('familygest_active_slug'))) {
-      localStorage.removeItem('familygest_active_slug')
-    }
+    restoreActiveFamily(user.value, true)
     return true
   }
 
@@ -157,6 +145,7 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = data.user
         localStorage.setItem('familygest_token', data.token)
         localStorage.setItem('familygest_user', JSON.stringify(data.user))
+        restoreActiveFamily(data.user)
         adoptDeviceLanguage()
         return true
       } else if (res.status === 401) {

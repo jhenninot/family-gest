@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.19",
+    "date": "2026-10-13",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Connexion : on arrive directement sur le dashboard de la dernière famille utilisée, sur tous vos appareils (super administrateur compris)."
+      ],
+      "en": [
+        "Sign-in: you land straight on the dashboard of the last family you used, on all your devices (super administrators included)."
+      ],
+      "es": [
+        "Inicio de sesión: se llega directamente al panel de la última familia utilizada, en todos los dispositivos (incluidos los superadministradores)."
+      ]
+    }
+  },
+  {
     "version": "2026.10.18",
     "date": "2026-10-13",
     "minor": [],
