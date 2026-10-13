@@ -657,6 +657,15 @@ const handleEditSave = () => {
   gap: 1rem;
 }
 
+/* Tablette et PC : 2 colonnes, ordre ligne par ligne, chaque catégorie reste un bloc entier. */
+@media (min-width: 768px) {
+  .categories-wrapper {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
 .category-block { padding: 1.25rem; }
 
 .category-header {

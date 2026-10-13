@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.24",
+    "date": "2026-10-13",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Liste de courses : sur tablette et ordinateur, les catégories s'affichent sur deux colonnes au lieu de s'étirer sur toute la largeur."
+      ],
+      "en": [
+        "Shopping list: on tablet and desktop, categories are shown in two columns instead of stretching across the full width."
+      ],
+      "es": [
+        "Lista de la compra: en tableta y ordenador, las categorías se muestran en dos columnas en lugar de estirarse a todo lo ancho."
+      ]
+    }
+  },
+  {
     "version": "2026.10.23",
     "date": "2026-10-13",
     "minor": [],
