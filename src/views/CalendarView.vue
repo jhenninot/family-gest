@@ -580,6 +580,11 @@
               <Download :size="16" />
               <span>{{ t('calendar.appleOutlook') }}</span>
             </button>
+
+            <button @click="inviteEvent = justAddedEvent" class="btn-export-full btn-ics-full">
+              <Send :size="16" />
+              <span>{{ t('eventInvite.title') }}</span>
+            </button>
           </div>
         </div>
 
@@ -660,6 +665,10 @@
                     <Download :size="12" />
                     <span>Apple / Outlook (.ics)</span>
                   </button>
+                  <button @click="inviteEvent = ev" class="btn-cal-action btn-cal-ics">
+                    <Send :size="12" />
+                    <span>{{ t('eventInvite.button') }}</span>
+                  </button>
                 </div>
               </div>
               <div class="timeline-click-hint">
@@ -705,6 +714,8 @@
         </div>
       </div>
     </div>
+
+    <EventInviteModal v-if="inviteEvent" :event="inviteEvent" @close="inviteEvent = null" />
   </div>
 </template>
 
@@ -733,6 +744,7 @@ import {
   CalendarPlus,
   CalendarRange,
   Save,
+  Send,
   X,
   Sun,
   Sunset,
@@ -746,6 +758,7 @@ import { useConfirm } from '../composables/useConfirm'
 import { escapeHtml } from '../utils/escapeHtml'
 import UserAvatar from '../components/UserAvatar.vue'
 import InfoTip from '../components/InfoTip.vue'
+import EventInviteModal from '../components/EventInviteModal.vue'
 
 const store = useFamilyStore()
 const authStore = useAuthStore()
@@ -932,6 +945,7 @@ const showEditModal = ref(false)
 const showSuccessExportModal = ref(false)
 const isEditSuccess = ref(false)
 const justAddedEvent = ref(null)
+const inviteEvent = ref(null)
 const editingEventId = ref(null)
 
 const editEventForm = ref({

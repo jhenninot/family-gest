@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.25",
+    "date": "2026-10-15",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Agenda : un nouveau bouton « Inviter » permet d'envoyer l'invitation à un événement aux membres de la famille de votre choix, par notification et e-mail, avec les liens pour l'ajouter à leur agenda."
+      ],
+      "en": [
+        "Calendar: a new “Invite” button sends an event invitation to the family members of your choice, by notification and email, with links to add it to their calendar."
+      ],
+      "es": [
+        "Agenda: un nuevo botón «Invitar» envía la invitación a un evento a los miembros de la familia que elijas, por notificación y correo, con enlaces para añadirlo a su calendario."
+      ]
+    }
+  },
+  {
     "version": "2026.10.24",
     "date": "2026-10-13",
     "minor": [],

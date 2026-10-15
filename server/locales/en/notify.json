@@ -94,7 +94,12 @@
     "pushGoogle": "Google Calendar",
     "pushViewCalendar": "View calendar",
     "pushUpdate": "Update",
-    "whenDays": "from {start} to {end}"
+    "whenDays": "from {start} to {end}",
+    "invitedTitle": "Invitation: {title}",
+    "invitedSubject": "Event invitation: {title}",
+    "invitedHeading": "You are invited to an event",
+    "invitedIntro": "{author} invites you to this family calendar event:",
+    "invitedBy": "Invited by {name}"
   },
   "presence": {
     "title": "Presence confirmed: {member}",

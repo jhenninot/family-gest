@@ -163,5 +163,6 @@
   },
   "mealPollItemNameRequired": "Ponle un nombre al artículo.",
   "mealPollItemsLimit": "Esta lista está llena (300 artículos como máximo).",
-  "invalidRequest": "Solicitud no válida"
+  "invalidRequest": "Solicitud no válida",
+  "inviteNoRecipient": "Ningún miembro a quien invitar."
 }

@@ -615,6 +615,10 @@
                 <Download :size="14" />
                 <span>{{ t('calendarExport.downloadIcs') }}</span>
               </button>
+              <button type="button" class="btn-dash-cal btn-dash-ics" @click="inviteEvent = selectedEvent">
+                <Send :size="14" />
+                <span>{{ t('eventInvite.title') }}</span>
+              </button>
             </div>
 
             <div class="modal-footer event-detail-footer">
@@ -628,11 +632,14 @@
 
       </div>
     </div>
+
+    <EventInviteModal v-if="inviteEvent" :event="inviteEvent" @close="inviteEvent = null" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import EventInviteModal from '../components/EventInviteModal.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import { useFamilyStore } from '../stores/familyStore'
@@ -648,6 +655,7 @@ import {
   MapPin,
   ExternalLink,
   Download,
+  Send,
   Edit3,
   Users,
   Sun,
@@ -718,6 +726,7 @@ const dashboardEvents = computed(() => {
 
 // Détail d'un événement des « Prochains événements » ; « Modifier » ouvre sa fiche dans l'agenda
 const selectedEvent = ref(null)
+const inviteEvent = ref(null)
 
 const eventDetailMembers = computed(() => {
   // Membres concernés, plus la personne « assignée » des anciens événements

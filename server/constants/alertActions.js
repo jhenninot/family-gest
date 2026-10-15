@@ -11,6 +11,8 @@ export const ALERT_ACTIONS = {
   TASK_DUE: { code: 'task.due', label: 'Rappel de tâche à échéance', category: 'taskReminders' },
   EVENT_CREATED: { code: 'event.created', label: 'Nouvel événement', category: 'events' },
   EVENT_UPDATED: { code: 'event.updated', label: 'Événement modifié', category: 'events' },
+  // Invitation envoyée expressément à un membre : transactionnelle (pas de catégorie), toujours envoyée
+  EVENT_INVITED: { code: 'event.invited', label: 'Invitation à un événement' },
   PRESENCE_CREATED: { code: 'absence.presence', label: 'Présence signalée', category: 'presence' },
   ABSENCE_CREATED: { code: 'absence.absence', label: 'Absence signalée', category: 'presence' },
   LONG_ABSENCE_CREATED: { code: 'absence.long', label: 'Absence longue signalée', category: 'presence' },

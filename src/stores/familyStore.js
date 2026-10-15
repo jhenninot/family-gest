@@ -759,6 +759,23 @@ export const useFamilyStore = defineStore('family', () => {
 
 
 
+  // Envoie l'invitation à un événement (push + email) à des membres de la famille
+  const inviteToEvent = async (eventId, userIds) => {
+    try {
+      const res = await fetch(`/api/events/${eventId}/invite`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ userIds })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) return { success: false, error: data.error }
+      return { success: true, invited: data.invited }
+    } catch (err) {
+      console.error('Erreur inviteToEvent API', err)
+      return { success: false, error: err.message }
+    }
+  }
+
   const addShoppingItem = async (itemData) => {
     try {
       const res = await fetch('/api/shopping', {
@@ -1372,6 +1389,7 @@ export const useFamilyStore = defineStore('family', () => {
     refreshAbsences,
     updateEvent,
     deleteEvent,
+    inviteToEvent,
     addShoppingItem,
     toggleShoppingItem,
     deleteShoppingItem,

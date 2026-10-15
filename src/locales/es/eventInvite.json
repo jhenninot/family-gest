@@ -1,0 +1,9 @@
+{
+  "title": "Invitar al evento",
+  "hint": "Los miembros elegidos reciben la invitación como notificación, con enlaces para añadirla a su calendario.",
+  "noMember": "No hay otros miembros en la familia.",
+  "send": "Enviar invitación",
+  "sent": "Invitación enviada a {n} miembro | Invitación enviada a {n} miembros",
+  "failed": "No se pudo enviar la invitación.",
+  "button": "Invitar"
+}

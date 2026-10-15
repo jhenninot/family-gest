@@ -163,5 +163,6 @@
   },
   "mealPollItemNameRequired": "Give the item a name.",
   "mealPollItemsLimit": "This list is full (300 items maximum).",
-  "invalidRequest": "Invalid request"
+  "invalidRequest": "Invalid request",
+  "inviteNoRecipient": "No member to invite."
 }

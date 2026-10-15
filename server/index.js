@@ -4511,6 +4511,88 @@ app.get('/api/events/:id/ics', async (req, res) => {
   }
 })
 
+// POST /api/events/:id/invite { userIds } (Envoie l'invitation à un événement à des membres de la famille)
+// Push + email (avec liens Google Agenda / .ics), toujours envoyés : c'est une invitation expresse.
+app.post('/api/events/:id/invite', requireAuth, attachFamilyContext, async (req, res) => {
+  try {
+    const event = await Event.findOne({ id: Number(req.params.id), familyId: req.family._id })
+    if (!event) return res.status(404).json({ error: req.t('errors.eventNotFound') })
+
+    const requested = Array.isArray(req.body?.userIds) ? req.body.userIds.map(Number).filter(Number.isFinite) : []
+    const members = await FamilyMember.find({ familyId: req.family._id, userId: { $in: requested, $ne: Number(req.user.id) } }).select('userId')
+    const userIds = members.map(m => m.userId)
+    if (userIds.length === 0) return res.status(400).json({ error: req.t('errors.inviteNoRecipient') })
+
+    if (!event.icsToken) {
+      event.icsToken = crypto.randomBytes(24).toString('hex')
+      await event.save()
+    }
+    const emailConfig = await getSmtpConfig()
+    const baseServerUrl = (emailConfig?.serverUrl || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '')
+    const author = (t) => authorLabel(t, req.user)
+    const where = event.location ? ` (${event.location})` : ''
+    const action = ALERT_ACTIONS.EVENT_INVITED.code
+
+    const [push, email] = await Promise.all([
+      sendPushNotification({
+        title: (t) => `📩 ${t('notify.event.invitedTitle', { title: event.title })}`,
+        body: (t) => `${eventWhen(t, event)}${where} • ${t('notify.event.invitedBy', { name: author(t) })}`,
+        url: `/${req.family.slug}/calendar`,
+        actions: (t) => [
+          { action: 'open', title: t('notify.event.pushView') },
+          { action: 'add-google', title: `📅 ${t('notify.event.pushGoogle')}` }
+        ],
+        googleCalendarUrl: (t) => generateServerGoogleCalendarUrl(event, t.lang),
+        familyId: req.family._id,
+        recipientUserIds: userIds,
+        action
+      }),
+      sendNotificationEmail({
+        subject: (t) => `📩 ${t('notify.event.invitedSubject', { title: event.title })}`,
+        title: (t) => t('notify.event.invitedHeading'),
+        badge: '📩',
+        detailsHtml: (t) => `
+          <p style="margin: 0 0 10px 0; font-size: 15px; color: #1e293b;">
+            ${t('notify.event.invitedIntro', { author: `<strong>${escapeHtml(author(t))}</strong>` })}
+          </p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569; line-height: 1.6;">
+            <li><strong>${t('notify.label', { label: t('notify.event.fields.title') })}</strong> ${escapeHtml(event.title)}</li>
+            <li><strong>${t('notify.label', { label: t('notify.event.fields.date') })}</strong> ${escapeHtml(eventWhen(t, event))}</li>
+            ${event.location ? `<li><strong>${t('notify.label', { label: t('notify.event.fields.location') })}</strong> ${escapeHtml(event.location)}</li>` : ''}
+            <li><strong>${t('notify.label', { label: t('notify.event.fields.category') })}</strong> ${escapeHtml(translateValue(t, 'eventCategory', event.category || 'Famille'))}</li>
+          </ul>
+        `,
+        actionUrl: `/${req.family.slug}/calendar`,
+        actionText: (t) => t('notify.event.viewCalendar'),
+        calendarData: (t) => ({
+          googleUrl: generateServerGoogleCalendarUrl(event, t.lang),
+          icsUrl: `${baseServerUrl}/api/events/${event.id}/ics?token=${event.icsToken}&lang=${t.lang}`,
+          icsContent: generateServerIcsContent(event, t.lang),
+          eventTitle: event.title
+        }),
+        familyId: req.family._id,
+        recipientUserIds: userIds,
+        action
+      })
+    ])
+
+    await logAlertEntry({
+      family: req.family,
+      actor: req.user,
+      action,
+      actionLabel: ALERT_ACTIONS.EVENT_INVITED.label,
+      title: event.title,
+      targetType: 'event',
+      targetId: event.id,
+      channels: [toAlertChannelLog('push', push), toAlertChannelLog('email', email)]
+    })
+
+    res.json({ invited: userIds.length, push: push?.count || 0, email: email?.count || 0 })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 app.delete('/api/events/:id', requireAuth, attachFamilyContext, async (req, res) => {
   try {
     const eventId = Number(req.params.id)

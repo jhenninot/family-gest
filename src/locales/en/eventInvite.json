@@ -1,0 +1,9 @@
+{
+  "title": "Invite to the event",
+  "hint": "Selected members receive the invitation as a notification, with links to add it to their calendar.",
+  "noMember": "No other member in the family.",
+  "send": "Send invitation",
+  "sent": "Invitation sent to {n} member | Invitation sent to {n} members",
+  "failed": "Could not send the invitation.",
+  "button": "Invite"
+}
