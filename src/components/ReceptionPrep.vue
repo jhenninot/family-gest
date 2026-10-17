@@ -5,6 +5,9 @@
       <span class="prep-toggle-label">{{ t('receptionPrep.title') }}</span>
       <span v-if="items.length" class="prep-toggle-total">{{ money(poll.itemTotals?.total || 0) }}</span>
     </button>
+    <button v-if="items.length" type="button" class="btn btn-secondary prep-export" :disabled="exporting" @click="exportExcel">
+      <Download :size="16" /> {{ t('receptionPrep.export') }}
+    </button>
 
     <div v-if="open" class="prep-body">
       <p class="prep-muted">{{ t('receptionPrep.intro') }}</p>
@@ -93,7 +96,7 @@
 import { ref, computed, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ShoppingBasket, Plus, Trash2, Send } from '@lucide/vue'
+import { ShoppingBasket, Plus, Trash2, Send, Download } from '@lucide/vue'
 import { useFamilyStore } from '../stores/familyStore'
 import { intlLocale } from '../i18n/format'
 
@@ -108,6 +111,7 @@ const sections = ['dishes', 'drinks']
 const open = ref(false)
 const section = ref('dishes')
 const busy = ref(false)
+const exporting = ref(false)
 const error = ref('')
 const notice = ref('')
 const draft = reactive({ name: '', quantity: 1, unitPrice: '' })
@@ -167,6 +171,62 @@ const remove = (item) => run(async () => {
   emit('updated', await call(`/items/${item.id}`, { method: 'DELETE' }))
 })
 
+// Export .xlsx : un onglet par section (Plats / Boissons), chargé à la demande
+const exportExcel = async () => {
+  exporting.value = true
+  error.value = ''
+  try {
+    const { default: ExcelJS } = await import('exceljs')
+    const wb = new ExcelJS.Workbook()
+    const euro = '#,##0.00 "€"'
+    for (const s of sections) {
+      const ws = wb.addWorksheet(t(`receptionPrep.sections.${s}`))
+      ws.columns = [
+        { header: t('receptionPrep.bought'), key: 'checked', width: 10 },
+        { header: t('receptionPrep.article'), key: 'name', width: 36 },
+        { header: t('receptionPrep.quantity'), key: 'quantity', width: 12 },
+        { header: t('receptionPrep.unit'), key: 'unit', width: 14 },
+        { header: t('receptionPrep.unitPrice'), key: 'unitPrice', width: 16, style: { numFmt: euro } },
+        { header: t('receptionPrep.total'), key: 'total', width: 16, style: { numFmt: euro } }
+      ]
+      ws.getRow(1).font = { bold: true }
+      const list = items.value.filter(i => i.section === s)
+      list.forEach((i, idx) => {
+        const r = idx + 2
+        ws.addRow({
+          checked: i.checked ? '✓' : '',
+          name: i.name,
+          quantity: Number(i.quantity) || 0,
+          unit: i.unit || '',
+          unitPrice: Number(i.unitPrice) || 0,
+          total: { formula: `C${r}*E${r}`, result: (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0) }
+        })
+      })
+      const last = list.length + 1
+      const totalRow = ws.addRow({
+        name: t('receptionPrep.total'),
+        total: { formula: list.length ? `SUM(F2:F${last})` : '0', result: Number(props.poll.itemTotals?.[s]) || 0 }
+      })
+      totalRow.font = { bold: true }
+    }
+    const buffer = await wb.xlsx.writeBuffer()
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const base = (props.poll.title || 'reception').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80) || 'reception'
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${base}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    exporting.value = false
+  }
+}
+
 const sendToShopping = () => run(async () => {
   const { poll, added, merged } = await call('/items/send-to-shopping', { method: 'POST', body: JSON.stringify({}) })
   emit('updated', poll)
@@ -178,6 +238,7 @@ const sendToShopping = () => run(async () => {
 <style scoped>
 .prep { border-top: 1px solid var(--border-color, rgba(128, 128, 128, 0.25)); padding-top: 0.75rem; margin-top: 0.75rem; }
 .prep-toggle { display: flex; align-items: center; gap: 0.5rem; width: 100%; background: none; border: 0; color: inherit; font: inherit; font-weight: 600; padding: 0.35rem 0; cursor: pointer; text-align: left; }
+.prep-export { align-self: flex-start; margin-top: 0.25rem; }
 .prep-toggle-label { flex: 1; }
 .prep-toggle-total { font-variant-numeric: tabular-nums; opacity: 0.85; }
 .prep-body { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; }

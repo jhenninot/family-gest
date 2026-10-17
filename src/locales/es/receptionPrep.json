@@ -23,5 +23,7 @@
   "send": "Enviar {n} artículo a la lista común | Enviar {n} artículos a la lista común",
   "sendHint": "Solo se añaden los artículos sin marcar y aún no enviados; si ya está en la lista común, aumenta su cantidad. Los precios se quedan aquí.",
   "sentNotice": "{added} añadido(s), {merged} fusionado(s) con la lista común.",
-  "name": "Nombre del artículo"
+  "name": "Nombre del artículo",
+  "export": "Exportar a Excel",
+  "article": "Artículo"
 }

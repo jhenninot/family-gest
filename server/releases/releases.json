@@ -1,5 +1,21 @@
 [
   {
+    "version": "2026.10.26",
+    "date": "2026-10-17",
+    "minor": [],
+    "notes": {
+      "fr": [
+        "Réceptions : un bouton « Exporter en Excel » génère un fichier avec un onglet Plats et un onglet Boissons (quantités, prix et totaux)."
+      ],
+      "en": [
+        "Receptions: an “Export to Excel” button creates a file with a Dishes tab and a Drinks tab (quantities, prices and totals)."
+      ],
+      "es": [
+        "Recepciones: un botón «Exportar a Excel» genera un archivo con una pestaña Platos y otra Bebidas (cantidades, precios y totales)."
+      ]
+    }
+  },
+  {
     "version": "2026.10.25",
     "date": "2026-10-15",
     "minor": [],
