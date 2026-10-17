@@ -98,7 +98,7 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ShoppingBasket, Plus, Trash2, Send, Download } from '@lucide/vue'
 import { useFamilyStore } from '../stores/familyStore'
-import { intlLocale } from '../i18n/format'
+import { intlLocale, formatDate } from '../i18n/format'
 
 const props = defineProps({ poll: { type: Object, required: true } })
 const emit = defineEmits(['updated'])
@@ -208,6 +208,31 @@ const exportExcel = async () => {
         total: { formula: list.length ? `SUM(F2:F${last})` : '0', result: Number(props.poll.itemTotals?.[s]) || 0 }
       })
       totalRow.font = { bold: true }
+    }
+    const guests = props.poll.guests || []
+    if (guests.length) {
+      const dates = props.poll.dates || []
+      const ws = wb.addWorksheet(t('receptionPrep.votes'))
+      const dateLabel = (d) => formatDate(new Date(`${d}T00:00:00`), { weekday: 'short', day: 'numeric', month: 'short' })
+      ws.columns = [
+        { header: t('receptionPrep.guest'), width: 28 },
+        { header: t('receptionPrep.people'), width: 12 },
+        ...dates.map(d => ({ header: dateLabel(d), width: 16 })),
+        { header: t('receptionPrep.comment'), width: 36 }
+      ]
+      ws.getRow(1).font = { bold: true }
+      const votes = props.poll.votes || []
+      for (const g of guests) {
+        ws.addRow([
+          g.name,
+          g.count || 1,
+          ...dates.map(d => {
+            const v = votes.find(x => x.guestId === g.id && x.date === d)
+            return t(`mealPolls.answers.${v ? v.answer : 'none'}`)
+          }),
+          g.comment || ''
+        ])
+      }
     }
     const buffer = await wb.xlsx.writeBuffer()
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })

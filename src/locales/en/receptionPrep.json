@@ -25,5 +25,9 @@
   "sentNotice": "{added} added, {merged} merged with the shared list.",
   "name": "Item name",
   "export": "Export to Excel",
-  "article": "Item"
+  "article": "Item",
+  "votes": "Votes",
+  "guest": "Guest",
+  "people": "People",
+  "comment": "Comment"
 }

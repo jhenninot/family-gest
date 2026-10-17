@@ -25,5 +25,9 @@
   "sentNotice": "{added} añadido(s), {merged} fusionado(s) con la lista común.",
   "name": "Nombre del artículo",
   "export": "Exportar a Excel",
-  "article": "Artículo"
+  "article": "Artículo",
+  "votes": "Votos",
+  "guest": "Invitado",
+  "people": "Personas",
+  "comment": "Comentario"
 }

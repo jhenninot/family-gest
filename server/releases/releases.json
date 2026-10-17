@@ -5,13 +5,13 @@
     "minor": [],
     "notes": {
       "fr": [
-        "Réceptions : un bouton « Exporter en Excel » génère un fichier avec un onglet Plats et un onglet Boissons (quantités, prix et totaux)."
+        "Réceptions : un bouton « Exporter en Excel » génère un fichier avec un onglet Plats et un onglet Boissons (quantités, prix et totaux). Un onglet Votes (réponses des invités par date) est ajouté."
       ],
       "en": [
-        "Receptions: an “Export to Excel” button creates a file with a Dishes tab and a Drinks tab (quantities, prices and totals)."
+        "Receptions: an “Export to Excel” button creates a file with a Dishes tab and a Drinks tab (quantities, prices and totals). A Votes tab (guest answers per date) is added."
       ],
       "es": [
-        "Recepciones: un botón «Exportar a Excel» genera un archivo con una pestaña Platos y otra Bebidas (cantidades, precios y totales)."
+        "Recepciones: un botón «Exportar a Excel» genera un archivo con una pestaña Platos y otra Bebidas (cantidades, precios y totales). Se añade una pestaña Votos (respuestas de los invitados por fecha)."
       ]
     }
   },
