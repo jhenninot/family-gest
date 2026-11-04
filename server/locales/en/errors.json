@@ -81,6 +81,8 @@
   "lastSuperAdminDemote": "Cannot remove the rights of the platform's last Super Administrator",
   "familyIdRequired": "Family identifier required",
   "noActiveFamily": "Family not found or no active family",
+  "databaseUnavailable": "The database is temporarily unreachable, please try again in a moment",
+  "internal": "Internal server error",
   "familyContext": "Error while resolving the family context",
   "invalidSubscription": "Invalid subscription data",
   "invalidImport": "Invalid import data (JSON expected)",

@@ -81,6 +81,8 @@
   "lastSuperAdminDemote": "Impossible de retirer les droits du dernier Super Administrateur de la plateforme",
   "familyIdRequired": "Identifiant de famille requis",
   "noActiveFamily": "Famille introuvable ou aucune famille active",
+  "databaseUnavailable": "Base de données momentanément injoignable, réessayez dans un instant",
+  "internal": "Erreur interne du serveur",
   "familyContext": "Erreur lors de la résolution du contexte familial",
   "invalidSubscription": "Données de souscription invalides",
   "invalidImport": "Données d'import invalides (JSON attendu)",

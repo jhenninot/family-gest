@@ -87,6 +87,11 @@ export const flushLogs = async () => {
     await ServerLog.insertMany(batch, { ordered: false })
   } catch (err) {
     original.error('[Logger] Écriture du journal impossible :', err.message)
+    // Base injoignable : on remet le lot en attente (borné) plutôt que de perdre les lignes
+    if (/Mongo(?:Server)?(?:Selection|Network|Topology|PoolCleared)|EAI_AGAIN|ECONNREFUSED|pool .* was cleared|Topology is closed/i.test(`${err.name} ${err.message}`)) {
+      pending = batch.concat(pending).slice(-MEMORY_SIZE)
+      scheduleFlush()
+    }
   }
 }
 
@@ -183,7 +188,7 @@ export const installProcessHandlers = () => {
     setTimeout(() => process.exit(1), 3000).unref()
   })
   mongoose.connection.on('disconnected', () => logger.critical('Connexion à MongoDB perdue', { source: 'database' }))
-  mongoose.connection.on('reconnected', () => logger.warn('Connexion à MongoDB rétablie', { source: 'database' }))
+  mongoose.connection.on('reconnected', () => { logger.warn('Connexion à MongoDB rétablie', { source: 'database' }); scheduleFlush() })
 }
 
 // Requêtes de l'API : erreurs 5xx toujours notées, toutes les autres en debug

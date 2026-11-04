@@ -1,5 +1,23 @@
 [
   {
+    "version": "2026.11.04",
+    "date": "2026-11-04",
+    "minor": [
+      0
+    ],
+    "notes": {
+      "fr": [
+        "Fiabilité : si la base de données est momentanément injoignable, l'application répond proprement (erreur temporaire) au lieu de rester sans réponse, et le journal technique ne perd plus de lignes."
+      ],
+      "en": [
+        "Reliability: if the database is briefly unreachable, the app now answers cleanly (temporary error) instead of hanging, and the technical log no longer loses lines."
+      ],
+      "es": [
+        "Fiabilidad: si la base de datos no está disponible un momento, la aplicación responde correctamente (error temporal) en lugar de quedarse sin respuesta, y el registro técnico ya no pierde líneas."
+      ]
+    }
+  },
+  {
     "version": "2026.10.26",
     "date": "2026-10-17",
     "minor": [],

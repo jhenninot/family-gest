@@ -81,6 +81,8 @@
   "lastSuperAdminDemote": "No se pueden quitar los derechos al último Superadministrador de la plataforma",
   "familyIdRequired": "Identificador de familia obligatorio",
   "noActiveFamily": "Familia no encontrada o ninguna familia activa",
+  "databaseUnavailable": "La base de datos no está disponible temporalmente, inténtelo de nuevo en un momento",
+  "internal": "Error interno del servidor",
   "familyContext": "Error al determinar el contexto familiar",
   "invalidSubscription": "Datos de suscripción no válidos",
   "invalidImport": "Datos de importación no válidos (se esperaba JSON)",

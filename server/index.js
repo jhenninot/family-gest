@@ -9,6 +9,7 @@ import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
 import { connectDB } from './config/db.js'
+import { installAsyncRouteSafety, apiErrorHandler } from './middleware/asyncSafety.js'
 import { seedDatabaseIfEmpty } from './seed.js'
 import { requireAuth, requireAdmin, requireSuperAdmin, generateToken } from './middleware/auth.js'
 import { createAttachFamilyContext, requireFamilyAdmin } from './middleware/familyContext.js'
@@ -116,6 +117,9 @@ const jsonOptions = {
 const defaultJsonParser = express.json(jsonOptions)
 const bugReportJsonParser = express.json({ ...jsonOptions, limit: '17mb' })
 app.use((req, res, next) => (req.path === '/api/bug-reports' ? bugReportJsonParser : defaultJsonParser)(req, res, next))
+
+// Les erreurs des gestionnaires async (ex. base injoignable) sont renvoyées à apiErrorHandler
+installAsyncRouteSafety()
 
 // Langue des réponses (req.t) : voir server/i18n/index.js
 app.use(languageMiddleware)
@@ -6924,6 +6928,9 @@ if (fs.existsSync(distPath)) {
     res.sendFile(path.join(distPath, 'index.html'))
   })
 }
+
+// Erreurs non rattrapées des routes : réponse JSON (503 si la base est injoignable)
+app.use(apiErrorHandler)
 
 // Start server
 const startServer = async () => {
